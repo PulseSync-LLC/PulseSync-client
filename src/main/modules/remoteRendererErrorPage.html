@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="__LANG__">
+    <head>
+        <meta charset="utf-8" />
+        <meta
+            http-equiv="Content-Security-Policy"
+            content="default-src 'none'; style-src 'unsafe-inline'; img-src 'self' data:; base-uri 'none'; frame-ancestors 'none'"
+        />
+        <title>PulseSync</title>
+        <style>
+            :root {
+                color-scheme: dark;
+                --background: #16181e;
+                --surface: #202430;
+                --surface-soft: #252a37;
+                --border: #3d445b;
+                --text: #e4e5ea;
+                --muted: #b3c2ef;
+                --accent: #3150ee;
+                --error: #eb746d;
+            }
+
+            * {
+                box-sizing: border-box;
+            }
+
+            html,
+            body {
+                width: 100%;
+                height: 100%;
+                margin: 0;
+                overflow: hidden;
+                background: var(--background);
+                color: var(--text);
+                font-family:
+                    Nunito,
+                    "Segoe UI",
+                    system-ui,
+                    -apple-system,
+                    BlinkMacSystemFont,
+                    sans-serif;
+                user-select: none;
+            }
+
+            body {
+                display: grid;
+                place-items: center;
+                -webkit-app-region: drag;
+            }
+
+            .panel {
+                position: relative;
+                z-index: 1;
+                width: min(520px, calc(100vw - 48px));
+                padding: 34px 36px 32px;
+                border: 1px solid var(--border);
+                border-radius: 12px;
+                background: var(--surface);
+                box-shadow: 0 18px 44px rgba(0, 0, 0, 0.32);
+            }
+
+            .logo {
+                display: grid;
+                width: 58px;
+                height: 58px;
+                margin-bottom: 22px;
+                place-items: center;
+                border-radius: 14px;
+                background: var(--accent);
+            }
+
+            .logo svg {
+                width: 34px;
+                height: 34px;
+            }
+
+            h1 {
+                margin: 0 0 10px;
+                color: #ffffff;
+                font-size: 24px;
+                font-weight: 800;
+                letter-spacing: 0;
+            }
+
+            p {
+                max-width: 390px;
+                margin: 0;
+                color: var(--muted);
+                font-size: 15px;
+                font-weight: 600;
+                line-height: 1.48;
+            }
+
+            .message {
+                margin-top: 22px;
+                padding: 13px 14px;
+                border: 1px solid rgba(235, 116, 109, 0.24);
+                border-radius: 10px;
+                background: rgba(12, 14, 20, 0.6);
+                color: #ffb4ae;
+                font-family: "Cascadia Mono", "JetBrains Mono", Consolas, monospace;
+                font-size: 12px;
+                line-height: 1.45;
+                overflow-wrap: anywhere;
+                -webkit-app-region: no-drag;
+            }
+
+            .status {
+                display: flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 18px;
+                color: rgba(228, 229, 234, 0.72);
+                font-size: 12px;
+                font-weight: 800;
+                letter-spacing: 0.02em;
+                text-transform: uppercase;
+            }
+
+            .status::before {
+                width: 8px;
+                height: 8px;
+                border-radius: 99px;
+                background: var(--error);
+                box-shadow: 0 0 0 5px rgba(235, 116, 109, 0.12);
+                content: "";
+            }
+        </style>
+    </head>
+    <body>
+        <main class="panel" role="alert" aria-live="assertive">
+            <div class="logo" aria-hidden="true">
+                <svg viewBox="0 0 256 256" fill="none" xmlns="http://www.w3.org/2000/svg">
+                    <path
+                        d="M190.143 160.09H143.236C136.135 160.09 130.379 165.846 130.379 172.947V190.09C130.379 197.191 136.135 202.947 143.236 202.947H190.143C197.244 202.947 203 197.191 203 190.09V172.947C203 165.846 197.244 160.09 190.143 160.09Z"
+                        fill="#ffffff"
+                    />
+                    <path
+                        d="M53 65.8571C53 58.7561 58.7561 53 65.8571 53H190.143C197.244 53 203 58.7561 203 65.8571V136.571C203 143.672 197.244 149.429 190.143 149.429H132.524C125.423 149.429 119.667 155.185 119.667 162.286V190.143C119.667 197.244 113.91 203 106.81 203H65.8571C58.7561 203 53 197.244 53 190.143V119.429C53 112.328 58.7561 106.571 65.8571 106.571H130.976C133.935 106.571 136.333 104.173 136.333 101.214C136.333 98.2554 133.935 95.8571 130.976 95.8571H65.8571C58.7561 95.8571 53 90.101 53 83V65.8571Z"
+                        fill="#ffffff"
+                    />
+                </svg>
+            </div>
+            <h1>__TITLE__</h1>
+            <p>__DESCRIPTION__</p>
+            <div class="message">__ERROR_MESSAGE__</div>
+            <div class="status">__STATUS__</div>
+        </main>
+    </body>
+</html>

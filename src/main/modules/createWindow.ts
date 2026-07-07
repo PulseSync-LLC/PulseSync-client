@@ -13,6 +13,7 @@ import { fileURLToPath } from 'node:url'
 import { importPextFile, isPextFilePath } from './pextImporter'
 import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
 import config from '@common/appConfig'
+import remoteRendererErrorPageHtml from './remoteRendererErrorPage.html?raw'
 import {
     buildRemoteRendererContentSecurityPolicy,
     getRemoteRendererUrlPattern,
@@ -87,32 +88,40 @@ const escapeHtml = (value: string): string =>
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;')
 
-const loadRemoteRendererErrorPage = async (window: BrowserWindow, error: unknown): Promise<void> => {
-    const message = error instanceof Error ? error.message : String(error || 'Remote renderer failed')
-    const html = `<!doctype html>
-<html>
-<head>
-<meta charset="utf-8">
-<meta http-equiv="Content-Security-Policy" content="default-src 'none'; style-src 'unsafe-inline'">
-<title>PulseSync remote renderer blocked</title>
-<style>
-body{margin:0;min-height:100vh;background:#16181e;color:#f4f6fb;font-family:system-ui,-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;display:grid;place-items:center}
-main{max-width:560px;padding:32px}
-h1{font-size:24px;margin:0 0 12px}
-p{line-height:1.5;color:#c7cedd}
-code{display:block;margin-top:16px;padding:12px;border-radius:8px;background:#0e1015;color:#ffb4b4;white-space:pre-wrap}
-</style>
-</head>
-<body>
-<main>
-<h1>Remote renderer blocked</h1>
-<p>PulseSync could not load the configured remote renderer. Bundled renderer loading is intentionally disabled while remote mode is active.</p>
-<code>${escapeHtml(message)}</code>
-</main>
-</body>
-</html>`
+const getRemoteRendererErrorCopy = (): { description: string; lang: 'en' | 'ru'; status: string; title: string } => {
+    const isRussian = app.getLocale().toLowerCase().startsWith('ru')
 
-    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(html)}`)
+    if (isRussian) {
+        return {
+            lang: 'ru',
+            title: 'Не удалось загрузить PulseSync',
+            description: 'Клиент не смог открыть удаленный интерфейс. Проверьте подключение и запустите приложение еще раз.',
+            status: 'Интерфейс недоступен',
+        }
+    }
+
+    return {
+        lang: 'en',
+        title: 'PulseSync could not load',
+        description: 'The client could not open the remote interface. Check your connection and start the app again.',
+        status: 'Renderer unavailable',
+    }
+}
+
+const renderRemoteRendererErrorPage = (error: unknown): string => {
+    const message = error instanceof Error ? error.message : String(error || 'Remote renderer failed')
+    const copy = getRemoteRendererErrorCopy()
+
+    return remoteRendererErrorPageHtml
+        .replace(/__LANG__/g, copy.lang)
+        .replace(/__TITLE__/g, escapeHtml(copy.title))
+        .replace(/__DESCRIPTION__/g, escapeHtml(copy.description))
+        .replace(/__STATUS__/g, escapeHtml(copy.status))
+        .replace(/__ERROR_MESSAGE__/g, escapeHtml(message))
+}
+
+const loadRemoteRendererErrorPage = async (window: BrowserWindow, error: unknown): Promise<void> => {
+    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderRemoteRendererErrorPage(error))}`)
 }
 
 const getMainWindowPreloadPath = (): string => {
