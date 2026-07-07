@@ -1,9 +1,10 @@
 export const staticAsset = (assetPath: string): string => {
     const normalized = assetPath.replace(/^\/+/, '')
     const assetPathNormalized = normalized.startsWith('assets/') ? normalized : `assets/${normalized}`
-    if (import.meta.env.DEV) {
+    if (import.meta.env.DEV || window.location.protocol === 'http:' || window.location.protocol === 'https:') {
         const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`
-        return `${base}${assetPathNormalized}`
+        const assetBase = base.replace(/versions\/[^/]+\/?$/u, '')
+        return `${assetBase}${assetPathNormalized}`
     }
     const url = new URL(window.location.href)
     url.hash = ''
