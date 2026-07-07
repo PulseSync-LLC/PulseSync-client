@@ -7,7 +7,6 @@ import Preloader from '@widgets/preloader'
 import userContext from '@entities/user/model/context'
 import toast from '@shared/ui/toast'
 import * as pageStyles from '@widgets/layout/layout.module.scss'
-import { isDevmark } from '@common/appConfig'
 import TooltipButton from '@shared/ui/tooltip_button'
 import { useModalContext } from '@app/providers/modal'
 import { staticAsset } from '@shared/lib/staticAssets'
@@ -78,6 +77,8 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     if (!modInfoFetched) {
         return <Preloader />
     }
+
+    const isDevmark = app.info.devmark
 
     return (
         <HelmetProvider>

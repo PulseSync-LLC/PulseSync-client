@@ -18,6 +18,7 @@ export interface Settings {
 export interface Info {
     version: string
     branch: string
+    devmark: boolean
 }
 export interface Mod {
     musicVersion: string
