@@ -1,8 +1,26 @@
 import { defineConfig } from 'vite'
 import path from 'path'
+import fs from 'fs'
+import { execSync } from 'child_process'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
+const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
+    version: string
+    buildInfo?: { BRANCH?: string }
+}
+
+function resolveBuildCommit(): string {
+    if (packageJson.buildInfo?.BRANCH) {
+        return packageJson.buildInfo.BRANCH
+    }
+
+    try {
+        return execSync('git rev-parse --short HEAD', { cwd: __dirname, stdio: ['ignore', 'pipe', 'ignore'] }).toString().trim()
+    } catch {
+        return 'unknown'
+    }
+}
 
 export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevMode = mode === 'development'
@@ -22,6 +40,8 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             },
         ],
         define: {
+            PULSESYNC_VERSION: JSON.stringify(packageJson.version),
+            PULSESYNC_BRANCH: JSON.stringify(resolveBuildCommit()),
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
         },
