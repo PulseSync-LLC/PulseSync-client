@@ -1,6 +1,5 @@
 import React from 'react'
 import YandexMusicUpdateDialog from '@widgets/modalContainer/modals/YandexMusicUpdateDialog'
-import MacUpdateDialog from '@widgets/modalContainer/modals/MacUpdateDialog'
 import AppUpdateDialog from '@widgets/modalContainer/modals/AppUpdateDialog'
 import LinuxAsarPathDialog from '@widgets/modalContainer/modals/LinuxAsarPathDialog'
 import PremiumPromoModal from '@widgets/modalContainer/modals/PremiumPromoModal'
@@ -17,7 +16,6 @@ import SubscriptionGiveawaysModal from '@widgets/modalContainer/modals/Subscript
 const ModalContainer: React.FC = () => {
     return (
         <>
-            <MacUpdateDialog />
             <LinuxAsarPathDialog />
             <AppUpdateDialog />
             <YandexMusicUpdateDialog />

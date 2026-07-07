@@ -7,7 +7,6 @@ const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },
     [Modals.APP_CHANGELOG]: { isOpen: false },
     [Modals.YANDEX_MUSIC_CHANGELOG]: { isOpen: false, currentVersion: null },
-    [Modals.MAC_UPDATE_DIALOG]: { isOpen: false },
     [Modals.LINUX_ASAR_PATH]: { isOpen: false },
     [Modals.APP_UPDATE_DIALOG]: { isOpen: false },
     [Modals.YANDEX_MUSIC_UPDATE_DIALOG]: { isOpen: false },

@@ -33,7 +33,6 @@ import config, { isDevmark } from '@common/appConfig'
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { getState } from '../modules/state'
 import { get_current_track } from '../modules/httpServer'
-import { getMacUpdater } from '../modules/updater/macOsUpdater'
 import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
@@ -46,10 +45,8 @@ import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/p
 import {
     getBuildUpdateChannel,
     getEffectiveUpdateChannel,
-    getMacManifestUrl,
     getUpdateChannelOverride,
     setUpdateChannelOverride,
-    shouldAllowDowngradeForCurrentChannel,
 } from '../modules/updater/updateChannel'
 import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
@@ -58,7 +55,6 @@ import {
     CLIENT_REPO,
     listStableGitHubReleases,
     normalizeGitHubTagVersion,
-    resolveClientGitHubMacManifest,
 } from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
@@ -86,60 +82,13 @@ const toUnixSeconds = (dateValue: string | null | undefined): number => {
     return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : 0
 }
 
-const macUpdater = isMac()
-    ? getMacUpdater({
-          manifestUrl: getMacManifestUrl(getEffectiveUpdateChannel()),
-          appName: 'PulseSync',
-          attemptAutoInstall: false,
-          onProgress: p => {
-              try {
-                  if (mainWindow) {
-                      mainWindow.setProgressBar(p / 100)
-                      mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, p)
-                  }
-              } catch {}
-          },
-          onStatus: s => {
-              if (s === UpdateStatus.DOWNLOADING) {
-                  mainWindow?.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
-                  updateAvailable = true
-              } else if (s === UpdateStatus.DOWNLOADED) {
-                  mainWindow?.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                  updateAvailable = true
-                  try {
-                      if (mainWindow) mainWindow.setProgressBar(-1)
-                  } catch {}
-              }
-          },
-          onLog: m => logger.updater.info(m),
-      })
-    : null
-
-const syncMacUpdaterFeed = () => {
-    if (!macUpdater) {
-        return
-    }
-
-    macUpdater.setManifestUrl(getMacManifestUrl(getEffectiveUpdateChannel()))
-    macUpdater.setAllowDowngrade(shouldAllowDowngradeForCurrentChannel())
-}
-
-const getCurrentUpdateStatus = () => (isMac() ? (macUpdater?.getStatus() ?? UpdateStatus.IDLE) : updater.getStatus())
+const getCurrentUpdateStatus = () => updater.getStatus()
 
 const ensureUpdateSourceSwitchAllowed = () => {
     const status = getCurrentUpdateStatus()
     if (status === UpdateStatus.CHECKING || status === UpdateStatus.DOWNLOADING) {
         throw new Error('UPDATE_SOURCE_BUSY')
     }
-}
-
-const resolveMacUpdateManifest = async (source = getUpdateSource()) => {
-    if (source === 'github') {
-        return resolveClientGitHubMacManifest(getEffectiveUpdateChannel())
-    }
-
-    syncMacUpdaterFeed()
-    return null
 }
 
 export const getPath = (args: string) => {
@@ -419,14 +368,10 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
         if (previousEffectiveChannel !== nextEffectiveChannel) {
             await updater.clearPendingUpdate(`channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`)
-            macUpdater?.resetPendingUpdate()
             updateAvailable = false
         }
 
         updater.reloadFeed()
-        if (getUpdateSource() === 'backend') {
-            syncMacUpdaterFeed()
-        }
 
         return {
             buildChannel: getBuildUpdateChannel(),
@@ -442,14 +387,10 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
         if (previousSource !== nextSource) {
             await updater.clearPendingUpdate(`source-switch:${previousSource}->${nextSource}`)
-            macUpdater?.resetPendingUpdate()
             updateAvailable = false
         }
 
         updater.reloadFeed()
-        if (nextSource === 'backend') {
-            syncMacUpdaterFeed()
-        }
 
         return {
             source: nextSource,
@@ -765,42 +706,15 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 
 const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
-        if (isMac()) {
-            try {
-                const installInfo = await macUpdater?.installUpdate()
-                if (installInfo && mainWindow) {
-                    mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                }
-            } catch (e: any) {
-                logger.updater.error(`macOS install error: ${e?.message || e}`)
-            }
-            return
-        }
-        updater.install()
+        await updater.install()
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
-        if (!isMac()) {
-            updater.reloadFeed()
-        }
+        updater.reloadFeed()
         await checkOrFindUpdate(args?.hard, args?.manual)
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
-        if (isMac()) {
-            try {
-                const githubManifest = await resolveMacUpdateManifest()
-                const m = githubManifest ? macUpdater?.checkManifest(githubManifest) : await macUpdater?.checkForUpdates()
-                if (m) {
-                    mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, m.version)
-                    mainWindow.flashFrame(true)
-                    updateAvailable = true
-                }
-            } catch (e: any) {
-                logger.updater.error(`macOS updater-start error: ${e?.message || e}`)
-            }
-            return
-        }
         updater.start()
         if (!updaterStartListenerBound) {
             updaterStartListenerBound = true
@@ -1142,62 +1056,9 @@ export const handleEvents = (window: BrowserWindow): void => {
 
 export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
-    if (isMac()) {
-        try {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { checking: true, manual })
-            const updateSource = getUpdateSource()
-            const githubManifest = await resolveMacUpdateManifest(updateSource)
-            const macUpdaterInstance = githubManifest ? macUpdater?.checkManifest(githubManifest) : await macUpdater?.checkForUpdates()
-            if (macUpdaterInstance) {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
-                updateAvailable = true
-                try {
-                    await macUpdater?.downloadUpdate(macUpdaterInstance)
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                    if (hard) {
-                        const installInfo = await macUpdater?.installUpdate(macUpdaterInstance)
-                        if (installInfo && mainWindow) {
-                            mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                        }
-                    }
-                } catch (e: any) {
-                    logger.updater.error(`macOS download/install error: ${e?.message || e}`)
-                    if (updateSource === 'backend') {
-                        try {
-                            const fallbackManifest = await resolveMacUpdateManifest('github')
-                            const fallbackUpdate = fallbackManifest ? macUpdater?.checkManifest(fallbackManifest) : null
-                            if (fallbackUpdate) {
-                                logger.updater.warn('Primary backend macOS download failed, trying GitHub fallback')
-                                await macUpdater?.downloadUpdate(fallbackUpdate)
-                                mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                                if (hard) {
-                                    const installInfo = await macUpdater?.installUpdate(fallbackUpdate)
-                                    if (installInfo && mainWindow) {
-                                        mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                                    }
-                                }
-                                return
-                            }
-                        } catch (fallbackError: any) {
-                            logger.updater.error(`macOS GitHub fallback error: ${fallbackError?.message || fallbackError}`)
-                        }
-                    }
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-                    try {
-                        if (mainWindow) mainWindow.setProgressBar(-1)
-                    } catch {}
-                }
-            } else {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
-            }
-        } catch (e: any) {
-            logger.updater.error(`macOS check error: ${e?.message || e}`)
-        }
-        return
-    }
     const status = await updater.check(manual)
     if (status === UpdateStatus.DOWNLOADED) {
-        if (hard) updater.install()
+        if (hard) await updater.install()
         updateAvailable = true
     } else if (status === UpdateStatus.DOWNLOADING) {
         updateAvailable = true
