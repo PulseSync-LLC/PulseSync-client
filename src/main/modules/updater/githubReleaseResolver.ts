@@ -2,7 +2,6 @@ import { app } from 'electron'
 import axios from 'axios'
 
 import type { UpdateChannel } from './updateChannel'
-import type { MacUpdateAsset, MacUpdateManifest } from './macOsUpdater'
 
 export type GitHubRepo = {
     owner: string
@@ -86,65 +85,12 @@ export function findGitHubAsset(release: GitHubRelease, assetNames: string[]): G
     return release.assets.find(asset => normalizedNames.includes(asset.name.toLowerCase())) ?? null
 }
 
-export function findMacAssets(release: GitHubRelease): GitHubReleaseAsset[] {
-    return release.assets.filter(asset => asset.name.toLowerCase().endsWith('.dmg') || asset.name.toLowerCase().endsWith('.zip'))
-}
-
-type ResolvedMacUpdateAsset = MacUpdateAsset & {
-    fileType: 'dmg' | 'zip'
-}
-
-function detectMacAssetArch(assetName: string): 'arm64' | 'x64' | null {
-    const normalized = assetName.toLowerCase()
-    if (normalized.includes('arm64')) {
-        return 'arm64'
-    }
-    if (normalized.includes('x64')) {
-        return 'x64'
-    }
-    return null
-}
-
-export async function resolveClientGitHubMacManifest(channel: UpdateChannel): Promise<MacUpdateManifest> {
+export async function resolveClientGitHubDesktopManifestUrl(channel: UpdateChannel, dist: string): Promise<string> {
     const release = await resolveGitHubRelease(CLIENT_REPO, channel)
-    const assets = findMacAssets(release)
-
-    if (!assets.length) {
-        throw new Error(`No macOS assets found in GitHub release ${release.tag_name}`)
+    const asset = findGitHubAsset(release, [`desktop-update-${dist}.json`])
+    if (!asset) {
+        throw new Error(`No desktop update manifest found in GitHub release ${release.tag_name} for ${dist}`)
     }
 
-    const manifestAssets = assets
-        .map(asset => {
-            const arch = detectMacAssetArch(asset.name)
-            if (!arch) {
-                return null
-            }
-
-            return {
-                arch,
-                fileType: asset.name.toLowerCase().endsWith('.zip') ? 'zip' : 'dmg',
-                url: asset.browser_download_url,
-            } satisfies ResolvedMacUpdateAsset
-        })
-        .filter((asset): asset is ResolvedMacUpdateAsset => asset !== null)
-
-    if (!manifestAssets.length) {
-        throw new Error(`No supported macOS assets found in GitHub release ${release.tag_name}`)
-    }
-
-    const [firstAsset] = manifestAssets
-    const preferredAsset = manifestAssets.find(asset => asset.arch === 'x64') ?? firstAsset
-
-    if (!preferredAsset) {
-        throw new Error(`No supported macOS assets found in GitHub release ${release.tag_name}`)
-    }
-
-    return {
-        version: normalizeGitHubTagVersion(release.tag_name),
-        url: preferredAsset.url,
-        fileType: preferredAsset.fileType,
-        releaseNotes: release.body ?? '',
-        updateUrgency: undefined,
-        assets: manifestAssets,
-    }
+    return asset.browser_download_url
 }

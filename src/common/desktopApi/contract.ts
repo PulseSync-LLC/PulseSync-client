@@ -197,11 +197,9 @@ export interface PulseSyncDesktopApi {
         openObsWidgetDirectory(): void
         openApplicationsDirectory(): void
         openPrivacySettings(): void
-        openLastMacUpdatePath(): void
         openMarkdownText(markdownContent: string): void
         checkSleepMode(): Promise<boolean>
         onOpenModal(listener: (modalName: unknown) => void): DesktopUnsubscribe
-        onMacUpdateReady(listener: (payload: unknown) => void): DesktopUnsubscribe
         onMacPermissionsRequired(listener: () => void): DesktopUnsubscribe
         onShowModModal(listener: () => void): DesktopUnsubscribe
     }

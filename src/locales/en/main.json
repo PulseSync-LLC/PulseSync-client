@@ -99,20 +99,6 @@
             "appStartupError": "Error starting the app:",
             "musicPathError": "Error getting path:"
         },
-        "macUpdater": {
-            "commandFailed": "{{cmd}} {{args}} exited with code {{code}}: {{stderr}}",
-            "currentVersionAvailable": "Current version {{current}}, available {{version}}",
-            "dmgVolumeNotFound": "DMG volume not found",
-            "fileDownloaded": "File downloaded: {{path}}",
-            "firstCallRequiresOptions": "The first call to getMacUpdater requires options",
-            "invalidManifest": "Invalid update manifest",
-            "manifestMissingAssets": "Manifest missing url/assets",
-            "manifestNotFound": "Update manifest not found",
-            "sha256Mismatch": "sha256 checksum mismatch",
-            "sha512Mismatch": "sha512 checksum mismatch",
-            "skipNonMac": "MacOSUpdater: skipped, not macOS",
-            "updateFileNotDownloaded": "Update file not downloaded"
-        },
         "modDownload": {
             "networkError": "Network error"
         },

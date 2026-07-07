@@ -98,20 +98,6 @@
             "appStartupError": "Ошибка при запуске приложения:",
             "musicPathError": "Ошибка при получении пути:"
         },
-        "macUpdater": {
-            "commandFailed": "{{cmd}} {{args}} завершилась с кодом {{code}}: {{stderr}}",
-            "currentVersionAvailable": "Текущая версия {{current}}, доступна {{version}}",
-            "dmgVolumeNotFound": "Том DMG не найден",
-            "fileDownloaded": "Файл загружен: {{path}}",
-            "firstCallRequiresOptions": "Первый вызов getMacUpdater требует options",
-            "invalidManifest": "Некорректный манифест обновления",
-            "manifestMissingAssets": "В манифесте нет url/assets",
-            "manifestNotFound": "Манифест обновления не найден",
-            "sha256Mismatch": "Контрольная сумма sha256 не совпала",
-            "sha512Mismatch": "Контрольная сумма sha512 не совпала",
-            "skipNonMac": "MacOSUpdater: пропуск, не macOS",
-            "updateFileNotDownloaded": "Файл обновления не загружен"
-        },
         "modDownload": {
             "networkError": "Ошибка сети"
         },

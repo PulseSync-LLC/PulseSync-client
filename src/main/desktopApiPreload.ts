@@ -36,8 +36,6 @@ const subscribePayload = (channel: string, listener: (payload: unknown) => void)
 const subscribeVoid = (channel: string, listener: () => void) =>
     subscribe(channel, () => listener())
 
-let lastMacUpdateOpenPath: string | null = null
-
 const trimTrailingPathSeparator = (value: string): string => value.replace(/[\\/]+$/, '')
 
 const joinLinuxPath = (...parts: string[]): string =>
@@ -186,24 +184,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         openObsWidgetDirectory: () => ipcRenderer.send(MainEvents.OPEN_PATH, { action: 'obsWidgetPath' }),
         openApplicationsDirectory: () => ipcRenderer.send(MainEvents.OPEN_PATH, { action: 'openApplications' }),
         openPrivacySettings: () => ipcRenderer.send(MainEvents.OPEN_PATH, { action: 'privacySettings' }),
-        openLastMacUpdatePath: () => {
-            if (lastMacUpdateOpenPath) {
-                ipcRenderer.send(MainEvents.OPEN_PATH, { action: 'openPath', path: lastMacUpdateOpenPath })
-            }
-        },
         openMarkdownText: markdownContent => ipcRenderer.send(MainEvents.OPEN_FILE, markdownContent),
         checkSleepMode: () => ipcRenderer.invoke(MainEvents.CHECK_SLEEP_MODE),
         onOpenModal: listener => subscribePayload(RendererEvents.OPEN_MODAL, listener),
-        onMacUpdateReady: listener =>
-            subscribePayload(RendererEvents.MAC_UPDATE_READY, payload => {
-                if (payload && typeof payload === 'object') {
-                    const openPath = (payload as { openPath?: unknown }).openPath
-                    if (typeof openPath === 'string' && openPath) {
-                        lastMacUpdateOpenPath = openPath
-                    }
-                }
-                listener(payload)
-            }),
         onMacPermissionsRequired: listener => subscribeVoid(RendererEvents.REQUEST_MAC_PERMISSIONS, listener),
         onShowModModal: listener => subscribeVoid(RendererEvents.SHOW_MOD_MODAL, listener),
     },

@@ -1,129 +1,26 @@
 import * as semver from 'semver'
-import { app, dialog, type BrowserWindow } from 'electron'
-import { autoUpdater, type ProgressInfo, type UpdateCheckResult, type UpdateInfo as ElectronUpdaterUpdateInfo } from 'electron-updater'
+import { app, type BrowserWindow } from 'electron'
 import { state } from '../handlers/state'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { UpdateUrgency } from './constants/updateUrgency'
 import { UpdateStatus } from './constants/updateStatus'
 import logger from '../logger'
-import isAppDev from '../../utils/isAppDev'
 import { mainWindow } from '../createWindow'
-import { t } from '../../i18n'
-import { getEffectiveUpdateChannel, getUpdateFeedUrl, shouldAllowDowngradeForCurrentChannel } from './updateChannel'
 import { getUpdateSource, type UpdateSource } from './updateSource'
-
-type CommonConfig = Record<string, unknown>
-
-type UpdateInfo = ElectronUpdaterUpdateInfo & {
-    updateUrgency?: UpdateUrgency
-    commonConfig?: CommonConfig
-}
-
-type DownloadResult = unknown
-const UPDATER_CACHE_DIR_NAME = 'pulsesync-updater'
-
-type UpdateResult = UpdateCheckResult & {
-    updateInfo: UpdateInfo
-    downloadPromise?: Promise<DownloadResult>
-}
+import { getBootstrapperInstallDir, getBootstrapperRuntimePaths, getBootstrapperTransactionRoot } from '../bootstrapper/paths'
+import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
+import {
+    checkAndPrepareDesktopUpdate,
+    clearPreparedDesktopUpdate,
+    type BootstrapperUpdateDecision,
+    type BootstrapperUpdateManifest,
+} from './bootstrapperUpdateService'
+import { resolveDesktopUpdateManifestSource } from './desktopManifestSource'
 
 class Updater {
     private latestAvailableVersion: string | null = null
     private updateStatus: UpdateStatus = UpdateStatus.IDLE
     private updaterId: NodeJS.Timeout | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
-    private commonConfig: CommonConfig = {}
-    private configuredFeedKey: string | null = null
-
-    constructor() {
-        autoUpdater.logger = logger.updater
-        autoUpdater.autoRunAppAfterInstall = true
-        autoUpdater.autoDownload = true
-        autoUpdater.disableWebInstaller = true
-        autoUpdater.disableDifferentialDownload = true
-
-        autoUpdater.on('error', (error: unknown) => {
-            logger.updater.error('Updater error', error)
-            this.setProgressBar(-1)
-        })
-
-        autoUpdater.on('download-progress', (info: ProgressInfo) => {
-            this.setProgressBar(info.percent / 100)
-            logger.updater.log('Download progress', info.percent)
-            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, info.percent)
-        })
-
-        autoUpdater.on('update-downloaded', (updateInfo: UpdateInfo) => {
-            logger.updater.log('Update downloaded', updateInfo.version)
-            autoUpdater.autoInstallOnAppQuit = true
-            this.setProgressBar(-1)
-
-            if (updateInfo.updateUrgency === UpdateUrgency.HARD) {
-                logger.updater.log('This update should be installed now')
-                this.install()
-                return
-            }
-
-            if (this.commonConfig && this.commonConfig.DEPRECATED_VERSIONS !== undefined) {
-                try {
-                    const deprecatedRange = String(this.commonConfig.DEPRECATED_VERSIONS)
-                    const isDeprecatedVersion = semver.satisfies(app.getVersion(), deprecatedRange)
-                    if (isDeprecatedVersion) {
-                        logger.updater.log('This version is deprecated', app.getVersion(), deprecatedRange)
-                        this.install()
-                        return
-                    }
-                } catch (e) {
-                    logger.updater.error('Failed to evaluate DEPRECATED_VERSIONS range', e)
-                }
-            }
-
-            this.latestAvailableVersion = updateInfo.version
-            this.onUpdateListeners.forEach(listener => {
-                try {
-                    listener(updateInfo.version)
-                } catch (e) {
-                    logger.updater.error('onUpdate listener error', e)
-                }
-            })
-        })
-    }
-
-    private configureFeed(force = false, sourceOverride?: UpdateSource) {
-        const channel = getEffectiveUpdateChannel()
-        const source = sourceOverride ?? getUpdateSource()
-        const feedKey = `${source}:${channel}`
-
-        if (!force && this.configuredFeedKey === feedKey) {
-            return { channel, source }
-        }
-
-        autoUpdater.allowPrerelease = source === 'github' && channel === 'dev'
-        autoUpdater.channel = source === 'github' && channel === 'dev' ? 'dev' : 'latest'
-        autoUpdater.allowDowngrade = shouldAllowDowngradeForCurrentChannel()
-
-        if (source === 'github') {
-            autoUpdater.setFeedURL({
-                provider: 'github',
-                owner: 'PulseSync-LLC',
-                repo: 'PulseSync-client',
-                updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-            })
-        } else {
-            const feedUrl = getUpdateFeedUrl(channel)
-            autoUpdater.setFeedURL({
-                provider: 'generic',
-                url: feedUrl,
-                channel: 'latest',
-                updaterCacheDirName: UPDATER_CACHE_DIR_NAME,
-                useMultipleRangeRequest: false,
-            })
-        }
-
-        this.configuredFeedKey = feedKey
-        logger.updater.info('Configured updater feed', { channel, source, allowDowngrade: autoUpdater.allowDowngrade })
-        return { channel, source }
-    }
 
     private getWindow(): BrowserWindow | null {
         const win = mainWindow as unknown as BrowserWindow | undefined
@@ -162,84 +59,54 @@ class Updater {
         }
     }
 
-    private mergeCommonConfig(next?: CommonConfig) {
-        if (!next) return
-
-        logger.updater.info('Common config', next)
-        for (const [key, value] of Object.entries(next)) {
-            this.commonConfig[key] = value
-            logger.updater.info(`Updated commonConfig: ${key} = ${String(value)}`)
+    private notifyAvailable(version: string) {
+        this.latestAvailableVersion = version
+        for (const listener of this.onUpdateListeners) {
+            try {
+                listener(version)
+            } catch (error) {
+                logger.updater.error('onUpdate listener error', error)
+            }
         }
     }
 
-    private updateApplier(updateResult: UpdateResult, manual = false, source: UpdateSource = getUpdateSource(), isFallbackAttempt = false) {
-        const { downloadPromise, updateInfo } = updateResult
+    private isDeprecatedByManifest(manifest: BootstrapperUpdateManifest): boolean {
+        if (!manifest.deprecatedVersions?.length) {
+            return false
+        }
 
-        if (!downloadPromise) {
-            this.latestAvailableVersion = null
-            this.updateStatus = UpdateStatus.IDLE
-            this.setProgressBar(-1)
-            this.flashFrame(false)
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+        for (const deprecatedRange of manifest.deprecatedVersions) {
+            try {
+                if (semver.satisfies(app.getVersion(), deprecatedRange)) {
+                    logger.updater.info('This version is deprecated', app.getVersion(), deprecatedRange)
+                    return true
+                }
+            } catch (error) {
+                logger.updater.error('Failed to evaluate deprecated version range', { deprecatedRange, error })
+            }
+        }
+
+        return false
+    }
+
+    private handleUpdateDecision(decision: BootstrapperUpdateDecision, manual: boolean) {
+        if (!decision.updateAvailable) {
             return
         }
 
-        if (updateInfo.updateUrgency !== undefined) {
-            logger.updater.info('Urgency', updateInfo.updateUrgency)
-        }
-
-        if (updateInfo.commonConfig !== undefined) {
-            this.mergeCommonConfig(updateInfo.commonConfig)
-        }
-
-        this.latestAvailableVersion = updateInfo.version
-
-        this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
-
-        logger.updater.info('New version available', app.getVersion(), '->', updateInfo.version)
+        this.latestAvailableVersion = decision.targetVersion
         this.updateStatus = UpdateStatus.DOWNLOADING
-
-        downloadPromise
-            .then(downloadResult => {
-                if (!downloadResult) return
-
-                this.updateStatus = UpdateStatus.DOWNLOADED
-                logger.updater.info(`Download result: ${String(downloadResult)}`)
-
-                this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                this.setProgressBar(-1)
-                this.flashFrame(true)
-
-                this.safeSend(RendererEvents.UPDATE_APP_DATA, { update: true })
-            })
-            .catch(async (error: unknown) => {
-                this.updateStatus = UpdateStatus.IDLE
-                logger.updater.error('Downloader error', error)
-                this.setProgressBar(-1)
-
-                if (source === 'backend' && !isFallbackAttempt) {
-                    try {
-                        logger.updater.warn('Primary backend download failed, trying GitHub fallback')
-                        await this.check(manual, { isFallbackAttempt: true, sourceOverride: 'github' })
-                        return
-                    } catch (fallbackError) {
-                        logger.updater.error('GitHub fallback after backend download failure also failed', fallbackError)
-                    }
-                }
-
-                this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-            })
+        this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
+        logger.updater.info('New version available', app.getVersion(), '->', decision.targetVersion)
     }
 
     async check(
         manual = false,
         options?: {
-            isFallbackAttempt?: boolean
             sourceOverride?: UpdateSource
         },
     ): Promise<UpdateStatus | null> {
         const source = options?.sourceOverride ?? getUpdateSource()
-        this.configureFeed(false, source)
 
         if (this.updateStatus !== UpdateStatus.IDLE) {
             logger.updater.log('New update is processing', this.updateStatus)
@@ -256,31 +123,71 @@ class Updater {
             this.updateStatus = UpdateStatus.CHECKING
             this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
 
-            const updateResult = (await autoUpdater.checkForUpdatesAndNotify({
-                title: t('main.updater.updateReadyTitle'),
-                body: t('main.updater.updateReadyBody'),
-            })) as UpdateResult | null
+            const manifestSource = await resolveDesktopUpdateManifestSource({ source })
+            const runtimePaths = getBootstrapperRuntimePaths()
+            if (!runtimePaths.launcher) {
+                throw new Error('Bootstrapper launcher was not found')
+            }
 
-            if (!updateResult) {
+            const stagingRootDir = getBootstrapperTransactionRoot()
+            const result = await checkAndPrepareDesktopUpdate({
+                installDir: getBootstrapperInstallDir(),
+                installedVersion: app.getVersion(),
+                launcher: runtimePaths.launcher,
+                manifestSource,
+                stagingRootDir,
+                onDecision: decision => this.handleUpdateDecision(decision, manual),
+                onProgress: progress => {
+                    this.setProgressBar(progress.percent / 100)
+                    logger.updater.log('Download progress', progress.percent)
+                    this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, progress.percent)
+                },
+            })
+
+            if (result.state === 'no-update') {
+                this.latestAvailableVersion = null
                 this.updateStatus = UpdateStatus.IDLE
-                logger.updater.log(t('main.updater.noUpdatesFound'))
+                this.setProgressBar(-1)
+                this.flashFrame(false)
+                logger.updater.log('No updates found')
                 this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
                 return null
             }
 
-            this.updateApplier(updateResult, manual, source, options?.isFallbackAttempt === true)
-        } catch (error: unknown) {
-            this.updateStatus = UpdateStatus.IDLE
-            const e = error as any
-            if (e?.code === 'ENOENT' && typeof e?.path === 'string' && e.path.endsWith('app-update.yml')) {
-                if (!isAppDev) {
-                    logger.updater.error(`File app-update.yml not found.`, error)
-                    dialog.showErrorBox(t('main.common.error'), t('main.updater.appFilesCorrupted'))
-                    app.quit()
-                }
-            } else {
-                logger.updater.error('Error: checking for updates', error)
+            if (result.state !== 'prepared') {
+                this.latestAvailableVersion = null
+                this.updateStatus = UpdateStatus.IDLE
+                this.setProgressBar(-1)
+                this.flashFrame(false)
+                logger.updater.error('Bootstrapper update preparation blocked', result.prepareResult)
+                this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+                return this.updateStatus
             }
+
+            logger.updater.info('Bootstrapper update prepared', {
+                channel: result.decision.channel,
+                dist: result.decision.dist,
+                state: result.prepareResult.state,
+                targetVersion: result.decision.targetVersion,
+                transactionDir: result.prepareResult.transactionDir,
+            })
+            this.latestAvailableVersion = result.decision.targetVersion
+            this.updateStatus = UpdateStatus.DOWNLOADED
+            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
+            this.setProgressBar(-1)
+            this.flashFrame(true)
+            this.safeSend(RendererEvents.UPDATE_APP_DATA, { update: true })
+            this.notifyAvailable(result.decision.targetVersion)
+
+            if (this.isDeprecatedByManifest(result.manifest)) {
+                await this.install()
+            }
+        } catch (error: unknown) {
+            this.latestAvailableVersion = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            logger.updater.error('Error: checking for updates', error)
+            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
         }
 
         return this.updateStatus
@@ -288,10 +195,9 @@ class Updater {
 
     start() {
         if (this.updaterId) return
-        this.configureFeed()
-        this.check(false)
+        void this.check(false)
         this.updaterId = setInterval(() => {
-            this.check(false)
+            void this.check(false)
         }, 900000)
     }
 
@@ -306,7 +212,7 @@ class Updater {
     }
 
     reloadFeed() {
-        this.configureFeed(true)
+        logger.updater.info('Bootstrapper updater source will be resolved on next check')
     }
 
     getStatus() {
@@ -319,30 +225,56 @@ class Updater {
         }
 
         try {
-            const internalUpdater = autoUpdater as any
-
-            await internalUpdater.downloadedUpdateHelper?.clear?.()
-            internalUpdater.downloadPromise = null
-            internalUpdater.updateInfoAndProvider = null
-            internalUpdater.autoInstallOnAppQuit = false
+            await clearPreparedDesktopUpdate({
+                allowedParentDir: app.getPath('userData'),
+                stagingRootDir: getBootstrapperTransactionRoot(),
+            })
 
             this.latestAvailableVersion = null
             this.updateStatus = UpdateStatus.IDLE
             this.setProgressBar(-1)
             this.flashFrame(false)
 
-            logger.updater.info('Cleared pending downloaded update', { reason })
+            logger.updater.info('Cleared pending prepared update', { reason })
             return true
         } catch (error) {
-            logger.updater.error('Failed to clear pending downloaded update', error)
+            logger.updater.error('Failed to clear pending prepared update', error)
             return false
         }
     }
 
-    install() {
+    async install() {
         logger.updater.info('Installing a new version', this.latestAvailableVersion)
         state.willQuit = true
-        autoUpdater.quitAndInstall(true, true)
+
+        const runtimePaths = getBootstrapperRuntimePaths()
+        if (!runtimePaths.launcher) {
+            logger.updater.error('Bootstrapper relaunch is unavailable: launcher was not found')
+            state.willQuit = false
+            return false
+        }
+
+        try {
+            const result = await relaunchThroughBootstrapper({
+                appExecutable: runtimePaths.appExecutable,
+                appExecutableName: runtimePaths.appExecutableName,
+                installRoot: runtimePaths.installRoot,
+                launcher: runtimePaths.launcher,
+                transactionRoot: runtimePaths.transactionRoot,
+            })
+            logger.updater.info('Bootstrapper relaunch spawned', {
+                launcherKind: result.launcherKind,
+                launcherSource: result.launcherSource,
+                pid: result.pid,
+                transactionRoot: runtimePaths.transactionRoot,
+            })
+            app.quit()
+            return true
+        } catch (error) {
+            logger.updater.error('Bootstrapper relaunch failed', error)
+            state.willQuit = false
+            return false
+        }
     }
 }
 

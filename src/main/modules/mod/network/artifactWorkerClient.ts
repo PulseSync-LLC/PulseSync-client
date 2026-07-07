@@ -40,9 +40,13 @@ export class ArtifactWorkerError extends Error {
 }
 
 function resolveArtifactWorkerPath(): string {
-    return isAppDev
-        ? path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
-        : path.join(path.dirname(process.resourcesPath), 'modules', 'artifactWorker.cjs')
+    if (isAppDev) {
+        return path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
+    }
+
+    const appDir = path.dirname(process.resourcesPath)
+    const installRoot = path.basename(appDir).toLowerCase() === 'app' ? path.dirname(appDir) : appDir
+    return path.join(installRoot, 'modules', 'artifactWorker', 'artifactWorker.cjs')
 }
 
 class ArtifactWorkerSession {

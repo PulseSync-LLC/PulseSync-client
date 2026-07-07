@@ -3,8 +3,6 @@ import axios, { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosR
 import { PassThrough } from 'stream'
 import logger from '../logger'
 
-const ELECTRON_UPDATER_SESSION_PARTITION = 'electron-updater'
-
 let axiosAdapterInstalled = false
 let fetchInstalled = false
 let sessionHandlerInstalled = false
@@ -437,14 +435,7 @@ export async function enableSystemProxySupport(): Promise<void> {
     installFetch()
     installSessionHandler()
 
-    await Promise.all([
-        setSystemProxy(session.defaultSession),
-        setSystemProxy(
-            session.fromPartition(ELECTRON_UPDATER_SESSION_PARTITION, {
-                cache: false,
-            }),
-        ),
-    ])
+    await setSystemProxy(session.defaultSession)
 
     logger.main.info('System proxy support enabled')
 }
