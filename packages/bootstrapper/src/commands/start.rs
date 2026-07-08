@@ -85,6 +85,8 @@ fn prepared_bootstrapper_path(transaction_file: &Path) -> Result<Option<PathBuf>
 fn launch_self_update_handoff(
     prepared_bootstrapper: &Path,
     transaction_file: &Path,
+    install_root: Option<&Path>,
+    app_executable_name: Option<&str>,
     app_executable: &Path,
     passthrough_args: &[OsString],
 ) -> Result<u32> {
@@ -94,7 +96,16 @@ fn launch_self_update_handoff(
         .arg("--transaction-file")
         .arg(transaction_file)
         .arg("--app-executable")
-        .arg(app_executable)
+        .arg(app_executable);
+    if let Some(install_root) = install_root {
+        command.arg("--install-root").arg(install_root);
+    }
+    if let Some(app_executable_name) = app_executable_name {
+        command
+            .arg("--app-executable-name")
+            .arg(app_executable_name);
+    }
+    command
         .args(passthrough_args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -106,6 +117,30 @@ fn launch_self_update_handoff(
     }
     let child = command.spawn()?;
     Ok(child.id())
+}
+
+fn resolve_current_app_executable(
+    install_root: Option<&PathBuf>,
+    app_executable_name: Option<String>,
+    fallback: &Path,
+) -> Result<PathBuf> {
+    if let Some(install_root) = install_root {
+        return Ok(resolve_layout(install_root.clone(), app_executable_name)?.app_executable);
+    }
+
+    Ok(fallback.to_path_buf())
+}
+
+fn ensure_app_executable(app_executable: &Path) -> Result<()> {
+    if !app_executable.is_file() {
+        return Err(format!(
+            "app executable path is not a file: {}",
+            app_executable.display()
+        )
+        .into());
+    }
+
+    Ok(())
 }
 
 fn ensure_first_run_install(
@@ -178,13 +213,10 @@ pub fn start(args: &Args) -> Result<Value> {
             .as_ref()
             .and_then(BootstrapperStartupConfig::app_executable_name)
     });
-    let layout = install_root
-        .map(|install_root| resolve_layout(install_root, app_executable_name))
+    let mut layout = install_root
+        .as_ref()
+        .map(|install_root| resolve_layout(install_root.clone(), app_executable_name.clone()))
         .transpose()?;
-    let app_executable = arg_value(args, "--app-executable")
-        .map(PathBuf::from)
-        .or_else(|| layout.as_ref().map(|value| value.app_executable.clone()))
-        .ok_or("--install-root or --app-executable is required")?;
     let transaction_root = arg_value(args, "--transaction-root")
         .map(PathBuf::from)
         .or_else(|| layout.as_ref().map(|value| value.transaction_root.clone()))
@@ -194,13 +226,17 @@ pub fn start(args: &Args) -> Result<Value> {
         None => None,
     };
 
-    if !app_executable.is_file() {
-        return Err(format!(
-            "app executable path is not a file: {}",
-            app_executable.display()
-        )
-        .into());
+    if first_run_install.is_some() {
+        layout = install_root
+            .as_ref()
+            .map(|install_root| resolve_layout(install_root.clone(), app_executable_name.clone()))
+            .transpose()?;
     }
+
+    let app_executable = arg_value(args, "--app-executable")
+        .map(PathBuf::from)
+        .or_else(|| layout.as_ref().map(|value| value.app_executable.clone()))
+        .ok_or("--install-root or --app-executable is required")?;
 
     let passthrough_args = args
         .passthrough
@@ -215,6 +251,8 @@ pub fn start(args: &Args) -> Result<Value> {
                     let pid = launch_self_update_handoff(
                         &prepared_bootstrapper,
                         &selected.path,
+                        install_root.as_deref(),
+                        app_executable_name.as_deref(),
                         &app_executable,
                         &passthrough_args,
                     )?;
@@ -247,12 +285,18 @@ pub fn start(args: &Args) -> Result<Value> {
                         "reason": "Prepared transaction did not apply cleanly"
                     }));
                 }
-                let pid = launch_app(&app_executable, &passthrough_args)?;
+                let launch_executable = resolve_current_app_executable(
+                    install_root.as_ref(),
+                    app_executable_name.clone(),
+                    &app_executable,
+                )?;
+                ensure_app_executable(&launch_executable)?;
+                let pid = launch_app(&launch_executable, &passthrough_args)?;
                 return Ok(json!({
                     "state": "launched",
                     "launched": true,
                     "pid": pid,
-                    "appExecutable": app_executable,
+                    "appExecutable": launch_executable,
                     "transactionRoot": transaction_root,
                     "transactionAction": "apply",
                     "selectedTransactionFile": selected.path,
@@ -277,6 +321,7 @@ pub fn start(args: &Args) -> Result<Value> {
                         "reason": "Failed transaction did not roll back cleanly"
                     }));
                 }
+                ensure_app_executable(&app_executable)?;
                 let pid = launch_app(&app_executable, &passthrough_args)?;
                 return Ok(json!({
                     "state": "launched",
@@ -292,6 +337,7 @@ pub fn start(args: &Args) -> Result<Value> {
                 }));
             }
             "applied" | "rolled-back" => {
+                ensure_app_executable(&app_executable)?;
                 let pid = launch_app(&app_executable, &passthrough_args)?;
                 return Ok(json!({
                     "state": "launched",
@@ -324,6 +370,7 @@ pub fn start(args: &Args) -> Result<Value> {
         }
     }
 
+    ensure_app_executable(&app_executable)?;
     let pid = launch_app(&app_executable, &passthrough_args)?;
     Ok(json!({
         "state": "launched",
