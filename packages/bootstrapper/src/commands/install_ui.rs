@@ -127,7 +127,7 @@ impl InstallUiApp {
         let progress = stage_progress(&event);
         self.stage = event.stage.clone();
         self.message = event.message;
-        self.target_progress = progress;
+        self.target_progress = self.target_progress.max(progress);
         self.artifact_detail = event.artifact_key.map(|artifact_key| {
             match (event.artifact_index, event.artifact_count) {
                 (Some(index), Some(count)) => format!("{artifact_key} ({index}/{count})"),
@@ -321,7 +321,7 @@ fn draw_installer(ui: &mut egui::Ui, app: &mut InstallUiApp) {
             ui.add_space(28.0);
             static_label(
                 ui,
-                RichText::new(stage_title(&app.stage, app.language))
+                RichText::new(stage_title(app, app.language))
                     .size(16.0)
                     .strong()
                     .color(pulse_text()),
@@ -438,47 +438,119 @@ fn draw_minimal_progress(ui: &mut egui::Ui, progress: f32) {
     ui.painter().rect_filled(fill_rect, 2.5, pulse_accent());
 }
 
+#[derive(Clone, Copy, PartialEq, Eq)]
+enum InstallProgressArea {
+    Application,
+    Modules,
+    Other,
+}
+
+fn event_area(event: &InstallWorkflowEvent) -> InstallProgressArea {
+    if event
+        .artifact_key
+        .as_deref()
+        .is_some_and(|artifact_key| artifact_key != "app")
+    {
+        return InstallProgressArea::Modules;
+    }
+
+    let message = event.message.to_ascii_lowercase();
+    if message.contains("native module") {
+        return InstallProgressArea::Modules;
+    }
+    if message.contains("application") || event.artifact_key.as_deref() == Some("app") {
+        return InstallProgressArea::Application;
+    }
+
+    InstallProgressArea::Other
+}
+
 fn stage_progress(event: &InstallWorkflowEvent) -> f32 {
+    let area = event_area(event);
     if event.stage == "downloading" {
         if let (Some(index), Some(count)) = (event.artifact_index, event.artifact_count) {
             if count > 0 {
-                return 0.18 + (index as f32 / count as f32) * 0.34;
+                let artifact_fraction = match (event.bytes_read, event.bytes_total) {
+                    (Some(bytes_read), Some(bytes_total)) if bytes_total > 0 => (bytes_read as f32 / bytes_total as f32).clamp(0.0, 1.0),
+                    _ => 1.0,
+                };
+                let fraction = ((index.saturating_sub(1)) as f32 + artifact_fraction) / count as f32;
+                return match area {
+                    InstallProgressArea::Application => 0.12 + fraction * 0.56,
+                    InstallProgressArea::Modules => 0.76 + fraction * 0.14,
+                    InstallProgressArea::Other => 0.12 + fraction * 0.56,
+                };
             }
         }
     }
 
-    match event.stage.as_str() {
-        "checking" => 0.08,
-        "downloading" => 0.18,
-        "planning" => 0.58,
-        "preparing" => 0.72,
-        "applying" => 0.88,
-        "installed" => 1.0,
-        "blocked" => 1.0,
+    match (area, event.stage.as_str()) {
+        (_, "checking") => 0.08,
+        (InstallProgressArea::Application, "downloading") => 0.12,
+        (InstallProgressArea::Application, "planning") => 0.7,
+        (InstallProgressArea::Application, "preparing") => 0.72,
+        (InstallProgressArea::Application, "applying") => 0.74,
+        (InstallProgressArea::Modules, "downloading") => 0.76,
+        (InstallProgressArea::Modules, "planning") => 0.91,
+        (InstallProgressArea::Modules, "preparing") => 0.94,
+        (InstallProgressArea::Modules, "applying") => 0.97,
+        (_, "downloading") => 0.12,
+        (_, "planning") => 0.7,
+        (_, "preparing") => 0.72,
+        (_, "applying") => 0.74,
+        (_, "installed") => 1.0,
+        (_, "blocked") => 1.0,
         _ => 0.04,
     }
 }
 
-fn stage_title(stage: &str, language: InstallUiLanguage) -> &'static str {
+fn stage_title(app: &InstallUiApp, language: InstallUiLanguage) -> &'static str {
+    let area = if app
+        .artifact_detail
+        .as_deref()
+        .is_some_and(|artifact_key| !artifact_key.starts_with("app"))
+        || app.message.to_ascii_lowercase().contains("native module")
+    {
+        InstallProgressArea::Modules
+    } else if app.message.to_ascii_lowercase().contains("application")
+        || app.artifact_detail.as_deref().is_some_and(|artifact_key| artifact_key.starts_with("app"))
+    {
+        InstallProgressArea::Application
+    } else {
+        InstallProgressArea::Other
+    };
+
     match language {
-        InstallUiLanguage::En => match stage {
-            "checking" => "Checking for updates...",
-            "downloading" => "Downloading update...",
-            "planning" | "preparing" => "Preparing update...",
-            "applying" => "Installing update...",
-            "installed" => "Launching PulseSync...",
-            "blocked" => "Update is blocked",
-            "error" => "Update failed",
+        InstallUiLanguage::En => match (area, app.stage.as_str()) {
+            (InstallProgressArea::Application, "downloading") => "Downloading app...",
+            (InstallProgressArea::Application, "planning" | "preparing") => "Preparing app...",
+            (InstallProgressArea::Application, "applying") => "Installing app...",
+            (InstallProgressArea::Modules, "downloading") => "Downloading modules...",
+            (InstallProgressArea::Modules, "planning" | "preparing") => "Preparing modules...",
+            (InstallProgressArea::Modules, "applying") => "Installing modules...",
+            (_, "checking") => "Checking for updates...",
+            (_, "downloading") => "Downloading update...",
+            (_, "planning" | "preparing") => "Preparing update...",
+            (_, "applying") => "Installing update...",
+            (_, "installed") => "Launching PulseSync...",
+            (_, "blocked") => "Update is blocked",
+            (_, "error") => "Update failed",
             _ => "Starting...",
         },
-        InstallUiLanguage::Ru => match stage {
-            "checking" => "Проверяем обновления...",
-            "downloading" => "Загружаем обновление...",
-            "planning" | "preparing" => "Подготавливаем обновление...",
-            "applying" => "Устанавливаем обновление...",
-            "installed" => "Запускаем PulseSync...",
-            "blocked" => "Обновление заблокировано",
-            "error" => "Ошибка обновления",
+        InstallUiLanguage::Ru => match (area, app.stage.as_str()) {
+            (InstallProgressArea::Application, "downloading") => "Скачиваем клиент...",
+            (InstallProgressArea::Application, "planning" | "preparing") => "Готовим клиент...",
+            (InstallProgressArea::Application, "applying") => "Ставим клиент...",
+            (InstallProgressArea::Modules, "downloading") => "Скачиваем модули...",
+            (InstallProgressArea::Modules, "planning" | "preparing") => "Готовим модули...",
+            (InstallProgressArea::Modules, "applying") => "Ставим модули...",
+            (_, "checking") => "Проверяем обновления...",
+            (_, "downloading") => "Загружаем обновление...",
+            (_, "planning" | "preparing") => "Подготавливаем обновление...",
+            (_, "applying") => "Устанавливаем обновление...",
+            (_, "installed") => "Запускаем PulseSync...",
+            (_, "blocked") => "Обновление заблокировано",
+            (_, "error") => "Ошибка обновления",
             _ => "Запускаем...",
         },
     }

@@ -102,22 +102,7 @@ fn run_install_stage(
         "downloading",
         format!("Downloading {stage_label} artifacts"),
     ));
-    let staging_result = stage_artifacts(decision, &options.staging_root, artifact_keys.clone())?;
-    let artifact_count = staging_result.artifacts.len();
-    for (index, artifact) in staging_result.artifacts.iter().enumerate() {
-        reporter.emit(InstallWorkflowEvent::artifact(
-            "downloading",
-            if artifact.reused {
-                "Artifact already staged"
-            } else {
-                "Artifact downloaded"
-            },
-            artifact.key.as_str(),
-            index + 1,
-            artifact_count,
-            Some(artifact.path.clone()),
-        ));
-    }
+    let staging_result = stage_artifacts(decision, &options.staging_root, artifact_keys.clone(), reporter)?;
 
     reporter.emit(InstallWorkflowEvent::stage(
         "planning",

@@ -8,10 +8,12 @@ use crate::{
         BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
         artifact_for_key, read_source,
     },
+    domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::{
     fs,
+    io::{Read, Write},
     path::{Path, PathBuf},
 };
 
@@ -158,13 +160,123 @@ fn staging_dir(decision: &BootstrapperUpdateDecision, staging_root: &Path) -> Re
         .join(sanitize_path_segment(&decision.dist)?))
 }
 
-fn materialize_artifact(artifact: &BootstrapperArtifact, target_path: &Path) -> Result<()> {
+fn materialize_artifact(
+    artifact: &BootstrapperArtifact,
+    key: &ArtifactKey,
+    target_path: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<()> {
     let bytes = read_source(&artifact.url)?;
     if let Some(parent) = target_path.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::write(target_path, bytes)?;
+    reporter.emit(InstallWorkflowEvent::artifact_progress(
+        "downloading",
+        "Artifact downloaded",
+        key.as_str(),
+        artifact_index,
+        artifact_count,
+        artifact.size.unwrap_or_else(|| file_size(target_path).unwrap_or(0)),
+        artifact.size,
+        Some(target_path.to_path_buf()),
+    ));
     Ok(())
+}
+
+fn materialize_http_artifact(
+    artifact: &BootstrapperArtifact,
+    key: &ArtifactKey,
+    target_path: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<()> {
+    if let Some(parent) = target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+
+    let response = ureq::get(&artifact.url)
+        .set("Accept", "application/octet-stream")
+        .set("Cache-Control", "no-cache")
+        .set("Pragma", "no-cache")
+        .call()?;
+    let bytes_total = response
+        .header("Content-Length")
+        .and_then(|value| value.parse::<u64>().ok())
+        .or(artifact.size);
+    let mut reader = response.into_reader();
+    let mut file = fs::File::create(target_path)?;
+    let mut buffer = [0_u8; 64 * 1024];
+    let mut bytes_read = 0_u64;
+    let mut next_report_at = 0_u64;
+
+    loop {
+        let read = reader.read(&mut buffer)?;
+        if read == 0 {
+            break;
+        }
+        file.write_all(&buffer[..read])?;
+        bytes_read += read as u64;
+
+        if bytes_read >= next_report_at {
+            reporter.emit(InstallWorkflowEvent::artifact_progress(
+                "downloading",
+                "Downloading artifact",
+                key.as_str(),
+                artifact_index,
+                artifact_count,
+                bytes_read,
+                bytes_total,
+                Some(target_path.to_path_buf()),
+            ));
+            next_report_at = bytes_read.saturating_add(1024 * 1024);
+        }
+    }
+    file.flush()?;
+
+    reporter.emit(InstallWorkflowEvent::artifact_progress(
+        "downloading",
+        "Artifact downloaded",
+        key.as_str(),
+        artifact_index,
+        artifact_count,
+        bytes_read,
+        bytes_total,
+        Some(target_path.to_path_buf()),
+    ));
+    Ok(())
+}
+
+fn materialize_artifact_with_progress(
+    artifact: &BootstrapperArtifact,
+    key: &ArtifactKey,
+    target_path: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<()> {
+    if artifact.url.starts_with("http://") || artifact.url.starts_with("https://") {
+        return materialize_http_artifact(
+            artifact,
+            key,
+            target_path,
+            artifact_index,
+            artifact_count,
+            reporter,
+        );
+    }
+
+    materialize_artifact(
+        artifact,
+        key,
+        target_path,
+        artifact_index,
+        artifact_count,
+        reporter,
+    )
 }
 
 fn ensure_artifact_executable(path: &Path, key: &ArtifactKey) -> Result<()> {
@@ -178,6 +290,9 @@ fn stage_artifact(
     artifact: &BootstrapperArtifact,
     key: ArtifactKey,
     staging_dir: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
 ) -> Result<StagedArtifact> {
     let file_name = artifact_file_name(artifact, &key)?;
     let target_path = staging_dir.join(file_name);
@@ -185,6 +300,16 @@ fn stage_artifact(
     if target_path.exists() {
         if let Ok((sha256, size)) = verify_artifact_file(&target_path, artifact, &key) {
             ensure_artifact_executable(&target_path, &key)?;
+            reporter.emit(InstallWorkflowEvent::artifact_progress(
+                "downloading",
+                "Artifact already staged",
+                key.as_str(),
+                artifact_index,
+                artifact_count,
+                size,
+                Some(size),
+                Some(target_path.clone()),
+            ));
             return Ok(StagedArtifact {
                 key,
                 path: target_path,
@@ -206,7 +331,14 @@ fn stage_artifact(
         std::process::id()
     ));
     let result = (|| -> Result<StagedArtifact> {
-        materialize_artifact(artifact, &temp_path)?;
+        materialize_artifact_with_progress(
+            artifact,
+            &key,
+            &temp_path,
+            artifact_index,
+            artifact_count,
+            reporter,
+        )?;
         let (sha256, size) = verify_artifact_file(&temp_path, artifact, &key)?;
         ensure_artifact_executable(&temp_path, &key)?;
         fs::rename(&temp_path, &target_path)?;
@@ -229,6 +361,7 @@ pub fn stage_artifacts(
     decision: &BootstrapperUpdateDecision,
     staging_root: &Path,
     artifact_keys: Vec<ArtifactKey>,
+    reporter: &dyn InstallProgressReporter,
 ) -> Result<StagingResult> {
     let staging_dir = staging_dir(decision, staging_root)?;
     fs::create_dir_all(&staging_dir)?;
@@ -236,9 +369,17 @@ pub fn stage_artifacts(
     let mut artifacts = Vec::new();
     if decision.update_available {
         if let Some(dist_artifacts) = &decision.artifacts {
-            for key in artifact_keys {
+            let artifact_count = artifact_keys.len();
+            for (index, key) in artifact_keys.into_iter().enumerate() {
                 if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
-                    artifacts.push(stage_artifact(artifact, key, &staging_dir)?);
+                    artifacts.push(stage_artifact(
+                        artifact,
+                        key,
+                        &staging_dir,
+                        index + 1,
+                        artifact_count,
+                        reporter,
+                    )?);
                 }
             }
         }

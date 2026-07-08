@@ -13,8 +13,8 @@ use crate::{
             events::{NoopInstallProgressReporter, StderrJsonInstallProgressReporter},
             run_install_workflow,
         },
-        manifest::GitHubManifestFallback,
         launcher::launch_app,
+        manifest::GitHubManifestFallback,
         startup_config::{BootstrapperStartupConfig, load_startup_config},
         transactions::{
             apply_transaction_file, newest_transaction, rollback_transaction_file,
@@ -30,6 +30,15 @@ use std::{
     path::{Path, PathBuf},
     process::{Command, Stdio},
 };
+
+const DEFAULT_S3_URL: &str = "https://s3.pulsesync.dev";
+const DEFAULT_SERVER_HEALTH_URL: &str = "https://ru-node-1.pulsesync.dev/api/v2/health";
+
+#[derive(Clone, Debug)]
+struct StandaloneReleaseConfig {
+    install_root: PathBuf,
+    startup_config: BootstrapperStartupConfig,
+}
 
 fn infer_install_root() -> Result<PathBuf> {
     let executable = env::current_exe()?;
@@ -47,6 +56,29 @@ fn infer_install_root() -> Result<PathBuf> {
     Ok(executable_dir.to_path_buf())
 }
 
+fn default_standalone_install_root() -> Option<PathBuf> {
+    if cfg!(windows) {
+        return env::var_os("LOCALAPPDATA").map(|root| PathBuf::from(root).join("PulseSync"));
+    }
+
+    if cfg!(target_os = "macos") {
+        return env::var_os("HOME").map(PathBuf::from).map(|home| {
+            home.join("Library")
+                .join("Application Support")
+                .join("PulseSync")
+        });
+    }
+
+    env::var_os("XDG_DATA_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            env::var_os("HOME")
+                .map(PathBuf::from)
+                .map(|home| home.join(".local").join("share"))
+        })
+        .map(|root| root.join("PulseSync"))
+}
+
 fn current_dist() -> String {
     let platform = if cfg!(windows) {
         "win32"
@@ -61,6 +93,98 @@ fn current_dist() -> String {
         value => value,
     };
     format!("{platform}-{arch}")
+}
+
+fn current_app_executable_name() -> String {
+    if cfg!(windows) {
+        return "PulseSync.exe".to_string();
+    }
+    if cfg!(target_os = "macos") {
+        return PathBuf::from("MacOS")
+            .join("PulseSync")
+            .to_string_lossy()
+            .to_string();
+    }
+    "pulsesync".to_string()
+}
+
+fn append_cache_buster(url: String, cache_key: &str) -> String {
+    let separator = if url.contains('?') { '&' } else { '?' };
+    format!("{url}{separator}_={cache_key}")
+}
+
+fn channel_from_version(version: &str) -> String {
+    version
+        .split_once('-')
+        .and_then(|(_, prerelease)| prerelease.split('.').next())
+        .filter(|value| !value.trim().is_empty())
+        .unwrap_or("stable")
+        .to_string()
+}
+
+fn parse_standalone_release_file_name(file_name: &str) -> Option<(String, String, String)> {
+    let mut name = file_name.strip_prefix("pulsesync-bootstrapper-")?;
+    if cfg!(windows) {
+        name = name.strip_suffix(".exe")?;
+    }
+
+    let parts = name.split('-').collect::<Vec<_>>();
+    if parts.len() < 4 {
+        return None;
+    }
+
+    let platform = parts.get(parts.len().saturating_sub(2))?;
+    if !matches!(*platform, "win32" | "darwin" | "linux") {
+        return None;
+    }
+
+    let arch = parts.last()?;
+    if arch.trim().is_empty() {
+        return None;
+    }
+
+    let version = parts[..parts.len() - 2].join("-");
+    if version.trim().is_empty() {
+        return None;
+    }
+
+    let dist = format!("{platform}-{arch}");
+    let channel = channel_from_version(&version);
+    Some((version, channel, dist))
+}
+
+fn infer_standalone_release_config() -> Result<Option<StandaloneReleaseConfig>> {
+    let executable = env::current_exe()?;
+    let Some(file_name) = executable.file_name().and_then(|value| value.to_str()) else {
+        return Ok(None);
+    };
+    let Some((version, channel, dist)) = parse_standalone_release_file_name(file_name) else {
+        return Ok(None);
+    };
+    let Some(install_root) = default_standalone_install_root() else {
+        return Ok(None);
+    };
+
+    let manifest_url = append_cache_buster(
+        format!("{DEFAULT_S3_URL}/builds/app/{channel}/desktop-update-{dist}.json"),
+        &version,
+    );
+
+    Ok(Some(StandaloneReleaseConfig {
+        install_root,
+        startup_config: BootstrapperStartupConfig {
+            app_executable_name: Some(current_app_executable_name()),
+            dist: Some(dist),
+            github_channel: Some(channel),
+            github_owner: None,
+            github_repo: None,
+            installed_version: Some("0.0.0".to_string()),
+            manifest_url: Some(manifest_url),
+            retain_app_versions: Some(DEFAULT_RETAIN_APP_VERSIONS),
+            schema_version: Some(1),
+            server_health_url: Some(DEFAULT_SERVER_HEALTH_URL.to_string()),
+        },
+    }))
 }
 
 fn option_from_arg_or_config(
@@ -245,14 +369,30 @@ fn ensure_first_run_install(
 }
 
 pub fn start(args: &Args) -> Result<Value> {
-    let install_root = arg_value(args, "--install-root")
-        .map(PathBuf::from)
+    let explicit_install_root = arg_value(args, "--install-root").map(PathBuf::from);
+    let inferred_install_root = explicit_install_root
+        .clone()
         .or_else(|| infer_install_root().ok());
-    let startup_config = install_root
+    let initial_startup_config = inferred_install_root
         .as_deref()
         .map(load_startup_config)
         .transpose()?
         .flatten();
+    let standalone_release_config =
+        if explicit_install_root.is_none() && initial_startup_config.is_none() {
+            infer_standalone_release_config()?
+        } else {
+            None
+        };
+    let install_root = explicit_install_root
+        .or_else(|| {
+            standalone_release_config
+                .as_ref()
+                .map(|config| config.install_root.clone())
+        })
+        .or(inferred_install_root);
+    let startup_config = initial_startup_config
+        .or_else(|| standalone_release_config.map(|config| config.startup_config));
     let app_executable_name = arg_value(args, "--app-executable-name").or_else(|| {
         startup_config
             .as_ref()
