@@ -2,7 +2,11 @@ use crate::{
     core::{
         error::Result,
         fs_ops::{ensure_executable, extract_zip_to, sha256_file},
-        layout::assert_inside,
+        layout::{
+            DEFAULT_RETAIN_APP_VERSIONS, assert_inside, cleanup_inactive_app_versions,
+            current_version_file, normalize_retain_app_versions, read_current_version,
+            write_current_version,
+        },
         path_segment::sanitize_path_segment,
     },
     domain::transactions::{
@@ -15,25 +19,6 @@ use std::{
     fs,
     path::{Path, PathBuf},
 };
-
-fn write_current_version(install_dir: &Path, version: &str) -> Result<()> {
-    let current_file = install_dir.join("current.json");
-    let temp_file = current_file.with_extension(format!("json.tmp-{}", std::process::id()));
-    let payload = json!({
-        "schemaVersion": 1,
-        "version": version,
-    });
-
-    if let Some(parent) = current_file.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    fs::write(
-        &temp_file,
-        format!("{}\n", serde_json::to_string_pretty(&payload)?),
-    )?;
-    fs::rename(&temp_file, &current_file)?;
-    Ok(())
-}
 
 fn verify_artifact(artifact: &TransactionArtifact) -> Result<()> {
     let stat = fs::metadata(&artifact.prepared_path)?;
@@ -247,14 +232,48 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
     if should_switch_current_version {
+        let previous_current_version = read_current_version(&install_dir)?;
         let target_version = transaction
             .get("targetVersion")
             .and_then(Value::as_str)
             .ok_or("targetVersion is required to switch current version")?
             .to_string();
-        write_current_version(&install_dir, &target_version)?;
-        transaction["currentVersionFile"] = json!(install_dir.join("current.json"));
+        let current_file = write_current_version(&install_dir, &target_version)?;
+        let retain_app_versions = transaction
+            .get("retainAppVersions")
+            .and_then(Value::as_u64)
+            .map(|value| normalize_retain_app_versions(value as usize))
+            .unwrap_or(DEFAULT_RETAIN_APP_VERSIONS);
+        transaction["currentVersionFile"] = json!(current_file);
+        transaction["previousCurrentVersion"] = previous_current_version
+            .as_ref()
+            .map_or(Value::Null, |version| json!(version));
         transaction["currentVersion"] = json!(target_version);
+        match cleanup_inactive_app_versions(
+            &install_dir,
+            transaction
+                .get("currentVersion")
+                .and_then(Value::as_str)
+                .unwrap_or_default(),
+            previous_current_version.as_deref(),
+            retain_app_versions,
+        ) {
+            Ok(removed) => {
+                transaction["cleanup"] = json!({
+                    "state": "ok",
+                    "retainAppVersions": retain_app_versions,
+                    "removedAppVersions": removed,
+                });
+            }
+            Err(error) => {
+                transaction["cleanup"] = json!({
+                    "state": "failed",
+                    "retainAppVersions": retain_app_versions,
+                    "error": error.to_string(),
+                    "currentVersionFile": current_version_file(&install_dir),
+                });
+            }
+        }
     }
     write_transaction(transaction_file, &transaction)?;
     Ok(transaction)

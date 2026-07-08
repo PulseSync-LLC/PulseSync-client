@@ -1,9 +1,11 @@
 use crate::{
-    cli::args::{Args, arg_value},
+    cli::args::{Args, arg_value, usize_arg},
     commands::install_ui::run_install_ui,
     core::{
         error::Result,
-        layout::{Layout, resolve_layout},
+        layout::{
+            DEFAULT_RETAIN_APP_VERSIONS, Layout, normalize_retain_app_versions, resolve_layout,
+        },
     },
     domain::{
         install_workflow::{
@@ -11,6 +13,7 @@ use crate::{
             events::{NoopInstallProgressReporter, StderrJsonInstallProgressReporter},
             run_install_workflow,
         },
+        manifest::GitHubManifestFallback,
         launcher::launch_app,
         startup_config::{BootstrapperStartupConfig, load_startup_config},
         transactions::{
@@ -106,6 +109,7 @@ fn launch_self_update_handoff(
             .arg(app_executable_name);
     }
     command
+        .arg("--")
         .args(passthrough_args)
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -164,21 +168,62 @@ fn ensure_first_run_install(
         config.and_then(BootstrapperStartupConfig::dist),
     )
     .unwrap_or_else(current_dist);
+    let server_health_url = option_from_arg_or_config(
+        args,
+        "--server-health-url",
+        config.and_then(BootstrapperStartupConfig::server_health_url),
+    );
+    let github_channel = option_from_arg_or_config(
+        args,
+        "--github-channel",
+        config.and_then(BootstrapperStartupConfig::github_channel),
+    );
+    let github_owner = option_from_arg_or_config(
+        args,
+        "--github-owner",
+        config.and_then(BootstrapperStartupConfig::github_owner),
+    );
+    let github_repo = option_from_arg_or_config(
+        args,
+        "--github-repo",
+        config.and_then(BootstrapperStartupConfig::github_repo),
+    );
     let installed_version = option_from_arg_or_config(
         args,
         "--installed-version",
         config.and_then(BootstrapperStartupConfig::installed_version),
     )
     .unwrap_or_else(|| "0.0.0".to_string());
+    let retain_app_versions = normalize_retain_app_versions(
+        usize_arg(args, "--retain-app-versions")?
+            .or_else(|| config.and_then(BootstrapperStartupConfig::retain_app_versions))
+            .unwrap_or(DEFAULT_RETAIN_APP_VERSIONS),
+    );
     let staging_root = arg_value(args, "--staging-dir")
         .map(PathBuf::from)
         .unwrap_or_else(|| default_staging_root(layout));
+    let github_fallback = server_health_url.map(|health_url| {
+        let mut fallback = GitHubManifestFallback::new(
+            github_channel.unwrap_or_else(|| "beta".to_string()),
+            dist.clone(),
+            health_url,
+        );
+        if let Some(owner) = github_owner {
+            fallback.owner = owner;
+        }
+        if let Some(repo) = github_repo {
+            fallback.repo = repo;
+        }
+        fallback
+    });
     let options = InstallWorkflowOptions {
         dist,
         install_root: layout.install_root.clone(),
         installed_version,
+        github_fallback,
         layout: layout.clone(),
         manifest_url,
+        retain_app_versions,
         staging_root,
     };
 

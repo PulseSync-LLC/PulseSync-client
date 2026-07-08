@@ -1,9 +1,71 @@
 use crate::{
-    core::error::Result,
+    core::{
+        error::Result,
+        layout::{clear_current_version, write_current_version},
+    },
     domain::transactions::store::{transaction_artifacts, write_transaction},
 };
 use serde_json::{Value, json};
-use std::{fs, path::Path};
+use std::{
+    fs,
+    path::{Path, PathBuf},
+};
+
+fn remove_target(path: &Path) -> Result<bool> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    if path.is_dir() {
+        fs::remove_dir_all(path)?;
+    } else {
+        fs::remove_file(path)?;
+    }
+    Ok(true)
+}
+
+fn restore_current_version(transaction: &mut Value) -> Result<()> {
+    if transaction
+        .get("currentVersion")
+        .and_then(Value::as_str)
+        .is_none()
+        && transaction
+            .get("previousCurrentVersion")
+            .and_then(Value::as_str)
+            .is_none()
+    {
+        return Ok(());
+    }
+
+    let install_dir = PathBuf::from(
+        transaction
+            .get("installDir")
+            .and_then(Value::as_str)
+            .ok_or("installDir is required to restore current version")?,
+    );
+    let restored = match transaction
+        .get("previousCurrentVersion")
+        .and_then(Value::as_str)
+    {
+        Some(previous_version) => {
+            let path = write_current_version(&install_dir, previous_version)?;
+            json!({
+                "state": "restored",
+                "version": previous_version,
+                "currentVersionFile": path,
+            })
+        }
+        None => {
+            let path = clear_current_version(&install_dir)?;
+            json!({
+                "state": "cleared",
+                "currentVersionFile": path,
+            })
+        }
+    };
+
+    transaction["currentVersionRestored"] = restored;
+    Ok(())
+}
 
 pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     let payload = fs::read_to_string(transaction_file)?;
@@ -23,18 +85,14 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     let mut rolled_back = Vec::new();
     for artifact in artifacts {
         let rollback_status = if artifact.backup_path.exists() {
-            if artifact.target_path.exists() {
-                if artifact.target_path.is_dir() {
-                    fs::remove_dir_all(&artifact.target_path)?;
-                } else {
-                    fs::remove_file(&artifact.target_path)?;
-                }
-            }
+            remove_target(&artifact.target_path)?;
             if let Some(parent) = artifact.target_path.parent() {
                 fs::create_dir_all(parent)?;
             }
             fs::rename(&artifact.backup_path, &artifact.target_path)?;
             "restored"
+        } else if remove_target(&artifact.target_path)? {
+            "removed"
         } else {
             "missing"
         };
@@ -49,6 +107,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["state"] = json!("rolled-back");
     transaction["rolledBack"] = json!(true);
     transaction["artifacts"] = Value::Array(rolled_back);
+    restore_current_version(&mut transaction)?;
     write_transaction(transaction_file, &transaction)?;
     Ok(transaction)
 }

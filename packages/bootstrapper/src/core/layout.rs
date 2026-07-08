@@ -1,6 +1,7 @@
 use crate::core::{error::Result, path_segment::sanitize_path_segment};
 use serde::Deserialize;
 use serde::Serialize;
+use serde_json::json;
 use std::{
     env, fs,
     path::Component,
@@ -8,6 +9,8 @@ use std::{
 };
 
 const CURRENT_VERSION_FILE_NAME: &str = "current.json";
+pub const DEFAULT_RETAIN_APP_VERSIONS: usize = 2;
+pub const MIN_RETAIN_APP_VERSIONS: usize = 2;
 
 #[derive(Debug, Deserialize)]
 struct CurrentVersionPointer {
@@ -48,7 +51,7 @@ fn default_app_executable_name() -> &'static str {
     }
 }
 
-fn current_version_file(install_root: &Path) -> PathBuf {
+pub fn current_version_file(install_root: &Path) -> PathBuf {
     install_root.join(CURRENT_VERSION_FILE_NAME)
 }
 
@@ -86,6 +89,113 @@ pub fn read_current_version(install_root: &Path) -> Result<Option<String>> {
     }
 
     Ok(Some(pointer.version))
+}
+
+pub fn write_current_version(install_root: &Path, version: &str) -> Result<PathBuf> {
+    let current_file = current_version_file(install_root);
+    let temp_file = current_file.with_extension(format!("json.tmp-{}", std::process::id()));
+    let payload = json!({
+        "schemaVersion": 1,
+        "version": version,
+    });
+
+    if let Some(parent) = current_file.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(
+        &temp_file,
+        format!("{}\n", serde_json::to_string_pretty(&payload)?),
+    )?;
+    fs::rename(&temp_file, &current_file)?;
+    Ok(current_file)
+}
+
+pub fn clear_current_version(install_root: &Path) -> Result<Option<PathBuf>> {
+    let current_file = current_version_file(install_root);
+    if !current_file.exists() {
+        return Ok(None);
+    }
+    fs::remove_file(&current_file)?;
+    Ok(Some(current_file))
+}
+
+pub fn normalize_retain_app_versions(value: usize) -> usize {
+    value.max(MIN_RETAIN_APP_VERSIONS)
+}
+
+struct AppVersionCandidate {
+    is_previous: bool,
+    modified: std::time::SystemTime,
+    path: PathBuf,
+}
+
+pub fn cleanup_inactive_app_versions(
+    install_root: &Path,
+    active_version: &str,
+    previous_version: Option<&str>,
+    retain_app_versions: usize,
+) -> Result<Vec<PathBuf>> {
+    let active_dir = versioned_app_dir(install_root, active_version)?;
+    let previous_dir = previous_version
+        .map(|version| versioned_app_dir(install_root, version))
+        .transpose()?;
+    let mut removed = Vec::new();
+    let mut candidates = Vec::new();
+    let retain_inactive_versions = normalize_retain_app_versions(retain_app_versions)
+        .saturating_sub(2)
+        + usize::from(previous_dir.is_some());
+
+    if !install_root.is_dir() {
+        return Ok(removed);
+    }
+
+    for entry in fs::read_dir(install_root)? {
+        let entry = entry?;
+        let path = entry.path();
+        if !path.is_dir() {
+            continue;
+        }
+        let Some(name) = path.file_name().and_then(|value| value.to_str()) else {
+            continue;
+        };
+        if !name.starts_with("app-") || path == active_dir {
+            continue;
+        }
+
+        let modified = entry
+            .metadata()
+            .and_then(|metadata| metadata.modified())
+            .unwrap_or(std::time::UNIX_EPOCH);
+        candidates.push(AppVersionCandidate {
+            is_previous: previous_dir
+                .as_ref()
+                .is_some_and(|previous| &path == previous),
+            modified,
+            path,
+        });
+    }
+
+    candidates.sort_by(|left, right| {
+        right
+            .is_previous
+            .cmp(&left.is_previous)
+            .then_with(|| right.modified.cmp(&left.modified))
+            .then_with(|| {
+                left.path
+                    .to_string_lossy()
+                    .cmp(&right.path.to_string_lossy())
+            })
+    });
+
+    for candidate in candidates.into_iter().skip(retain_inactive_versions) {
+        let path = candidate.path;
+
+        assert_inside(install_root, &path, "inactive app version")?;
+        fs::remove_dir_all(&path)?;
+        removed.push(path);
+    }
+
+    Ok(removed)
 }
 
 fn absolute_path(path: &Path) -> PathBuf {
