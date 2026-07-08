@@ -20,6 +20,7 @@ type BootstrapperArtifact = {
 
 type InstallWorkflowResult = {
     applyResult?: {
+        currentVersion?: unknown
         state?: unknown
     }
     installed?: unknown
@@ -167,14 +168,31 @@ function requireFile(filePath: string): void {
     }
 }
 
+function rejectPath(targetPath: string): void {
+    if (fs.existsSync(targetPath)) {
+        throw new Error(`Expected path to be absent: ${targetPath}`)
+    }
+}
+
+function readCurrentVersion(installRoot: string): string {
+    const currentPath = path.join(installRoot, 'current.json')
+    requireFile(currentPath)
+    const current = JSON.parse(fs.readFileSync(currentPath, 'utf-8')) as { schemaVersion?: unknown; version?: unknown }
+    if (current.schemaVersion !== 1 || current.version !== targetVersion) {
+        throw new Error(`Expected current.json to point at ${targetVersion}, got ${JSON.stringify(current)}`)
+    }
+    return current.version as string
+}
+
 function main(): void {
     const tempRoot = fs.mkdtempSync(path.join(os.tmpdir(), 'pulsesync-bootstrapper-smoke-'))
     try {
         const { appArchive, manifestPath, moduleArchive } = createFixtureArtifacts(tempRoot)
         const result = runInstallWorkflow(tempRoot, manifestPath)
         const installRoot = path.join(tempRoot, 'install')
-        const installedAppExecutable = path.join(installRoot, 'app', appExecutableName())
-        const installedModuleFile = path.join(installRoot, 'modules', moduleName, moduleFileName)
+        const versionRoot = path.join(installRoot, `app-${targetVersion}`)
+        const installedAppExecutable = path.join(versionRoot, appExecutableName())
+        const installedModuleFile = path.join(versionRoot, 'modules', moduleName, moduleFileName)
 
         if (result.state !== 'installed' || result.installed !== true) {
             throw new Error(`Expected install-workflow state=installed, got ${JSON.stringify(result)}`)
@@ -185,6 +203,9 @@ function main(): void {
 
         requireFile(installedAppExecutable)
         requireFile(installedModuleFile)
+        const currentVersion = readCurrentVersion(installRoot)
+        rejectPath(path.join(installRoot, 'app'))
+        rejectPath(path.join(installRoot, 'modules'))
 
         console.log(
             JSON.stringify(
@@ -194,6 +215,7 @@ function main(): void {
                     appArchive,
                     moduleArchive,
                     manifestPath,
+                    currentVersion,
                     installedAppExecutable,
                     installedModuleFile,
                     installWorkflowState: result.state,
