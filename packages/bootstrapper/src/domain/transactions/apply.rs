@@ -16,6 +16,25 @@ use std::{
     path::{Path, PathBuf},
 };
 
+fn write_current_version(install_dir: &Path, version: &str) -> Result<()> {
+    let current_file = install_dir.join("current.json");
+    let temp_file = current_file.with_extension(format!("json.tmp-{}", std::process::id()));
+    let payload = json!({
+        "schemaVersion": 1,
+        "version": version,
+    });
+
+    if let Some(parent) = current_file.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    fs::write(
+        &temp_file,
+        format!("{}\n", serde_json::to_string_pretty(&payload)?),
+    )?;
+    fs::rename(&temp_file, &current_file)?;
+    Ok(())
+}
+
 fn verify_artifact(artifact: &TransactionArtifact) -> Result<()> {
     let stat = fs::metadata(&artifact.prepared_path)?;
     if !stat.is_file() {
@@ -67,20 +86,28 @@ fn find_extracted_directory(temp_dir: &Path, target_path: &Path) -> Result<PathB
         .file_name()
         .and_then(|value| value.to_str())
         .unwrap_or_default();
+    let mut root_directories = Vec::new();
 
     let mut pending = vec![temp_dir.to_path_buf()];
     while let Some(directory) = pending.pop() {
-        for entry in fs::read_dir(directory)? {
+        for entry in fs::read_dir(&directory)? {
             let entry = entry?;
             let path = entry.path();
             if !path.is_dir() {
                 continue;
+            }
+            if directory == temp_dir {
+                root_directories.push(path.clone());
             }
             if entry.file_name().to_string_lossy() == target_name {
                 return Ok(path);
             }
             pending.push(path);
         }
+    }
+
+    if root_directories.len() == 1 {
+        return Ok(root_directories.remove(0));
     }
 
     Ok(temp_dir.to_path_buf())
@@ -193,6 +220,7 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     );
     let artifacts = transaction_artifacts(&transaction)?;
     let mut applied = Vec::new();
+    let should_switch_current_version = artifacts.iter().any(|artifact| artifact.key == "app");
 
     for artifact in &artifacts {
         assert_inside(
@@ -218,6 +246,16 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["state"] = json!("applied");
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
+    if should_switch_current_version {
+        let target_version = transaction
+            .get("targetVersion")
+            .and_then(Value::as_str)
+            .ok_or("targetVersion is required to switch current version")?
+            .to_string();
+        write_current_version(&install_dir, &target_version)?;
+        transaction["currentVersionFile"] = json!(install_dir.join("current.json"));
+        transaction["currentVersion"] = json!(target_version);
+    }
     write_transaction(transaction_file, &transaction)?;
     Ok(transaction)
 }

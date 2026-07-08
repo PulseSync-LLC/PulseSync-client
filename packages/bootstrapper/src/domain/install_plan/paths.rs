@@ -1,5 +1,9 @@
 use crate::{
-    core::{error::Result, path_segment::sanitize_path_segment},
+    core::{
+        error::Result,
+        layout::{versioned_app_dir, versioned_modules_dir},
+        path_segment::sanitize_path_segment,
+    },
     domain::{artifacts::ArtifactKey, manifest::BootstrapperUpdateDecision},
 };
 use std::path::{Path, PathBuf};
@@ -35,15 +39,18 @@ fn bootstrapper_executable_name() -> &'static str {
 
 pub(crate) fn target_path(
     install_dir: &Path,
+    target_version: &str,
     key: &ArtifactKey,
     _artifact_file_name: &str,
-) -> PathBuf {
+) -> Result<PathBuf> {
     match key {
-        ArtifactKey::App => install_dir.join("app"),
-        ArtifactKey::Module(module_name) => install_dir.join("modules").join(module_name),
-        ArtifactKey::Bootstrapper => install_dir
+        ArtifactKey::App => versioned_app_dir(install_dir, target_version),
+        ArtifactKey::Module(module_name) => {
+            Ok(versioned_modules_dir(install_dir, target_version)?.join(module_name))
+        }
+        ArtifactKey::Bootstrapper => Ok(install_dir
             .join("bootstrapper")
-            .join(bootstrapper_executable_name()),
+            .join(bootstrapper_executable_name())),
     }
 }
 
