@@ -155,6 +155,24 @@ function getRemoteRendererUploadHeaders(relativePath: string, filePath: string):
     }
 }
 
+function getDesktopUpdateUploadHeaders(filePath: string): UploadHeaders | undefined {
+    if (!isDesktopReleaseManifestFile(filePath)) {
+        return undefined
+    }
+
+    return {
+        ContentType: 'application/json; charset=utf-8',
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
+function getLatestAliasUploadHeaders(filePath: string): UploadHeaders {
+    return {
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
 function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 }
@@ -200,6 +218,22 @@ async function resolveStructuredPublishPath(filePath: string, version?: string):
     }
 
     return fileName
+}
+
+function resolveLatestAliasPublishPath(filePath: string, version?: string): string | null {
+    if (!version) {
+        return null
+    }
+
+    const fileName = path.basename(filePath)
+    const escapedVersion = escapeRegExp(version)
+    const setupMatch = new RegExp(`^pulsesync-bootstrapper-setup-${escapedVersion}-([a-z0-9_-]+)\\.exe$`, 'iu').exec(fileName)
+    if (!setupMatch) {
+        return null
+    }
+
+    const arch = setupMatch[1].toLowerCase()
+    return `latest/win32-${arch}/PulseSyncSetup.exe`
 }
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
@@ -587,7 +621,11 @@ export async function publishToS3(
 
     for (const filePath of files) {
         const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
-        await uploadFileToS3(client, bucket, key, filePath)
+        await uploadFileToS3(client, bucket, key, filePath, getDesktopUpdateUploadHeaders(filePath))
+        const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
+        if (latestAliasPath) {
+            await uploadFileToS3(client, bucket, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
+        }
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')

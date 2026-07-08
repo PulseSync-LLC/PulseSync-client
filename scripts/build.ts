@@ -367,24 +367,28 @@ function getBootstrapperAppExecutableName(): string {
     return 'pulsesync'
 }
 
-function getBootstrapperManifestUrl(channel: string, dist: string): string {
+function appendCacheBuster(url: string, cacheKey: string): string {
+    return `${url}${url.includes('?') ? '&' : '?'}_=${encodeURIComponent(cacheKey)}`
+}
+
+function getBootstrapperManifestUrl(channel: string, dist: string, cacheKey: string): string {
     const explicitManifestUrl = process.env.PULSESYNC_BOOTSTRAPPER_MANIFEST_URL?.trim()
     if (explicitManifestUrl) {
-        return explicitManifestUrl
+        return appendCacheBuster(explicitManifestUrl, cacheKey)
     }
 
     const baseS3Url = (process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')
-    return `${baseS3Url}/builds/app/${channel}/desktop-update-${dist}.json`
+    return appendCacheBuster(`${baseS3Url}/builds/app/${channel}/desktop-update-${dist}.json`, cacheKey)
 }
 
 function getBootstrapperResourcesDir(installRoot: string): string {
     return os.platform() === 'darwin' ? path.join(installRoot, 'Resources') : path.join(installRoot, 'resources')
 }
 
-function writeBootstrapperSetupConfig(setupRoot: string, channel: string, dist: string): void {
+function writeBootstrapperSetupConfig(setupRoot: string, channel: string, dist: string, version: string): void {
     const config = {
         schemaVersion: 1,
-        manifestUrl: getBootstrapperManifestUrl(channel, dist),
+        manifestUrl: getBootstrapperManifestUrl(channel, dist, version),
         serverHealthUrl: process.env.PULSESYNC_SERVER_HEALTH_URL?.trim() || DEFAULT_SERVER_HEALTH_URL,
         githubChannel: channel,
         dist,
@@ -551,12 +555,12 @@ function removeBootstrapperSetupDisplacedPaths(setupRoot: string): void {
     }
 }
 
-async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string): Promise<string> {
+async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string, version: string): Promise<string> {
     const setupRoot = getBootstrapperSetupRoot(outDir)
     if (os.platform() !== 'win32') {
         removeBootstrapperSetupDisplacedPaths(setupRoot)
         await copyBootstrapperToInstallRoot(setupRoot)
-        writeBootstrapperSetupConfig(setupRoot, channel, dist)
+        writeBootstrapperSetupConfig(setupRoot, channel, dist, version)
         writeLinuxBootstrapperEntrypoint(setupRoot)
         writeMacBootstrapperEntrypoint(setupRoot)
         return setupRoot
@@ -565,7 +569,7 @@ async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dis
     fs.rmSync(setupRoot, { force: true, recursive: true })
     fs.mkdirSync(path.join(setupRoot, 'resources'), { recursive: true })
     await copyBootstrapperToInstallRoot(setupRoot)
-    writeBootstrapperSetupConfig(setupRoot, channel, dist)
+    writeBootstrapperSetupConfig(setupRoot, channel, dist, version)
     return setupRoot
 }
 
@@ -703,7 +707,7 @@ async function main(): Promise<void> {
         copyArtifactWorker(pdPath)
         await prepareBootstrapperInstallerRoot(pdPath)
         const setupDist = setBuildDist(os.platform(), targetArch)
-        const setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist)
+        const setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, readPackageVersion())
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -756,7 +760,7 @@ async function main(): Promise<void> {
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
         const payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
-        const setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist)
+        const setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version)
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
         } else if (os.platform() === 'linux') {
