@@ -30,7 +30,9 @@ const publishChangelogFlag = process.argv.includes('--publish-changelog') || pro
 const ELECTRON_LOCALES_TO_KEEP = new Set(['en-US.pak', 'ru.pak'])
 const ARTIFACT_WORKER_FILE_NAME = 'artifactWorker.cjs'
 const BOOTSTRAPPER_CONFIG_FILE_NAME = 'bootstrapper.json'
+const BOOTSTRAPPER_RETAIN_APP_VERSIONS = 2
 const DEFAULT_S3_URL = 'https://s3.pulsesync.dev'
+const DEFAULT_SERVER_HEALTH_URL = 'https://ru-node-1.pulsesync.dev/api/v2/health'
 
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
@@ -383,9 +385,12 @@ function writeBootstrapperSetupConfig(setupRoot: string, channel: string, dist: 
     const config = {
         schemaVersion: 1,
         manifestUrl: getBootstrapperManifestUrl(channel, dist),
+        serverHealthUrl: process.env.PULSESYNC_SERVER_HEALTH_URL?.trim() || DEFAULT_SERVER_HEALTH_URL,
+        githubChannel: channel,
         dist,
         installedVersion: '0.0.0',
         appExecutableName: getBootstrapperAppExecutableName(),
+        retainAppVersions: BOOTSTRAPPER_RETAIN_APP_VERSIONS,
     }
     const configPath = path.join(getBootstrapperResourcesDir(setupRoot), BOOTSTRAPPER_CONFIG_FILE_NAME)
     fs.mkdirSync(path.dirname(configPath), { recursive: true })
@@ -402,7 +407,7 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
         '#!/usr/bin/env bash',
         'set -euo pipefail',
         'APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
-        'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start "$@"',
+        'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_DIR}" -- "$@"',
         '',
     ].join('\n')
 
@@ -421,7 +426,7 @@ function writeMacBootstrapperEntrypoint(setupRoot: string): void {
         '#!/usr/bin/env bash',
         'set -euo pipefail',
         'APP_CONTENTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
-        'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start "$@"',
+        'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_CONTENTS}" -- "$@"',
         '',
     ].join('\n')
 
@@ -461,6 +466,56 @@ function removeStaleBootstrapperSetupAliases(releaseDir: string, version: string
     }
 }
 
+function isManagedReleaseArtifact(fileName: string): boolean {
+    return (
+        fileName === 'builder-debug.yml' ||
+        fileName === 'download.json' ||
+        fileName.startsWith('latest') ||
+        fileName.endsWith('.blockmap') ||
+        /^desktop-update-[a-z0-9_-]+\.json$/iu.test(fileName) ||
+        /^pulsesync-app-/iu.test(fileName) ||
+        /^pulsesync-app-payload-/iu.test(fileName) ||
+        /^pulsesync-bootstrapper-/iu.test(fileName) ||
+        /^pulsesync-module-/iu.test(fileName) ||
+        /^pulsesync-native-modules-/iu.test(fileName)
+    )
+}
+
+function cleanManagedReleaseArtifacts(releaseDir: string): void {
+    if (!fs.existsSync(releaseDir) || !fs.statSync(releaseDir).isDirectory()) {
+        fs.mkdirSync(releaseDir, { recursive: true })
+        return
+    }
+
+    for (const entry of fs.readdirSync(releaseDir, { withFileTypes: true })) {
+        if (!entry.isFile()) {
+            continue
+        }
+
+        const fileName = entry.name.toLowerCase()
+        if (isManagedReleaseArtifact(fileName)) {
+            fs.rmSync(path.join(releaseDir, entry.name), { force: true })
+        }
+    }
+}
+
+function removeUnpublishedReleaseArtifacts(releaseDir: string): void {
+    if (!fs.existsSync(releaseDir) || !fs.statSync(releaseDir).isDirectory()) {
+        return
+    }
+
+    for (const entry of fs.readdirSync(releaseDir, { withFileTypes: true })) {
+        if (!entry.isFile()) {
+            continue
+        }
+
+        const fileName = entry.name.toLowerCase()
+        if (fileName === 'builder-debug.yml' || fileName === 'download.json' || fileName.startsWith('latest') || fileName.endsWith('.blockmap')) {
+            fs.rmSync(path.join(releaseDir, entry.name), { force: true })
+        }
+    }
+}
+
 function copyDirectoryEntries(sourceDir: string, targetDir: string, excludedNames = new Set<string>()): void {
     fs.mkdirSync(targetDir, { recursive: true })
     for (const entry of fs.readdirSync(sourceDir, { withFileTypes: true })) {
@@ -490,9 +545,16 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     return installRoot
 }
 
+function removeBootstrapperSetupDisplacedPaths(setupRoot: string): void {
+    for (const name of ['app', 'modules', 'native']) {
+        fs.rmSync(path.join(setupRoot, name), { force: true, recursive: true })
+    }
+}
+
 async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string): Promise<string> {
     const setupRoot = getBootstrapperSetupRoot(outDir)
     if (os.platform() !== 'win32') {
+        removeBootstrapperSetupDisplacedPaths(setupRoot)
         await copyBootstrapperToInstallRoot(setupRoot)
         writeBootstrapperSetupConfig(setupRoot, channel, dist)
         writeLinuxBootstrapperEntrypoint(setupRoot)
@@ -630,6 +692,7 @@ async function main(): Promise<void> {
         const productName = getProductNameFromConfig()
         const targetArch = getBuildTargetArch()
         const releaseDir = path.join('.', 'release')
+        cleanManagedReleaseArtifacts(releaseDir)
         const pdPath =
             os.platform() === 'darwin'
                 ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
@@ -639,7 +702,7 @@ async function main(): Promise<void> {
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
         await prepareBootstrapperInstallerRoot(pdPath)
-        const setupDist = setBuildDist(os.platform(), os.arch())
+        const setupDist = setBuildDist(os.platform(), targetArch)
         const setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
@@ -660,6 +723,7 @@ async function main(): Promise<void> {
 
         removeStaleBootstrapperSetupAliases(releaseDir, readPackageVersion(), targetArch)
         await runCommandStep('Build (electron-builder)', `electron-builder --pd "${setupRoot}" --config "${tmpPath}"`)
+        removeUnpublishedReleaseArtifacts(releaseDir)
         fs.unlinkSync(tmpPath)
         log(LogLevel.SUCCESS, 'Done')
         return
@@ -674,6 +738,7 @@ async function main(): Promise<void> {
         const targetArch = getBuildTargetArch()
         const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${targetArch}`)
         const releaseDir = path.join('.', 'release')
+        cleanManagedReleaseArtifacts(releaseDir)
         const { version } = generateBuildInfo()
 
         const buildDist =
@@ -752,6 +817,7 @@ async function main(): Promise<void> {
                 `electron-builder --pd "${setupRoot}" --config "${tmpPath}" --publish never`,
             )
         }
+        removeUnpublishedReleaseArtifacts(releaseDir)
 
         fs.unlinkSync(tmpPath)
 

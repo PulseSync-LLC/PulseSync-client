@@ -13,8 +13,14 @@ function hasFlag(args: string[], name: string): boolean {
     return args.includes(name)
 }
 
-function getTargetPlatform(): TargetPlatform {
-    const platform = os.platform()
+function readArgValue(args: string[], name: string): string | null {
+    const index = args.indexOf(name)
+    if (index === -1) return null
+    return args[index + 1] ?? null
+}
+
+function getTargetPlatform(args: string[]): TargetPlatform {
+    const platform = readArgValue(args, '--platform') ?? os.platform()
     if (platform === 'win32' || platform === 'darwin' || platform === 'linux') {
         return platform
     }
@@ -23,6 +29,10 @@ function getTargetPlatform(): TargetPlatform {
 }
 
 function getTargetArch(args: string[], platform: TargetPlatform): string {
+    const explicitArch = readArgValue(args, '--arch')
+    if (explicitArch) {
+        return explicitArch
+    }
     if (platform === 'darwin' && hasFlag(args, '--mac-x64')) {
         return 'x64'
     }
@@ -46,10 +56,11 @@ function runTsxScript(scriptPath: string, args: string[]): void {
 
 function main(): void {
     const args = process.argv.slice(2)
-    const platform = getTargetPlatform()
+    const platform = getTargetPlatform(args)
     const arch = getTargetArch(args, platform)
     const productName = getProductName()
-    const outDir = path.join('out', `${productName}-${platform}-${arch}`)
+    const outRoot = readArgValue(args, '--out-root') ?? 'out'
+    const outDir = path.join(outRoot, `${productName}-${platform}-${arch}`)
     const payloadRoot = `${outDir}-bootstrapper`
     const setupRoot =
         platform === 'win32'
