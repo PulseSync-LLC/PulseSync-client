@@ -17,7 +17,7 @@ export type ResolveDesktopUpdateManifestOptions = {
 }
 
 function getBackendManifestUrl(channel: UpdateChannel, dist: string): string {
-    return `${getUpdateFeedUrl(channel)}desktop-update-${dist}.json`
+    return `${getUpdateFeedUrl(channel)}desktop-update-${dist}.json?_=${Date.now()}`
 }
 
 function getServerHealthUrl(): string {

@@ -3,6 +3,7 @@ use crate::{
     core::error::Result,
     domain::{
         artifacts::{ArtifactKey, default_artifact_keys, stage_artifacts},
+        install_workflow::events::NoopInstallProgressReporter,
         manifest::{BootstrapperUpdateDecision, decide_update, load_manifest},
     },
 };
@@ -27,5 +28,6 @@ pub fn download_artifacts(args: &Args) -> Result<Value> {
         &decision,
         &staging_dir,
         artifact_keys,
+        &NoopInstallProgressReporter,
     )?)?)
 }
