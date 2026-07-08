@@ -5,7 +5,10 @@ mod paths;
 pub use model::{InstallPlan, InstallPlanArtifact, InstallPlanCheck};
 
 use crate::{
-    core::{error::Result, layout::is_inside},
+    core::{
+        error::Result,
+        layout::{is_inside, normalize_retain_app_versions},
+    },
     domain::{
         artifacts::{ArtifactKey, artifact_file_name, default_artifact_keys, verify_artifact_file},
         install_plan::{
@@ -124,6 +127,7 @@ pub fn create_install_plan(
     staging_root: &Path,
     backup_dir: Option<PathBuf>,
     artifact_keys: Vec<ArtifactKey>,
+    retain_app_versions: usize,
 ) -> Result<InstallPlan> {
     let install_dir = install_dir
         .canonicalize()
@@ -196,6 +200,7 @@ pub fn create_install_plan(
         dist: decision.dist.clone(),
         install_dir,
         preflight,
+        retain_app_versions: normalize_retain_app_versions(retain_app_versions),
         staging_dir,
         target_version: decision.target_version.clone(),
         update_available: decision.update_available,
