@@ -1,6 +1,6 @@
 use crate::{
     cli::args::{Args, arg_value, required_arg},
-    core::error::Result,
+    core::{error::Result, layout::resolve_layout},
     domain::{launcher::launch_app, transactions::apply_transaction_file},
 };
 use serde_json::{Value, json};
@@ -34,12 +34,22 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         .iter()
         .map(OsString::from)
         .collect::<Vec<_>>();
-    let pid = launch_app(&app_executable, &passthrough_args)?;
+    let launch_executable = match arg_value(args, "--install-root") {
+        Some(install_root) => {
+            resolve_layout(
+                PathBuf::from(install_root),
+                arg_value(args, "--app-executable-name"),
+            )?
+            .app_executable
+        }
+        None => app_executable,
+    };
+    let pid = launch_app(&launch_executable, &passthrough_args)?;
     Ok(json!({
         "state": "launched",
         "launched": true,
         "pid": pid,
-        "appExecutable": app_executable,
+        "appExecutable": launch_executable,
         "transactionFile": transaction_file,
         "applyResult": applied,
         "reason": "Self-update transaction applied by prepared bootstrapper before launch"

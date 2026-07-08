@@ -57,7 +57,23 @@ function getAppPayloadInfo() {
         }
     }
 
+    if (path.basename(executableDir).toLowerCase().startsWith('app-')) {
+        return {
+            appExecutable,
+            appExecutableName: path.basename(appExecutable),
+            installRoot: parentDir,
+        }
+    }
+
     if (process.platform === 'darwin' && path.basename(executableDir) === 'MacOS' && path.basename(parentDir).toLowerCase() === 'app') {
+        return {
+            appExecutable,
+            appExecutableName: path.join('MacOS', path.basename(appExecutable)),
+            installRoot: path.dirname(parentDir),
+        }
+    }
+
+    if (process.platform === 'darwin' && path.basename(executableDir) === 'MacOS' && path.basename(parentDir).toLowerCase().startsWith('app-')) {
         return {
             appExecutable,
             appExecutableName: path.join('MacOS', path.basename(appExecutable)),

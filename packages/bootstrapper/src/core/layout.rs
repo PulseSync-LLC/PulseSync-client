@@ -1,15 +1,29 @@
-use crate::core::error::Result;
+use crate::core::{error::Result, path_segment::sanitize_path_segment};
+use serde::Deserialize;
 use serde::Serialize;
 use std::{
-    env,
+    env, fs,
     path::Component,
     path::{Path, PathBuf},
 };
+
+const CURRENT_VERSION_FILE_NAME: &str = "current.json";
+
+#[derive(Debug, Deserialize)]
+struct CurrentVersionPointer {
+    #[serde(rename = "schemaVersion")]
+    schema_version: Option<u64>,
+    version: String,
+}
 
 #[derive(Clone, Debug, Serialize)]
 pub struct Layout {
     #[serde(rename = "installRoot")]
     pub install_root: PathBuf,
+    #[serde(rename = "currentVersionFile")]
+    pub current_version_file: PathBuf,
+    #[serde(rename = "currentVersion")]
+    pub current_version: Option<String>,
     #[serde(rename = "appExecutableName")]
     pub app_executable_name: String,
     #[serde(rename = "appDir")]
@@ -32,6 +46,46 @@ fn default_app_executable_name() -> &'static str {
     } else {
         "PulseSync"
     }
+}
+
+fn current_version_file(install_root: &Path) -> PathBuf {
+    install_root.join(CURRENT_VERSION_FILE_NAME)
+}
+
+pub fn versioned_app_dir(install_root: &Path, version: &str) -> Result<PathBuf> {
+    Ok(install_root.join(format!("app-{}", sanitize_path_segment(version)?)))
+}
+
+pub fn versioned_modules_dir(install_root: &Path, version: &str) -> Result<PathBuf> {
+    Ok(versioned_app_dir(install_root, version)?.join("modules"))
+}
+
+pub fn read_current_version(install_root: &Path) -> Result<Option<String>> {
+    let path = current_version_file(install_root);
+    if !path.is_file() {
+        return Ok(None);
+    }
+
+    let pointer: CurrentVersionPointer = serde_json::from_slice(&fs::read(&path)?)?;
+    if let Some(schema_version) = pointer.schema_version
+        && schema_version != 1
+    {
+        return Err(format!(
+            "unsupported current version pointer schemaVersion {schema_version}: {}",
+            path.display()
+        )
+        .into());
+    }
+
+    if pointer.version.trim().is_empty() {
+        return Err(format!(
+            "current version pointer has empty version: {}",
+            path.display()
+        )
+        .into());
+    }
+
+    Ok(Some(pointer.version))
 }
 
 fn absolute_path(path: &Path) -> PathBuf {
@@ -108,14 +162,24 @@ pub fn resolve_layout(
     let install_root = install_root.canonicalize().unwrap_or(install_root);
     let app_executable_name =
         app_executable_name.unwrap_or_else(|| default_app_executable_name().to_string());
-    let app_dir = install_root.join("app");
-    let modules_dir = install_root.join("modules");
+    let current_version_file = current_version_file(&install_root);
+    let current_version = read_current_version(&install_root)?;
+    let app_dir = match current_version.as_deref() {
+        Some(version) => versioned_app_dir(&install_root, version)?,
+        None => install_root.join("app"),
+    };
+    let modules_dir = match current_version.as_deref() {
+        Some(version) => versioned_modules_dir(&install_root, version)?,
+        None => install_root.join("modules"),
+    };
     let updates_dir = install_root.join("updates");
     let layout = Layout {
         app_executable: app_dir.join(&app_executable_name),
         bootstrapper_dir: install_root.join("bootstrapper"),
         transaction_root: updates_dir.join("transactions"),
         install_root,
+        current_version_file,
+        current_version,
         app_executable_name,
         app_dir,
         modules_dir,
@@ -132,6 +196,11 @@ pub fn resolve_layout(
         &layout.install_root,
         &layout.bootstrapper_dir,
         "bootstrapperDir",
+    )?;
+    assert_inside(
+        &layout.install_root,
+        &layout.current_version_file,
+        "currentVersionFile",
     )?;
     assert_inside(&layout.install_root, &layout.modules_dir, "modulesDir")?;
     assert_inside(&layout.install_root, &layout.updates_dir, "updatesDir")?;

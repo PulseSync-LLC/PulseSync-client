@@ -1,7 +1,10 @@
 pub mod events;
 
 use crate::{
-    core::{error::Result, layout::Layout},
+    core::{
+        error::Result,
+        layout::{Layout, resolve_layout},
+    },
     domain::{
         artifacts::{ArtifactKey, stage_artifacts},
         install_plan::{InstallPlan, create_install_plan},
@@ -210,7 +213,12 @@ pub fn run_install_workflow(
         ));
     }
 
-    if !options.layout.app_executable.is_file() {
+    let installed_layout = resolve_layout(
+        options.install_root.clone(),
+        Some(options.layout.app_executable_name.clone()),
+    )?;
+
+    if !installed_layout.app_executable.is_file() {
         reporter.emit(InstallWorkflowEvent::stage(
             "blocked",
             "Install transaction applied but app executable is still missing",
@@ -235,7 +243,7 @@ pub fn run_install_workflow(
         "state": "installed",
         "installed": true,
         "reused": false,
-        "appExecutable": options.layout.app_executable,
+        "appExecutable": installed_layout.app_executable,
         "installRoot": options.install_root,
         "manifestUrl": options.manifest_url,
         "dist": options.dist,

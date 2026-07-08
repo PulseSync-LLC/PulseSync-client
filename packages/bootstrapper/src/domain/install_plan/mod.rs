@@ -23,12 +23,13 @@ fn artifact_plan_entry(
     artifact: &BootstrapperArtifact,
     key: ArtifactKey,
     install_dir: &Path,
+    target_version: &str,
     staging_dir: &Path,
     backup_dir: &Path,
 ) -> Result<(Option<InstallPlanArtifact>, Vec<InstallPlanCheck>)> {
     let artifact_file_name = artifact_file_name(artifact, &key)?;
     let source_path = staging_dir.join(&artifact_file_name);
-    let target_path = target_path(install_dir, &key, &artifact_file_name);
+    let target_path = target_path(install_dir, target_version, &key, &artifact_file_name)?;
     let backup_path = backup_path(backup_dir, &key, &artifact_file_name);
     let mut preflight = Vec::new();
 
@@ -164,8 +165,14 @@ pub fn create_install_plan(
     if let Some(dist_artifacts) = &decision.artifacts {
         for key in install_keys(artifact_keys) {
             if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
-                let (artifact, checks) =
-                    artifact_plan_entry(artifact, key, &install_dir, &staging_dir, &backup_dir)?;
+                let (artifact, checks) = artifact_plan_entry(
+                    artifact,
+                    key,
+                    &install_dir,
+                    &decision.target_version,
+                    &staging_dir,
+                    &backup_dir,
+                )?;
                 preflight.extend(checks);
                 if let Some(artifact) = artifact {
                     artifacts.push(artifact);
