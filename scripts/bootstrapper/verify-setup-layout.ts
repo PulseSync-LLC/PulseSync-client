@@ -8,17 +8,21 @@ const projectRoot = path.resolve(__dirname, '..', '..')
 type BootstrapperSetupConfig = {
     appExecutableName?: unknown
     dist?: unknown
+    githubChannel?: unknown
     installedVersion?: unknown
     manifestUrl?: unknown
     schemaVersion?: unknown
+    serverHealthUrl?: unknown
 }
 
 type VerifiedBootstrapperSetupConfig = {
     appExecutableName: string
     dist: string
+    githubChannel: string
     installedVersion: string
     manifestUrl: string
     schemaVersion: 1
+    serverHealthUrl: string
 }
 
 type TargetPlatform = 'darwin' | 'linux' | 'win32'
@@ -92,6 +96,8 @@ function readBootstrapperConfig(configPath: string): VerifiedBootstrapperSetupCo
     return {
         schemaVersion: config.schemaVersion,
         manifestUrl: requireString(config.manifestUrl, 'manifestUrl'),
+        serverHealthUrl: requireString(config.serverHealthUrl, 'serverHealthUrl'),
+        githubChannel: requireString(config.githubChannel, 'githubChannel'),
         dist: requireString(config.dist, 'dist'),
         installedVersion: requireString(config.installedVersion, 'installedVersion'),
         appExecutableName: requireString(config.appExecutableName, 'appExecutableName'),
@@ -99,6 +105,10 @@ function readBootstrapperConfig(configPath: string): VerifiedBootstrapperSetupCo
 }
 
 function requireExecutableBit(targetPath: string): void {
+    if (process.platform === 'win32') {
+        return
+    }
+
     const mode = fs.statSync(targetPath).mode
     if ((mode & 0o111) === 0) {
         throw new Error(`Expected executable file mode: ${targetPath}`)
@@ -109,8 +119,8 @@ function requireBootstrapperEntrypointScript(targetPath: string, platform: Exclu
     const script = fs.readFileSync(targetPath, 'utf-8')
     const expectedLaunchLine =
         platform === 'darwin'
-            ? 'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start "$@"'
-            : 'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start "$@"'
+            ? 'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_CONTENTS}" -- "$@"'
+            : 'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_DIR}" -- "$@"'
 
     if (!script.startsWith('#!/usr/bin/env bash\n')) {
         throw new Error(`Expected bootstrapper entrypoint shebang: ${targetPath}`)
@@ -184,6 +194,9 @@ function main(): void {
     if (!config.manifestUrl.includes(`desktop-update-${expectedConfigDist}.json`)) {
         throw new Error(`Expected bootstrapper manifestUrl to reference desktop-update-${expectedConfigDist}.json, got ${config.manifestUrl}`)
     }
+    if (!config.serverHealthUrl.endsWith('/api/v2/health')) {
+        throw new Error(`Expected bootstrapper serverHealthUrl to reference /api/v2/health, got ${config.serverHealthUrl}`)
+    }
 
     rejectPath(path.join(installRoot, 'app'))
     rejectPath(path.join(installRoot, 'modules'))
@@ -199,6 +212,8 @@ function main(): void {
         bootstrapperExecutable,
         configPath,
         manifestUrl: config.manifestUrl,
+        serverHealthUrl: config.serverHealthUrl,
+        githubChannel: config.githubChannel,
         dist: config.dist,
         installedVersion: config.installedVersion,
         appExecutableName: config.appExecutableName,

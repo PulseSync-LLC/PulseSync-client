@@ -51,7 +51,7 @@ function createPreviewFixture(root: string): string {
     const appExecutable = path.join(appSourceDir, appExecutableName())
     const moduleFile = path.join(moduleSourceDir, moduleFileName)
     const appArchive = path.join(artifactsRoot, `pulsesync-app-payload-${targetVersion}-${dist()}.zip`)
-    const moduleArchive = path.join(artifactsRoot, `pulsesync-native-modules-${moduleName}-${targetVersion}-${dist()}.zip`)
+    const moduleArchive = path.join(artifactsRoot, `pulsesync-module-${moduleName}-${targetVersion}-${dist()}.zip`)
     const manifestPath = path.join(root, `desktop-update-${dist()}.json`)
 
     fs.mkdirSync(path.dirname(appExecutable), { recursive: true })
@@ -64,7 +64,7 @@ function createPreviewFixture(root: string): string {
     }
 
     writeZip(appSourceDir, 'app', appArchive)
-    writeZip(moduleSourceDir, moduleName, moduleArchive)
+    writeZip(moduleSourceDir, path.join('modules', moduleName), moduleArchive)
 
     fs.writeFileSync(
         manifestPath,

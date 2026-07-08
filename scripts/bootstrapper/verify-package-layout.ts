@@ -64,6 +64,10 @@ function requireModuleFile(installRoot: string, moduleName: string, fileName: st
 }
 
 function requireExecutableBit(targetPath: string): void {
+    if (process.platform === 'win32') {
+        return
+    }
+
     const mode = fs.statSync(targetPath).mode
     if ((mode & 0o111) === 0) {
         throw new Error(`Expected executable file mode: ${targetPath}`)
@@ -72,7 +76,7 @@ function requireExecutableBit(targetPath: string): void {
 
 function rejectBootstrapperEntrypointScript(targetPath: string): void {
     const head = fs.readFileSync(targetPath).subarray(0, 4096).toString('utf-8')
-    if (head.includes('bootstrapper/pulsesync-bootstrapper') && head.includes(' start "$@"')) {
+    if (head.includes('bootstrapper/pulsesync-bootstrapper') && head.includes(' start ')) {
         throw new Error(`Expected app payload executable, got bootstrapper setup entrypoint: ${targetPath}`)
     }
 }

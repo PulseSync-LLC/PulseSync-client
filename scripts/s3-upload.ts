@@ -118,7 +118,7 @@ function walkFiles(dir: string): string[] {
 
 function isLegacyUpdaterArtifact(filePath: string): boolean {
     const fileName = path.basename(filePath).toLowerCase()
-    return fileName === 'download.json' || fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+    return fileName === 'download.json' || fileName.startsWith('latest') || fileName.endsWith('.blockmap')
 }
 
 async function hashFileSha256(filePath: string): Promise<string> {
@@ -203,6 +203,7 @@ async function resolveStructuredPublishPath(filePath: string, version?: string):
 }
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
+const STRUCTURED_DIST_RE = /^(win32|darwin|linux)-([a-z0-9_-]+)$/iu
 
 function parseKeepRecentVersions(rawValue?: string | null): number | null {
     if (!rawValue) return null
@@ -238,8 +239,62 @@ function resolveArtifactPlatform(suffix: string): ArtifactPlatform | null {
     }
 }
 
+function parseArtifactDist(dist: string): { platform: ArtifactPlatform; arch: string } | null {
+    const match = STRUCTURED_DIST_RE.exec(dist)
+    if (!match) return null
+
+    return {
+        platform: match[1].toLowerCase() as ArtifactPlatform,
+        arch: match[2].toLowerCase(),
+    }
+}
+
+function structuredArtifactDescriptor(version: string, dist: string, suffix: string, familyKind: string): VersionedArtifactDescriptor | null {
+    const parsedDist = parseArtifactDist(dist)
+    if (!parsedDist) return null
+
+    return {
+        version,
+        arch: parsedDist.arch,
+        platform: parsedDist.platform,
+        suffix,
+        family: `${parsedDist.platform}:${parsedDist.arch}:${familyKind}`,
+    }
+}
+
+function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactDescriptor | null {
+    const setupMatch = /^pulsesync-bootstrapper-setup-(.+)-([a-z0-9_-]+)\.exe$/iu.exec(fileName)
+    if (setupMatch) {
+        const [, version, arch] = setupMatch
+        return structuredArtifactDescriptor(version, `win32-${arch}`, 'exe', 'setup')
+    }
+
+    const appPayloadMatch = /^pulsesync-app-payload-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (appPayloadMatch) {
+        const [, version, dist] = appPayloadMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', 'app-payload')
+    }
+
+    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
+    if (bootstrapperMatch) {
+        const [, version, dist] = bootstrapperMatch
+        return structuredArtifactDescriptor(version, dist, path.extname(fileName).toLowerCase() === '.exe' ? 'exe' : 'binary', 'bootstrapper')
+    }
+
+    const moduleMatch = /^pulsesync-module-([a-z0-9_-]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (moduleMatch) {
+        const [, moduleName, version, dist] = moduleMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', `module:${moduleName.toLowerCase()}`)
+    }
+
+    return null
+}
+
 function parseVersionedArtifactDescriptor(key: string): VersionedArtifactDescriptor | null {
     const fileName = path.basename(key)
+    const structuredDescriptor = parseStructuredArtifactDescriptor(fileName)
+    if (structuredDescriptor) return structuredDescriptor
+
     const match = VERSIONED_ARTIFACT_RE.exec(fileName)
     if (!match) return null
 

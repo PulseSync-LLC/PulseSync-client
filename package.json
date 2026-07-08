@@ -31,7 +31,6 @@
         "publish:alpha": "tsx scripts/build.ts --application --publish alpha --debug",
         "publish:dev": "tsx scripts/build.ts --application --publish dev --debug",
         "typecheck": "tsc -b --noEmit",
-        "lint": "eslint --ext .ts,.tsx .",
         "format": "prettier --write .",
         "updateDeps": "ncu -u"
     },
