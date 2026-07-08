@@ -87,7 +87,7 @@
         "sass": "^1.101.0",
         "ts-node": "^10.9.2",
         "tsx": "4.23.0",
-        "typescript": "^6.0.3",
+        "typescript": "7.0.2",
         "vite": "^8.1.3",
         "vite-plugin-svgr": "^5.2.0"
     },
