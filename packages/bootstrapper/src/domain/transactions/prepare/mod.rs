@@ -176,6 +176,7 @@ fn blocked_result(
         "currentVersion": partial.map(|plan| plan.current_version.clone()).unwrap_or_default(),
         "targetVersion": partial.map(|plan| plan.target_version.clone()).unwrap_or_default(),
         "installDir": partial.map(|plan| plan.install_dir.clone()).unwrap_or_default(),
+        "retainAppVersions": partial.map(|plan| plan.retain_app_versions).unwrap_or_default(),
         "stagingDir": partial.map(|plan| plan.staging_dir.clone()).unwrap_or_default(),
         "backupDir": partial.map(|plan| plan.backup_dir.clone()).unwrap_or_default(),
         "transactionDir": "",
@@ -263,37 +264,24 @@ pub fn prepare_transaction_file(
         )
     });
 
-    checks.push(
-        if plan
-            .artifacts
-            .iter()
-            .any(|artifact| artifact.key == ArtifactKey::App)
-        {
-            pass("plan-app", "Install plan includes app", None)
-        } else {
-            block("plan-app", "Install plan is missing app", None)
-        },
-    );
-
-    checks.push(
-        if plan
-            .artifacts
-            .iter()
-            .any(|artifact| matches!(artifact.key, ArtifactKey::Module(_)))
-        {
-            pass(
-                "plan-modules",
-                "Install plan includes at least one module",
-                None,
-            )
-        } else {
-            block(
-                "plan-modules",
-                "Install plan is missing module artifacts",
-                None,
-            )
-        },
-    );
+    checks.push(if plan.artifacts.iter().any(|artifact| {
+        matches!(
+            artifact.key,
+            ArtifactKey::App | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
+        )
+    }) {
+        pass(
+            "plan-artifacts",
+            "Install plan includes at least one installable artifact",
+            None,
+        )
+    } else {
+        block(
+            "plan-artifacts",
+            "Install plan is missing installable artifacts",
+            None,
+        )
+    });
 
     for artifact in &plan.artifacts {
         checks.push(verify_source_artifact(artifact));
@@ -321,6 +309,7 @@ pub fn prepare_transaction_file(
         "currentVersion": plan.current_version,
         "targetVersion": plan.target_version,
         "installDir": plan.install_dir,
+        "retainAppVersions": plan.retain_app_versions,
         "stagingDir": plan.staging_dir,
         "backupDir": plan.backup_dir,
         "transactionDir": transaction_dir,

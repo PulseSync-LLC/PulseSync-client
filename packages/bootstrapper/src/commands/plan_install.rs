@@ -1,6 +1,9 @@
 use crate::{
-    cli::args::{Args, arg_value, required_arg},
-    core::error::Result,
+    cli::args::{Args, arg_value, required_arg, usize_arg},
+    core::{
+        error::Result,
+        layout::{DEFAULT_RETAIN_APP_VERSIONS, normalize_retain_app_versions},
+    },
     domain::{
         artifacts::ArtifactKey,
         install_plan::{create_install_plan, default_install_artifact_keys},
@@ -33,5 +36,8 @@ pub fn plan_install(args: &Args) -> Result<Value> {
         &staging_dir,
         backup_dir,
         artifact_keys,
+        normalize_retain_app_versions(
+            usize_arg(args, "--retain-app-versions")?.unwrap_or(DEFAULT_RETAIN_APP_VERSIONS),
+        ),
     )?)?)
 }

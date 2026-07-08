@@ -37,6 +37,8 @@ pub struct InstallPlan {
     #[serde(rename = "installDir")]
     pub install_dir: PathBuf,
     pub preflight: Vec<InstallPlanCheck>,
+    #[serde(rename = "retainAppVersions")]
+    pub retain_app_versions: usize,
     #[serde(rename = "stagingDir")]
     pub staging_dir: PathBuf,
     #[serde(rename = "targetVersion")]

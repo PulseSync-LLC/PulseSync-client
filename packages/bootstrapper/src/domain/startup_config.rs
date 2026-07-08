@@ -1,4 +1,4 @@
-use crate::core::error::Result;
+use crate::core::{error::Result, layout::normalize_retain_app_versions};
 use serde::Deserialize;
 use std::{
     fs,
@@ -10,9 +10,14 @@ use std::{
 pub struct BootstrapperStartupConfig {
     pub app_executable_name: Option<String>,
     pub dist: Option<String>,
+    pub github_channel: Option<String>,
+    pub github_owner: Option<String>,
+    pub github_repo: Option<String>,
     pub installed_version: Option<String>,
     pub manifest_url: Option<String>,
+    pub retain_app_versions: Option<usize>,
     pub schema_version: Option<u64>,
+    pub server_health_url: Option<String>,
 }
 
 impl BootstrapperStartupConfig {
@@ -36,8 +41,28 @@ impl BootstrapperStartupConfig {
         Self::string_value(&self.installed_version)
     }
 
+    pub fn github_channel(&self) -> Option<String> {
+        Self::string_value(&self.github_channel)
+    }
+
+    pub fn github_owner(&self) -> Option<String> {
+        Self::string_value(&self.github_owner)
+    }
+
+    pub fn github_repo(&self) -> Option<String> {
+        Self::string_value(&self.github_repo)
+    }
+
     pub fn manifest_url(&self) -> Option<String> {
         Self::string_value(&self.manifest_url)
+    }
+
+    pub fn retain_app_versions(&self) -> Option<usize> {
+        self.retain_app_versions.map(normalize_retain_app_versions)
+    }
+
+    pub fn server_health_url(&self) -> Option<String> {
+        Self::string_value(&self.server_health_url)
     }
 }
 
