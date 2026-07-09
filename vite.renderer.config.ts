@@ -70,9 +70,10 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             rolldownOptions: {
                 input: isRemoteRendererBuild ? { index: path.resolve(__dirname, htmlEntry) } : path.resolve(__dirname, htmlEntry),
                 output: {
-                    entryFileNames: 'renderer.js',
-                    chunkFileNames: '[name].js',
-                    assetFileNames: '[name].[ext]',
+                    entryFileNames: isRemoteRendererBuild ? 'assets/[hash:16].js' : 'renderer.js',
+                    chunkFileNames: isRemoteRendererBuild ? 'assets/[hash:16].js' : '[name].js',
+                    assetFileNames: isRemoteRendererBuild ? 'assets/[hash:16][extname]' : '[name].[ext]',
+                    hashCharacters: 'hex',
                     codeSplitting: {
                         groups: [
                             {
@@ -82,6 +83,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                                     }
                                     return null
                                 },
+                                entriesAware: true,
                             },
                         ],
                     },
