@@ -1,5 +1,5 @@
 export const isDev = false
-export const isDevmark = false
+export const isDevmark = true
 export const branch = "beta"
 
 const PORT = '2007'
