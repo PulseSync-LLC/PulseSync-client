@@ -13,9 +13,10 @@ pub const DEFAULT_RETAIN_APP_VERSIONS: usize = 2;
 pub const MIN_RETAIN_APP_VERSIONS: usize = 2;
 
 #[derive(Debug, Deserialize)]
+#[serde(deny_unknown_fields)]
 struct CurrentVersionPointer {
     #[serde(rename = "schemaVersion")]
-    schema_version: Option<u64>,
+    schema_version: u64,
     version: String,
 }
 
@@ -70,11 +71,10 @@ pub fn read_current_version(install_root: &Path) -> Result<Option<String>> {
     }
 
     let pointer: CurrentVersionPointer = serde_json::from_slice(&fs::read(&path)?)?;
-    if let Some(schema_version) = pointer.schema_version
-        && schema_version != 1
-    {
+    if pointer.schema_version != 1 {
         return Err(format!(
-            "unsupported current version pointer schemaVersion {schema_version}: {}",
+            "unsupported current version pointer schemaVersion {}: {}",
+            pointer.schema_version,
             path.display()
         )
         .into());
@@ -208,6 +208,12 @@ fn absolute_path(path: &Path) -> PathBuf {
         .join(path)
 }
 
+pub fn canonical_install_root(path: &Path) -> Result<PathBuf> {
+    let absolute = absolute_path(path);
+    fs::create_dir_all(&absolute)?;
+    Ok(absolute.canonicalize()?)
+}
+
 fn normalize_lexical(path: &Path) -> PathBuf {
     let mut normalized = PathBuf::new();
     for component in path.components() {
@@ -269,7 +275,7 @@ pub fn resolve_layout(
     install_root: PathBuf,
     app_executable_name: Option<String>,
 ) -> Result<Layout> {
-    let install_root = install_root.canonicalize().unwrap_or(install_root);
+    let install_root = canonical_install_root(&install_root)?;
     let app_executable_name =
         app_executable_name.unwrap_or_else(|| default_app_executable_name().to_string());
     let current_version_file = current_version_file(&install_root);

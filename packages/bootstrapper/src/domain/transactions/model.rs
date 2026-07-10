@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use serde_json::Value;
 use std::{path::PathBuf, time::SystemTime};
 
 #[derive(Clone, Debug)]
@@ -6,6 +7,12 @@ pub struct TransactionCandidate {
     pub modified: SystemTime,
     pub path: PathBuf,
     pub state: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransactionRecord {
+    pub candidate: TransactionCandidate,
+    pub value: Value,
 }
 
 #[derive(Debug, Deserialize, Serialize)]

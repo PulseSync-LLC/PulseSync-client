@@ -1,57 +1,216 @@
 use crate::{
     cli::args::{Args, arg_value, required_arg},
-    core::{error::Result, layout::resolve_layout},
-    domain::{launcher::launch_app, transactions::apply_transaction_file},
+    commands::start::{HandoffContext, launch_handoff_successor, launch_with_active_lease},
+    core::{
+        active_app::{
+            HandoffTransferState, current_process_identity, mark_handoff_launch_failed,
+            process_start_is_live, read_active_lease, read_handoff_transfer,
+            take_over_failed_handoff,
+        },
+        error::Result,
+        layout::{assert_inside, canonical_install_root, resolve_layout},
+        operation_lock::UpdateLock,
+        self_update::{
+            read_self_update_reservation, remove_self_update_reservation, write_self_update_result,
+        },
+        session_lock::SessionLock,
+    },
+    domain::transactions::{apply_transaction_file, transaction_artifacts},
 };
 use serde_json::{Value, json};
-use std::{ffi::OsString, path::PathBuf, thread, time::Duration};
+use std::{
+    env,
+    ffi::OsString,
+    fs,
+    path::{Path, PathBuf},
+    thread,
+    time::{Duration, Instant},
+};
+
+const SELF_UPDATE_LOCK_TIMEOUT: Duration = Duration::from_secs(60);
+const PARENT_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+
+fn paths_match(left: &Path, right: &Path) -> bool {
+    let left = left.canonicalize().unwrap_or_else(|_| left.to_path_buf());
+    let right = right.canonicalize().unwrap_or_else(|_| right.to_path_buf());
+    if cfg!(windows) {
+        left.to_string_lossy()
+            .replace('/', "\\")
+            .eq_ignore_ascii_case(&right.to_string_lossy().replace('/', "\\"))
+    } else {
+        left == right
+    }
+}
+
+fn wait_for_parent_exit(pid: u32, process_start_id: &str) -> Result<bool> {
+    let started = Instant::now();
+    while process_start_is_live(pid, process_start_id)? {
+        if started.elapsed() >= PARENT_WAIT_TIMEOUT {
+            return Ok(false);
+        }
+        thread::sleep(Duration::from_millis(25));
+    }
+    Ok(true)
+}
+
+fn transaction_contains_current_bootstrapper(
+    transaction_file: &Path,
+    current_executable: &Path,
+) -> Result<bool> {
+    let transaction: Value = serde_json::from_slice(&fs::read(transaction_file)?)?;
+    Ok(transaction_artifacts(&transaction)?
+        .into_iter()
+        .any(|artifact| {
+            artifact.key == "bootstrapper"
+                && paths_match(&artifact.prepared_path, current_executable)
+        }))
+}
 
 pub fn complete_self_update(args: &Args) -> Result<Value> {
+    let install_root =
+        canonical_install_root(&PathBuf::from(required_arg(args, "--install-root")?))?;
     let transaction_file = PathBuf::from(required_arg(args, "--transaction-file")?);
-    let app_executable = PathBuf::from(required_arg(args, "--app-executable")?);
-    let delay_ms = arg_value(args, "--delay-ms")
-        .and_then(|value| value.parse::<u64>().ok())
-        .unwrap_or(750);
+    let expected_reservation_id = env::var("PULSESYNC_SELF_UPDATE_HANDOFF_ID")
+        .map_err(|_| "PULSESYNC_SELF_UPDATE_HANDOFF_ID is required")?;
+    let current_process = current_process_identity()?;
 
-    if delay_ms > 0 {
-        thread::sleep(Duration::from_millis(delay_ms));
+    let _update_lock = UpdateLock::acquire(&install_root, SELF_UPDATE_LOCK_TIMEOUT)?;
+    let mut session_lock = Some(SessionLock::acquire(
+        &install_root,
+        Duration::from_secs(10),
+    )?);
+    let reservation = read_self_update_reservation(&install_root)?
+        .ok_or("self-update handoff reservation is missing")?;
+    if reservation.id != expected_reservation_id
+        || reservation.child_pid != current_process.pid
+        || reservation.child_process_start_id != current_process.process_start_id
+        || !paths_match(
+            &reservation.prepared_executable,
+            &current_process.executable,
+        )
+    {
+        return Err("self-update handoff reservation identity mismatch".into());
+    }
+    let layout = resolve_layout(
+        install_root.clone(),
+        arg_value(args, "--app-executable-name"),
+    )?;
+    assert_inside(
+        &layout.transaction_root,
+        &transaction_file,
+        "self-update transaction file",
+    )?;
+    if !transaction_contains_current_bootstrapper(&transaction_file, &current_process.executable)? {
+        return Err(
+            "self-update transaction does not contain the running prepared bootstrapper".into(),
+        );
     }
 
-    let applied = apply_transaction_file(&transaction_file)?;
-    if applied.get("state").and_then(Value::as_str) != Some("applied") {
+    drop(session_lock.take());
+    if !wait_for_parent_exit(reservation.parent_pid, &reservation.parent_process_start_id)? {
         return Ok(json!({
+            "schemaVersion": 1,
             "state": "blocked",
             "launched": false,
-            "appExecutable": app_executable,
-            "transactionFile": transaction_file,
-            "applyResult": applied,
-            "reason": "Self-update transaction did not apply cleanly"
+            "block": {
+                "code": "self-update-parent-timeout",
+                "retryable": true,
+                "safeToContinue": false,
+            }
         }));
     }
 
+    session_lock = Some(SessionLock::acquire(
+        &install_root,
+        Duration::from_secs(10),
+    )?);
+    let mut handoff_context = match (
+        reservation.app_handoff_id.as_deref(),
+        reservation.active_lease_id.as_deref(),
+        reservation.inbox_id.as_deref(),
+        reservation.inbox_generation,
+    ) {
+        (Some(handoff_id), Some(active_lease_id), Some(inbox_id), Some(inbox_generation)) => {
+            let predecessor = read_active_lease(&install_root)?
+                .ok_or("self-update predecessor lease is missing")?;
+            let transfer = read_handoff_transfer(&install_root, handoff_id)?
+                .ok_or("self-update app handoff transfer is missing")?;
+            if predecessor.lease_id != active_lease_id
+                || predecessor.inbox_id != inbox_id
+                || predecessor.inbox_generation != inbox_generation
+                || transfer.state != HandoffTransferState::Armed
+                || reservation.transfer_state.as_deref() != Some("armed")
+            {
+                return Err("self-update app handoff binding mismatch".into());
+            }
+            let (predecessor, transfer) =
+                take_over_failed_handoff(&install_root, &predecessor, &transfer, &current_process)?;
+            Some(HandoffContext {
+                predecessor,
+                transfer,
+                rust_process: current_process.clone(),
+            })
+        }
+        (None, None, None, None) => None,
+        _ => return Err("self-update reservation has a partial app handoff binding".into()),
+    };
+    let consumed = write_self_update_result(&install_root, "consumed", &reservation)?;
+    remove_self_update_reservation(&install_root)?;
+    drop(session_lock.take());
+
+    let applied = apply_transaction_file(&transaction_file)?;
+    if applied.get("state").and_then(Value::as_str) != Some("applied") {
+        if let Some(context) = handoff_context.as_mut() {
+            let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
+            context.transfer = mark_handoff_launch_failed(&install_root, &context.transfer)?;
+        }
+        return Ok(json!({
+            "schemaVersion": 1,
+            "state": "blocked",
+            "launched": false,
+            "selfUpdate": consumed,
+            "applyResult": applied,
+            "block": {
+                "code": "self-update-apply-failed",
+                "retryable": true,
+                "safeToContinue": false,
+            }
+        }));
+    }
+
+    let launch_executable = resolve_layout(
+        install_root.clone(),
+        arg_value(args, "--app-executable-name"),
+    )?
+    .app_executable;
+    if !launch_executable.is_file() {
+        return Err("self-update target app executable is missing".into());
+    }
     let passthrough_args = args
         .passthrough
         .iter()
         .map(OsString::from)
         .collect::<Vec<_>>();
-    let launch_executable = match arg_value(args, "--install-root") {
-        Some(install_root) => {
-            resolve_layout(
-                PathBuf::from(install_root),
-                arg_value(args, "--app-executable-name"),
-            )?
-            .app_executable
-        }
-        None => app_executable,
+    let (pid, lease) = if let Some(context) = handoff_context.as_mut() {
+        let (pid, lease) = launch_handoff_successor(
+            &install_root,
+            context,
+            &launch_executable,
+            &passthrough_args,
+        )?;
+        (pid, Some(lease))
+    } else {
+        let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
+        launch_with_active_lease(Some(&install_root), &launch_executable, &passthrough_args)?
     };
-    let pid = launch_app(&launch_executable, &passthrough_args)?;
     Ok(json!({
+        "schemaVersion": 1,
         "state": "launched",
         "launched": true,
         "pid": pid,
-        "appExecutable": launch_executable,
+        "lease": lease,
+        "selfUpdate": consumed,
         "transactionFile": transaction_file,
         "applyResult": applied,
-        "reason": "Self-update transaction applied by prepared bootstrapper before launch"
     }))
 }

@@ -1,4 +1,8 @@
+pub mod active_app;
 pub mod error;
 pub mod fs_ops;
 pub mod layout;
+pub mod operation_lock;
 pub mod path_segment;
+pub mod self_update;
+pub mod session_lock;

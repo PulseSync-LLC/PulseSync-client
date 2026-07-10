@@ -5,9 +5,16 @@ use crate::{
 use serde_json::Value;
 use std::{fs, path::PathBuf, time::Duration};
 
-const DEFAULT_GITHUB_OWNER: &str = "PulseSync-LLC";
-const DEFAULT_GITHUB_REPO: &str = "PulseSync-client";
+pub const DEFAULT_GITHUB_OWNER: &str = "PulseSync-LLC";
+pub const DEFAULT_GITHUB_REPO: &str = "PulseSync-client";
 const GITHUB_API_BASE_URL: &str = "https://api.github.com";
+
+fn http_agent(connect_timeout: Duration, read_timeout: Duration) -> ureq::Agent {
+    ureq::AgentBuilder::new()
+        .timeout_connect(connect_timeout)
+        .timeout_read(read_timeout)
+        .build()
+}
 
 #[derive(Clone, Debug)]
 pub struct GitHubManifestFallback {
@@ -19,7 +26,11 @@ pub struct GitHubManifestFallback {
 }
 
 impl GitHubManifestFallback {
-    pub fn new(channel: impl Into<String>, dist: impl Into<String>, health_url: impl Into<String>) -> Self {
+    pub fn new(
+        channel: impl Into<String>,
+        dist: impl Into<String>,
+        health_url: impl Into<String>,
+    ) -> Self {
         Self {
             channel: channel.into(),
             dist: dist.into(),
@@ -67,10 +78,12 @@ pub fn read_source(source: &str) -> Result<Vec<u8>> {
         return Ok(fs::read(file_url_to_path(source)?)?);
     }
     if source.starts_with("http://") || source.starts_with("https://") {
-        let response = ureq::get(source)
+        let response = http_agent(Duration::from_secs(5), Duration::from_secs(15))
+            .get(source)
             .set("Accept", "application/json")
             .set("Cache-Control", "no-cache")
             .set("Pragma", "no-cache")
+            .timeout(Duration::from_secs(30))
             .call()?;
         let mut reader = response.into_reader();
         let mut bytes = Vec::new();
@@ -84,12 +97,13 @@ fn is_http_source(source: &str) -> bool {
     source.starts_with("http://") || source.starts_with("https://")
 }
 
-fn health_check_available(health_url: &str) -> bool {
+pub fn health_check_available(health_url: &str) -> bool {
     if !is_http_source(health_url) {
         return false;
     }
 
-    ureq::get(health_url)
+    http_agent(Duration::from_secs(3), Duration::from_secs(3))
+        .get(health_url)
         .set("Accept", "application/json")
         .timeout(Duration::from_secs(3))
         .call()
@@ -97,12 +111,13 @@ fn health_check_available(health_url: &str) -> bool {
         .unwrap_or(false)
 }
 
-fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> {
+pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> {
     let api_url = format!(
         "{GITHUB_API_BASE_URL}/repos/{}/{}/releases",
         fallback.owner, fallback.repo
     );
-    let response = ureq::get(&api_url)
+    let response = http_agent(Duration::from_secs(5), Duration::from_secs(15))
+        .get(&api_url)
         .set("Accept", "application/vnd.github+json")
         .set("User-Agent", "PulseSyncBootstrapper")
         .timeout(Duration::from_secs(15))
@@ -115,7 +130,11 @@ fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> {
     let asset_name = format!("desktop-update-{}.json", fallback.dist);
 
     for release in releases {
-        if release.get("draft").and_then(Value::as_bool).unwrap_or(true) {
+        if release
+            .get("draft")
+            .and_then(Value::as_bool)
+            .unwrap_or(true)
+        {
             continue;
         }
         if release
