@@ -131,7 +131,7 @@ jobs:
       - name: Publish remote renderer
         run: yarn renderer:publish
         env:
-          BUILD_VERSION: ${{ github.ref_name }}
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
 
   github_release:
     name: Create GitHub Release

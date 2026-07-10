@@ -28,11 +28,11 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     }
 
     const isDevMode = mode === 'development'
-    const isDevSourceMapMode = process.env.NODE_ENV === 'development'
-    const sourceMapMode = isDevSourceMapMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
+    const sourceMapMode = isDevMode ? true : !isRemoteRendererBuild && process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const remoteRendererOutDir = process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR
     const remoteRendererStaticAssetsDir = process.env.PULSESYNC_REMOTE_RENDERER_STATIC_ASSETS_DIR
     const remoteRendererBase = process.env.PULSESYNC_REMOTE_RENDERER_BASE || '/app/'
+    const rendererBuildNumber = process.env.PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER?.trim() || '0'
     const rendererOutDir = isRemoteRendererBuild
         ? path.resolve(__dirname, remoteRendererOutDir || 'out/remote-renderer/versions/dev')
         : path.resolve(__dirname, `.vite/renderer/${name}`)
@@ -50,6 +50,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             PULSESYNC_VERSION: JSON.stringify(packageJson.version),
             PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
             PULSESYNC_DIST: JSON.stringify(buildDist),
+            PULSESYNC_RENDERER_BUILD_NUMBER: JSON.stringify(rendererBuildNumber),
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
         },
