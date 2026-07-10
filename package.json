@@ -16,7 +16,6 @@
         "bootstrapper:build": "tsx scripts/bootstrapper/build.ts build",
         "bootstrapper:copy": "tsx scripts/bootstrapper/build.ts copy",
         "bootstrapper:check": "cargo check --manifest-path packages/bootstrapper/Cargo.toml",
-        "bootstrapper:preview-install-ui": "tsx scripts/bootstrapper/preview-install-ui.ts",
         "bootstrapper:smoke-install": "tsx scripts/bootstrapper/smoke-first-run-install.ts",
         "bootstrapper:verify-build-layout": "tsx scripts/bootstrapper/verify-build-layout.ts",
         "bootstrapper:verify-package-layout": "tsx scripts/bootstrapper/verify-package-layout.ts",

@@ -80,6 +80,7 @@ function renderState(state: BootstrapUiStateV1): void {
     currentState = state
     if (root) {
         root.dataset.phase = state.phase
+        root.dataset.progress = state.progress.kind
     }
     if (status) {
         status.textContent = STATUS_TEXT[state.statusKey]

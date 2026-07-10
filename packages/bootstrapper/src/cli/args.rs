@@ -7,8 +7,6 @@ pub struct Args {
     pub passthrough: Vec<String>,
     pub values: Vec<(String, String)>,
     pub json: bool,
-    pub keep_install_ui_open: bool,
-    pub no_install_ui: bool,
     pub progress_json: bool,
     pub allow_unreserved_recovery: bool,
 }
@@ -28,7 +26,6 @@ fn is_command(value: &str) -> bool {
             | "prepare-update"
             | "ensure-installed"
             | "enqueue-launch-request"
-            | "install-ui"
             | "install-workflow"
             | "start"
             | "apply-install"
@@ -46,8 +43,6 @@ pub fn parse_args() -> Result<Args> {
     let mut values = Vec::new();
     let mut passthrough = Vec::new();
     let mut json = false;
-    let mut keep_install_ui_open = false;
-    let mut no_install_ui = false;
     let mut progress_json = false;
     let mut allow_unreserved_recovery = false;
     let mut index = values_start;
@@ -62,16 +57,6 @@ pub fn parse_args() -> Result<Args> {
         }
         if arg == "--json" {
             json = true;
-            index += 1;
-            continue;
-        }
-        if arg == "--keep-install-ui-open" {
-            keep_install_ui_open = true;
-            index += 1;
-            continue;
-        }
-        if arg == "--no-install-ui" {
-            no_install_ui = true;
             index += 1;
             continue;
         }
@@ -106,8 +91,6 @@ pub fn parse_args() -> Result<Args> {
         passthrough,
         values,
         json,
-        keep_install_ui_open,
-        no_install_ui,
         progress_json,
         allow_unreserved_recovery,
     })

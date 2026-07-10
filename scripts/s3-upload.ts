@@ -211,7 +211,7 @@ async function resolveStructuredPublishPath(filePath: string, version?: string):
         return await versionedPublishPath(filePath, version, dist, `modules/${moduleName}`)
     }
 
-    const setupMatch = new RegExp(`^pulsesync-bootstrapper-setup-${escapedVersion}-([a-z0-9_-]+)\\.exe(?:\\.blockmap)?$`, 'iu').exec(fileName)
+    const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe(?:\\.blockmap)?$`, 'iu').exec(fileName)
     if (setupMatch) {
         const arch = setupMatch[1].toLowerCase()
         return await versionedPublishPath(filePath, version, `win32-${arch}`, 'setup')
@@ -227,7 +227,7 @@ function resolveLatestAliasPublishPath(filePath: string, version?: string): stri
 
     const fileName = path.basename(filePath)
     const escapedVersion = escapeRegExp(version)
-    const setupMatch = new RegExp(`^pulsesync-bootstrapper-setup-${escapedVersion}-([a-z0-9_-]+)\\.exe$`, 'iu').exec(fileName)
+    const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe$`, 'iu').exec(fileName)
     if (!setupMatch) {
         return null
     }
@@ -297,7 +297,7 @@ function structuredArtifactDescriptor(version: string, dist: string, suffix: str
 }
 
 function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactDescriptor | null {
-    const setupMatch = /^pulsesync-bootstrapper-setup-(.+)-([a-z0-9_-]+)\.exe$/iu.exec(fileName)
+    const setupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.exe$/iu.exec(fileName)
     if (setupMatch) {
         const [, version, arch] = setupMatch
         return structuredArtifactDescriptor(version, `win32-${arch}`, 'exe', 'setup')
