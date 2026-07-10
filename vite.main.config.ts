@@ -20,6 +20,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
             sourcemap: sourceMapMode,
             target: 'node24.17',
             outDir: path.resolve(__dirname, `.vite/main`),
+            emptyOutDir: false,
             lib: {
                 entry,
                 fileName: () => '[name].cjs',

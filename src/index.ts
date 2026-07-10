@@ -1,13 +1,13 @@
-import { app, BrowserWindow, dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, dialog, ipcMain, type BrowserWindow as BrowserWindowType } from 'electron'
 import process from 'process'
 import path from 'path'
 import * as fs from 'original-fs'
 import createTray from './main/modules/tray'
 import {
-    checkForSingleInstance,
     consumePendingBrowserAuthFromDeepLink,
     consumePendingInstallModUpdateFromPath,
-    isFirstInstance,
+    createApplicationLaunchRequestHandler,
+    setIsFirstInstance,
 } from './main/modules/singleInstance'
 import { sendAddonSettings, sendAllAddonSettings, sendExtensions, setAddon } from './main/modules/httpServer'
 import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
@@ -17,7 +17,6 @@ import { modManager } from './main/modules/mod/modManager'
 import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
 
 import { checkCLIArguments } from './main/utils/processUtils'
-import { registerSchemes } from './main/utils/serverUtils'
 import { createDefaultAddonIfNotExists, loadAddons } from './main/utils/addonUtils'
 import { migrateLegacyAddonSettings } from './main/utils/addonSettingsMigration'
 import { createWindow, mainWindow } from './main/modules/createWindow'
@@ -35,19 +34,20 @@ import { processBrowserAuth } from './main/modules/auth/browserAuth'
 import { runWhenUiReady } from './main/modules/uiReady'
 import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
-import { initMainErrorTracking } from './main/modules/errorTracking'
-import { handleUncaughtException } from './main/modules/handlers/handleError'
 import { getAddonsRoot, resolveExistingDirectoryInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from './main/utils/addonPaths'
+import {
+    asarFilename,
+    musicPath,
+    selectedAddon,
+    setMusicPath,
+    setSelectedAddon,
+    setUpdated,
+} from './main/startup/runtimeState'
+import { readBufResilient } from './main/utils/readBufResilient'
+import { prestartCheck } from './main/startup/prestartCheck'
+import type { LaunchRequestEnvelopeV1 } from './main/modules/bootstrapper/contracts'
+import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './main/modules/updater/updater'
 
-export let updated = false
-export let musicPath: string
-export let asarFilename = 'app.backup.asar'
-export let asarBackup: string
-export let selectedAddon: string
-
-initMainErrorTracking()
-handleUncaughtException()
-registerSchemes()
 const State = getState()
 initMainI18n(State.get('settings.language'))
 
@@ -95,37 +95,65 @@ const checkOldYandexMusic = async () => {
 
 const initializeMusicPath = async () => {
     try {
-        musicPath = await getPathToYandexMusic()
-        asarBackup = path.join(musicPath, asarFilename)
+        setMusicPath(await getPathToYandexMusic())
     } catch (err) {
         logger.main.error(t('main.index.musicPathError'), err)
     }
 }
-initializeMusicPath()
-
-if (isAppDev && (isWindows() || isMac())) {
-    const openAtLogin = app.getLoginItemSettings().openAtLogin
-    if (openAtLogin) {
-        app.setLoginItemSettings({
-            openAtLogin: false,
-            path: app.getPath('exe'),
-        })
-    }
+export type ApplicationStartupContext = {
+    bootstrapRuntime?: UpdaterBootstrapRuntime
+    bootstrapWindow?: BrowserWindowType
 }
 
-app.on('ready', async () => {
+export type ApplicationStartupHandle = {
+    deliverLaunchRequest(request: LaunchRequestEnvelopeV1): Promise<boolean>
+    ready: Promise<void>
+}
+
+let applicationStarted = false
+
+export async function startMainApplication(context: ApplicationStartupContext = {}): Promise<ApplicationStartupHandle> {
+    if (applicationStarted) {
+        throw new Error('Application main has already started')
+    }
+    applicationStarted = true
+    setIsFirstInstance(true)
+    if (context.bootstrapRuntime) {
+        configureUpdaterBootstrapRuntime(context.bootstrapRuntime)
+    }
+
     try {
         await enableSystemProxySupport()
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
-        updated = checkCLIArguments(isAppDev)
-        await checkForSingleInstance()
-        if (!isFirstInstance) {
-            return
+        setUpdated(checkCLIArguments(isAppDev))
+        await prestartCheck()
+        if (isAppDev && (isWindows() || isMac())) {
+            const openAtLogin = app.getLoginItemSettings().openAtLogin
+            if (openAtLogin) {
+                app.setLoginItemSettings({
+                    openAtLogin: false,
+                    path: app.getPath('exe'),
+                })
+            }
         }
-        await createWindow()
+        const windowStartup = await createWindow({ bootstrapWindow: context.bootstrapWindow })
         handleEvents(mainWindow)
+        const handleLaunchRequest = await createApplicationLaunchRequestHandler()
+        const completedIds = new Set<string>(
+            Array.isArray(State.get('app.completedLaunchRequestIds'))
+                ? State.get('app.completedLaunchRequestIds').filter((value: unknown): value is string => typeof value === 'string').slice(-256)
+                : [],
+        )
+        const deliverLaunchRequest = async (request: LaunchRequestEnvelopeV1): Promise<boolean> => {
+            if (completedIds.has(request.id)) return true
+            await windowStartup.ready
+            await handleLaunchRequest(request)
+            completedIds.add(request.id)
+            State.set('app.completedLaunchRequestIds', Array.from(completedIds).slice(-256))
+            return true
+        }
         const pendingBrowserAuth = consumePendingBrowserAuthFromDeepLink()
         if (pendingBrowserAuth) {
             void processBrowserAuth(pendingBrowserAuth, { window: mainWindow }).catch(err => {
@@ -146,28 +174,19 @@ app.on('ready', async () => {
         modManager(mainWindow)
         createTray()
         void sendAppStartupTelemetry()
+        app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') app.quit()
+        })
+        app.on('activate', () => {
+            if (BrowserWindow.getAllWindows().length === 0) void createWindow()
+        })
+        return { ready: windowStartup.ready, deliverLaunchRequest }
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
         logger.main.error(t('main.index.appStartupError'), e)
+        applicationStarted = false
+        throw e
     }
-})
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
-})
-
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
-    }
-})
-
-function initializeAddon() {
-    selectedAddon = State.get('addons.theme') || 'Default'
-    logger.main.log('Addons: theme changed to:', selectedAddon)
-    setAddon(selectedAddon)
 }
 
 const ensureDir = async (p: string) => fsp.mkdir(path.dirname(p), { recursive: true })
@@ -265,47 +284,6 @@ const resolveInputPath = (p0: string): string => {
     }
     return variants[0] || ''
 }
-export const readBufResilient = async (p0: string): Promise<Buffer> => {
-    if (!p0) throw new Error('empty path')
-    const candidates: string[] = []
-    if (p0.startsWith('file://')) {
-        try {
-            const u = new URL(p0)
-            candidates.push(path.normalize(decodeURI(u.pathname)))
-        } catch {}
-    }
-    const norm = path.normalize(p0)
-    candidates.push(norm)
-    if (process.platform === 'win32') {
-        candidates.push(norm.replace(/\//g, '\\'))
-        candidates.push(norm.replace(/\\/g, '/'))
-        if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
-    }
-    try {
-        candidates.push(norm.normalize('NFC'))
-    } catch {}
-    try {
-        candidates.push(norm.normalize('NFD'))
-    } catch {}
-    candidates.push(norm.replace(/^["']|["']$/g, ''))
-    let lastErr: any = null
-    for (const p of candidates) {
-        try {
-            return await fsp.readFile(p)
-        } catch (e1) {
-            lastErr = e1
-            try {
-                const buf = await new Promise<Buffer>((resolve, reject) => {
-                    fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
-                })
-                return buf
-            } catch (e2) {
-                lastErr = e2
-            }
-        }
-    }
-    throw lastErr ?? new Error('Unable to read file')
-}
 const mimeFromExt = (p: string) => {
     const ext = path.extname(p).toLowerCase()
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
@@ -327,7 +305,7 @@ const readStoredAddonScripts = (): string[] => {
 }
 
 const syncAddonClients = async (): Promise<void> => {
-    selectedAddon = State.get('addons.theme') || 'Default'
+    setSelectedAddon(State.get('addons.theme') || 'Default')
     setAddon(selectedAddon)
     await sendExtensions()
     sendAllAddonSettings({ force: true })
@@ -773,49 +751,15 @@ ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
             logger.main.warn(
                 `Addons: Received theme change for addon ${validated.directoryName} with type '${validated.type}'. Reverting to Default theme.`,
             )
-            selectedAddon = 'Default'
+            setSelectedAddon('Default')
         } else {
-            selectedAddon = validated.directoryName
+            setSelectedAddon(validated.directoryName)
         }
         logger.main.info(`Addons: theme changed to: ${selectedAddon}`)
         setAddon(selectedAddon)
     } catch (error: any) {
         logger.main.error(`Addons: Error processing theme change: ${error.message}`)
-        selectedAddon = 'Default'
+        setSelectedAddon('Default')
         setAddon(selectedAddon)
     }
 })
-
-export async function prestartCheck() {
-    const musicDir = app.getPath('music')
-    const pulseSyncMusicPath = path.join(musicDir, 'PulseSyncMusic')
-
-    if (!fs.existsSync(pulseSyncMusicPath)) {
-        try {
-            fs.mkdirSync(pulseSyncMusicPath, { recursive: true })
-        } catch (err) {
-            logger.main.error('Ошибка при создании директории PulseSyncMusic:', err)
-        }
-    }
-
-    if (isLinux() && State.get('settings.modFilename')) {
-        const modFilename = State.get('settings.modFilename')
-        asarFilename = `${modFilename}.backup.asar`
-        asarBackup = path.join(musicPath, asarFilename)
-    }
-
-    if (typeof State.get('settings.closeAppInTray') !== 'boolean') {
-        State.set('settings.closeAppInTray', false)
-    }
-    checkAsar()
-    initializeAddon()
-
-    const themesPath = getAddonsRoot()
-    createDefaultAddonIfNotExists(themesPath)
-    await migrateLegacyAddonSettings(themesPath)
-    try {
-        startThemeWatcher(themesPath)
-    } catch (e) {
-        logger.main.error('Error setting up file watcher for themes:', e)
-    }
-}

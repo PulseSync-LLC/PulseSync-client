@@ -1111,6 +1111,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     let transfer =
                         fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;
                     return Ok(json!({
+                        "schemaVersion": 1,
                         "state": "blocked",
                         "launched": false,
                         "appExecutable": app_executable,
@@ -1137,6 +1138,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     handoff_context.as_mut(),
                 )?;
                 return Ok(json!({
+                    "schemaVersion": 1,
                     "state": "launched",
                     "launched": true,
                     "pid": pid,
@@ -1156,6 +1158,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     let transfer =
                         fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;
                     return Ok(json!({
+                        "schemaVersion": 1,
                         "state": "blocked",
                         "launched": false,
                         "appExecutable": app_executable,
@@ -1182,6 +1185,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     handoff_context.as_mut(),
                 )?;
                 return Ok(json!({
+                    "schemaVersion": 1,
                     "state": "launched",
                     "launched": true,
                     "pid": pid,
@@ -1209,6 +1213,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     handoff_context.as_mut(),
                 )?;
                 return Ok(json!({
+                    "schemaVersion": 1,
                     "state": "launched",
                     "launched": true,
                     "pid": pid,
@@ -1227,6 +1232,7 @@ pub fn start(args: &Args) -> Result<Value> {
                 let transfer =
                     fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;
                 return Ok(json!({
+                    "schemaVersion": 1,
                     "state": "blocked",
                     "launched": false,
                     "appExecutable": app_executable,
@@ -1256,6 +1262,7 @@ pub fn start(args: &Args) -> Result<Value> {
         handoff_context.as_mut(),
     )?;
     Ok(json!({
+        "schemaVersion": 1,
         "state": "launched",
         "launched": true,
         "pid": pid,

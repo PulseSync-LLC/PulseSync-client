@@ -13,10 +13,13 @@ import {
 } from '@common/errorTracking'
 import logger from './logger'
 
-let initialized = false
+const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
+const errorTrackingRuntime = globalThis as typeof globalThis & { [INITIALIZED_KEY]?: boolean }
+
+const isInitialized = (): boolean => errorTrackingRuntime[INITIALIZED_KEY] === true
 
 export const initMainErrorTracking = (): void => {
-    if (!ERROR_TRACKING_ENABLED || initialized) return
+    if (!ERROR_TRACKING_ENABLED || isInitialized()) return
 
     try {
         Sentry.init({
@@ -47,14 +50,14 @@ export const initMainErrorTracking = (): void => {
             platform: process.platform,
             architecture: process.arch,
         })
-        initialized = true
+        errorTrackingRuntime[INITIALIZED_KEY] = true
     } catch (error) {
         logger.main.warn('Failed to initialize error tracking:', error)
     }
 }
 
 export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: string | null } | null): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     const id = user?.id?.trim()
     if (!id || id === '-1') {
         Sentry.setUser(null)
@@ -69,7 +72,7 @@ export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: st
 }
 
 export const captureMainException = (error: unknown, source: string): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         Sentry.withScope(scope => {
             scope.setTag('source', source)
@@ -81,7 +84,7 @@ export const captureMainException = (error: unknown, source: string): void => {
 }
 
 export const captureRendererTermination = (details: Electron.RenderProcessGoneDetails): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         Sentry.withScope(scope => {
             scope.setTags({
@@ -97,7 +100,7 @@ export const captureRendererTermination = (details: Electron.RenderProcessGoneDe
 }
 
 export const flushErrorTracking = async (timeout = 1500): Promise<void> => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         await Sentry.flush(timeout)
     } catch (error) {

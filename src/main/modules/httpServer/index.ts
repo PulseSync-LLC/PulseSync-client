@@ -1,6 +1,6 @@
 import * as http from 'http'
 import { app, dialog } from 'electron'
-import { selectedAddon } from '../../../index'
+import { selectedAddon } from '../../startup/runtimeState'
 import { authorized } from '../../events'
 import isAppDev from '../../utils/isAppDev'
 import logger from '../logger'

@@ -23,9 +23,6 @@ import {
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
 
-declare const PRELOADER_VITE_DEV_SERVER_URL: string
-declare const PRELOADER_VITE_NAME: string
-
 const State = getState()
 
 export let mainWindow: BrowserWindow
@@ -33,7 +30,6 @@ export let inSleepMode = false
 let isAppQuitting = false
 
 const minMain = { width: 1157, height: 750 }
-const preloaderSize = { width: 250, height: 271 }
 
 app.on('before-quit', () => {
     isAppQuitting = true
@@ -280,7 +276,12 @@ const loadMainWindowRenderer = async (window: BrowserWindow): Promise<MainRender
     }
 }
 
-export async function createWindow(): Promise<void> {
+export type MainWindowStartupHandle = {
+    ready: Promise<void>
+    window: BrowserWindow
+}
+
+export async function createWindow(options: { bootstrapWindow?: BrowserWindow } = {}): Promise<MainWindowStartupHandle> {
     const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
     const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
     const savedPosition = restorePos ? State.get('settings.windowPosition') : undefined
@@ -317,42 +318,8 @@ export async function createWindow(): Promise<void> {
     }
 
     State.set('settings.lastDisplayId', usedDisplay.id)
-    const workArea = usedDisplay.workArea
-    const prePos = {
-        x: Math.floor(workArea.x + (workArea.width - preloaderSize.width) / 2),
-        y: Math.floor(workArea.y + (workArea.height - preloaderSize.height) / 2),
-    }
-
     const iconExt = isWindows() ? '.ico' : '.png'
     const icon = getNativeImg('App', iconExt, 'icon').resize({ width: 40, height: 40 })
-    const preloaderWindow = new BrowserWindow({
-        x: prePos.x,
-        y: prePos.y,
-        width: preloaderSize.width,
-        height: preloaderSize.height,
-        backgroundColor: '#08070d',
-        show: false,
-        resizable: false,
-        fullscreenable: false,
-        frame: false,
-        alwaysOnTop: true,
-        transparent: false,
-        roundedCorners: true,
-        icon,
-        webPreferences: {
-            contextIsolation: true,
-            nodeIntegration: false,
-        },
-    })
-    loadRendererWindow(
-        preloaderWindow,
-        PRELOADER_VITE_DEV_SERVER_URL,
-        PRELOADER_VITE_NAME,
-        'src/renderer/preloader.html',
-        'src/renderer/preloader.html',
-    )
-    preloaderWindow.once('ready-to-show', () => preloaderWindow.show())
-
     mainWindow = new BrowserWindow({
         show: false,
         frame: false,
@@ -393,20 +360,24 @@ export async function createWindow(): Promise<void> {
                     logger.main.error('Failed to load remote renderer error page', errorPageError)
                 })
         })
+    let resolveReady!: () => void
+    const ready = new Promise<void>(resolve => {
+        resolveReady = resolve
+    })
     let mainWindowReadyHandled = false
     const handleMainWindowReady = () => {
         if (mainWindowReadyHandled) {
             return
         }
         mainWindowReadyHandled = true
-        if (!preloaderWindow.isDestroyed()) {
-            preloaderWindow.close()
-            preloaderWindow.destroy()
+        if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) {
+            options.bootstrapWindow.destroy()
         }
         if (!State.get('settings.autoStartInTray')) {
             mainWindow.show()
             mainWindow.moveTop()
         }
+        resolveReady()
     }
     mainWindow.once('ready-to-show', handleMainWindowReady)
     mainWindow.webContents.once('did-finish-load', handleMainWindowReady)
@@ -487,4 +458,6 @@ export async function createWindow(): Promise<void> {
         }
         inSleepMode = false
     })
+
+    return { ready, window: mainWindow }
 }
