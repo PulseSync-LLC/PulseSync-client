@@ -1,74 +1,157 @@
+:root {
+    color-scheme: dark;
+}
+
+html,
 body {
+    box-sizing: border-box;
+    width: 300px;
+    height: 300px;
+    overflow: hidden;
+    background: #282b30;
+    color: #fff;
+    -webkit-app-region: drag;
+}
+
+.bootstrap {
     display: flex;
+    box-sizing: border-box;
+    width: 100%;
+    height: 100%;
+    padding: 30px 24px 22px;
     flex-direction: column;
     align-items: center;
     justify-content: center;
+}
+
+.brand {
+    display: grid;
+    width: 150px;
+    height: 150px;
+    place-items: center;
+}
+
+.brand__logo {
+    color: #fff;
+}
+
+.status {
+    width: 100%;
+    min-height: 24px;
+    margin-top: -8px;
+    text-align: center;
+}
+
+.status p {
     margin: 0;
-    height: 100vh;
-    border-radius: 20px;
-    background: var(--Main);
+    color: #fff;
+    font-size: 16px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    line-height: 24px;
 }
 
-.container {
+.progress {
     display: flex;
+    width: 180px;
+    min-height: 34px;
+    margin-top: 8px;
     flex-direction: column;
-    grid-gap: 3em;
     align-items: center;
+    gap: 5px;
 }
 
-.load {
-    animation: spin 6s ease-in-out infinite;
-    box-shadow: inset var(--Main) 0px 0px 0px 30px;
-    border-radius: 200px;
+.progress progress {
+    width: 180px;
+    height: 8px;
+    overflow: hidden;
+    appearance: none;
+    border: 0;
+    border-radius: 4px;
+    background: rgb(255 255 255 / 10%);
 }
 
-.load > path {
-    animation: path 3s ease-in-out infinite;
-    box-shadow: #1b1f21 1px 1px;
+.progress progress::-webkit-progress-bar {
+    border-radius: 4px;
+    background: rgb(255 255 255 / 10%);
 }
 
-@keyframes path {
-    0% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.99026 26.5169 0.593517C23.867 -0.0423745 21.1108 -0.170884 18.3958 0.225281C14.6613 0.77019 11.136 2.28852 8.17428 4.62768C5.21257 6.96683 2.91877 10.0444 1.52343 13.551C0.128088 17.0576 -0.319628 20.8698 0.225281 24.6042C0.77019 28.3387 2.28852 31.864 4.62768 34.8257C6.96683 37.7874 10.0444 40.0812 13.551 41.4766C17.0576 42.8719 20.8698 43.3196 24.6042 42.7747C27.3193 42.3786 29.9238 41.4679 32.2816 40.1013C33.7526 39.2487 33.9714 37.2907 32.9176 35.9564V35.9564C31.8638 34.622 29.9364 34.4274 28.4188 35.1942C26.9474 35.9376 25.3598 36.442 23.7152 36.682C21.0502 37.0709 18.3298 36.7514 15.8275 35.7556C13.3251 34.7599 11.1289 33.123 9.45962 31.0095C7.79036 28.8959 6.70685 26.3802 6.31799 23.7152C5.92914 21.0502 6.24863 18.3298 7.24437 15.8275C8.24011 13.3251 9.87701 11.1289 11.9905 9.45962C14.1041 7.79036 16.6198 6.70685 19.2848 6.31799C20.9293 6.07804 22.5949 6.10782 24.2174 6.39978C25.8908 6.70091 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
+.progress progress::-webkit-progress-value {
+    border-radius: 4px;
+    background: #737f8d;
+    transition: width 160ms ease-out;
+}
+
+.progress progress:not([value])::-webkit-progress-bar {
+    background: linear-gradient(90deg, rgb(255 255 255 / 8%) 0%, #737f8d 45%, rgb(255 255 255 / 8%) 90%);
+    background-size: 220% 100%;
+    animation: indeterminate 1.3s linear infinite;
+}
+
+.progress__text {
+    min-height: 16px;
+    color: #8a8e94;
+    font-size: 11px;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
+}
+
+.actions {
+    display: flex;
+    min-height: 32px;
+    margin-top: 4px;
+    gap: 8px;
+    -webkit-app-region: no-drag;
+}
+
+.actions button {
+    min-width: 92px;
+    height: 32px;
+    padding: 0 12px;
+    border: 0;
+    border-radius: 3px;
+    background: #3b3f46;
+    color: #fff;
+    cursor: pointer;
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+}
+
+.actions button:hover:not(:disabled) {
+    background: #464b53;
+}
+
+.actions button:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.actions .actions__primary {
+    background: #5865f2;
+}
+
+.actions .actions__primary:hover:not(:disabled) {
+    background: #4e59e0;
+}
+
+.bootstrap[data-phase='blocked'] .brand__logo,
+.bootstrap[data-phase='error'] .brand__logo {
+    color: #ed4245;
+}
+
+@keyframes indeterminate {
+    from {
+        background-position: 100% 0;
     }
-    25% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.990264 26.5169 0.593519C23.9265 -0.0280803 21.2342 -0.164975 18.5773 0.199577C14.8999 0.70416 11.4158 2.15222 8.46405 4.40281C5.5123 6.6534 3.19351 9.62985 1.73336 13.0425C0.678429 15.508 0.0976559 18.1405 0.0112935 20.803C-0.0438285 22.5024 1.50166 23.7243 3.19152 23.5364V23.5364C4.88137 23.3484 6.06654 21.8161 6.21917 20.1227C6.36325 18.5242 6.75783 16.9518 7.39418 15.4646C8.43617 13.0293 10.0909 10.9052 12.1973 9.29915C14.3037 7.69309 16.7901 6.65973 19.4143 6.29965C21.017 6.07975 22.6378 6.11553 24.2174 6.39978C25.8908 6.70092 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
-    50% {
-        d: path(
-            'M28.4728 3.97679C29.0119 2.62184 28.3527 1.06922 26.9419 0.700111V0.700111C25.5311 0.331001 24.196 1.36184 24.0025 2.80722L23.7859 4.42529C23.6478 5.45674 24.3767 6.39344 25.3835 6.65684V6.65684C26.3902 6.92024 27.4844 6.46053 27.8692 5.49362L28.4728 3.97679Z'
-        );
-    }
-    75% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.990264 26.5169 0.593519C23.9265 -0.0280803 21.2342 -0.164975 18.5773 0.199577C14.8999 0.70416 11.4158 2.15222 8.46405 4.40281C5.5123 6.6534 3.19351 9.62985 1.73336 13.0425C0.678429 15.508 0.0976559 18.1405 0.0112935 20.803C-0.0438285 22.5024 1.50166 23.7243 3.19152 23.5364V23.5364C4.88137 23.3484 6.06654 21.8161 6.21917 20.1227C6.36325 18.5242 6.75783 16.9518 7.39418 15.4646C8.43617 13.0293 10.0909 10.9052 12.1973 9.29915C14.3037 7.69309 16.7901 6.65973 19.4143 6.29965C21.017 6.07975 22.6378 6.11553 24.2174 6.39978C25.8908 6.70092 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
-    100% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.99026 26.5169 0.593517C23.867 -0.0423745 21.1108 -0.170884 18.3958 0.225281C14.6613 0.77019 11.136 2.28852 8.17428 4.62768C5.21257 6.96683 2.91877 10.0444 1.52343 13.551C0.128088 17.0576 -0.319628 20.8698 0.225281 24.6042C0.77019 28.3387 2.28852 31.864 4.62768 34.8257C6.96683 37.7874 10.0444 40.0812 13.551 41.4766C17.0576 42.8719 20.8698 43.3196 24.6042 42.7747C27.3193 42.3786 29.9238 41.4679 32.2816 40.1013C33.7526 39.2487 33.9714 37.2907 32.9176 35.9564V35.9564C31.8638 34.622 29.9364 34.4274 28.4188 35.1942C26.9474 35.9376 25.3598 36.442 23.7152 36.682C21.0502 37.0709 18.3298 36.7514 15.8275 35.7556C13.3251 34.7599 11.1289 33.123 9.45962 31.0095C7.79036 28.8959 6.70685 26.3802 6.31799 23.7152C5.92914 21.0502 6.24863 18.3298 7.24437 15.8275C8.24011 13.3251 9.87701 11.1289 11.9905 9.45962C14.1041 7.79036 16.6198 6.70685 19.2848 6.31799C20.9293 6.07804 22.5949 6.10782 24.2174 6.39978C25.8908 6.70091 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
+
+    to {
+        background-position: -120% 0;
     }
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(360deg);
-    }
-    25% {
-        transform: rotate(2160deg);
-    }
-    50% {
-        transform: rotate(4320deg);
-    }
-    75% {
-        transform: rotate(2160deg);
-    }
-    100% {
-        transform: rotate(4320deg);
+@media (prefers-reduced-motion: reduce) {
+    .progress progress:not([value])::-webkit-progress-bar {
+        animation-duration: 3s;
     }
 }

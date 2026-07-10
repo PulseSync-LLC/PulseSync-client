@@ -1,8 +1,6 @@
 import { app } from 'electron'
 import axios from 'axios'
 
-import type { UpdateChannel } from './updateChannel'
-
 export type GitHubRepo = {
     owner: string
     repo: string
@@ -64,33 +62,7 @@ export async function listStableGitHubReleases(repo: GitHubRepo, perPage = 50): 
     return releases.filter(release => !release.draft && !release.prerelease)
 }
 
-export function findGitHubReleaseForChannel(releases: GitHubRelease[], channel: UpdateChannel): GitHubRelease | null {
-    const isDevChannel = channel === 'dev'
-    return releases.find(release => !release.draft && release.prerelease === isDevChannel) ?? null
-}
-
-export async function resolveGitHubRelease(repo: GitHubRepo, channel: UpdateChannel): Promise<GitHubRelease> {
-    const releases = await listGitHubReleases(repo)
-    const release = findGitHubReleaseForChannel(releases, channel)
-
-    if (!release) {
-        throw new Error(`No GitHub release found for ${repo.owner}/${repo.repo} (${channel})`)
-    }
-
-    return release
-}
-
 export function findGitHubAsset(release: GitHubRelease, assetNames: string[]): GitHubReleaseAsset | null {
     const normalizedNames = assetNames.map(name => name.toLowerCase())
     return release.assets.find(asset => normalizedNames.includes(asset.name.toLowerCase())) ?? null
-}
-
-export async function resolveClientGitHubDesktopManifestUrl(channel: UpdateChannel, dist: string): Promise<string> {
-    const release = await resolveGitHubRelease(CLIENT_REPO, channel)
-    const asset = findGitHubAsset(release, [`desktop-update-${dist}.json`])
-    if (!asset) {
-        throw new Error(`No desktop update manifest found in GitHub release ${release.tag_name} for ${dist}`)
-    }
-
-    return asset.browser_download_url
 }

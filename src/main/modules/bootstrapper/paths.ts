@@ -16,10 +16,8 @@ export type BootstrapperLauncher = {
 export type BootstrapperRuntimePaths = {
     appExecutable: string
     appExecutableName: string
-    installDir: string
     installRoot: string
     launcher: BootstrapperLauncher | null
-    transactionRoot: string
 }
 
 const BOOTSTRAPPER_DIR_NAME = 'bootstrapper'
@@ -104,8 +102,6 @@ function getRuntimeLayout() {
         bootstrapperDir: path.join(installRoot, BOOTSTRAPPER_DIR_NAME),
         installRoot,
         modulesDir: path.join(installRoot, 'modules'),
-        transactionRoot: path.join(installRoot, 'updates', 'transactions'),
-        updatesDir: path.join(installRoot, 'updates'),
     }
 }
 
@@ -154,22 +150,12 @@ function resolveInstalledLauncher(): BootstrapperLauncher | null {
     return resolveLauncherFromDir(getRuntimeLayout().bootstrapperDir)
 }
 
-export function getBootstrapperTransactionRoot(): string {
-    return getRuntimeLayout().transactionRoot
-}
-
-export function getBootstrapperInstallDir(): string {
-    return getRuntimeLayout().installRoot
-}
-
 export function getBootstrapperRuntimePaths(): BootstrapperRuntimePaths {
     const layout = getRuntimeLayout()
     return {
         appExecutable: layout.appExecutable,
         appExecutableName: layout.appExecutableName,
-        installDir: layout.installRoot,
         installRoot: layout.installRoot,
         launcher: isAppDev ? resolveDevLauncher() : resolveInstalledLauncher(),
-        transactionRoot: layout.transactionRoot,
     }
 }
