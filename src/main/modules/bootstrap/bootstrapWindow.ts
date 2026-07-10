@@ -6,7 +6,7 @@ import { BOOTSTRAP_WINDOW_CHANNELS, type BootstrapUiStateV1 } from '@common/type
 declare const PRELOADER_VITE_DEV_SERVER_URL: string
 declare const PRELOADER_VITE_NAME: string
 
-const WINDOW_SIZE = 300
+const WINDOW_SIZE = { width: 250, height: 271 }
 
 export type BootstrapWindowController = {
     destroy(): void
@@ -36,11 +36,11 @@ async function loadBootstrapRenderer(window: BrowserWindow): Promise<void> {
 export async function createBootstrapWindow(): Promise<BootstrapWindowController> {
     const workArea = screen.getPrimaryDisplay().workArea
     const window = new BrowserWindow({
-        x: Math.floor(workArea.x + (workArea.width - WINDOW_SIZE) / 2),
-        y: Math.floor(workArea.y + (workArea.height - WINDOW_SIZE) / 2),
-        width: WINDOW_SIZE,
-        height: WINDOW_SIZE,
-        backgroundColor: '#282b30',
+        x: Math.floor(workArea.x + (workArea.width - WINDOW_SIZE.width) / 2),
+        y: Math.floor(workArea.y + (workArea.height - WINDOW_SIZE.height) / 2),
+        width: WINDOW_SIZE.width,
+        height: WINDOW_SIZE.height,
+        backgroundColor: '#16181e',
         show: false,
         resizable: false,
         fullscreenable: false,

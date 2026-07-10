@@ -76,6 +76,14 @@ function rejectPath(targetPath: string): void {
     }
 }
 
+function hasFiles(directoryPath: string): boolean {
+    if (!fs.existsSync(directoryPath) || !fs.statSync(directoryPath).isDirectory()) return false
+    return fs.readdirSync(directoryPath, { withFileTypes: true }).some(entry => {
+        const entryPath = path.join(directoryPath, entry.name)
+        return entry.isFile() || (entry.isDirectory() && hasFiles(entryPath))
+    })
+}
+
 function bootstrapperResourcesDir(installRoot: string, platform: TargetPlatform): string {
     return platform === 'darwin' ? path.join(installRoot, 'Resources') : path.join(installRoot, 'resources')
 }
@@ -198,6 +206,22 @@ function main(): void {
         throw new Error(`Expected bootstrapper serverHealthUrl to reference /api/v2/health, got ${config.serverHealthUrl}`)
     }
 
+    let currentPath: string | null = null
+    let versionedAppRoot: string | null = null
+    let appPayloadExecutable: string | null = null
+    let modulesDir: string | null = null
+    currentPath = requirePath(path.join(installRoot, 'current.json'), 'file')
+    const current = JSON.parse(fs.readFileSync(currentPath, 'utf8')) as { schemaVersion?: unknown; version?: unknown }
+    if (current.schemaVersion !== 1 || typeof current.version !== 'string' || current.version !== config.installedVersion) {
+        throw new Error(`Expected current.json to match installedVersion=${config.installedVersion}, got ${JSON.stringify(current)}`)
+    }
+    versionedAppRoot = requirePath(path.join(installRoot, `app-${current.version}`), 'directory')
+    appPayloadExecutable = requirePath(path.join(versionedAppRoot, appExecutableName(platform)), 'file')
+    modulesDir = requirePath(path.join(versionedAppRoot, 'modules'), 'directory')
+    if (!hasFiles(modulesDir)) {
+        throw new Error(`Expected versioned app modules: ${modulesDir}`)
+    }
+
     rejectPath(path.join(installRoot, 'app'))
     rejectPath(path.join(installRoot, 'modules'))
     rejectPath(path.join(installRoot, 'native'))
@@ -217,6 +241,10 @@ function main(): void {
         dist: config.dist,
         installedVersion: config.installedVersion,
         appExecutableName: config.appExecutableName,
+        currentPath,
+        versionedAppRoot,
+        appPayloadExecutable,
+        modulesDir,
         entrypoint,
         resourcesDir,
         updatesDir,

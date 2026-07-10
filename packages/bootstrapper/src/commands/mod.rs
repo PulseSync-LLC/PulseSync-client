@@ -4,7 +4,6 @@ pub mod complete_self_update;
 pub mod discard_prepared_update;
 pub mod download;
 pub mod install;
-pub mod install_ui;
 pub mod install_workflow;
 pub mod launch_inbox;
 pub mod plan_install;
