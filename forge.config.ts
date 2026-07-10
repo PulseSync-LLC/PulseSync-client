@@ -31,11 +31,20 @@ const forgeConfig: ForgeConfig = {
         new VitePlugin({
             build: [
                 {
+                    entry: 'src/bootstrap.ts',
+                    config: 'vite.main.config.ts',
+                },
+                {
                     entry: 'src/index.ts',
                     config: 'vite.main.config.ts',
                 },
                 {
                     entry: 'src/main/mainWindowPreload.ts',
+                    config: 'vite.preload.config.ts',
+                    target: 'preload',
+                },
+                {
+                    entry: 'src/main/bootstrapWindowPreload.ts',
                     config: 'vite.preload.config.ts',
                     target: 'preload',
                 },

@@ -1,13 +1,13 @@
+import config from '@common/appConfig'
 import { getEffectiveUpdateChannel, getUpdateFeedUrl, type UpdateChannel } from './updateChannel'
 import { getUpdateSource, type UpdateSource } from './updateSource'
-import { resolveClientGitHubDesktopManifestUrl } from './githubReleaseResolver'
-import config from '@common/appConfig'
 
-export type DesktopUpdateManifestSource = {
+export type DesktopUpdateManifestRequest = {
     channel: UpdateChannel
     dist: string
-    source: UpdateSource
-    url: string
+    manifestUrl?: string
+    requestedSource: UpdateSource
+    serverHealthUrl?: string
 }
 
 export type ResolveDesktopUpdateManifestOptions = {
@@ -24,36 +24,23 @@ function getServerHealthUrl(): string {
     return `${config.SERVER_v2_URL.replace(/\/+$/u, '')}/api/v2/health`
 }
 
-async function isServerHealthy(): Promise<boolean> {
-    try {
-        const response = await fetch(getServerHealthUrl(), {
-            headers: {
-                Accept: 'application/json',
-            },
-            signal: AbortSignal.timeout(3000),
-        })
-        return response.ok
-    } catch {
-        return false
-    }
-}
-
 function getCurrentDist(): string {
     return `${process.platform}-${process.arch}`
 }
 
-export async function resolveDesktopUpdateManifestSource(
-    options: ResolveDesktopUpdateManifestOptions = {},
-): Promise<DesktopUpdateManifestSource> {
+export function getDesktopUpdateManifestRequest(options: ResolveDesktopUpdateManifestOptions = {}): DesktopUpdateManifestRequest {
     const channel = options.channel ?? getEffectiveUpdateChannel()
     const dist = options.dist ?? getCurrentDist()
-    const source = options.source ?? getUpdateSource()
-    const resolvedSource = source === 'backend' && !(await isServerHealthy()) ? 'github' : source
+    const requestedSource = options.source ?? getUpdateSource()
 
+    if (requestedSource === 'github') {
+        return { channel, dist, requestedSource }
+    }
     return {
         channel,
         dist,
-        source: resolvedSource,
-        url: resolvedSource === 'github' ? await resolveClientGitHubDesktopManifestUrl(channel, dist) : getBackendManifestUrl(channel, dist),
+        requestedSource,
+        manifestUrl: getBackendManifestUrl(channel, dist),
+        serverHealthUrl: getServerHealthUrl(),
     }
 }

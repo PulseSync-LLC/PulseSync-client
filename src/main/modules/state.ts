@@ -55,12 +55,10 @@ class State {
     }
 }
 
-export const getState = (() => {
-    let stateInstance: State | null = null
-    return (): State => {
-        if (!stateInstance) {
-            stateInstance = new State()
-        }
-        return stateInstance
-    }
-})()
+const STATE_KEY = Symbol.for('pulsesync.main.state')
+const stateRuntime = globalThis as typeof globalThis & { [STATE_KEY]?: State }
+
+export const getState = (): State => {
+    stateRuntime[STATE_KEY] ??= new State()
+    return stateRuntime[STATE_KEY]
+}
