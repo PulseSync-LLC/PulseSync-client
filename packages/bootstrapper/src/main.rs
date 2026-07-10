@@ -17,7 +17,6 @@ use crate::{
         discard_prepared_update::discard_prepared_update_command,
         download::download_artifacts,
         install::ensure_installed,
-        install_ui::install_ui,
         install_workflow::install_workflow,
         launch_inbox::{ack_launch_request, claim_launch_requests, enqueue_launch_request},
         plan_install::plan_install,
@@ -169,11 +168,6 @@ fn run(args: &Args) -> Result<Value> {
         "ensure-installed" => {
             run_guarded_mutation(PathBuf::from(required_arg(args, "--install-root")?), || {
                 ensure_installed(args)
-            })
-        }
-        "install-ui" => {
-            run_guarded_mutation(PathBuf::from(required_arg(args, "--install-root")?), || {
-                install_ui(args)
             })
         }
         "install-workflow" => {
