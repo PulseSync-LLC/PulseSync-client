@@ -1,8 +1,8 @@
 {
     "compilerOptions": {
-        "target": "ES2025",
+        "target": "ES6",
         "lib": [
-            "ES2025",
+            "ES6",
             "DOM",
             "DOM.Iterable"
         ],
