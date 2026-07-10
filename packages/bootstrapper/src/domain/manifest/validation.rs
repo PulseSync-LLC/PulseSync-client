@@ -25,7 +25,7 @@ fn validate_artifact(artifact: &BootstrapperArtifact, label: &str) -> Result<()>
     Ok(())
 }
 
-pub(super) fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
+pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
     if manifest.schema_version != 1 {
         return Err("manifest schemaVersion must be 1".into());
     }

@@ -10,17 +10,24 @@ pub struct Args {
     pub keep_install_ui_open: bool,
     pub no_install_ui: bool,
     pub progress_json: bool,
+    pub allow_unreserved_recovery: bool,
 }
 
 fn is_command(value: &str) -> bool {
     matches!(
         value,
-        "check"
+        "claim-active-app"
+            | "ack-launch-request"
+            | "claim-launch-requests"
+            | "check"
             | "download"
+            | "discard-prepared-update"
             | "complete-self-update"
             | "plan-install"
             | "prepare-install"
+            | "prepare-update"
             | "ensure-installed"
+            | "enqueue-launch-request"
             | "install-ui"
             | "install-workflow"
             | "start"
@@ -42,6 +49,7 @@ pub fn parse_args() -> Result<Args> {
     let mut keep_install_ui_open = false;
     let mut no_install_ui = false;
     let mut progress_json = false;
+    let mut allow_unreserved_recovery = false;
     let mut index = values_start;
 
     while let Some(arg) = raw.get(index).cloned() {
@@ -72,6 +80,11 @@ pub fn parse_args() -> Result<Args> {
             index += 1;
             continue;
         }
+        if arg == "--allow-unreserved-recovery" {
+            allow_unreserved_recovery = true;
+            index += 1;
+            continue;
+        }
         if !arg.starts_with("--") {
             if command == "start" || command == "complete-self-update" {
                 passthrough.push(arg);
@@ -96,6 +109,7 @@ pub fn parse_args() -> Result<Args> {
         keep_install_ui_open,
         no_install_ui,
         progress_json,
+        allow_unreserved_recovery,
     })
 }
 

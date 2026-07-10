@@ -2,6 +2,7 @@ pub mod events;
 
 use crate::{
     core::{
+        active_app::write_json_atomic,
         error::Result,
         layout::{Layout, resolve_layout},
     },
@@ -10,10 +11,12 @@ use crate::{
         install_plan::{InstallPlan, create_install_plan},
         install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
         manifest::{
-            GitHubManifestFallback, BootstrapperDistArtifacts, decide_update, load_manifest,
+            BootstrapperDistArtifacts, GitHubManifestFallback, decide_update, load_manifest,
             resolve_manifest_source,
         },
-        transactions::{apply_transaction_file, prepare_transaction_file, rollback_transaction_file},
+        transactions::{
+            apply_transaction_file, prepare_transaction_file, rollback_transaction_file,
+        },
     },
 };
 use serde_json::{Value, json};
@@ -41,10 +44,7 @@ struct InstallStageResult {
 fn write_install_plan(plan: &InstallPlan) -> Result<PathBuf> {
     let plan_file = plan.staging_dir.join("install-plan.json");
     fs::create_dir_all(&plan.staging_dir)?;
-    fs::write(
-        &plan_file,
-        format!("{}\n", serde_json::to_string_pretty(plan)?),
-    )?;
+    write_json_atomic(&plan_file, plan)?;
     Ok(plan_file)
 }
 
@@ -76,7 +76,12 @@ fn blocked_result(
 }
 
 fn first_run_module_artifact_keys(artifacts: &BootstrapperDistArtifacts) -> Vec<ArtifactKey> {
-    artifacts.modules.keys().cloned().map(ArtifactKey::Module).collect()
+    artifacts
+        .modules
+        .keys()
+        .cloned()
+        .map(ArtifactKey::Module)
+        .collect()
 }
 
 fn rollback_applied_stage(stage: &InstallStageResult) -> Value {
@@ -102,7 +107,12 @@ fn run_install_stage(
         "downloading",
         format!("Downloading {stage_label} artifacts"),
     ));
-    let staging_result = stage_artifacts(decision, &options.staging_root, artifact_keys.clone(), reporter)?;
+    let staging_result = stage_artifacts(
+        decision,
+        &options.staging_root,
+        artifact_keys.clone(),
+        reporter,
+    )?;
 
     reporter.emit(InstallWorkflowEvent::stage(
         "planning",
@@ -226,7 +236,8 @@ pub fn run_install_workflow(
         "checking",
         "Loading desktop update manifest",
     ));
-    let manifest_url = resolve_manifest_source(&options.manifest_url, options.github_fallback.as_ref())?;
+    let manifest_url =
+        resolve_manifest_source(&options.manifest_url, options.github_fallback.as_ref())?;
     let manifest = load_manifest(&manifest_url)?;
     let decision = decide_update(&manifest, &options.installed_version, &options.dist);
     if !decision.update_available {
@@ -247,10 +258,19 @@ pub fn run_install_workflow(
         ));
     }
 
-    let app_stage = match run_install_stage(options, &decision, vec![ArtifactKey::App], reporter, "application")? {
+    let app_stage = match run_install_stage(
+        options,
+        &decision,
+        vec![ArtifactKey::App],
+        reporter,
+        "application",
+    )? {
         Ok(stage) => stage,
         Err(blocked) => {
-            reporter.emit(InstallWorkflowEvent::stage("blocked", "Application install stage is blocked"));
+            reporter.emit(InstallWorkflowEvent::stage(
+                "blocked",
+                "Application install stage is blocked",
+            ));
             return Ok(blocked);
         }
     };
@@ -267,7 +287,7 @@ pub fn run_install_workflow(
         ));
         return Ok(blocked_result(
             options,
-                "Install transaction applied but app executable is still missing",
+            "Install transaction applied but app executable is still missing",
             json!({
                 "appStage": {
                     "staging": app_stage.staging,
@@ -291,7 +311,10 @@ pub fn run_install_workflow(
             Ok(stage) => Some(stage),
             Err(blocked) => {
                 let rollback_result = rollback_applied_stage(&app_stage);
-                reporter.emit(InstallWorkflowEvent::stage("blocked", "Native modules install stage is blocked"));
+                reporter.emit(InstallWorkflowEvent::stage(
+                    "blocked",
+                    "Native modules install stage is blocked",
+                ));
                 return Ok(blocked_result(
                     options,
                     "Native modules install stage is blocked",
@@ -308,21 +331,25 @@ pub fn run_install_workflow(
         options.install_root.clone(),
         Some(options.layout.app_executable_name.clone()),
     )?;
-    let installed_modules = match ensure_modules_installed(&installed_layout, decision.artifacts.as_ref()) {
-        Ok(paths) => paths,
-        Err(error) => {
-            let rollback_result = rollback_applied_stage(&app_stage);
-            reporter.emit(InstallWorkflowEvent::stage("blocked", "Native modules are missing after install"));
-            return Ok(blocked_result(
-                options,
-                "Native modules are missing after install",
-                json!({
-                    "error": error.to_string(),
-                    "appRollback": rollback_result
-                }),
-            ));
-        }
-    };
+    let installed_modules =
+        match ensure_modules_installed(&installed_layout, decision.artifacts.as_ref()) {
+            Ok(paths) => paths,
+            Err(error) => {
+                let rollback_result = rollback_applied_stage(&app_stage);
+                reporter.emit(InstallWorkflowEvent::stage(
+                    "blocked",
+                    "Native modules are missing after install",
+                ));
+                return Ok(blocked_result(
+                    options,
+                    "Native modules are missing after install",
+                    json!({
+                        "error": error.to_string(),
+                        "appRollback": rollback_result
+                    }),
+                ));
+            }
+        };
 
     reporter.emit(InstallWorkflowEvent::stage(
         "installed",

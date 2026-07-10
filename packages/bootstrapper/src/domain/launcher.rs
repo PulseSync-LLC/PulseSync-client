@@ -6,9 +6,18 @@ use std::{
 };
 
 pub fn launch_app(app_executable: &Path, args: &[OsString]) -> Result<u32> {
+    launch_app_with_env(app_executable, args, &[])
+}
+
+pub fn launch_app_with_env(
+    app_executable: &Path,
+    args: &[OsString],
+    env: &[(OsString, OsString)],
+) -> Result<u32> {
     let mut command = Command::new(app_executable);
     command
         .args(args)
+        .envs(env.iter().cloned())
         .stdin(Stdio::null())
         .stdout(Stdio::null())
         .stderr(Stdio::null());

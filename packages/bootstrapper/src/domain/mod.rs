@@ -1,7 +1,9 @@
 pub mod artifacts;
 pub mod install_plan;
 pub mod install_workflow;
+pub mod launch_inbox;
 pub mod launcher;
 pub mod manifest;
 pub mod startup_config;
 pub mod transactions;
+pub mod update_workflow;

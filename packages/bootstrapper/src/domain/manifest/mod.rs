@@ -7,7 +7,11 @@ pub use model::{
     BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
     BootstrapperUpdateManifest,
 };
-pub use source::{GitHubManifestFallback, load_manifest, read_source, resolve_manifest_source};
+pub use source::{
+    DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO, GitHubManifestFallback, github_manifest_url,
+    health_check_available, load_manifest, read_source, resolve_manifest_source,
+};
+pub use validation::validate_manifest;
 pub use version::decide_update;
 
 use crate::domain::artifacts::ArtifactKey;
