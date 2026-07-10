@@ -187,7 +187,7 @@ jobs:
 
   publish_renderer:
     name: Publish Remote Renderer
-    needs: [changes, version]
+    needs: changes
     if: ${{ needs.changes.outputs.should_build == 'true' }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
@@ -218,7 +218,7 @@ jobs:
       - name: Publish remote renderer
         run: yarn renderer:publish
         env:
-          BUILD_VERSION: ${{ needs.version.outputs.build_version }}
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
 
   github_prerelease:
     name: Create GitHub Prerelease

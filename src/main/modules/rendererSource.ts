@@ -11,19 +11,18 @@ import { getUrlOrigin, isAllowedRemoteRendererUrl, shouldAllowDevRemoteRenderer 
 export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://pulsesync.dev/app/desktop/manifest.json'
 
 export interface RemoteRendererManifest {
-    rendererVersion: string
+    buildNumber: string
     url: string
     requiresDesktopApi: string
     minClientVersion?: string
 }
 
-export type MainRendererSource =
-    {
-        kind: 'remote'
-        url: string
-        origin: string
-        manifest: RemoteRendererManifest
-    }
+export type MainRendererSource = {
+    kind: 'remote'
+    url: string
+    origin: string
+    manifest: RemoteRendererManifest
+}
 
 function rejectRemoteRenderer(message: string, details?: Record<string, unknown>): never {
     if (details) {
@@ -61,12 +60,12 @@ function isClientVersionCompatible(minClientVersion: string | undefined): boolea
 function parseManifest(value: unknown): RemoteRendererManifest | null {
     if (!value || typeof value !== 'object') return null
     const manifest = value as Partial<RemoteRendererManifest>
-    if (typeof manifest.rendererVersion !== 'string') return null
+    if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) return null
     if (typeof manifest.url !== 'string') return null
     if (typeof manifest.requiresDesktopApi !== 'string') return null
     if (manifest.minClientVersion !== undefined && typeof manifest.minClientVersion !== 'string') return null
     return {
-        rendererVersion: manifest.rendererVersion,
+        buildNumber: manifest.buildNumber,
         url: manifest.url,
         requiresDesktopApi: manifest.requiresDesktopApi,
         minClientVersion: manifest.minClientVersion,
@@ -129,7 +128,7 @@ export async function resolveMainRendererSource(): Promise<MainRendererSource> {
         }
 
         logger.main.info('Remote renderer selected', {
-            rendererVersion: manifest.rendererVersion,
+            buildNumber: manifest.buildNumber,
             url: manifest.url,
             requiredApi: manifest.requiresDesktopApi,
         })
