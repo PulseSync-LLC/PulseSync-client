@@ -11,10 +11,6 @@ const remoteRendererCacheDir = path.resolve(projectRoot, 'node_modules/.vite-rem
 
 const { host, port, rendererUrl, manifestPath, manifestUrl } = remoteRendererDevConfig
 
-const packageJson = JSON.parse(fs.readFileSync(path.resolve(projectRoot, 'package.json'), 'utf8')) as {
-    version?: string
-}
-
 fs.rmSync(remoteRendererCacheDir, { force: true, recursive: true })
 
 let rendererReady = false
@@ -45,7 +41,7 @@ const manifestPlugin = (): Plugin => ({
             response.setHeader('Cache-Control', 'no-store')
             response.end(
                 JSON.stringify({
-                    rendererVersion: `${packageJson.version || '0.0.0'}-dev`,
+                    buildNumber: '0',
                     url: rendererUrl,
                     requiresDesktopApi: `^${DESKTOP_API_VERSION}`,
                 }),
