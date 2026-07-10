@@ -4,17 +4,18 @@ use crate::{
         fs_ops::{ensure_executable, file_size, sha256_file},
         path_segment::sanitize_path_segment,
     },
+    domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
         BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
         artifact_for_key, read_source,
     },
-    domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::{
     fs,
     io::{Read, Write},
     path::{Path, PathBuf},
+    time::Duration,
 };
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -179,7 +180,9 @@ fn materialize_artifact(
         key.as_str(),
         artifact_index,
         artifact_count,
-        artifact.size.unwrap_or_else(|| file_size(target_path).unwrap_or(0)),
+        artifact
+            .size
+            .unwrap_or_else(|| file_size(target_path).unwrap_or(0)),
         artifact.size,
         Some(target_path.to_path_buf()),
     ));
@@ -198,7 +201,11 @@ fn materialize_http_artifact(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::get(&artifact.url)
+    let response = ureq::AgentBuilder::new()
+        .timeout_connect(Duration::from_secs(10))
+        .timeout_read(Duration::from_secs(30))
+        .build()
+        .get(&artifact.url)
         .set("Accept", "application/octet-stream")
         .set("Cache-Control", "no-cache")
         .set("Pragma", "no-cache")
@@ -357,6 +364,24 @@ fn stage_artifact(
     result
 }
 
+struct AggregateArtifactProgressReporter<'a> {
+    inner: &'a dyn InstallProgressReporter,
+    bytes_offset: u64,
+    bytes_total: Option<u64>,
+}
+
+impl InstallProgressReporter for AggregateArtifactProgressReporter<'_> {
+    fn emit(&self, mut event: InstallWorkflowEvent) {
+        if event.event == "artifact-progress" {
+            event.bytes_read = event
+                .bytes_read
+                .map(|bytes| self.bytes_offset.saturating_add(bytes));
+            event.bytes_total = self.bytes_total;
+        }
+        self.inner.emit(event);
+    }
+}
+
 pub fn stage_artifacts(
     decision: &BootstrapperUpdateDecision,
     staging_root: &Path,
@@ -369,18 +394,33 @@ pub fn stage_artifacts(
     let mut artifacts = Vec::new();
     if decision.update_available {
         if let Some(dist_artifacts) = &decision.artifacts {
-            let artifact_count = artifact_keys.len();
-            for (index, key) in artifact_keys.into_iter().enumerate() {
-                if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
-                    artifacts.push(stage_artifact(
-                        artifact,
-                        key,
-                        &staging_dir,
-                        index + 1,
-                        artifact_count,
-                        reporter,
-                    )?);
-                }
+            let selected = artifact_keys
+                .into_iter()
+                .filter_map(|key| {
+                    artifact_for_key(dist_artifacts, &key).map(|artifact| (key, artifact))
+                })
+                .collect::<Vec<_>>();
+            let bytes_total = selected.iter().try_fold(0_u64, |total, (_, artifact)| {
+                artifact.size.and_then(|size| total.checked_add(size))
+            });
+            let artifact_count = selected.len();
+            let mut bytes_completed = 0_u64;
+            for (index, (key, artifact)) in selected.into_iter().enumerate() {
+                let aggregate_reporter = AggregateArtifactProgressReporter {
+                    inner: reporter,
+                    bytes_offset: bytes_completed,
+                    bytes_total,
+                };
+                let staged = stage_artifact(
+                    artifact,
+                    key,
+                    &staging_dir,
+                    index + 1,
+                    artifact_count,
+                    &aggregate_reporter,
+                )?;
+                bytes_completed = bytes_completed.saturating_add(staged.size);
+                artifacts.push(staged);
             }
         }
     }

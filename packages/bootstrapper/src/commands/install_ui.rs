@@ -471,10 +471,13 @@ fn stage_progress(event: &InstallWorkflowEvent) -> f32 {
         if let (Some(index), Some(count)) = (event.artifact_index, event.artifact_count) {
             if count > 0 {
                 let artifact_fraction = match (event.bytes_read, event.bytes_total) {
-                    (Some(bytes_read), Some(bytes_total)) if bytes_total > 0 => (bytes_read as f32 / bytes_total as f32).clamp(0.0, 1.0),
+                    (Some(bytes_read), Some(bytes_total)) if bytes_total > 0 => {
+                        (bytes_read as f32 / bytes_total as f32).clamp(0.0, 1.0)
+                    }
                     _ => 1.0,
                 };
-                let fraction = ((index.saturating_sub(1)) as f32 + artifact_fraction) / count as f32;
+                let fraction =
+                    ((index.saturating_sub(1)) as f32 + artifact_fraction) / count as f32;
                 return match area {
                     InstallProgressArea::Application => 0.12 + fraction * 0.56,
                     InstallProgressArea::Modules => 0.76 + fraction * 0.14,
@@ -513,7 +516,10 @@ fn stage_title(app: &InstallUiApp, language: InstallUiLanguage) -> &'static str 
     {
         InstallProgressArea::Modules
     } else if app.message.to_ascii_lowercase().contains("application")
-        || app.artifact_detail.as_deref().is_some_and(|artifact_key| artifact_key.starts_with("app"))
+        || app
+            .artifact_detail
+            .as_deref()
+            .is_some_and(|artifact_key| artifact_key.starts_with("app"))
     {
         InstallProgressArea::Application
     } else {
