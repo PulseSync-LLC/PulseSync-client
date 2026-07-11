@@ -10,7 +10,7 @@ use crate::{
         layout::{is_inside, normalize_retain_app_versions},
     },
     domain::{
-        artifacts::{ArtifactKey, artifact_file_name, default_artifact_keys, verify_artifact_file},
+        artifacts::{ArtifactKey, artifact_file_name, verify_artifact_file},
         install_plan::{
             checks::{block, check_install_dir, pass},
             paths::{
@@ -169,11 +169,20 @@ pub fn create_install_plan(
     if let Some(dist_artifacts) = &decision.artifacts {
         for key in install_keys(artifact_keys) {
             if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
+                let artifact_version = match &key {
+                    ArtifactKey::Host => decision.host_version.as_str(),
+                    ArtifactKey::Bootstrapper => decision.bootstrapper_version.as_str(),
+                    ArtifactKey::Module(name) => decision
+                        .component_versions
+                        .get(name)
+                        .map(String::as_str)
+                        .unwrap_or(&decision.target_version),
+                };
                 let (artifact, checks) = artifact_plan_entry(
                     artifact,
                     key,
                     &install_dir,
-                    &decision.target_version,
+                    artifact_version,
                     &staging_dir,
                     &backup_dir,
                 )?;
@@ -204,11 +213,11 @@ pub fn create_install_plan(
         staging_dir,
         target_version: decision.target_version.clone(),
         update_available: decision.update_available,
+        host_version: decision.host_version.clone(),
+        bootstrapper_version: decision.bootstrapper_version.clone(),
+        component_versions: decision.component_versions.clone(),
+        metadata_version: decision.metadata_version,
+        host_electron_abi: decision.host_electron_abi.clone(),
+        component_electron_abis: decision.component_electron_abis.clone(),
     })
-}
-
-pub fn default_install_artifact_keys(
-    artifacts: Option<&crate::domain::manifest::BootstrapperDistArtifacts>,
-) -> Vec<ArtifactKey> {
-    install_keys(default_artifact_keys(artifacts))
 }

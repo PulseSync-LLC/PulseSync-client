@@ -51,45 +51,43 @@ pub fn sha256_file(path: &Path) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
-pub fn copy_file_if_needed(source: &Path, target: &Path) -> Result<&'static str> {
-    if target.is_file() && sha256_file(source)? == sha256_file(target)? {
-        return Ok("reused");
+pub fn sha256_directory(path: &Path) -> Result<String> {
+    fn collect(root: &Path, current: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<()> {
+        for entry in fs::read_dir(current)? {
+            let entry = entry?;
+            let entry_path = entry.path();
+            if entry_path.is_dir() {
+                collect(root, &entry_path, files)?;
+            } else if entry_path.is_file() {
+                files.push(entry_path.strip_prefix(root)?.to_path_buf());
+            }
+        }
+        Ok(())
     }
-    if let Some(parent) = target.parent() {
-        fs::create_dir_all(parent)?;
+
+    let mut files = Vec::new();
+    collect(path, path, &mut files)?;
+    files.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
+    let mut hasher = Sha256::new();
+    for relative in files {
+        hasher.update(relative.to_string_lossy().replace('\\', "/").as_bytes());
+        hasher.update([0]);
+        let mut file = fs::File::open(path.join(&relative))?;
+        let mut buffer = [0_u8; 64 * 1024];
+        loop {
+            let read = file.read(&mut buffer)?;
+            if read == 0 {
+                break;
+            }
+            hasher.update(&buffer[..read]);
+        }
+        hasher.update([0]);
     }
-    fs::copy(source, target)?;
-    Ok("copied")
+    Ok(hex::encode(hasher.finalize()))
 }
 
 pub fn file_size(path: &Path) -> Result<u64> {
     Ok(fs::metadata(path)?.len())
-}
-
-pub fn copy_dir_if_missing(source: &Path, target: &Path) -> Result<&'static str> {
-    if target.exists() {
-        return Ok("reused");
-    }
-    copy_dir_recursive(source, target)?;
-    Ok("copied")
-}
-
-fn copy_dir_recursive(source: &Path, target: &Path) -> Result<()> {
-    fs::create_dir_all(target)?;
-    for entry in fs::read_dir(source)? {
-        let entry = entry?;
-        let source_path = entry.path();
-        let target_path = target.join(entry.file_name());
-        if source_path.is_dir() {
-            copy_dir_recursive(&source_path, &target_path)?;
-        } else {
-            if let Some(parent) = target_path.parent() {
-                fs::create_dir_all(parent)?;
-            }
-            fs::copy(&source_path, &target_path)?;
-        }
-    }
-    Ok(())
 }
 
 fn zip_entry_is_safe(name: &str) -> bool {

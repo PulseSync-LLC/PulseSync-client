@@ -6,6 +6,8 @@ import {
     parseEnqueueResult,
     parseHandoffArmedProgress,
     parseStartResult,
+    parseActiveRuntimeV2,
+    parseRuntimeAcknowledgementV2,
     unwrapSemanticResult,
     type AckLaunchRequestResultV1,
     type ClaimActiveAppResultV1,
@@ -14,6 +16,8 @@ import {
     type LaunchRequestInputV1,
     type RustHandoffArmedEventV1,
     type StartResultV1,
+    type ActiveRuntimeV2,
+    type RuntimeAcknowledgementV2,
 } from './contracts'
 import type { BootstrapperLauncher } from './paths'
 
@@ -168,6 +172,33 @@ export async function startCanonicalApp(options: {
             parseResult: parseStartResult,
         }),
     )
+}
+
+export async function resolveActiveRuntime(options: {
+    activeLeaseId: string
+    launcher: BootstrapperLauncher
+    stateRoot: string
+}): Promise<ActiveRuntimeV2> {
+    return await runBootstrapperCommand({
+        launcher: options.launcher,
+        command: 'resolve-runtime',
+        args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId],
+        parseResult: parseActiveRuntimeV2,
+    })
+}
+
+export async function acknowledgeActiveRuntime(options: {
+    activeLeaseId: string
+    generation: number
+    launcher: BootstrapperLauncher
+    stateRoot: string
+}): Promise<RuntimeAcknowledgementV2> {
+    return await runBootstrapperCommand({
+        launcher: options.launcher,
+        command: 'acknowledge-runtime',
+        args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--generation', String(options.generation)],
+        parseResult: parseRuntimeAcknowledgementV2,
+    })
 }
 
 export type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1, RustHandoffArmedEventV1, StartResultV1 } from './contracts'

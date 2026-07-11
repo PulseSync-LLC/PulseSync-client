@@ -22,12 +22,12 @@ use crate::{
     },
     domain::{
         artifacts::stage_artifacts,
-        install_plan::{create_install_plan, default_install_artifact_keys},
+        install_plan::create_install_plan,
         install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
         macos_bundle,
         manifest::{
-            ArtifactLayout, BootstrapperUpdateManifest, decide_update, read_source,
-            validate_manifest,
+            ArtifactLayout, BootstrapperUpdateManifest, decide_component_update, decide_update,
+            read_source, validate_manifest,
         },
         transactions::{prepare_transaction_file_at, prepared_transactions},
     },
@@ -266,7 +266,22 @@ pub fn prepare_update(
             safe_to_continue,
         )
     })?;
-    let decision = decide_update(&manifest, &options.installed_version, &options.dist);
+    let decision = if layout.layout_kind == LayoutKind::VersionedComponents {
+        let installed = crate::core::install_state::read_install_state(&layout.state_root)
+            .map_err(|error| {
+                workflow_error(
+                    PREPARE_COMMAND,
+                    "install-state-invalid",
+                    "decide",
+                    error,
+                    false,
+                    safe_to_continue,
+                )
+            })?;
+        decide_component_update(&manifest, &installed, &options.dist)
+    } else {
+        decide_update(&manifest, &options.installed_version, &options.dist)
+    };
     let public_decision = public_decision(&decision, &manifest);
 
     let artifact_layout = decision
@@ -303,7 +318,10 @@ pub fn prepare_update(
         ));
     }
     match decision.reason.as_str() {
-        "missing-dist-artifacts" | "invalid-version" => {
+        "missing-dist-artifacts"
+        | "invalid-version"
+        | "stale-metadata"
+        | "immutable-artifact-mismatch" => {
             let reason = decision.reason.clone();
             return Ok(PrepareUpdateResult::blocked(
                 Some(public_decision),
@@ -386,7 +404,17 @@ pub fn prepare_update(
         "downloading",
         "Downloading update artifacts",
     ));
-    let artifact_keys = default_install_artifact_keys(decision.artifacts.as_ref());
+    let artifact_keys =
+        crate::domain::artifacts::selected_artifact_keys(&decision).map_err(|error| {
+            workflow_error(
+                PREPARE_COMMAND,
+                "component-selection-invalid",
+                "decide",
+                error,
+                false,
+                safe_to_continue,
+            )
+        })?;
     stage_artifacts(&decision, &staging_root, artifact_keys.clone(), reporter).map_err(
         |error| {
             workflow_error(
