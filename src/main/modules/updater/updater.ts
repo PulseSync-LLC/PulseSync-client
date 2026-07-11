@@ -1,4 +1,5 @@
 import { app, type BrowserWindow } from 'electron'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { mainWindow } from '../createWindow'
@@ -129,7 +130,7 @@ class Updater {
                 stateRoot: runtimePaths.stateRoot,
                 hostBundle: runtimePaths.hostBundle,
                 appExecutable: runtimePaths.appExecutable,
-                installedVersion: app.getVersion(),
+                installedVersion: DESKTOP_CORE_VERSION,
                 launcher: runtimePaths.launcher,
                 manifestUrl: request.manifestUrl,
                 requestedSource: request.requestedSource,

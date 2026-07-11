@@ -1,11 +1,9 @@
 import config, { branch as buildBranch } from '@common/appConfig'
-import { getState } from '../state'
+import { readBootstrapSettings, writeBootstrapSettings } from '../bootstrap/bootstrapSettings'
 
 export const UPDATE_CHANNELS = ['beta', 'alpha', 'dev'] as const
 
 export type UpdateChannel = (typeof UPDATE_CHANNELS)[number]
-
-const UPDATE_CHANNEL_OVERRIDE_KEY = 'app.updateChannelOverride'
 
 export function normalizeUpdateChannel(value: unknown): UpdateChannel | null {
     if (typeof value !== 'string') {
@@ -21,12 +19,12 @@ export function getBuildUpdateChannel(): UpdateChannel {
 }
 
 export function getUpdateChannelOverride(): UpdateChannel | null {
-    return normalizeUpdateChannel(getState().get(UPDATE_CHANNEL_OVERRIDE_KEY))
+    return normalizeUpdateChannel(readBootstrapSettings().updateChannelOverride)
 }
 
 export function setUpdateChannelOverride(channel: unknown): UpdateChannel | null {
     const nextOverride = normalizeUpdateChannel(channel)
-    getState().set(UPDATE_CHANNEL_OVERRIDE_KEY, nextOverride ?? '')
+    writeBootstrapSettings({ updateChannelOverride: nextOverride ?? '' })
     return nextOverride
 }
 

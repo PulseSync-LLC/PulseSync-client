@@ -8,12 +8,16 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
     version: string
     buildInfo?: { BRANCH?: string }
 }
+const desktopCorePackageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages', 'desktop-core', 'package.json'), 'utf-8')) as {
+    version: string
+}
 const buildDist = process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
 
 export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const isDevMode = mode === 'development'
     const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const entry = forgeConfigSelf?.entry ?? 'src/index.ts'
+    const bundleVersion = entry === 'src/bootstrap.ts' ? packageJson.version : desktopCorePackageJson.version
 
     return {
         build: {
@@ -36,11 +40,13 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
         },
 
         define: {
-            PULSESYNC_VERSION: JSON.stringify(packageJson.version),
+            PULSESYNC_VERSION: JSON.stringify(bundleVersion),
+            PULSESYNC_HOST_VERSION: JSON.stringify(packageJson.version),
+            PULSESYNC_CORE_VERSION: JSON.stringify(desktopCorePackageJson.version),
             PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
             PULSESYNC_DIST: JSON.stringify(buildDist),
             'process.env.BRANCH': JSON.stringify((packageJson as any).buildInfo?.BRANCH),
-            'process.env.VERSION': JSON.stringify(packageJson.version),
+            'process.env.VERSION': JSON.stringify(bundleVersion),
             'import.meta.env.DEV': JSON.stringify(isDevMode),
             'import.meta.env.PROD': JSON.stringify(!isDevMode),
             __non_vite_require__: 'require',

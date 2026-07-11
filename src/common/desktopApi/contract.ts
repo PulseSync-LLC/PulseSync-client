@@ -4,7 +4,8 @@ export { DESKTOP_API_VERSION } from './version'
 
 export interface DesktopRuntimeInfo {
     apiVersion: string
-    clientVersion: string
+    hostVersion: string
+    coreVersion: string
     buildChannel: string | null
     platform: NodeJS.Platform
     isDev: boolean

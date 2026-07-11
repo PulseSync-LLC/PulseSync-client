@@ -1,11 +1,11 @@
-import { app } from 'electron'
 import axios from 'axios'
 import * as semver from 'semver'
 import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import { isDevmark } from '@common/appConfig'
 import isAppDev from '../utils/isAppDev'
 import logger from './logger'
-import { getState } from './state'
+import { readBootstrapSettings } from './bootstrap/bootstrapSettings'
 import { getUrlOrigin, isAllowedRemoteRendererUrl, shouldAllowDevRemoteRenderer } from './security/remoteRendererPolicy'
 
 export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://pulsesync.dev/app/desktop/manifest.json'
@@ -39,7 +39,7 @@ function getRemoteManifestUrl(): string {
         return envManifestUrl
     }
 
-    const stored = String(getState().get('app.remoteRendererManifestUrl') || '').trim()
+    const stored = readBootstrapSettings().remoteRendererManifestUrl
     return stored || DEFAULT_REMOTE_RENDERER_MANIFEST_URL
 }
 
@@ -51,7 +51,7 @@ function isDesktopApiCompatible(requiredRange: string): boolean {
 
 function isClientVersionCompatible(minClientVersion: string | undefined): boolean {
     if (!minClientVersion) return true
-    const current = semver.valid(app.getVersion())
+    const current = semver.valid(DESKTOP_CORE_VERSION)
     const minimum = semver.valid(minClientVersion)
     if (!current || !minimum) return false
     return semver.gte(current, minimum)
@@ -111,7 +111,7 @@ export async function resolveMainRendererSource(): Promise<MainRendererSource> {
 
         if (!isClientVersionCompatible(manifest.minClientVersion)) {
             rejectRemoteRenderer('Remote renderer requires newer client', {
-                currentVersion: app.getVersion(),
+                currentVersion: DESKTOP_CORE_VERSION,
                 minClientVersion: manifest.minClientVersion,
             })
         }

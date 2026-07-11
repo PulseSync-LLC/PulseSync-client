@@ -11,6 +11,50 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const shouldBundleMainRenderer =
     process.env.PULSESYNC_BUNDLE_RENDERER === '1' && process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_REF?.startsWith('refs/tags/')
 
+const DESKTOP_CORE_MODULE_NAME = 'desktopCore'
+const desktopCorePackage = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages', 'desktop-core', 'package.json'), 'utf8')) as {
+    name: string
+    private: boolean
+    version: string
+    main: string
+}
+
+async function packageDesktopCore(buildPath: string): Promise<void> {
+    const mainOutputDir = path.join(buildPath, '.vite', 'main')
+    const coreFiles = [
+        { source: 'desktopCore.cjs', target: 'index.cjs' },
+        { source: 'mainWindowPreload.cjs', target: 'mainWindowPreload.cjs' },
+    ]
+    const resourcesPath = path.resolve(buildPath, '..')
+    const packagedAppRoot = path.resolve(resourcesPath, '..')
+    const modulesRoot = path.join(packagedAppRoot, 'modules')
+    const coreModuleRoot = path.join(modulesRoot, `${DESKTOP_CORE_MODULE_NAME}-${desktopCorePackage.version}`)
+    const coreModuleDir = path.join(coreModuleRoot, DESKTOP_CORE_MODULE_NAME)
+
+    if (fs.existsSync(modulesRoot)) {
+        for (const name of fs.readdirSync(modulesRoot)) {
+            if (name === DESKTOP_CORE_MODULE_NAME || name.startsWith(`${DESKTOP_CORE_MODULE_NAME}-`)) {
+                fs.rmSync(path.join(modulesRoot, name), { force: true, recursive: true })
+            }
+        }
+    }
+    fs.mkdirSync(coreModuleDir, { recursive: true })
+
+    for (const file of coreFiles) {
+        const sourcePath = path.join(mainOutputDir, file.source)
+        if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+            throw new Error(`Desktop core build output was not found: ${sourcePath}`)
+        }
+        fs.copyFileSync(sourcePath, path.join(coreModuleDir, file.target))
+    }
+
+    fs.writeFileSync(path.join(coreModuleDir, 'package.json'), `${JSON.stringify(desktopCorePackage, null, 4)}\n`, 'utf8')
+
+    for (const file of coreFiles) {
+        fs.rmSync(path.join(mainOutputDir, file.source), { force: true })
+    }
+}
+
 const forgeConfig: ForgeConfig = {
     packagerConfig: {
         icon: process.platform === 'linux' ? './icons/icon.png' : './icons/icon',
@@ -35,7 +79,7 @@ const forgeConfig: ForgeConfig = {
                     config: 'vite.main.config.ts',
                 },
                 {
-                    entry: 'src/index.ts',
+                    entry: 'src/desktopCore.ts',
                     config: 'vite.main.config.ts',
                 },
                 {
@@ -99,6 +143,7 @@ const forgeConfig: ForgeConfig = {
         },
         packageAfterCopy: async (_forgeConfig, buildPath, electronVersion, platform, arch) => {
             prepareGlitchTipSourceMaps(buildPath, platform, arch)
+            await packageDesktopCore(buildPath)
             fs.rmSync(path.join(buildPath, '.vite', 'worker'), { force: true, recursive: true })
             if (!shouldBundleMainRenderer) {
                 fs.rmSync(path.join(buildPath, '.vite', 'renderer', 'assets'), { force: true, recursive: true })

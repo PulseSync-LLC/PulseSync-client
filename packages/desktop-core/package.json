@@ -1,0 +1,10 @@
+{
+    "name": "@pulsesync/desktop-core",
+    "private": true,
+    "version": "2.18.2",
+    "main": "index.cjs",
+    "componentVersions": {
+        "artifactWorker": "1",
+        "pulsesyncNative": "1"
+    }
+}

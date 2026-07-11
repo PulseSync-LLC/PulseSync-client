@@ -1,10 +1,11 @@
 import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
-import packageJson from '../../package.json'
+import packageJson from '../../packages/desktop-core/package.json'
 import { DESKTOP_API_VERSION, type DesktopSettingsPatch, type PulseSyncDesktopApi } from '../common/desktopApi/contract'
 import MainEvents from '../common/types/mainEvents'
 import RendererEvents from '../common/types/rendererEvents'
 import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
+import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
 
 export const buildPackageJson = packageJson as typeof packageJson & {
     buildInfo?: {
@@ -33,8 +34,7 @@ const subscribe = (channel: string, listener: (...args: unknown[]) => void) => {
 const subscribePayload = (channel: string, listener: (payload: unknown) => void) =>
     subscribe(channel, (...args) => listener(args.length > 1 ? args : args[0]))
 
-const subscribeVoid = (channel: string, listener: () => void) =>
-    subscribe(channel, () => listener())
+const subscribeVoid = (channel: string, listener: () => void) => subscribe(channel, () => listener())
 
 const trimTrailingPathSeparator = (value: string): string => value.replace(/[\\/]+$/, '')
 
@@ -51,9 +51,12 @@ const applySettingsPatch = (patch: DesktopSettingsPatch): void => {
     if (patch.autoStartInTray !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoStartInTray', patch.autoStartInTray)
     if (patch.autoStartMusic !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoStartMusic', patch.autoStartMusic)
     if (patch.autoStartApp !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoStartApp', patch.autoStartApp)
-    if (patch.hardwareAcceleration !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.hardwareAcceleration', patch.hardwareAcceleration)
-    if (patch.deletePextAfterImport !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.deletePextAfterImport', patch.deletePextAfterImport)
-    if (patch.autoUpdateStoreAddons !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoUpdateStoreAddons', patch.autoUpdateStoreAddons)
+    if (patch.hardwareAcceleration !== undefined)
+        ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.hardwareAcceleration', patch.hardwareAcceleration)
+    if (patch.deletePextAfterImport !== undefined)
+        ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.deletePextAfterImport', patch.deletePextAfterImport)
+    if (patch.autoUpdateStoreAddons !== undefined)
+        ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoUpdateStoreAddons', patch.autoUpdateStoreAddons)
     if (patch.closeAppInTray !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.closeAppInTray', patch.closeAppInTray)
     if (patch.devSocket !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.devSocket', patch.devSocket)
     if (patch.askSavePath !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.askSavePath', patch.askSavePath)
@@ -102,7 +105,8 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         return {
             apiVersion: DESKTOP_API_VERSION,
-            clientVersion: buildPackageJson.version,
+            hostVersion: DESKTOP_HOST_VERSION,
+            coreVersion: DESKTOP_CORE_VERSION,
             buildChannel,
             platform: process.platform,
             isDev: Boolean(ipcRenderer.sendSync(MainEvents.ELECTRON_ISDEV)),
@@ -206,10 +210,11 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         deleteYandexMusicApp: () => ipcRenderer.send(MainEvents.DELETE_YANDEX_MUSIC_APP),
         onClientReady: listener => subscribeVoid(RendererEvents.CLIENT_READY, listener),
         onYandexMusicUpdateRequired: listener => subscribeVoid(RendererEvents.SHOW_YANDEX_MUSIC_UPDATE_DIALOG, listener),
-        onYandexMusicDeleteResult: listener => subscribePayload(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, payload => {
-            const result = payload && typeof payload === 'object' ? payload : { success: false }
-            listener(result as { success: boolean; message?: string })
-        }),
+        onYandexMusicDeleteResult: listener =>
+            subscribePayload(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, payload => {
+                const result = payload && typeof payload === 'object' ? payload : { success: false }
+                listener(result as { success: boolean; message?: string })
+            }),
         onTrackInfo: listener => subscribePayload(RendererEvents.TRACK_INFO, listener),
         onTrackPlayedEnough: listener => subscribePayload(RendererEvents.SEND_TRACK, listener),
     },

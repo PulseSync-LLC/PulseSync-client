@@ -1,9 +1,11 @@
 import { app, type BrowserWindow } from 'electron'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
+import type { ActiveRuntimeV2 } from '@common/desktopRuntime/contract'
 import logger from '../logger'
 import { BootstrapperCommandError } from '../bootstrapper/command'
 import { isUpdateErrorV1, type ActiveAppLeaseV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../bootstrapper/contracts'
 import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
+import { acknowledgeActiveRuntime } from '../bootstrapper/runtimeCommands'
 import { getDesktopUpdateManifestRequest } from '../updater/desktopManifestSource'
 import { getUpdateSource } from '../updater/updateSource'
 import { updateCoordinator } from './updateCoordinator'
@@ -18,6 +20,7 @@ export type ApplicationStartupHandle = {
 }
 
 export type ApplicationBootstrapRuntime = {
+    activeRuntime: ActiveRuntimeV2
     getLastCheckAt(): number | null
     handoffPreparedUpdate(): Promise<boolean>
     leaseId: string
@@ -27,6 +30,7 @@ export type ApplicationBootstrapRuntime = {
 export type ApplicationMainLoader = (
     bootstrapWindow: BrowserWindow,
     bootstrapRuntime: ApplicationBootstrapRuntime,
+    activeRuntime: ActiveRuntimeV2,
 ) => Promise<ApplicationStartupHandle>
 
 export class StartupCoordinator {
@@ -37,6 +41,7 @@ export class StartupCoordinator {
     public constructor(
         private readonly options: {
             bootstrapWindow: BootstrapWindowController
+            activeRuntime: ActiveRuntimeV2
             inbox: LaunchInbox
             lease: ActiveAppLeaseV1
             loadApplicationMain: ApplicationMainLoader
@@ -92,7 +97,7 @@ export class StartupCoordinator {
                 stateRoot: this.options.runtimePaths.stateRoot,
                 hostBundle: this.options.runtimePaths.hostBundle,
                 appExecutable: this.options.runtimePaths.appExecutable,
-                installedVersion: app.getVersion(),
+                installedVersion: this.options.activeRuntime.coreVersion,
                 launcher,
                 manifestUrl: request.manifestUrl,
                 requestedSource: request.requestedSource,
@@ -143,15 +148,29 @@ export class StartupCoordinator {
 
     private async startApplication(): Promise<void> {
         if (this.applicationHandle) return
-        const handle = await this.options.loadApplicationMain(this.options.bootstrapWindow.window, {
-            leaseId: this.options.lease.leaseId,
-            getLastCheckAt: () => updateCoordinator.lastCheckAt,
-            runUpdate: options => updateCoordinator.run(options),
-            handoffPreparedUpdate,
-        })
+        const launcher = this.options.runtimePaths.launcher
+        if (!launcher) throw new Error('Bootstrapper launcher was not found')
+        const activeRuntime = this.options.activeRuntime
+        const handle = await this.options.loadApplicationMain(
+            this.options.bootstrapWindow.window,
+            {
+                activeRuntime,
+                leaseId: this.options.lease.leaseId,
+                getLastCheckAt: () => updateCoordinator.lastCheckAt,
+                runUpdate: options => updateCoordinator.run(options),
+                handoffPreparedUpdate,
+            },
+            activeRuntime,
+        )
         this.applicationHandle = handle
         await this.options.inbox.start(request => handle.deliverLaunchRequest(request))
         await handle.ready
+        await acknowledgeActiveRuntime({
+            activeLeaseId: this.options.lease.leaseId,
+            generation: activeRuntime.generation,
+            launcher,
+            stateRoot: this.options.runtimePaths.stateRoot,
+        })
         this.unsubscribeState?.()
         this.unsubscribeState = null
     }

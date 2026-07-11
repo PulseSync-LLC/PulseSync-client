@@ -1,4 +1,5 @@
 import { app, BrowserWindow } from 'electron'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import * as path from 'path'
 import * as fs from 'original-fs'
 import os from 'os'
@@ -24,7 +25,7 @@ export const fileExists = (filePath: string) => nativeFileExists(filePath) || fs
 
 export function clearCacheOnVersionChange(): void {
     try {
-        const currentVersion = app.getVersion()
+        const currentVersion = DESKTOP_CORE_VERSION
         const savedVersion = State.get('app.version')
         if (savedVersion !== currentVersion) {
             try {

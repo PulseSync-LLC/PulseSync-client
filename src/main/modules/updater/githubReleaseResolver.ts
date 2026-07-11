@@ -1,5 +1,5 @@
-import { app } from 'electron'
 import axios from 'axios'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 export type GitHubRepo = {
     owner: string
@@ -35,7 +35,7 @@ const GITHUB_API_BASE_URL = 'https://api.github.com'
 function getGithubRequestHeaders(): Record<string, string> {
     return {
         Accept: 'application/vnd.github+json',
-        'User-Agent': `PulseSync/${app.getVersion()}`,
+        'User-Agent': `PulseSync/${DESKTOP_CORE_VERSION}`,
     }
 }
 
