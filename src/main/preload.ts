@@ -21,6 +21,8 @@ const root = document.querySelector<HTMLElement>('#bootstrap-root')
 const status = document.querySelector<HTMLElement>('#bootstrap-status')
 const progress = document.querySelector<HTMLProgressElement>('#bootstrap-progress')
 const progressText = document.querySelector<HTMLElement>('#bootstrap-progress-text')
+const progressPercent = document.querySelector<HTMLElement>('#bootstrap-progress-percent')
+const progressBytes = document.querySelector<HTMLElement>('#bootstrap-progress-bytes')
 
 let currentState: BootstrapUiStateV1 | undefined
 let actionPending = false
@@ -87,16 +89,21 @@ function renderState(state: BootstrapUiStateV1): void {
     if (status) {
         status.textContent = STATUS_TEXT[state.statusKey]
     }
-    if (progress && progressText) {
+    if (progress && progressText && progressPercent && progressBytes) {
         if (state.progress.kind === 'bytes') {
             progress.max = state.progress.total
             progress.value = state.progress.read
             const percent = Math.min(100, Math.floor((state.progress.read / state.progress.total) * 100))
-            progressText.textContent = `${percent}% · ${formatBytes(state.progress.read)} из ${formatBytes(state.progress.total)}`
+            progressText.hidden = false
+            progressPercent.textContent = `${percent}%`
+            progressBytes.textContent = `${formatBytes(state.progress.read)} из ${formatBytes(state.progress.total)}`
         } else {
             progress.removeAttribute('value')
             progress.max = 1
-            progressText.textContent = state.phase === 'blocked' || state.phase === 'error' ? '' : 'Подождите немного'
+            const hideText = state.phase === 'blocked' || state.phase === 'error'
+            progressText.hidden = hideText
+            progressPercent.textContent = hideText ? '' : 'Подождите немного'
+            progressBytes.textContent = ''
         }
     }
     const canRetry = state.actions.includes('retry')

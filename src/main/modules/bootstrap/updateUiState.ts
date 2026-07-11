@@ -24,7 +24,7 @@ function progressFor(event: RustUpdateProgressEventV1): BootstrapUiStateV1['prog
 
 export function bootstrapUiStateFromProgress(event: RustUpdateProgressEventV1): BootstrapUiStateV1 {
     if (event.stage === 'downloading') {
-        const modules = event.artifactKey?.startsWith('module:') === true
+        const modules = event.artifactKey !== undefined && event.artifactKey !== 'app'
         return {
             schemaVersion: 1,
             phase: modules ? 'downloading-modules' : 'downloading-app',
@@ -43,7 +43,7 @@ export function bootstrapUiStateFromProgress(event: RustUpdateProgressEventV1): 
         }
     }
     if (event.stage === 'prepared') {
-        return { schemaVersion: 1, phase: 'restarting', statusKey: 'restarting-client', progress: { kind: 'indeterminate' }, actions: [] }
+        return { schemaVersion: 1, phase: 'preparing', statusKey: 'preparing-update', progress: { kind: 'indeterminate' }, actions: [] }
     }
     if (event.stage === 'up-to-date') {
         return { schemaVersion: 1, phase: 'launching', statusKey: 'launching-client', progress: { kind: 'indeterminate' }, actions: [] }
@@ -56,7 +56,7 @@ export function bootstrapUiStateFromProgress(event: RustUpdateProgressEventV1): 
 
 export function bootstrapUiStateFromPrepareResult(result: PrepareUpdateResultV1): BootstrapUiStateV1 {
     if (result.state === 'prepared') {
-        return { schemaVersion: 1, phase: 'restarting', statusKey: 'restarting-client', progress: { kind: 'indeterminate' }, actions: [] }
+        return { schemaVersion: 1, phase: 'preparing', statusKey: 'preparing-update', progress: { kind: 'indeterminate' }, actions: [] }
     }
     if (result.state === 'up-to-date') {
         return { schemaVersion: 1, phase: 'launching', statusKey: 'launching-client', progress: { kind: 'indeterminate' }, actions: [] }
