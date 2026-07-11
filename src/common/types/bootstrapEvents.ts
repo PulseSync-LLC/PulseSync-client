@@ -19,7 +19,9 @@ export const BOOTSTRAP_STATUS_KEYS = [
     'launching-client',
     'update-blocked',
     'update-failed',
-    'canonical-launch-required',
+    'bootstrapper-missing',
+    'launch-blocked',
+    'launch-failed',
 ] as const
 
 export const BOOTSTRAP_ACTIONS = ['retry', 'continue'] as const

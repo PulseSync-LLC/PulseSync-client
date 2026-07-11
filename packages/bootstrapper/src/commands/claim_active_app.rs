@@ -9,7 +9,10 @@ use crate::{
             remove_launch_reservation, verified_live_lease,
         },
         error::Result,
-        host_contract::{read_runtime_host_contract, write_runtime_host_contract},
+        host_contract::{
+            read_runtime_host_contract_for_rotation, runtime_host_contract_matches,
+            write_runtime_host_contract,
+        },
         layout::{assert_inside, canonical_install_root, resolve_macos_layout},
         session_lock::SessionLock,
     },
@@ -55,11 +58,9 @@ pub fn claim_active_app(args: &Args) -> Result<Value> {
     if let Some(layout) = macos_layout.as_ref() {
         let requested_host = layout.host_bundle.as_ref().expect("macOS host bundle");
         let requested_executable = &layout.app_executable;
-        if let Some(existing) = read_runtime_host_contract(&install_root)? {
-            let rotates_host = existing.host_bundle.canonicalize()?
-                != requested_host.canonicalize()?
-                || existing.app_executable.canonicalize()?
-                    != requested_executable.canonicalize()?;
+        if let Some(existing) = read_runtime_host_contract_for_rotation(&install_root)? {
+            let rotates_host =
+                !runtime_host_contract_matches(&existing, requested_host, requested_executable);
             if rotates_host {
                 if verified_live_lease(&install_root)?.is_some() {
                     return Ok(blocked("runtime-host-rotation-live-lease", true, false));

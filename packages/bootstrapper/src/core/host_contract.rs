@@ -34,19 +34,13 @@ fn paths_match(left: &Path, right: &Path) -> bool {
     }
 }
 
-fn validate(contract: &RuntimeHostContract) -> Result<()> {
+fn validate_shape(contract: &RuntimeHostContract) -> Result<()> {
     if contract.schema_version != 1
         || contract
             .host_bundle
             .extension()
             .and_then(|value| value.to_str())
             != Some("app")
-        || !contract
-            .host_bundle
-            .join("Contents")
-            .join("Info.plist")
-            .is_file()
-        || !contract.app_executable.is_file()
     {
         return Err("invalid macOS runtime host contract".into());
     }
@@ -55,6 +49,28 @@ fn validate(contract: &RuntimeHostContract) -> Result<()> {
         &contract.app_executable,
         "macOS runtime executable",
     )
+}
+
+fn validate(contract: &RuntimeHostContract) -> Result<()> {
+    validate_shape(contract)?;
+    if !contract
+        .host_bundle
+        .join("Contents")
+        .join("Info.plist")
+        .is_file()
+        || !contract.app_executable.is_file()
+    {
+        return Err("invalid macOS runtime host contract".into());
+    }
+    Ok(())
+}
+
+fn read_contract_file(state_root: &Path) -> Result<Option<RuntimeHostContract>> {
+    let path = contract_path(state_root);
+    if !path.is_file() {
+        return Ok(None);
+    }
+    Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
 }
 
 pub fn write_runtime_host_contract(
@@ -84,13 +100,30 @@ pub fn write_runtime_host_contract(
 }
 
 pub fn read_runtime_host_contract(state_root: &Path) -> Result<Option<RuntimeHostContract>> {
-    let path = contract_path(state_root);
-    if !path.is_file() {
+    let Some(contract) = read_contract_file(state_root)? else {
         return Ok(None);
-    }
-    let contract: RuntimeHostContract = serde_json::from_slice(&fs::read(path)?)?;
+    };
     validate(&contract)?;
     Ok(Some(contract))
+}
+
+pub fn read_runtime_host_contract_for_rotation(
+    state_root: &Path,
+) -> Result<Option<RuntimeHostContract>> {
+    let Some(contract) = read_contract_file(state_root)? else {
+        return Ok(None);
+    };
+    validate_shape(&contract)?;
+    Ok(Some(contract))
+}
+
+pub fn runtime_host_contract_matches(
+    contract: &RuntimeHostContract,
+    host_bundle: &Path,
+    app_executable: &Path,
+) -> bool {
+    paths_match(&contract.host_bundle, host_bundle)
+        && paths_match(&contract.app_executable, app_executable)
 }
 
 pub fn assert_runtime_executable(state_root: &Path, executable: &Path, label: &str) -> Result<()> {
@@ -108,4 +141,41 @@ pub fn assert_runtime_executable(state_root: &Path, executable: &Path, label: &s
         .into());
     }
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use uuid::Uuid;
+
+    #[test]
+    fn stale_contract_is_available_only_for_safe_rotation() {
+        let root =
+            std::env::temp_dir().join(format!("pulsesync-stale-host-contract-{}", Uuid::new_v4()));
+        fs::create_dir_all(&root).unwrap();
+        let host_bundle = root.join("Missing.app");
+        let app_executable = host_bundle.join("Contents/MacOS/PulseSync");
+        fs::write(
+            contract_path(&root),
+            serde_json::to_vec(&RuntimeHostContract {
+                schema_version: 1,
+                host_bundle: host_bundle.clone(),
+                app_executable: app_executable.clone(),
+            })
+            .unwrap(),
+        )
+        .unwrap();
+
+        assert!(read_runtime_host_contract(&root).is_err());
+        let stale = read_runtime_host_contract_for_rotation(&root)
+            .unwrap()
+            .unwrap();
+        assert!(runtime_host_contract_matches(
+            &stale,
+            &host_bundle,
+            &app_executable
+        ));
+
+        fs::remove_dir_all(root).unwrap();
+    }
 }
