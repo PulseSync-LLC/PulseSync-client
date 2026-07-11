@@ -60,7 +60,12 @@ function hasFiles(directoryPath: string): boolean {
 }
 
 function requireModuleFile(installRoot: string, moduleName: string, fileName: string): string {
-    return requirePath(path.join(installRoot, 'modules', moduleName, fileName), 'file')
+    const modulesDir = requirePath(path.join(installRoot, 'modules'), 'directory')
+    const containers = fs
+        .readdirSync(modulesDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name.startsWith(`${moduleName}-`))
+    if (containers.length !== 1) throw new Error(`Expected one ${moduleName}-<version> directory in ${modulesDir}`)
+    return requirePath(path.join(modulesDir, containers[0].name, moduleName, fileName), 'file')
 }
 
 function requireExecutableBit(targetPath: string): void {
@@ -107,15 +112,15 @@ function main(): void {
     if (platform === 'darwin') {
         const contentsDir = requirePath(path.join(installRoot, 'Contents'), 'directory')
         const resourcesDir = requirePath(path.join(contentsDir, 'Resources'), 'directory')
-        const appPayloadExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
+        const hostExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
         const installedBootstrapperDir = requirePath(path.join(resourcesDir, 'bootstrapper'), 'directory')
         const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, 'pulsesync-bootstrapper'), 'file')
         const modulesDir = requirePath(path.join(contentsDir, 'modules'), 'directory')
         const artifactWorkerFile = requireModuleFile(contentsDir, 'artifactWorker', 'artifactWorker.cjs')
         const nativeModuleFile = requireModuleFile(contentsDir, 'pulsesyncNative', 'pulsesyncNative.node')
-        requireExecutableBit(appPayloadExecutable)
+        requireExecutableBit(hostExecutable)
         requireExecutableBit(installedNativeExecutable)
-        rejectBootstrapperEntrypointScript(appPayloadExecutable)
+        rejectBootstrapperEntrypointScript(hostExecutable)
         rejectPath(path.join(contentsDir, 'current.json'))
         rejectPath(path.join(contentsDir, 'updates'))
         if (fs.readdirSync(contentsDir).some(name => /^app-/iu.test(name))) {
@@ -128,7 +133,7 @@ function main(): void {
                     platform,
                     installRoot,
                     installedBootstrapperDir,
-                    appPayloadExecutable,
+                    hostExecutable,
                     installedNativeExecutable,
                     artifactWorkerFile,
                     modulesHasFiles: hasFiles(modulesDir),
@@ -143,18 +148,20 @@ function main(): void {
     const installedBootstrapperDir = requirePath(path.join(installRoot, 'bootstrapper'), 'directory')
     const updatesDir = requirePath(path.join(installRoot, 'updates'), 'directory')
     const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, nativeExecutableName(platform)), 'file')
-    const appPayloadExecutable = requirePath(path.join(installRoot, 'app', appExecutableName(platform)), 'file')
+    const hostExecutable = requirePath(path.join(installRoot, 'host', appExecutableName(platform)), 'file')
     if (platform !== 'win32') {
         requireExecutableBit(installedNativeExecutable)
-        requireExecutableBit(appPayloadExecutable)
-        rejectBootstrapperEntrypointScript(appPayloadExecutable)
+        requireExecutableBit(hostExecutable)
+        rejectBootstrapperEntrypointScript(hostExecutable)
     }
     rejectPath(path.join(installRoot, appExecutableName(platform)))
     const modulesDir = path.join(installRoot, 'modules')
     const artifactWorkerFile = requireModuleFile(installRoot, 'artifactWorker', 'artifactWorker.cjs')
     const nativeModuleFile = requireModuleFile(installRoot, 'pulsesyncNative', 'pulsesyncNative.node')
+    const desktopCoreEntry = requireModuleFile(installRoot, 'desktopCore', 'index.cjs')
+    const desktopCorePreload = requireModuleFile(installRoot, 'desktopCore', 'mainWindowPreload.cjs')
     rejectPath(path.join(installRoot, 'native'))
-    rejectPath(path.join(installRoot, 'app', 'modules'))
+    rejectPath(path.join(installRoot, 'host', 'modules'))
     rejectPath(path.join(modulesDir, 'artifactWorker.cjs'))
 
     const result = {
@@ -162,12 +169,14 @@ function main(): void {
         platform,
         installRoot,
         installedBootstrapperDir,
-        appPayloadExecutable,
+        hostExecutable,
         installedNativeExecutable,
         updatesDir,
         artifactWorkerFile,
         modulesHasFiles: hasFiles(modulesDir),
         nativeModuleFile,
+        desktopCoreEntry,
+        desktopCorePreload,
     }
 
     console.log(JSON.stringify(result, null, 4))

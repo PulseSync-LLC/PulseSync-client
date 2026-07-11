@@ -10,6 +10,13 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const defaultRendererManifestUrl = 'https://pulsesync.dev/app/desktop/manifest.json'
 
+function readBootstrapperVersion(): string {
+    const cargoToml = fs.readFileSync(path.join(projectRoot, 'packages', 'bootstrapper', 'Cargo.toml'), 'utf8')
+    const version = /^version\s*=\s*"([^"]+)"/mu.exec(cargoToml)?.[1]
+    if (!version) throw new Error('Bootstrapper package version is missing')
+    return version
+}
+
 type BootstrapperArtifact = {
     sha256: string
     signature?: string
@@ -18,22 +25,28 @@ type BootstrapperArtifact = {
     url: string
 }
 
-type BootstrapperDistArtifacts = {
-    layout: 'macos-bundle' | 'versioned-components'
-    app: BootstrapperArtifact
-    bootstrapper?: BootstrapperArtifact
-    modules: Record<string, BootstrapperArtifact>
+type VersionedArtifact = {
+    version: string
+    requiresHost?: string
+    electronAbi?: string
+    artifact: BootstrapperArtifact
 }
 
 type BootstrapperUpdateManifest = {
-    artifacts: Record<string, BootstrapperDistArtifacts>
     channel: string
-    clientVersion: string
-    deprecatedVersions?: string[]
-    desktopApi?: string
-    minClientVersion?: string
-    rendererManifestUrl?: string
-    schemaVersion: 1
+    releaseVersion: string
+    metadataVersion: number
+    desktopApi: string
+    rendererManifestUrl: string
+    schemaVersion: 2
+    targets: Record<
+        string,
+        {
+            host: VersionedArtifact
+            components: Record<string, VersionedArtifact>
+            bootstrapper: VersionedArtifact
+        }
+    >
 }
 
 type EmitDesktopReleaseManifestOptions = {
@@ -43,7 +56,9 @@ type EmitDesktopReleaseManifestOptions = {
     packagedAppRootDir: string
     releaseDir: string
     rendererManifestUrl?: string
-    version: string
+    coreVersion: string
+    hostVersion: string
+    metadataVersion?: string | number
 }
 
 type ParsedDist = {
@@ -118,12 +133,12 @@ function zipEntryUnixMode(entry: AdmZip.IZipEntry): number {
     return (entry.header.attr >>> 16) & 0o7777
 }
 
-function appArchiveExecutablePath(platform: NodeJS.Platform): string | null {
+function hostArchiveExecutablePath(platform: NodeJS.Platform): string | null {
     if (platform === 'darwin') {
-        return 'app/MacOS/PulseSync'
+        return 'host/MacOS/PulseSync'
     }
     if (platform === 'linux') {
-        return 'app/pulsesync'
+        return 'host/pulsesync'
     }
     return null
 }
@@ -151,28 +166,22 @@ async function sha256File(filePath: string): Promise<string> {
     })
 }
 
-async function createVersionedArtifactDescriptor(
-    filePath: string,
-    baseUrl: string,
-    version: string,
-    dist: string,
-    artifactPath: string,
-): Promise<BootstrapperArtifact> {
+async function createVersionedArtifactDescriptor(filePath: string, baseUrl: string, immutablePath: string): Promise<BootstrapperArtifact> {
     const stat = await fs.promises.stat(filePath)
     const sha256 = await sha256File(filePath)
     return {
-        url: `${baseUrl}/versions/${version}/${dist}/${artifactPath.replace(/\\/g, '/')}/${sha256.slice(0, 16)}/${path.basename(filePath)}`,
+        url: `${baseUrl}/${immutablePath.replace(/\\/g, '/')}/${sha256.slice(0, 16)}/${path.basename(filePath)}`,
         sha256,
         size: stat.size,
     }
 }
 
-function createAppPayloadArchive(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
+function createHostArchive(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
     const { platform } = parseDist(dist)
-    const appPayloadDir = path.join(packagedAppRootDir, 'app')
-    const archivePath = path.join(releaseDir, `pulsesync-app-payload-${version}-${dist}.zip`)
-    writeDirectoryZip(appPayloadDir, archivePath, path.basename(appPayloadDir))
-    const executableEntry = appArchiveExecutablePath(platform)
+    const hostDir = path.join(packagedAppRootDir, 'host')
+    const archivePath = path.join(releaseDir, `pulsesync-host-${version}-${dist}.zip`)
+    writeDirectoryZip(hostDir, archivePath, path.basename(hostDir))
+    const executableEntry = hostArchiveExecutablePath(platform)
     if (executableEntry) {
         assertArchiveExecutableMode(archivePath, executableEntry)
     }
@@ -205,22 +214,30 @@ function assertModuleName(moduleName: string): void {
     }
 }
 
-function createModuleArchives(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): Record<string, string> {
+type ModuleArchive = { archivePath: string; version: string }
+
+function createModuleArchives(releaseDir: string, packagedAppRootDir: string, coreVersion: string, dist: string): Record<string, ModuleArchive> {
     const modulesDir = path.join(packagedAppRootDir, 'modules')
     if (!fs.existsSync(modulesDir) || !fs.statSync(modulesDir).isDirectory()) {
         throw new Error(`Cannot create module artifacts: ${modulesDir} is not a directory`)
     }
 
-    const archives: Record<string, string> = {}
+    const archives: Record<string, ModuleArchive> = {}
     for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
         if (!entry.isDirectory()) {
             throw new Error(`Module payload entry must be a directory: ${path.join(modulesDir, entry.name)}`)
         }
-        assertModuleName(entry.name)
-        const sourceDir = path.join(modulesDir, entry.name)
-        const archivePath = path.join(releaseDir, `pulsesync-module-${entry.name}-${version}-${dist}.zip`)
-        writeDirectoryZip(sourceDir, archivePath, path.join('modules', entry.name))
-        archives[entry.name] = archivePath
+        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
+        if (!match) throw new Error(`Module payload does not use Discord-style layout: ${entry.name}`)
+        const [, moduleName, moduleVersion] = match
+        assertModuleName(moduleName)
+        if (moduleName === 'desktopCore' && moduleVersion !== coreVersion) {
+            throw new Error(`Expected desktopCore-${coreVersion}, got ${entry.name}`)
+        }
+        const sourceDir = path.join(modulesDir, entry.name, moduleName)
+        const archivePath = path.join(releaseDir, `pulsesync-component-${moduleName}-${moduleVersion}-${dist}.zip`)
+        writeDirectoryZip(sourceDir, archivePath, moduleName)
+        archives[moduleName] = { archivePath, version: moduleVersion }
     }
 
     if (!Object.keys(archives).length) {
@@ -282,55 +299,66 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const packagedAppRootDir = resolveInsideProject(options.packagedAppRootDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
     const { platform } = parseDist(options.dist)
-    const macosBundle = platform === 'darwin'
-    const appArtifactPath = macosBundle
-        ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
-        : createAppPayloadArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
-    const bootstrapperArtifactPath = macosBundle ? null : createBootstrapperArtifact(releaseDir, packagedAppRootDir, options.version, options.dist)
-    const moduleArchivePaths = macosBundle ? {} : createModuleArchives(releaseDir, packagedAppRootDir, options.version, options.dist)
-    removeStaleBootstrapperArchive(releaseDir, options.version, options.dist)
-    removeStaleNativeModulesArchive(releaseDir, options.version, options.dist)
-    removeStaleInstallerAppArtifact(releaseDir, options.version)
+    if (platform === 'darwin') {
+        throw new Error('macOS modular desktop publishing is blocked until the bundle slice is implemented')
+    }
+    const metadataVersion = Number(options.metadataVersion)
+    if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
+        throw new Error('metadataVersion must be an explicit positive integer')
+    }
+    const hostArtifactPath = createHostArchive(releaseDir, packagedAppRootDir, options.hostVersion, options.dist)
+    const bootstrapperVersion = readBootstrapperVersion()
+    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
+    const moduleArchivePaths = createModuleArchives(releaseDir, packagedAppRootDir, options.coreVersion, options.dist)
+    removeStaleBootstrapperArchive(releaseDir, bootstrapperVersion, options.dist)
+    removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
+    removeStaleInstallerAppArtifact(releaseDir, options.coreVersion)
 
-    const deprecatedVersions = parseDeprecatedVersions()
+    const hostArtifact = await createVersionedArtifactDescriptor(hostArtifactPath, baseUrl, path.join('hosts', options.hostVersion, options.dist))
+    const bootstrapperArtifact = await createVersionedArtifactDescriptor(
+        bootstrapperArtifactPath,
+        baseUrl,
+        path.join('components', 'bootstrapper', bootstrapperVersion, options.dist),
+    )
+    const electronAbi = fs.readFileSync(path.join(projectRoot, 'node_modules', 'electron', 'abi_version'), 'utf8').trim()
+    if (!/^\d+$/u.test(electronAbi)) throw new Error(`Invalid Electron ABI: ${electronAbi}`)
+    const components = Object.fromEntries(
+        await Promise.all(
+            Object.entries(moduleArchivePaths).map(async ([moduleName, moduleArchive]) => {
+                const artifact = await createVersionedArtifactDescriptor(
+                    moduleArchive.archivePath,
+                    baseUrl,
+                    path.join('components', moduleName, moduleArchive.version, options.dist),
+                )
+                return [
+                    moduleName,
+                    {
+                        version: moduleArchive.version,
+                        requiresHost: '>=1.0.0 <2.0.0',
+                        ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
+                        artifact,
+                    },
+                ]
+            }),
+        ),
+    )
+    if (!components.desktopCore) {
+        throw new Error('desktopCore component artifact is required')
+    }
     const manifest: BootstrapperUpdateManifest = {
-        schemaVersion: 1,
+        schemaVersion: 2,
+        metadataVersion,
         channel: options.channel,
-        clientVersion: options.version,
+        releaseVersion: options.coreVersion,
         desktopApi: DESKTOP_API_VERSION,
         rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
-        artifacts: {
+        targets: {
             [options.dist]: {
-                layout: macosBundle ? 'macos-bundle' : 'versioned-components',
-                app: await createVersionedArtifactDescriptor(appArtifactPath, baseUrl, options.version, options.dist, 'app'),
-                ...(bootstrapperArtifactPath
-                    ? {
-                          bootstrapper: await createVersionedArtifactDescriptor(
-                              bootstrapperArtifactPath,
-                              baseUrl,
-                              options.version,
-                              options.dist,
-                              'bootstrapper',
-                          ),
-                      }
-                    : {}),
-                modules: Object.fromEntries(
-                    await Promise.all(
-                        Object.entries(moduleArchivePaths).map(async ([moduleName, archivePath]) => [
-                            moduleName,
-                            await createVersionedArtifactDescriptor(
-                                archivePath,
-                                baseUrl,
-                                options.version,
-                                options.dist,
-                                path.join('modules', moduleName),
-                            ),
-                        ]),
-                    ),
-                ),
+                host: { version: options.hostVersion, electronAbi, artifact: hostArtifact },
+                components,
+                bootstrapper: { version: bootstrapperVersion, artifact: bootstrapperArtifact },
             },
         },
-        ...(deprecatedVersions ? { deprecatedVersions } : {}),
     }
 
     const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
@@ -354,12 +382,13 @@ async function main(): Promise<void> {
     const args = process.argv.slice(2)
     const channel = readArgValue(args, '--channel')
     const dist = readArgValue(args, '--dist')
-    const version = readArgValue(args, '--version')
+    const coreVersion = readArgValue(args, '--core-version')
+    const hostVersion = readArgValue(args, '--host-version')
     const packagedAppRootDir = readArgValue(args, '--packaged-app-root-dir')
 
-    if (!channel || !dist || !version || !packagedAppRootDir) {
+    if (!channel || !dist || !coreVersion || !hostVersion || !packagedAppRootDir) {
         throw new Error(
-            'Usage: tsx scripts/desktop-release-manifest.ts --channel <name> --dist <platform-arch> --version <version> --packaged-app-root-dir <path> [--release-dir release] [--base-url https://...]',
+            'Usage: tsx scripts/desktop-release-manifest.ts --channel <name> --dist <platform-arch> --core-version <version> --host-version <version> --metadata-version <number> --packaged-app-root-dir <path> [--release-dir release] [--base-url https://...]',
         )
     }
 
@@ -370,7 +399,9 @@ async function main(): Promise<void> {
         packagedAppRootDir,
         releaseDir: readArgValue(args, '--release-dir') || 'release',
         rendererManifestUrl: readArgValue(args, '--renderer-manifest-url') || process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
-        version,
+        coreVersion,
+        hostVersion,
+        metadataVersion: readArgValue(args, '--metadata-version') || process.env.DESKTOP_METADATA_VERSION,
     })
     console.log(`PulseSync desktop release manifest generated: ${manifestPath}`)
 }

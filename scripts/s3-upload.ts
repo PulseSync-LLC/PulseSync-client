@@ -197,6 +197,11 @@ async function versionedPublishPath(filePath: string, version: string, dist: str
     return `versions/${version}/${dist}/${artifactPath}/${sha256.slice(0, 16)}/${fileName}`
 }
 
+async function immutablePublishPath(filePath: string, prefix: string): Promise<string> {
+    const sha256 = await hashFileSha256(filePath)
+    return `${prefix}/${sha256.slice(0, 16)}/${path.basename(filePath)}`
+}
+
 export async function resolveStructuredPublishPath(filePath: string, version?: string): Promise<string> {
     const fileName = path.basename(filePath)
     if (isDesktopReleaseManifestFile(filePath)) {
@@ -207,10 +212,10 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
     }
 
     const escapedVersion = escapeRegExp(version)
-    const appPayloadMatch = new RegExp(`^pulsesync-app-payload-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
-    if (appPayloadMatch) {
-        const dist = appPayloadMatch[1]
-        return await versionedPublishPath(filePath, version, dist, 'app')
+    const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (hostMatch) {
+        const [, hostVersion, dist] = hostMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}`)
     }
 
     const macosHostMatch = new RegExp(`^pulsesync-host-bundle-${escapedVersion}-(darwin-[a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
@@ -219,22 +224,30 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await versionedPublishPath(filePath, version, dist, 'app')
     }
 
-    const bootstrapperMatch = new RegExp(`^pulsesync-bootstrapper-${escapedVersion}-([a-z0-9_-]+)(?:\\.exe)?$`, 'iu').exec(fileName)
+    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
     if (bootstrapperMatch) {
-        const dist = bootstrapperMatch[1]
-        return await versionedPublishPath(filePath, version, dist, 'bootstrapper')
+        const [, bootstrapperVersion, dist] = bootstrapperMatch
+        return await immutablePublishPath(filePath, `components/bootstrapper/${bootstrapperVersion}/${dist}`)
+    }
+
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (componentMatch) {
+        const [, moduleName, componentVersion, dist] = componentMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}`)
     }
 
     const moduleMatch = new RegExp(`^pulsesync-module-([a-z0-9_-]+)-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
     if (moduleMatch) {
         const [, moduleName, dist] = moduleMatch
-        return await versionedPublishPath(filePath, version, dist, `modules/${moduleName}`)
+        const sha256 = await hashFileSha256(filePath)
+        const componentVersion = moduleName === 'desktopCore' ? version : sha256.slice(0, 16)
+        return `components/${moduleName}/${componentVersion}/${dist}/${sha256.slice(0, 16)}/${fileName}`
     }
 
     const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe(?:\\.blockmap)?$`, 'iu').exec(fileName)
     if (setupMatch) {
         const arch = setupMatch[1].toLowerCase()
-        return await versionedPublishPath(filePath, version, `win32-${arch}`, 'setup')
+        return await immutablePublishPath(filePath, `setups/${version}/win32-${arch}`)
     }
 
     return fileName
@@ -323,10 +336,10 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, `win32-${arch}`, 'exe', 'setup')
     }
 
-    const appPayloadMatch = /^pulsesync-app-payload-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
-    if (appPayloadMatch) {
-        const [, version, dist] = appPayloadMatch
-        return structuredArtifactDescriptor(version, dist, 'zip', 'app-payload')
+    const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (hostMatch) {
+        const [, version, dist] = hostMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', 'host')
     }
 
     const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
@@ -345,6 +358,12 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
     if (moduleMatch) {
         const [, moduleName, version, dist] = moduleMatch
         return structuredArtifactDescriptor(version, dist, 'zip', `module:${moduleName.toLowerCase()}`)
+    }
+
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (componentMatch) {
+        const [, componentName, version, dist] = componentMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', `component:${componentName.toLowerCase()}`)
     }
 
     return null
@@ -490,7 +509,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
               CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
               ContentType: 'application/json; charset=utf-8',
           }
-        : key.includes('/versions/')
+        : /\/(?:versions|hosts|components|setups)\//u.test(`/${key}`)
           ? {
                 CacheControl: 'public, max-age=31536000, immutable',
             }
@@ -619,12 +638,12 @@ export async function publishToS3(
     let files = walkFiles(dir)
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
         .filter(fp => !isLegacyUpdaterArtifact(fp))
-        .filter(fp => (version ? path.basename(fp).includes(version) || isDesktopReleaseManifestFile(fp) : true))
+        .filter(fp => (version ? isDesktopReleaseManifestFile(fp) || parseStructuredArtifactDescriptor(path.basename(fp)) !== null : true))
     const artifactFamilies = collectArtifactFamilies(files)
 
     const zipFiles = fs
         .readdirSync(dir)
-        .filter(name => name.endsWith('.zip') && (!version || name.includes(version)))
+        .filter(name => name.endsWith('.zip'))
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
