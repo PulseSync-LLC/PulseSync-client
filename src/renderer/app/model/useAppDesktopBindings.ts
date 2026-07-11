@@ -219,7 +219,7 @@ export function useAppDesktopBindings({
                 ...prevSettings,
                 info: {
                     ...prevSettings.info,
-                    version: runtimeInfo.clientVersion,
+                    version: runtimeInfo.coreVersion,
                     branch: runtimeInfo.buildIdentity.commit,
                     devmark: runtimeInfo.isDev || runtimeInfo.buildChannel === 'dev',
                 },

@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+import { getActiveComponentPath } from '../bootstrap/activeComponents'
 import path from 'node:path'
 
 declare const __non_vite_require__: (moduleId: string) => unknown
@@ -75,12 +76,14 @@ export interface PulseSyncNativeAddon {
 let cachedAddon: PulseSyncNativeAddon | null | undefined
 
 function getInstalledRootFromResources(): string {
-    const appDir = path.dirname(process.resourcesPath)
-    return path.basename(appDir).toLowerCase() === 'app' ? path.dirname(appDir) : appDir
+    const hostDir = path.dirname(process.resourcesPath)
+    return path.basename(hostDir).toLowerCase().startsWith('host-') ? path.dirname(hostDir) : hostDir
 }
 
 function resolveNativeModulePath(): string | null {
     const candidates = [path.resolve(process.cwd(), 'nativeModules', 'pulsesyncNative', 'build', 'Release', 'pulsesyncNative.node')]
+    const activeComponentPath = getActiveComponentPath('pulsesyncNative')
+    if (activeComponentPath) candidates.push(path.join(activeComponentPath, 'pulsesyncNative.node'))
     if (typeof process.resourcesPath === 'string') {
         candidates.push(path.join(getInstalledRootFromResources(), 'modules', 'pulsesyncNative', 'pulsesyncNative.node'))
     }

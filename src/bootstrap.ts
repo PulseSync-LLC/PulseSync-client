@@ -1,6 +1,7 @@
 import path from 'node:path'
 import { app } from 'electron'
-import type { BootstrapStatusKey } from './common/types/bootstrapEvents'
+import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
+import type { ActiveRuntimeV2 } from '@common/desktopRuntime/contract'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
@@ -13,15 +14,12 @@ import {
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
 import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
-import { claimActiveApp, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
+import { claimActiveApp, resolveActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
 
 declare const __non_vite_require__: (moduleId: string) => {
-    startMainApplication(context?: {
-        bootstrapRuntime?: ApplicationBootstrapRuntime
-        bootstrapWindow?: Electron.BrowserWindow
-    }): Promise<ApplicationStartupHandle>
+    startup(context?: { bootstrapRuntime?: ApplicationBootstrapRuntime; bootstrapWindow?: Electron.BrowserWindow }): Promise<ApplicationStartupHandle>
 }
 
 registerSchemes()
@@ -67,9 +65,14 @@ function registerSecondInstanceDelivery(): void {
 function loadApplicationMain(
     bootstrapWindow?: Electron.BrowserWindow,
     bootstrapRuntime?: ApplicationBootstrapRuntime,
+    activeRuntime?: ActiveRuntimeV2,
 ): Promise<ApplicationStartupHandle> {
-    const applicationMain = __non_vite_require__(path.join(__dirname, 'index.cjs'))
-    return applicationMain.startMainApplication({ bootstrapRuntime, bootstrapWindow })
+    const coreEntry = app.isPackaged ? activeRuntime?.corePath : path.join(__dirname, 'desktopCore.cjs')
+    if (!coreEntry) throw new Error('Resolved desktop core path is missing')
+    if (activeRuntime) process.env.PULSESYNC_ACTIVE_COMPONENTS_JSON = JSON.stringify(activeRuntime.components)
+    console.info('Loading PulseSync desktop core', { coreEntry, activeRuntime })
+    const desktopCore = __non_vite_require__(coreEntry)
+    return desktopCore.startup({ bootstrapRuntime, bootstrapWindow })
 }
 
 async function showBootstrapFailure(
@@ -195,12 +198,18 @@ async function startPackagedBootstrap(): Promise<void> {
     }
 
     const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
+    const activeRuntime = await resolveActiveRuntime({
+        activeLeaseId: claim.lease.leaseId,
+        launcher: runtimePaths.launcher,
+        stateRoot: runtimePaths.stateRoot,
+    })
     await launchQueue.bindSink(input => inbox.enqueue(input))
     const coordinator = new StartupCoordinator({
+        activeRuntime,
         bootstrapWindow,
         inbox,
         lease: claim.lease,
-        loadApplicationMain: (window, bootstrapRuntime) => loadApplicationMain(window, bootstrapRuntime),
+        loadApplicationMain: (window, bootstrapRuntime, activeRuntime) => loadApplicationMain(window, bootstrapRuntime, activeRuntime),
         queue: launchQueue,
         runtimePaths,
     })

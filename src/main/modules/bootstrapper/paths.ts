@@ -43,7 +43,7 @@ function getAppExecutablePath(): string {
     return app.getPath('exe')
 }
 
-function getAppPayloadInfo() {
+function getHostInfo() {
     const appExecutable = getAppExecutablePath()
     const executableDir = path.dirname(appExecutable)
     const parentDir = path.dirname(executableDir)
@@ -58,16 +58,7 @@ function getAppPayloadInfo() {
         }
     }
 
-    if (path.basename(executableDir).toLowerCase() === 'app') {
-        return {
-            appExecutable,
-            appExecutableName: path.basename(appExecutable),
-            hostBundle: null,
-            stateRoot: parentDir,
-        }
-    }
-
-    if (path.basename(executableDir).toLowerCase().startsWith('app-')) {
+    if (path.basename(executableDir).toLowerCase().startsWith('host-')) {
         return {
             appExecutable,
             appExecutableName: path.basename(appExecutable),
@@ -85,16 +76,15 @@ function getAppPayloadInfo() {
 }
 
 function getRuntimeLayout() {
-    const appPayload = getAppPayloadInfo()
-    const stateRoot = appPayload.stateRoot
-    const appExecutableName = appPayload.appExecutableName
+    const host = getHostInfo()
+    const stateRoot = host.stateRoot
+    const appExecutableName = host.appExecutableName
 
     return {
         appExecutableName,
-        appDir: path.join(stateRoot, 'app'),
-        appExecutable: appPayload.appExecutable,
+        appExecutable: host.appExecutable,
         bootstrapperDir: path.join(stateRoot, BOOTSTRAPPER_DIR_NAME),
-        hostBundle: appPayload.hostBundle,
+        hostBundle: host.hostBundle,
         stateRoot,
         modulesDir: path.join(stateRoot, 'modules'),
     }

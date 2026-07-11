@@ -1,4 +1,5 @@
 import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import logger from '../modules/logger'
 import path from 'path'
 import fs from 'original-fs'
@@ -52,11 +53,7 @@ import {
 import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
 import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
 import { setMainErrorTrackingUser } from '../modules/errorTracking'
-import {
-    CLIENT_REPO,
-    listStableGitHubReleases,
-    normalizeGitHubTagVersion,
-} from '../modules/updater/githubReleaseResolver'
+import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
 
@@ -349,7 +346,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_ISMAC, async (event, args) => {
         event.returnValue = isMac()
     })
-    ipcMain.handle(MainEvents.GET_VERSION, async () => app.getVersion())
+    ipcMain.handle(MainEvents.GET_VERSION, async () => DESKTOP_CORE_VERSION)
     ipcMain.on(MainEvents.ELECTRON_ISLINUX, async (event, args) => {
         event.returnValue = isLinux()
     })
@@ -430,7 +427,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         State.delete(key)
     })
     ipcMain.handle(MainEvents.GET_SYSTEM_INFO, async () => ({
-        appVersion: app.getVersion(),
+        appVersion: DESKTOP_CORE_VERSION,
         osType: os.type(),
         osRelease: os.release(),
         cpu: os.cpus(),
@@ -825,7 +822,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
             const gpuData = await si.graphics()
 
             const systemInfo = {
-                appVersion: app.getVersion(),
+                appVersion: DESKTOP_CORE_VERSION,
                 osType: os.type(),
                 osRelease: os.release(),
                 cpu: os.cpus(),
