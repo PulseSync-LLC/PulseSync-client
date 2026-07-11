@@ -16,7 +16,8 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      should_build: ${{ steps.filter.outputs.build }}
+      desktop: ${{ steps.filter.outputs.desktop }}
+      renderer: ${{ steps.filter.outputs.renderer }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -27,14 +28,22 @@ jobs:
         id: filter
         with:
           base: ${{ github.ref_name }}
-          list-files: shell
           filters: |
-            build:
-              - 'src/**'
+            desktop:
+              - 'src/bootstrap.ts'
+              - 'src/index.ts'
+              - 'src/main/**'
+              - 'src/common/**'
+              - 'src/renderer/preloader.html'
+              - 'src/styles/fonts.css'
+              - 'src/styles/globals.css'
+              - 'src/styles/preloader.css'
               - 'static/**'
               - 'icons/**'
               - 'nativeModules/**'
+              - 'packages/bootstrapper/**'
               - 'scripts/**'
+              - '!scripts/renderer/**'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
@@ -50,21 +59,32 @@ jobs:
               - 'graphql.config.yml'
               - 'schema.graphql'
               - '.github/workflows/build-dev.yml'
+            renderer:
+              - 'src/renderer/**'
+              - 'src/common/**'
+              - 'src/main/renderer.ts'
+              - 'src/locales/**'
+              - 'src/styles/**'
+              - 'static/**'
+              - 'scripts/renderer/**'
+              - 'scripts/s3-upload.ts'
+              - 'package.json'
+              - 'yarn.lock'
+              - '.yarnrc.yml'
+              - 'vite.renderer.config.ts'
+              - 'vite-env.d.ts'
+              - 'tsconfig*.json'
+              - '.github/workflows/build-dev.yml'
 
       - name: Report changed build-related files
         shell: bash
         run: |
-          echo "should_build=${{ steps.filter.outputs.build }}"
-          if [ "${{ steps.filter.outputs.build }}" = "true" ]; then
-            echo "Changed build-related files:"
-            printf '%s\n' ${{ steps.filter.outputs.build_files }}
-          else
-            echo "No build-related changes detected"
-          fi
+          echo "desktop=${{ steps.filter.outputs.desktop }}"
+          echo "renderer=${{ steps.filter.outputs.renderer }}"
 
   version:
     needs: changes
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     outputs:
@@ -103,7 +123,7 @@ jobs:
 
   build:
     needs: [changes, version]
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
@@ -134,9 +154,10 @@ jobs:
             nativeModules/**/node_modules
             nativeModules/**/build
             nativeModules/**/target
+            packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Create .env
         shell: bash
@@ -157,6 +178,7 @@ jobs:
         run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} --publish dev
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
+          PULSESYNC_MAC_SIGN_IDENTITY: "-"
           S3_KEEP_RECENT_VERSIONS: 3
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
@@ -167,6 +189,16 @@ jobs:
 
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+
+      - name: Verify macOS atomic bundle update
+        if: startsWith(matrix.os, 'macos-')
+        run: yarn bootstrapper:verify-macos-update
+
+      - name: Verify macOS external recovery across helper crashes
+        if: startsWith(matrix.os, 'macos-') && runner.arch == 'ARM64'
+        run: |
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-ack
 
       - name: Show release contents
         shell: bash
@@ -188,7 +220,7 @@ jobs:
   publish_renderer:
     name: Publish Remote Renderer
     needs: changes
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    if: ${{ needs.changes.outputs.renderer == 'true' }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
 
@@ -222,8 +254,8 @@ jobs:
 
   github_prerelease:
     name: Create GitHub Prerelease
-    needs: [changes, version, build, publish_renderer]
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    needs: [changes, version, build]
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ubuntu-latest
 
     steps:
@@ -270,8 +302,8 @@ jobs:
 
   skip-build:
     needs: changes
-    if: ${{ needs.changes.outputs.should_build != 'true' }}
+    if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip dev build
-        run: echo "Skipping dev build because no app or build files changed."
+        run: echo "Skipping dev workflow because no desktop or renderer files changed."
