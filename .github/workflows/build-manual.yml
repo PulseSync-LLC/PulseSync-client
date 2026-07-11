@@ -23,14 +23,15 @@ on:
         required: true
         type: boolean
         default: true
-      s3_prefix:
-        description: "S3 prefix inside the bucket (e.g. 'builds' or 'builds/tests')"
-        required: true
-        default: "builds"
       s3_branch:
         description: "Subpath under prefix (e.g. 'tests', 'beta', 'alpha', 'dev')"
         required: true
         default: "tests"
+      publish_renderer:
+        description: "Publish the remote renderer globally"
+        required: true
+        type: boolean
+        default: false
       publish_changelog:
         description: "Publish changelog (API/Discord)"
         required: true
@@ -53,6 +54,9 @@ on:
 concurrency:
   group: build-manual-${{ github.workflow }}-${{ inputs.target }}-${{ inputs.build_os }}
   cancel-in-progress: true
+
+permissions:
+  contents: read
 
 jobs:
   build:
@@ -85,9 +89,10 @@ jobs:
             nativeModules/**/node_modules
             nativeModules/**/build
             nativeModules/**/target
+            packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Create .env
         shell: bash
@@ -103,9 +108,21 @@ jobs:
 
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
+        env:
+          PULSESYNC_MAC_SIGN_IDENTITY: "-"
 
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+
+      - name: Verify macOS atomic bundle update
+        if: startsWith(matrix.os, 'macos-')
+        run: yarn bootstrapper:verify-macos-update
+
+      - name: Verify macOS external recovery across helper crashes
+        if: startsWith(matrix.os, 'macos-') && runner.arch == 'ARM64'
+        run: |
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-ack
 
       - name: Show release contents (debug)
         shell: bash
@@ -141,3 +158,38 @@ jobs:
               echo "Unknown changelog_target"; exit 1
               ;;
           esac
+
+  publish_renderer:
+    name: Publish Remote Renderer
+    needs: build
+    if: ${{ inputs.publish_renderer == true }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Publish remote renderer
+        run: yarn renderer:publish
+        env:
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}

@@ -43,11 +43,30 @@ jobs:
           echo "tag_name=$tag_name" >> "$GITHUB_OUTPUT"
           echo "checkout_ref=refs/tags/$tag_name" >> "$GITHUB_OUTPUT"
 
+          asset_version="${tag_name#v}"
+          if [[ "$asset_version" != *-* ]]; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping AUR publish for stable tag: $tag_name"
+            exit 0
+          fi
+
+          prerelease="${asset_version#*-}"
+          channel="${prerelease%%.*}"
+          if [ "$channel" = "dev" ]; then
+            echo "should_publish=false" >> "$GITHUB_OUTPUT"
+            echo "Skipping AUR publish for dev channel: $tag_name"
+            exit 0
+          fi
+
+          echo "should_publish=true" >> "$GITHUB_OUTPUT"
+
       - uses: actions/checkout@v6
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         with:
           ref: ${{ steps.tag.outputs.checkout_ref }}
 
       - name: Prepare AUR SSH key
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         shell: bash
         env:
           AUR_SSH_PRIVATE_KEY: ${{ secrets.AUR_SSH_PRIVATE_KEY }}
@@ -63,6 +82,7 @@ jobs:
           ssh-keyscan aur.archlinux.org >> "$HOME/.ssh/known_hosts"
 
       - name: Update AUR packaging files
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         shell: bash
         env:
           TAG_NAME: ${{ steps.tag.outputs.tag_name }}
@@ -127,12 +147,14 @@ jobs:
           PY
 
       - name: Clone AUR repository
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         shell: bash
         run: |
           export GIT_SSH_COMMAND="ssh -o BatchMode=yes -o IdentitiesOnly=yes -i \"$HOME/.ssh/aur_archlinux\""
           git clone ssh://aur@aur.archlinux.org/pulsesync-bin.git aur-repo
 
       - name: Generate .SRCINFO
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         shell: bash
         run: |
           set -euo pipefail
@@ -155,6 +177,7 @@ jobs:
             " > aur-repo/.SRCINFO
 
       - name: Commit and push AUR update
+        if: ${{ steps.tag.outputs.should_publish == 'true' }}
         shell: bash
         run: |
           set -euo pipefail

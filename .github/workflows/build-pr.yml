@@ -4,6 +4,9 @@ on:
   pull_request:
   merge_group:
 
+permissions:
+  contents: read
+
 jobs:
   build:
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
@@ -34,9 +37,10 @@ jobs:
             nativeModules/**/node_modules
             nativeModules/**/build
             nativeModules/**/target
+            packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Create .env
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -57,6 +61,16 @@ jobs:
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
 
+      - name: Verify macOS atomic bundle update
+        if: startsWith(matrix.os, 'macos-')
+        run: yarn bootstrapper:verify-macos-update
+
+      - name: Verify macOS external recovery across helper crashes
+        if: startsWith(matrix.os, 'macos-') && runner.arch == 'ARM64'
+        run: |
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-ack
+
       - name: Show release contents (debug)
         shell: bash
         run: |
@@ -65,4 +79,37 @@ jobs:
             find release -maxdepth 2 -type f | sort
           else
             echo "release/ not found"; exit 1
+          fi
+
+  renderer:
+    name: Build Remote Renderer
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Build remote renderer
+        run: yarn renderer:build --build-number "${{ github.run_id }}" --out-dir out/remote-renderer-pr
+
+      - name: Verify remote renderer contract
+        shell: bash
+        env:
+          EXPECTED_BUILD_NUMBER: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          actual_build_number="$(node -p "require('./out/remote-renderer-pr/desktop/manifest.json').buildNumber")"
+          test "$actual_build_number" = "$EXPECTED_BUILD_NUMBER"
+          test -f "out/remote-renderer-pr/versions/$EXPECTED_BUILD_NUMBER/index.html"
+          if find out/remote-renderer-pr -type f -name '*.map' -print -quit | grep -q .; then
+            echo "Production remote renderer contains source maps"
+            exit 1
           fi
