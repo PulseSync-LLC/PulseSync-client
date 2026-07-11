@@ -250,24 +250,38 @@ function main(): void {
         throw new Error(`Expected bootstrapper serverHealthUrl to reference /api/v2/health, got ${config.serverHealthUrl}`)
     }
 
-    let currentPath: string | null = null
-    let versionedAppRoot: string | null = null
-    let appPayloadExecutable: string | null = null
-    let modulesDir: string | null = null
-    currentPath = requirePath(path.join(installRoot, 'current.json'), 'file')
-    const current = JSON.parse(fs.readFileSync(currentPath, 'utf8')) as { schemaVersion?: unknown; version?: unknown }
-    if (current.schemaVersion !== 1 || typeof current.version !== 'string' || current.version !== config.installedVersion) {
-        throw new Error(`Expected current.json to match installedVersion=${config.installedVersion}, got ${JSON.stringify(current)}`)
+    const installStatePath = requirePath(path.join(installRoot, 'runtime', 'install-state.json'), 'file')
+    const installState = JSON.parse(fs.readFileSync(installStatePath, 'utf8')) as any
+    if (
+        installState.schemaVersion !== 2 ||
+        installState.generation !== 1 ||
+        installState.metadataVersion !== 0 ||
+        installState.activation?.state !== 'confirmed' ||
+        installState.activation?.generation !== 1
+    ) {
+        throw new Error(`Expected confirmed install-state schema v2: ${installStatePath}`)
     }
-    versionedAppRoot = requirePath(path.join(installRoot, `app-${current.version}`), 'directory')
-    appPayloadExecutable = requirePath(path.join(versionedAppRoot, appExecutableName(platform)), 'file')
-    modulesDir = requirePath(path.join(versionedAppRoot, 'modules'), 'directory')
+    const hostVersion = requireString(installState.active?.host?.version, 'installState.active.host.version')
+    const hostRelativePath = requireString(installState.active?.host?.path, 'installState.active.host.path')
+    const versionedHostRoot = requirePath(path.join(installRoot, hostRelativePath), 'directory')
+    const hostExecutable = requirePath(path.join(versionedHostRoot, appExecutableName(platform)), 'file')
+    const modulesDir = requirePath(path.join(installRoot, 'modules'), 'directory')
     if (!hasFiles(modulesDir)) {
-        throw new Error(`Expected versioned app modules: ${modulesDir}`)
+        throw new Error(`Expected versioned runtime modules: ${modulesDir}`)
     }
+    const core = installState.active?.components?.desktopCore
+    if (core?.version !== config.installedVersion) {
+        throw new Error(`Expected desktopCore version=${config.installedVersion}, got ${String(core?.version)}`)
+    }
+    const coreDir = requirePath(path.join(installRoot, requireString(core.path, 'installState.active.components.desktopCore.path')), 'directory')
+    requirePath(path.join(coreDir, 'index.cjs'), 'file')
+    requirePath(path.join(coreDir, 'mainWindowPreload.cjs'), 'file')
 
     rejectPath(path.join(installRoot, 'app'))
-    rejectPath(path.join(installRoot, 'modules'))
+    rejectPath(path.join(installRoot, 'current.json'))
+    if (fs.readdirSync(installRoot).some(name => /^app-/iu.test(name))) {
+        throw new Error(`Expected no legacy app-* directories inside ${installRoot}`)
+    }
     rejectPath(path.join(installRoot, 'native'))
     const entrypoint = verifyEntrypoint(installRoot, platform)
 
@@ -285,9 +299,10 @@ function main(): void {
         dist: config.dist,
         installedVersion: config.installedVersion,
         appExecutableName: config.appExecutableName,
-        currentPath,
-        versionedAppRoot,
-        appPayloadExecutable,
+        installStatePath,
+        hostVersion,
+        versionedHostRoot,
+        hostExecutable,
         modulesDir,
         entrypoint,
         resourcesDir,
