@@ -119,6 +119,11 @@ export class StartupCoordinator {
             if (!handedOff) await this.startApplicationAfterFailure()
             return
         }
+        logger.updater.error('Bootstrap update preparation blocked', {
+            block: result.block,
+            decision: result.decision,
+            source: result.source,
+        })
         if (result.block.safeToContinue) {
             await this.startApplicationAfterFailure()
         }
