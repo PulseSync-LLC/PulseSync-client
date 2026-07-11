@@ -31,7 +31,7 @@ impl SessionLock {
         loop {
             match file.try_lock_exclusive() {
                 Ok(()) => return Ok(Self { file }),
-                Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+                Err(error) if lock_is_contended(&error) => {
                     if started.elapsed() >= timeout {
                         return Err(format!(
                             "session lock is busy after {}ms: {}",
@@ -46,6 +46,11 @@ impl SessionLock {
             }
         }
     }
+}
+
+fn lock_is_contended(error: &io::Error) -> bool {
+    error.kind() == io::ErrorKind::WouldBlock
+        || (cfg!(windows) && matches!(error.raw_os_error(), Some(32 | 33)))
 }
 
 impl Drop for SessionLock {
