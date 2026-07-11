@@ -1,5 +1,5 @@
 export type RequestedManifestSource = 'backend' | 'github' | 'direct'
-export type BootstrapperArtifactKey = 'app' | 'bootstrapper' | `module:${string}`
+export type BootstrapperArtifactKey = 'host' | 'bootstrapper' | `module:${string}`
 export type RustUpdateStage = 'resolving-source' | 'checking' | 'downloading' | 'planning' | 'preparing' | 'prepared' | 'up-to-date' | 'blocked'
 
 export type RustUpdateProgressEventV1 = {
@@ -30,7 +30,18 @@ export type UpdateErrorV1 = {
     state: 'error'
     error: {
         code: string
-        phase: 'validate-input' | 'lock' | 'resolve-source' | 'fetch-manifest' | 'validate-manifest' | 'decide' | 'download' | 'plan' | 'prepare' | 'discard' | 'handoff'
+        phase:
+            | 'validate-input'
+            | 'lock'
+            | 'resolve-source'
+            | 'fetch-manifest'
+            | 'validate-manifest'
+            | 'decide'
+            | 'download'
+            | 'plan'
+            | 'prepare'
+            | 'discard'
+            | 'handoff'
         message: string
         retryable: boolean
         safeToContinue: boolean
@@ -65,7 +76,7 @@ export type ClaimActiveAppResultV1 =
     | { schemaVersion: 1; state: 'blocked'; block: RustBlockV1 }
 
 export type UpdateDecisionV1 = {
-    reason: 'update-available' | 'up-to-date' | 'missing-dist-artifacts' | 'invalid-version'
+    reason: 'update-available' | 'up-to-date' | 'missing-dist-artifacts' | 'invalid-version' | 'stale-metadata' | 'immutable-artifact-mismatch'
     channel: string
     dist: string
     currentVersion: string
@@ -135,6 +146,8 @@ export type EnqueueLaunchRequestResultV1 = { schemaVersion: 1; state: 'enqueued'
 export type ClaimLaunchRequestsResultV1 = { schemaVersion: 1; state: 'claimed'; requests: LaunchRequestEnvelopeV1[] }
 export type AckLaunchRequestResultV1 = { schemaVersion: 1; state: 'acked' | 'already-acked' | 'not-found'; requestId: string }
 export type StartResultV1 = Record<string, unknown> & { schemaVersion: 1; state: 'blocked' | 'busy' | 'enqueued' | 'launched' | 'reserved' }
+export type { ActiveRuntimeV2, RuntimeAcknowledgementV2 } from '@common/desktopRuntime/contract'
+import type { ActiveRuntimeV2, RuntimeAcknowledgementV2 } from '@common/desktopRuntime/contract'
 
 const UPDATE_STAGES: RustUpdateStage[] = ['resolving-source', 'checking', 'downloading', 'planning', 'preparing', 'prepared', 'up-to-date', 'blocked']
 const UPDATE_ERROR_PHASES: UpdateErrorV1['error']['phase'][] = [
@@ -176,7 +189,7 @@ function isRequestedSource(value: unknown): value is RequestedManifestSource {
 }
 
 function isArtifactKey(value: unknown): value is BootstrapperArtifactKey {
-    return value === 'app' || value === 'bootstrapper' || (typeof value === 'string' && /^module:[^:/\\]+$/u.test(value))
+    return value === 'host' || value === 'bootstrapper' || (typeof value === 'string' && /^module:[^:/\\]+$/u.test(value))
 }
 
 function requireContract<T>(value: unknown, predicate: (candidate: unknown) => candidate is T, label: string): T {
@@ -272,7 +285,12 @@ function isActiveAppLease(value: unknown): value is ActiveAppLeaseV1 {
 function isUpdateDecision(value: unknown): value is UpdateDecisionV1 {
     return (
         isRecord(value) &&
-        (value.reason === 'update-available' || value.reason === 'up-to-date' || value.reason === 'missing-dist-artifacts' || value.reason === 'invalid-version') &&
+        (value.reason === 'update-available' ||
+            value.reason === 'up-to-date' ||
+            value.reason === 'missing-dist-artifacts' ||
+            value.reason === 'invalid-version' ||
+            value.reason === 'stale-metadata' ||
+            value.reason === 'immutable-artifact-mismatch') &&
         isNonEmptyString(value.channel) &&
         isNonEmptyString(value.dist) &&
         isNonEmptyString(value.currentVersion) &&
@@ -313,7 +331,12 @@ function isPrepareResult(value: unknown): value is PrepareUpdateResultV1 | Updat
             isNonEmptyString(value.applyDeferredByLeaseId)
         )
     }
-    return value.state === 'blocked' && isRustBlock(value.block) && (value.decision === undefined || isUpdateDecision(value.decision)) && (value.source === undefined || isEffectiveSource(value.source))
+    return (
+        value.state === 'blocked' &&
+        isRustBlock(value.block) &&
+        (value.decision === undefined || isUpdateDecision(value.decision)) &&
+        (value.source === undefined || isEffectiveSource(value.source))
+    )
 }
 
 function isClaimResult(value: unknown): value is ClaimActiveAppResultV1 | UpdateErrorV1 {
@@ -369,7 +392,11 @@ function isEnqueueResult(value: unknown): value is EnqueueLaunchRequestResultV1 
 function isClaimRequestsResult(value: unknown): value is ClaimLaunchRequestsResultV1 | UpdateErrorV1 {
     return (
         isUpdateErrorV1(value) ||
-        (isRecord(value) && value.schemaVersion === 1 && value.state === 'claimed' && Array.isArray(value.requests) && value.requests.every(isLaunchRequest))
+        (isRecord(value) &&
+            value.schemaVersion === 1 &&
+            value.state === 'claimed' &&
+            Array.isArray(value.requests) &&
+            value.requests.every(isLaunchRequest))
     )
 }
 
@@ -388,20 +415,54 @@ function isStartResult(value: unknown): value is StartResultV1 | UpdateErrorV1 {
         isUpdateErrorV1(value) ||
         (isRecord(value) &&
             value.schemaVersion === 1 &&
-            (value.state === 'blocked' || value.state === 'busy' || value.state === 'enqueued' || value.state === 'launched' || value.state === 'reserved'))
+            (value.state === 'blocked' ||
+                value.state === 'busy' ||
+                value.state === 'enqueued' ||
+                value.state === 'launched' ||
+                value.state === 'reserved'))
     )
 }
 
-export const parseClaimResult = (value: unknown): ClaimActiveAppResultV1 | UpdateErrorV1 => requireContract(value, isClaimResult, 'claim-active-app result')
-export const parsePrepareResult = (value: unknown): PrepareUpdateResultV1 | UpdateErrorV1 => requireContract(value, isPrepareResult, 'prepare-update result')
+function isActiveRuntimeV2(value: unknown): value is ActiveRuntimeV2 {
+    return (
+        isRecord(value) &&
+        value.schemaVersion === 2 &&
+        isPositiveInteger(value.generation) &&
+        isNonEmptyString(value.hostVersion) &&
+        isNonEmptyString(value.hostPath) &&
+        isNonEmptyString(value.coreVersion) &&
+        isNonEmptyString(value.corePath) &&
+        isNonEmptyString(value.coreEntry) &&
+        isNonEmptyString(value.corePreload) &&
+        isRecord(value.components) &&
+        Object.values(value.components).every(
+            component =>
+                isRecord(component) && isNonEmptyString(component.version) && isNonEmptyString(component.path) && isNonEmptyString(component.sha256),
+        ) &&
+        (value.activationState === 'pending' || value.activationState === 'confirmed')
+    )
+}
+
+function isRuntimeAcknowledgementV2(value: unknown): value is RuntimeAcknowledgementV2 {
+    return isRecord(value) && value.schemaVersion === 2 && value.state === 'confirmed' && isPositiveInteger(value.generation)
+}
+
+export const parseClaimResult = (value: unknown): ClaimActiveAppResultV1 | UpdateErrorV1 =>
+    requireContract(value, isClaimResult, 'claim-active-app result')
+export const parsePrepareResult = (value: unknown): PrepareUpdateResultV1 | UpdateErrorV1 =>
+    requireContract(value, isPrepareResult, 'prepare-update result')
 export const parseDiscardResult = (value: unknown): DiscardPreparedUpdateResultV1 | UpdateErrorV1 =>
     requireContract(value, isDiscardResult, 'discard-prepared-update result')
 export const parseEnqueueResult = (value: unknown): EnqueueLaunchRequestResultV1 | UpdateErrorV1 =>
     requireContract(value, isEnqueueResult, 'enqueue-launch-request result')
 export const parseClaimRequestsResult = (value: unknown): ClaimLaunchRequestsResultV1 | UpdateErrorV1 =>
     requireContract(value, isClaimRequestsResult, 'claim-launch-requests result')
-export const parseAckResult = (value: unknown): AckLaunchRequestResultV1 | UpdateErrorV1 => requireContract(value, isAckResult, 'ack-launch-request result')
+export const parseAckResult = (value: unknown): AckLaunchRequestResultV1 | UpdateErrorV1 =>
+    requireContract(value, isAckResult, 'ack-launch-request result')
 export const parseStartResult = (value: unknown): StartResultV1 | UpdateErrorV1 => requireContract(value, isStartResult, 'start result')
+export const parseActiveRuntimeV2 = (value: unknown): ActiveRuntimeV2 => requireContract(value, isActiveRuntimeV2, 'active runtime v2')
+export const parseRuntimeAcknowledgementV2 = (value: unknown): RuntimeAcknowledgementV2 =>
+    requireContract(value, isRuntimeAcknowledgementV2, 'runtime acknowledgement v2')
 
 export function unwrapSemanticResult<TResult>(result: TResult | UpdateErrorV1): TResult {
     if (isUpdateErrorV1(result)) {

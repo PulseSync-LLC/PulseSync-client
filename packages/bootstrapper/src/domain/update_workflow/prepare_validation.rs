@@ -6,12 +6,11 @@ use super::{
 use crate::{
     core::{
         fs_ops::sha256_file,
-        layout::{Layout, is_inside, versioned_app_dir, versioned_modules_dir},
+        layout::{Layout, is_inside},
         path_segment::sanitize_path_segment,
     },
     domain::{
         artifacts::{ArtifactKey, artifact_file_name},
-        install_plan::default_install_artifact_keys,
         macos_bundle,
         manifest::{
             ArtifactLayout, BootstrapperArtifact, BootstrapperUpdateDecision,
@@ -37,7 +36,6 @@ pub(super) fn resolve_effective_source(
     let fallback = || GitHubManifestFallback {
         channel: options.channel.clone(),
         dist: options.dist.clone(),
-        health_url: options.server_health_url.clone().unwrap_or_default(),
         owner: options.github_owner.clone(),
         repo: options.github_repo.clone(),
     };
@@ -224,7 +222,7 @@ pub(super) fn artifact_map(
     let Some(dist_artifacts) = decision.artifacts.as_ref() else {
         return artifacts;
     };
-    for key in default_install_artifact_keys(Some(dist_artifacts)) {
+    for key in crate::domain::artifacts::selected_artifact_keys(decision).unwrap_or_default() {
         if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
             artifacts.insert(key.as_str(), (key, artifact.clone()));
         }
@@ -242,16 +240,25 @@ pub(super) fn bootstrapper_executable_name() -> &'static str {
 
 pub(super) fn expected_target_path(
     layout: &Layout,
-    target_version: &str,
+    decision: &BootstrapperUpdateDecision,
     key: &ArtifactKey,
 ) -> Option<PathBuf> {
     match key {
-        ArtifactKey::App => versioned_app_dir(&layout.install_root, target_version).ok(),
-        ArtifactKey::Module(module_name) => {
-            versioned_modules_dir(&layout.install_root, target_version)
-                .ok()
-                .map(|path| path.join(module_name))
-        }
+        ArtifactKey::Host => Some(layout.install_root.join(format!(
+            "host-{}",
+            sanitize_path_segment(&decision.host_version).ok()?
+        ))),
+        ArtifactKey::Module(module_name) => Some(
+            layout
+                .install_root
+                .join("modules")
+                .join(format!(
+                    "{}-{}",
+                    sanitize_path_segment(module_name).ok()?,
+                    sanitize_path_segment(decision.component_versions.get(module_name)?).ok()?
+                ))
+                .join(sanitize_path_segment(module_name).ok()?),
+        ),
         ArtifactKey::Bootstrapper => {
             Some(layout.bootstrapper_dir.join(bootstrapper_executable_name()))
         }
@@ -260,7 +267,7 @@ pub(super) fn expected_target_path(
 
 pub(super) fn expected_backup_path(backup_dir: &Path, key: &ArtifactKey) -> Option<PathBuf> {
     match key {
-        ArtifactKey::App => Some(backup_dir.join("app")),
+        ArtifactKey::Host => Some(backup_dir.join("host")),
         ArtifactKey::Module(module_name) => Some(backup_dir.join("modules").join(module_name)),
         ArtifactKey::Bootstrapper => Some(
             backup_dir
@@ -276,7 +283,7 @@ pub(super) fn expected_prepared_path(
     key: &ArtifactKey,
 ) -> Option<PathBuf> {
     let name = match key {
-        ArtifactKey::App => "app.zip".to_string(),
+        ArtifactKey::Host => "host.zip".to_string(),
         ArtifactKey::Module(module_name) => {
             format!("module-{}.zip", sanitize_path_segment(module_name).ok()?)
         }
@@ -324,7 +331,7 @@ pub(super) fn transaction_matches(
             && value
                 .get("archiveSha256")
                 .and_then(Value::as_str)
-                .is_some_and(|sha| sha.eq_ignore_ascii_case(&artifacts.app.sha256));
+                .is_some_and(|sha| sha.eq_ignore_ascii_case(&artifacts.host.sha256));
     }
     if value.get("schemaVersion").and_then(Value::as_u64) != Some(1)
         || record.candidate.state != "prepared"
@@ -423,9 +430,7 @@ pub(super) fn transaction_matches(
             return false;
         };
         let expected_source_path = staging_dir.join(source_file_name);
-        let Some(expected_target_path) =
-            expected_target_path(layout, &decision.target_version, key)
-        else {
+        let Some(expected_target_path) = expected_target_path(layout, decision, key) else {
             return false;
         };
         let Some(expected_backup_path) = expected_backup_path(&backup_dir, key) else {

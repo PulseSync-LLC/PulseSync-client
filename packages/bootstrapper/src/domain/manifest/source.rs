@@ -20,25 +20,8 @@ fn http_agent(connect_timeout: Duration, read_timeout: Duration) -> ureq::Agent 
 pub struct GitHubManifestFallback {
     pub channel: String,
     pub dist: String,
-    pub health_url: String,
     pub owner: String,
     pub repo: String,
-}
-
-impl GitHubManifestFallback {
-    pub fn new(
-        channel: impl Into<String>,
-        dist: impl Into<String>,
-        health_url: impl Into<String>,
-    ) -> Self {
-        Self {
-            channel: channel.into(),
-            dist: dist.into(),
-            health_url: health_url.into(),
-            owner: DEFAULT_GITHUB_OWNER.to_string(),
-            repo: DEFAULT_GITHUB_REPO.to_string(),
-        }
-    }
 }
 
 fn percent_decode(value: &str) -> Result<String> {
@@ -173,20 +156,6 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
         fallback.dist, fallback.owner, fallback.repo, fallback.channel
     )
     .into())
-}
-
-pub fn resolve_manifest_source(
-    manifest_url: &str,
-    fallback: Option<&GitHubManifestFallback>,
-) -> Result<String> {
-    let Some(fallback) = fallback else {
-        return Ok(manifest_url.to_string());
-    };
-    if !is_http_source(manifest_url) || health_check_available(&fallback.health_url) {
-        return Ok(manifest_url.to_string());
-    }
-
-    github_manifest_url(fallback)
 }
 
 pub fn load_manifest(manifest_url: &str) -> Result<BootstrapperUpdateManifest> {

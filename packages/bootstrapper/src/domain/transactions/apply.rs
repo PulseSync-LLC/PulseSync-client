@@ -1,12 +1,12 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, extract_zip_to, sha256_file},
-        layout::{
-            DEFAULT_RETAIN_APP_VERSIONS, assert_inside, cleanup_inactive_app_versions,
-            current_version_file, normalize_retain_app_versions, read_current_version,
-            write_current_version,
+        fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
+        install_state::{
+            ActivationState, RuntimeActivationV2, RuntimeComponentV2, read_install_state,
+            write_install_state,
         },
+        layout::assert_inside,
         path_segment::sanitize_path_segment,
     },
     domain::transactions::{
@@ -205,7 +205,6 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     );
     let artifacts = transaction_artifacts(&transaction)?;
     let mut applied = Vec::new();
-    let should_switch_current_version = artifacts.iter().any(|artifact| artifact.key == "app");
 
     for artifact in &artifacts {
         assert_inside(
@@ -231,50 +230,87 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["state"] = json!("applied");
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
-    if should_switch_current_version {
-        let previous_current_version = read_current_version(&install_dir)?;
-        let target_version = transaction
-            .get("targetVersion")
-            .and_then(Value::as_str)
-            .ok_or("targetVersion is required to switch current version")?
-            .to_string();
-        let current_file = write_current_version(&install_dir, &target_version)?;
-        let retain_app_versions = transaction
-            .get("retainAppVersions")
-            .and_then(Value::as_u64)
-            .map(|value| normalize_retain_app_versions(value as usize))
-            .unwrap_or(DEFAULT_RETAIN_APP_VERSIONS);
-        transaction["currentVersionFile"] = json!(current_file);
-        transaction["previousCurrentVersion"] = previous_current_version
-            .as_ref()
-            .map_or(Value::Null, |version| json!(version));
-        transaction["currentVersion"] = json!(target_version);
-        match cleanup_inactive_app_versions(
-            &install_dir,
-            transaction
-                .get("currentVersion")
+    let mut install_state = read_install_state(&install_dir)?;
+    let previous_snapshot = install_state.active.clone();
+    let component_versions = transaction
+        .get("componentVersions")
+        .and_then(Value::as_object)
+        .ok_or("componentVersions is required")?;
+    let component_electron_abis = transaction
+        .get("componentElectronAbis")
+        .and_then(Value::as_object)
+        .ok_or("componentElectronAbis is required")?;
+    for artifact in &artifacts {
+        let relative_path = artifact
+            .target_path
+            .strip_prefix(&install_dir)?
+            .to_path_buf();
+        if artifact.key == "host" {
+            install_state.active.host.version = transaction
+                .get("hostVersion")
                 .and_then(Value::as_str)
-                .unwrap_or_default(),
-            previous_current_version.as_deref(),
-            retain_app_versions,
-        ) {
-            Ok(removed) => {
-                transaction["cleanup"] = json!({
-                    "state": "ok",
-                    "retainAppVersions": retain_app_versions,
-                    "removedAppVersions": removed,
-                });
-            }
-            Err(error) => {
-                transaction["cleanup"] = json!({
-                    "state": "failed",
-                    "retainAppVersions": retain_app_versions,
-                    "error": error.to_string(),
-                    "currentVersionFile": current_version_file(&install_dir),
-                });
-            }
+                .ok_or("hostVersion is required")?
+                .to_string();
+            install_state.active.host.path = relative_path;
+            install_state.active.host.artifact_sha256 = Some(artifact.sha256.clone());
+            install_state.active.host.electron_abi = transaction
+                .get("hostElectronAbi")
+                .and_then(Value::as_str)
+                .map(str::to_string);
+        } else if artifact.key == "bootstrapper" {
+            install_state.active.components.insert(
+                "bootstrapper".to_string(),
+                RuntimeComponentV2 {
+                    version: transaction
+                        .get("bootstrapperVersion")
+                        .and_then(Value::as_str)
+                        .ok_or("bootstrapperVersion is required")?
+                        .to_string(),
+                    path: relative_path,
+                    sha256: sha256_file(&artifact.target_path)?,
+                    artifact_sha256: Some(artifact.sha256.clone()),
+                    electron_abi: None,
+                },
+            );
+        } else if let Some(name) = artifact.key.strip_prefix("module:") {
+            let version = component_versions
+                .get(name)
+                .and_then(Value::as_str)
+                .ok_or("component version is required")?
+                .to_string();
+            let sha256 = sha256_directory(&artifact.target_path)?;
+            install_state.active.components.insert(
+                name.to_string(),
+                RuntimeComponentV2 {
+                    version,
+                    path: relative_path,
+                    sha256,
+                    artifact_sha256: Some(artifact.sha256.clone()),
+                    electron_abi: component_electron_abis
+                        .get(name)
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
+                },
+            );
         }
     }
+    install_state.previous = Some(previous_snapshot);
+    install_state.metadata_version = transaction
+        .get("metadataVersion")
+        .and_then(Value::as_u64)
+        .ok_or("metadataVersion is required")?;
+    install_state.generation = install_state
+        .generation
+        .checked_add(1)
+        .ok_or("install-state generation overflow")?;
+    install_state.activation = RuntimeActivationV2 {
+        state: ActivationState::Pending,
+        generation: install_state.generation,
+        launch_owner: None,
+    };
+    let install_state_file = write_install_state(&install_dir, &install_state)?;
+    transaction["installStateFile"] = json!(install_state_file);
+    transaction["runtimeGeneration"] = json!(install_state.generation);
     write_transaction(transaction_file, &transaction)?;
     Ok(transaction)
 }

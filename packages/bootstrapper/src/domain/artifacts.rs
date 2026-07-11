@@ -6,8 +6,7 @@ use crate::{
     },
     domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
-        ArtifactLayout, BootstrapperArtifact, BootstrapperDistArtifacts,
-        BootstrapperUpdateDecision, artifact_for_key, read_source,
+        BootstrapperArtifact, BootstrapperUpdateDecision, artifact_for_key, read_source,
     },
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -20,15 +19,15 @@ use std::{
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ArtifactKey {
-    App,
+    Host,
     Bootstrapper,
     Module(String),
 }
 
 impl ArtifactKey {
     pub fn from_str(value: &str) -> Result<Self> {
-        if value == "app" {
-            return Ok(Self::App);
+        if value == "host" {
+            return Ok(Self::Host);
         }
         if value == "bootstrapper" {
             return Ok(Self::Bootstrapper);
@@ -44,7 +43,7 @@ impl ArtifactKey {
 
     pub fn as_str(&self) -> String {
         match self {
-            Self::App => "app".to_string(),
+            Self::Host => "host".to_string(),
             Self::Bootstrapper => "bootstrapper".to_string(),
             Self::Module(module_name) => format!("module:{module_name}"),
         }
@@ -94,18 +93,12 @@ pub struct StagingResult {
     pub update_available: bool,
 }
 
-pub fn default_artifact_keys(artifacts: Option<&BootstrapperDistArtifacts>) -> Vec<ArtifactKey> {
-    let mut keys = vec![ArtifactKey::App];
-    if let Some(artifacts) = artifacts {
-        if artifacts.layout == ArtifactLayout::MacosBundle {
-            return keys;
-        }
-        keys.extend(artifacts.modules.keys().cloned().map(ArtifactKey::Module));
-        if artifacts.bootstrapper.is_some() {
-            keys.push(ArtifactKey::Bootstrapper);
-        }
-    }
-    keys
+pub fn selected_artifact_keys(decision: &BootstrapperUpdateDecision) -> Result<Vec<ArtifactKey>> {
+    decision
+        .selected_artifacts
+        .iter()
+        .map(|key| ArtifactKey::from_str(key))
+        .collect()
 }
 
 fn decode_url_file_name(url: &str) -> Option<String> {

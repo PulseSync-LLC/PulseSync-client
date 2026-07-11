@@ -210,13 +210,13 @@ fn copy_prepared_artifact(
     artifact: &InstallPlanArtifact,
     prepared_dir: &Path,
 ) -> Result<PreparedArtifact> {
-    let prepared_kind = if matches!(artifact.key, ArtifactKey::App | ArtifactKey::Module(_)) {
+    let prepared_kind = if matches!(artifact.key, ArtifactKey::Host | ArtifactKey::Module(_)) {
         "archive"
     } else {
         "file"
     };
     let prepared_path = prepared_dir.join(match &artifact.key {
-        ArtifactKey::App => "app.zip".to_string(),
+        ArtifactKey::Host => "host.zip".to_string(),
         ArtifactKey::Module(module_name) => {
             format!("module-{}.zip", sanitize_path_segment(module_name)?)
         }
@@ -381,7 +381,7 @@ fn prepare_transaction_file_inner(
         if plan.artifacts.iter().any(|artifact| {
             matches!(
                 artifact.key,
-                ArtifactKey::App | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
+                ArtifactKey::Host | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
             )
         }) {
             pass(
@@ -437,6 +437,12 @@ fn prepare_transaction_file_inner(
             "dist": plan.dist,
             "currentVersion": plan.current_version,
             "targetVersion": plan.target_version,
+            "hostVersion": plan.host_version,
+            "bootstrapperVersion": plan.bootstrapper_version,
+            "componentVersions": plan.component_versions,
+            "metadataVersion": plan.metadata_version,
+            "hostElectronAbi": plan.host_electron_abi,
+            "componentElectronAbis": plan.component_electron_abis,
             "installDir": plan.install_dir,
             "retainAppVersions": plan.retain_app_versions,
             "stagingDir": plan.staging_dir,
@@ -458,13 +464,6 @@ fn prepare_transaction_file_inner(
         remove_owned_transaction(transaction_root, &transaction_dir);
     }
     prepare_result
-}
-
-pub fn prepare_transaction_file(
-    plan_file: &Path,
-    transaction_dir: Option<PathBuf>,
-) -> Result<Value> {
-    prepare_transaction_file_inner(plan_file, transaction_dir, None, None, None, false)
 }
 
 pub fn prepare_transaction_file_at(

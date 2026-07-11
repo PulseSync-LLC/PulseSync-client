@@ -6,6 +6,7 @@ use crate::{
             verified_live_lease,
         },
         error::Result,
+        install_state::recover_unowned_pending_runtime,
         layout::{canonical_install_root, resolve_layout, resolve_macos_layout},
         operation_lock::UpdateLock,
         self_update::{
@@ -89,6 +90,9 @@ pub fn start(args: &Args) -> Result<Value> {
     let app_executable_name = arg_value(args, "--app-executable-name");
     let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
     let explicit_app_executable = arg_value(args, "--app-executable").map(PathBuf::from);
+    if let Some(root) = install_root.as_deref() {
+        recover_unowned_pending_runtime(root)?;
+    }
     let layout = match (&install_root, &host_bundle, &explicit_app_executable) {
         (Some(state_root), Some(host_bundle), Some(app_executable)) => Some(resolve_macos_layout(
             state_root.clone(),

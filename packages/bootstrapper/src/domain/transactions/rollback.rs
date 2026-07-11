@@ -1,7 +1,9 @@
 use crate::{
     core::{
         error::Result,
-        layout::{clear_current_version, write_current_version},
+        install_state::{
+            ActivationState, RuntimeActivationV2, read_install_state, write_install_state,
+        },
     },
     domain::transactions::store::{transaction_artifacts, write_transaction},
 };
@@ -23,47 +25,29 @@ fn remove_target(path: &Path) -> Result<bool> {
     Ok(true)
 }
 
-fn restore_current_version(transaction: &mut Value) -> Result<()> {
-    if transaction
-        .get("currentVersion")
-        .and_then(Value::as_str)
-        .is_none()
-        && transaction
-            .get("previousCurrentVersion")
-            .and_then(Value::as_str)
-            .is_none()
-    {
-        return Ok(());
-    }
-
+fn restore_install_state(transaction: &mut Value) -> Result<()> {
     let install_dir = PathBuf::from(
         transaction
             .get("installDir")
             .and_then(Value::as_str)
-            .ok_or("installDir is required to restore current version")?,
+            .ok_or("installDir is required to restore install state")?,
     );
-    let restored = match transaction
-        .get("previousCurrentVersion")
-        .and_then(Value::as_str)
-    {
-        Some(previous_version) => {
-            let path = write_current_version(&install_dir, previous_version)?;
-            json!({
-                "state": "restored",
-                "version": previous_version,
-                "currentVersionFile": path,
-            })
-        }
-        None => {
-            let path = clear_current_version(&install_dir)?;
-            json!({
-                "state": "cleared",
-                "currentVersionFile": path,
-            })
-        }
-    };
-
-    transaction["currentVersionRestored"] = restored;
+    let mut state = read_install_state(&install_dir)?;
+    if let Some(previous) = state.previous.take() {
+        state.active = previous;
+        state.generation = state
+            .generation
+            .checked_add(1)
+            .ok_or("install-state generation overflow")?;
+        state.activation = RuntimeActivationV2 {
+            state: ActivationState::Confirmed,
+            generation: state.generation,
+            launch_owner: None,
+        };
+        let path = write_install_state(&install_dir, &state)?;
+        transaction["installStateRestored"] =
+            json!({ "state": "restored", "generation": state.generation, "path": path });
+    }
     Ok(())
 }
 
@@ -82,6 +66,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     }
 
     let artifacts = transaction_artifacts(&transaction)?;
+    restore_install_state(&mut transaction)?;
     let mut rolled_back = Vec::new();
     for artifact in artifacts {
         let rollback_status = if artifact.backup_path.exists() {
@@ -107,7 +92,6 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["state"] = json!("rolled-back");
     transaction["rolledBack"] = json!(true);
     transaction["artifacts"] = Value::Array(rolled_back);
-    restore_current_version(&mut transaction)?;
     write_transaction(transaction_file, &transaction)?;
     Ok(transaction)
 }
