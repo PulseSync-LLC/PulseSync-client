@@ -262,11 +262,12 @@ function setConfigDevFalse(branch?: string) {
     const configPath = path.resolve(__dirname, '../src/common/appConfig.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
-    if (branch !== 'dev') {
+    const keepDevmark = branch === 'alpha' || branch === 'dev'
+    if (!keepDevmark) {
         content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
     }
     fs.writeFileSync(configPath, content, 'utf-8')
-    const devmarkStatus = branch === 'dev' ? ' (isDevmark kept for dev branch)' : ''
+    const devmarkStatus = keepDevmark ? ` (isDevmark kept for ${branch} branch)` : ''
     log(LogLevel.SUCCESS, `Set isDev to false in appConfig.ts${devmarkStatus}`)
 }
 

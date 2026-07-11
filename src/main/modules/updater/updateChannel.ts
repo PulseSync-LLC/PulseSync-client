@@ -1,7 +1,7 @@
 import config, { branch as buildBranch } from '@common/appConfig'
 import { getState } from '../state'
 
-export const UPDATE_CHANNELS = ['beta', 'dev'] as const
+export const UPDATE_CHANNELS = ['beta', 'alpha', 'dev'] as const
 
 export type UpdateChannel = (typeof UPDATE_CHANNELS)[number]
 
