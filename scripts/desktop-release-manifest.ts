@@ -1,6 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
+import { execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import AdmZip from 'adm-zip'
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
@@ -18,6 +19,7 @@ type BootstrapperArtifact = {
 }
 
 type BootstrapperDistArtifacts = {
+    layout: 'macos-bundle' | 'versioned-components'
     app: BootstrapperArtifact
     bootstrapper?: BootstrapperArtifact
     modules: Record<string, BootstrapperArtifact>
@@ -149,7 +151,13 @@ async function sha256File(filePath: string): Promise<string> {
     })
 }
 
-async function createVersionedArtifactDescriptor(filePath: string, baseUrl: string, version: string, dist: string, artifactPath: string): Promise<BootstrapperArtifact> {
+async function createVersionedArtifactDescriptor(
+    filePath: string,
+    baseUrl: string,
+    version: string,
+    dist: string,
+    artifactPath: string,
+): Promise<BootstrapperArtifact> {
     const stat = await fs.promises.stat(filePath)
     const sha256 = await sha256File(filePath)
     return {
@@ -168,6 +176,26 @@ function createAppPayloadArchive(releaseDir: string, packagedAppRootDir: string,
     if (executableEntry) {
         assertArchiveExecutableMode(archivePath, executableEntry)
     }
+    return archivePath
+}
+
+function createMacHostBundleArchive(releaseDir: string, packagedRootDir: string, version: string, dist: string): string {
+    const appBundle = path.join(packagedRootDir, 'PulseSync.app')
+    if (!fs.existsSync(appBundle) || !fs.statSync(appBundle).isDirectory()) {
+        throw new Error(`Cannot create macOS host artifact: ${appBundle} is not a directory`)
+    }
+    const executable = path.join(appBundle, 'Contents', 'MacOS', 'PulseSync')
+    const infoPlist = path.join(appBundle, 'Contents', 'Info.plist')
+    const bootstrapper = path.join(appBundle, 'Contents', 'Resources', 'bootstrapper', 'pulsesync-bootstrapper')
+    for (const required of [executable, infoPlist, bootstrapper]) {
+        if (!fs.existsSync(required) || !fs.statSync(required).isFile()) {
+            throw new Error(`Cannot create macOS host artifact; required file is missing: ${required}`)
+        }
+    }
+    const archivePath = path.join(releaseDir, `pulsesync-host-bundle-${version}-${dist}.zip`)
+    fs.mkdirSync(releaseDir, { recursive: true })
+    fs.rmSync(archivePath, { force: true })
+    execFileSync('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', appBundle, archivePath], { stdio: 'pipe' })
     return archivePath
 }
 
@@ -253,9 +281,13 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const releaseDir = resolveInsideProject(options.releaseDir)
     const packagedAppRootDir = resolveInsideProject(options.packagedAppRootDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
-    const appArtifactPath = createAppPayloadArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
-    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, options.version, options.dist)
-    const moduleArchivePaths = createModuleArchives(releaseDir, packagedAppRootDir, options.version, options.dist)
+    const { platform } = parseDist(options.dist)
+    const macosBundle = platform === 'darwin'
+    const appArtifactPath = macosBundle
+        ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
+        : createAppPayloadArchive(releaseDir, packagedAppRootDir, options.version, options.dist)
+    const bootstrapperArtifactPath = macosBundle ? null : createBootstrapperArtifact(releaseDir, packagedAppRootDir, options.version, options.dist)
+    const moduleArchivePaths = macosBundle ? {} : createModuleArchives(releaseDir, packagedAppRootDir, options.version, options.dist)
     removeStaleBootstrapperArchive(releaseDir, options.version, options.dist)
     removeStaleNativeModulesArchive(releaseDir, options.version, options.dist)
     removeStaleInstallerAppArtifact(releaseDir, options.version)
@@ -269,13 +301,30 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
         artifacts: {
             [options.dist]: {
+                layout: macosBundle ? 'macos-bundle' : 'versioned-components',
                 app: await createVersionedArtifactDescriptor(appArtifactPath, baseUrl, options.version, options.dist, 'app'),
-                bootstrapper: await createVersionedArtifactDescriptor(bootstrapperArtifactPath, baseUrl, options.version, options.dist, 'bootstrapper'),
+                ...(bootstrapperArtifactPath
+                    ? {
+                          bootstrapper: await createVersionedArtifactDescriptor(
+                              bootstrapperArtifactPath,
+                              baseUrl,
+                              options.version,
+                              options.dist,
+                              'bootstrapper',
+                          ),
+                      }
+                    : {}),
                 modules: Object.fromEntries(
                     await Promise.all(
                         Object.entries(moduleArchivePaths).map(async ([moduleName, archivePath]) => [
                             moduleName,
-                            await createVersionedArtifactDescriptor(archivePath, baseUrl, options.version, options.dist, path.join('modules', moduleName)),
+                            await createVersionedArtifactDescriptor(
+                                archivePath,
+                                baseUrl,
+                                options.version,
+                                options.dist,
+                                path.join('modules', moduleName),
+                            ),
                         ]),
                     ),
                 ),

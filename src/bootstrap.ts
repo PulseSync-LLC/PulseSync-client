@@ -4,11 +4,7 @@ import { registerSchemes } from './main/utils/serverUtils'
 import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
-import {
-    StartupCoordinator,
-    type ApplicationBootstrapRuntime,
-    type ApplicationStartupHandle,
-} from './main/modules/bootstrap/startupCoordinator'
+import { StartupCoordinator, type ApplicationBootstrapRuntime, type ApplicationStartupHandle } from './main/modules/bootstrap/startupCoordinator'
 import { claimActiveApp } from './main/modules/bootstrapper/runtimeCommands'
 import { getBootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
 import { initMainErrorTracking } from './main/modules/errorTracking'
@@ -108,18 +104,19 @@ async function startPackagedBootstrap(): Promise<void> {
 
     const launchReservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
     const handoffId = process.env.PULSESYNC_HANDOFF_ID
-    if (app.isPackaged && !launchReservationId) {
+    if (app.isPackaged && !launchReservationId && process.platform !== 'darwin') {
         await showCanonicalLaunchRequired(bootstrapWindow)
         return
     }
 
     const claim = await claimActiveApp({
-        installRoot: runtimePaths.installRoot,
+        stateRoot: runtimePaths.stateRoot,
+        hostBundle: runtimePaths.hostBundle,
         appExecutable: runtimePaths.appExecutable,
         launcher: runtimePaths.launcher,
         launchReservationId,
         handoffId,
-        allowUnreservedRecovery: !app.isPackaged,
+        allowUnreservedRecovery: !app.isPackaged || process.platform === 'darwin',
     }).catch(async () => null)
     if (!claim || claim.state !== 'claimed') {
         await showCanonicalLaunchRequired(bootstrapWindow)
@@ -134,7 +131,7 @@ async function startPackagedBootstrap(): Promise<void> {
     }
     registerSecondInstanceDelivery()
 
-    const inbox = new LaunchInbox({ installRoot: runtimePaths.installRoot, launcher: runtimePaths.launcher, lease: claim.lease })
+    const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
     await launchQueue.bindSink(input => inbox.enqueue(input))
     const coordinator = new StartupCoordinator({
         bootstrapWindow,

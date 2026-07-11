@@ -5,11 +5,7 @@ import { mainWindow } from '../createWindow'
 import { state } from '../handlers/state'
 import logger from '../logger'
 import { getBootstrapperRuntimePaths } from '../bootstrapper/paths'
-import {
-    discardPreparedUpdate,
-    type PrepareDesktopUpdateOptions,
-    type PrepareUpdateResultV1,
-} from './bootstrapperUpdateService'
+import { discardPreparedUpdate, type PrepareDesktopUpdateOptions, type PrepareUpdateResultV1 } from './bootstrapperUpdateService'
 import { UpdateStatus } from './constants/updateStatus'
 import { getDesktopUpdateManifestRequest } from './desktopManifestSource'
 import { getUpdateSource, type UpdateSource } from './updateSource'
@@ -130,7 +126,9 @@ class Updater {
                 appExecutableName: runtimePaths.appExecutableName,
                 channel: request.channel,
                 dist: request.dist,
-                installRoot: runtimePaths.installRoot,
+                stateRoot: runtimePaths.stateRoot,
+                hostBundle: runtimePaths.hostBundle,
+                appExecutable: runtimePaths.appExecutable,
                 installedVersion: app.getVersion(),
                 launcher: runtimePaths.launcher,
                 manifestUrl: request.manifestUrl,
@@ -230,10 +228,15 @@ class Updater {
         }
         const runtimePaths = getBootstrapperRuntimePaths()
         if (!runtimePaths.launcher) return false
-        const discardReason = reason.startsWith('channel-switch:') ? 'channel-change' : reason.startsWith('source-switch:') ? 'source-change' : 'manual-reset'
+        const discardReason = reason.startsWith('channel-switch:')
+            ? 'channel-change'
+            : reason.startsWith('source-switch:')
+              ? 'source-change'
+              : 'manual-reset'
         try {
             const result = await discardPreparedUpdate({
-                installRoot: runtimePaths.installRoot,
+                stateRoot: runtimePaths.stateRoot,
+                hostBundle: runtimePaths.hostBundle,
                 launcher: runtimePaths.launcher,
                 reason: discardReason,
                 transactionId: this.preparedTransactionId,

@@ -24,6 +24,7 @@ fn is_command(value: &str) -> bool {
             | "plan-install"
             | "prepare-install"
             | "prepare-update"
+            | "recover-update"
             | "ensure-installed"
             | "enqueue-launch-request"
             | "install-workflow"
@@ -104,6 +105,27 @@ pub fn arg_value(args: &Args, name: &str) -> Option<String> {
 
 pub fn required_arg(args: &Args, name: &str) -> Result<String> {
     arg_value(args, name).ok_or_else(|| format!("{name} is required").into())
+}
+
+pub fn state_root_arg(args: &Args) -> Result<Option<String>> {
+    let state_root = arg_value(args, "--state-root");
+    let install_root = arg_value(args, "--install-root");
+    if arg_value(args, "--host-bundle").is_some() {
+        if install_root.is_some() {
+            return Err("--install-root is not valid with --host-bundle; use --state-root".into());
+        }
+        if state_root.is_none() {
+            return Err("--state-root is required with --host-bundle".into());
+        }
+    }
+    if state_root.is_some() && install_root.is_some() {
+        return Err("--state-root and --install-root are mutually exclusive".into());
+    }
+    Ok(state_root.or(install_root))
+}
+
+pub fn required_state_root(args: &Args) -> Result<String> {
+    state_root_arg(args)?.ok_or_else(|| "--state-root or --install-root is required".into())
 }
 
 pub fn usize_arg(args: &Args, name: &str) -> Result<Option<usize>> {

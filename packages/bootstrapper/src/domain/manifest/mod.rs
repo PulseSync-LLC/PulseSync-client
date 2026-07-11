@@ -4,7 +4,7 @@ mod validation;
 mod version;
 
 pub use model::{
-    BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
+    ArtifactLayout, BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
     BootstrapperUpdateManifest,
 };
 pub use source::{

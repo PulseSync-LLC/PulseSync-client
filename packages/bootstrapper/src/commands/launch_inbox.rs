@@ -1,5 +1,5 @@
 use crate::{
-    cli::args::{Args, required_arg, usize_arg},
+    cli::args::{Args, required_arg, required_state_root, usize_arg},
     core::{
         active_app::verified_live_lease, error::Result, layout::canonical_install_root,
         session_lock::SessionLock,
@@ -21,8 +21,7 @@ fn active_lease(
     crate::core::active_app::ActiveAppLease,
     SessionLock,
 )> {
-    let install_root =
-        canonical_install_root(&PathBuf::from(required_arg(args, "--install-root")?))?;
+    let install_root = canonical_install_root(&PathBuf::from(required_state_root(args)?))?;
     let expected_lease_id = required_arg(args, "--active-lease-id")?;
     let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
     let lease = verified_live_lease(&install_root)?.ok_or("no live active app lease")?;

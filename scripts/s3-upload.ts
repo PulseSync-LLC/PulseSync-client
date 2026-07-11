@@ -34,6 +34,13 @@ type UploadHeaders = {
     ContentType?: string
 }
 
+export type RemoteRendererPublishPlan = {
+    buildNumber: string
+    filesBeforePointers: string[]
+    manifestPath: string
+    publicEntrypointPath: string
+}
+
 const CONTENT_TYPES_BY_EXTENSION: Record<string, string> = {
     '.css': 'text/css; charset=utf-8',
     '.html': 'text/html; charset=utf-8',
@@ -155,6 +162,13 @@ function getRemoteRendererUploadHeaders(relativePath: string, filePath: string):
     }
 }
 
+function getRemoteRendererPointerUploadHeaders(filePath: string): UploadHeaders {
+    return {
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
 function getDesktopUpdateUploadHeaders(filePath: string): UploadHeaders | undefined {
     if (!isDesktopReleaseManifestFile(filePath)) {
         return undefined
@@ -183,7 +197,7 @@ async function versionedPublishPath(filePath: string, version: string, dist: str
     return `versions/${version}/${dist}/${artifactPath}/${sha256.slice(0, 16)}/${fileName}`
 }
 
-async function resolveStructuredPublishPath(filePath: string, version?: string): Promise<string> {
+export async function resolveStructuredPublishPath(filePath: string, version?: string): Promise<string> {
     const fileName = path.basename(filePath)
     if (isDesktopReleaseManifestFile(filePath)) {
         return fileName
@@ -196,6 +210,12 @@ async function resolveStructuredPublishPath(filePath: string, version?: string):
     const appPayloadMatch = new RegExp(`^pulsesync-app-payload-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
     if (appPayloadMatch) {
         const dist = appPayloadMatch[1]
+        return await versionedPublishPath(filePath, version, dist, 'app')
+    }
+
+    const macosHostMatch = new RegExp(`^pulsesync-host-bundle-${escapedVersion}-(darwin-[a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
+    if (macosHostMatch) {
+        const dist = macosHostMatch[1]
         return await versionedPublishPath(filePath, version, dist, 'app')
     }
 
@@ -307,6 +327,12 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
     if (appPayloadMatch) {
         const [, version, dist] = appPayloadMatch
         return structuredArtifactDescriptor(version, dist, 'zip', 'app-payload')
+    }
+
+    const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (macosHostMatch) {
+        const [, version, dist] = macosHostMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', 'macos-host')
     }
 
     const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
@@ -453,10 +479,7 @@ async function pruneOldArtifacts(
         )
     }
 
-    log(
-        LogLevel.SUCCESS,
-        `Retention removed ${keysToDelete.length} artifacts from ${branchPrefix} (${removedGroups.join(' | ')})`,
-    )
+    log(LogLevel.SUCCESS, `Retention removed ${keysToDelete.length} artifacts from ${branchPrefix} (${removedGroups.join(' | ')})`)
 }
 
 async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string, headers?: UploadHeaders): Promise<void> {
@@ -491,14 +514,14 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
         return
     }
 
-        const createResponse = await client.send(
-            new CreateMultipartUploadCommand({
-                Bucket: bucket,
-                Key: key,
-                ACL: 'public-read',
-                ...uploadHeaders,
-            }),
-        )
+    const createResponse = await client.send(
+        new CreateMultipartUploadCommand({
+            Bucket: bucket,
+            Key: key,
+            ACL: 'public-read',
+            ...uploadHeaders,
+        }),
+    )
 
     const uploadId = createResponse.UploadId
     if (!uploadId) {
@@ -548,10 +571,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 uploadedBytes += contentLength
                 finishedParts += 1
 
-                log(
-                    LogLevel.INFO,
-                    `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`,
-                )
+                log(LogLevel.INFO, `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`)
             }
         }
 
@@ -631,6 +651,49 @@ export async function publishToS3(
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
 }
 
+export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPublishPlan {
+    const rootDir = path.resolve(dir)
+    if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
+        throw new Error(`Publish directory does not exist: ${rootDir}`)
+    }
+
+    const manifestPath = path.join(rootDir, 'desktop', 'manifest.json')
+    if (!fs.existsSync(manifestPath) || !fs.statSync(manifestPath).isFile()) {
+        throw new Error(`Remote renderer manifest does not exist: ${manifestPath}`)
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { buildNumber?: unknown; url?: unknown }
+    if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) {
+        throw new Error(`Remote renderer manifest has an invalid buildNumber: ${String(manifest.buildNumber)}`)
+    }
+    if (typeof manifest.url !== 'string') {
+        throw new Error('Remote renderer manifest has an invalid URL')
+    }
+
+    const rendererUrl = new URL(manifest.url)
+    const expectedPathSuffix = `/versions/${manifest.buildNumber}/index.html`
+    if (!rendererUrl.pathname.endsWith(expectedPathSuffix)) {
+        throw new Error(`Remote renderer URL must end with ${expectedPathSuffix}: ${manifest.url}`)
+    }
+
+    const publicEntrypointPath = path.join(rootDir, 'versions', manifest.buildNumber, 'index.html')
+    if (!fs.existsSync(publicEntrypointPath) || !fs.statSync(publicEntrypointPath).isFile()) {
+        throw new Error(`Remote renderer public entrypoint does not exist: ${publicEntrypointPath}`)
+    }
+
+    const rootEntrypointPath = path.join(rootDir, 'index.html')
+    const filesBeforePointers = walkFiles(rootDir)
+        .filter(filePath => filePath !== manifestPath && filePath !== rootEntrypointPath)
+        .sort((left, right) => left.localeCompare(right))
+
+    return {
+        buildNumber: manifest.buildNumber,
+        filesBeforePointers,
+        manifestPath,
+        publicEntrypointPath,
+    }
+}
+
 export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
@@ -639,21 +702,36 @@ export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string
     }
 
     const rootDir = path.resolve(dir)
-    if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
-        throw new Error(`Publish directory does not exist: ${rootDir}`)
-    }
+    const plan = createRemoteRendererPublishPlan(rootDir)
 
     const prefix = (opts?.prefix || process.env.S3_PREFIX || 'app').replace(/^\/+|\/+$/g, '')
     const client = createS3Client()
-    const files = walkFiles(rootDir)
 
-    log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/`)
+    log(
+        LogLevel.INFO,
+        `Publishing renderer build ${plan.buildNumber} (${plan.filesBeforePointers.length} immutable/shared files, then public alias, then manifest) to s3://${bucket}/${prefix}/`,
+    )
 
-    for (const filePath of files) {
+    for (const filePath of plan.filesBeforePointers) {
         const relativePath = path.relative(rootDir, filePath).replace(/\\/g, '/')
         const key = `${prefix}/${relativePath}`
         await uploadFileToS3(client, bucket, key, filePath, getRemoteRendererUploadHeaders(relativePath, filePath))
     }
+
+    await uploadFileToS3(
+        client,
+        bucket,
+        `${prefix}/index.html`,
+        plan.publicEntrypointPath,
+        getRemoteRendererPointerUploadHeaders(plan.publicEntrypointPath),
+    )
+    await uploadFileToS3(
+        client,
+        bucket,
+        `${prefix}/desktop/manifest.json`,
+        plan.manifestPath,
+        getRemoteRendererPointerUploadHeaders(plan.manifestPath),
+    )
 
     log(LogLevel.SUCCESS, 'Publish directory to S3 completed')
 }
@@ -674,10 +752,7 @@ function argValue(flag: string): string | null {
 async function cli(): Promise<void> {
     const branch = argValue('--branch') || argValue('-b')
     if (!branch) {
-        log(
-            LogLevel.ERROR,
-            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app]',
-        )
+        log(LogLevel.ERROR, 'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app]')
         process.exit(1)
     }
     const dir = argValue('--dir') || 'release'

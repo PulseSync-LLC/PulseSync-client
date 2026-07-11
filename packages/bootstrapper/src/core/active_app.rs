@@ -1,4 +1,4 @@
-use crate::core::{error::Result, layout::assert_inside};
+use crate::core::{error::Result, host_contract::assert_runtime_executable, layout::assert_inside};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -410,7 +410,7 @@ pub fn publish_handoff_successor(
     {
         return Err("handoff successor binding mismatch".into());
     }
-    assert_inside(
+    assert_runtime_executable(
         install_root,
         &child.executable,
         "handoff successor executable",
@@ -541,7 +541,7 @@ pub fn new_launch_reservation(
     launcher: &ProcessIdentity,
     executable: &Path,
 ) -> Result<AppLaunchReservation> {
-    assert_inside(install_root, executable, "active app executable")?;
+    assert_runtime_executable(install_root, executable, "active app executable")?;
     if let Some(existing) = read_launch_reservation(install_root)? {
         if existing.schema_version != 1 || existing.id.trim().is_empty() {
             return Err("invalid existing launch reservation".into());
@@ -736,7 +736,7 @@ pub fn create_recovery_lease(
     install_root: &Path,
     child: &ProcessIdentity,
 ) -> Result<ActiveAppLease> {
-    assert_inside(install_root, &child.executable, "active app executable")?;
+    assert_runtime_executable(install_root, &child.executable, "active app executable")?;
     let lease = ActiveAppLease {
         schema_version: 1,
         lease_id: Uuid::new_v4().to_string(),
@@ -770,7 +770,7 @@ pub fn write_active_lease(install_root: &Path, lease: &ActiveAppLease) -> Result
     if lease.schema_version != 1 || lease.lease_id.trim().is_empty() {
         return Err("invalid active app lease".into());
     }
-    assert_inside(install_root, &lease.executable, "active app executable")?;
+    assert_runtime_executable(install_root, &lease.executable, "active app executable")?;
     write_json_atomic(&active_app_path(install_root), lease)
 }
 
@@ -782,7 +782,7 @@ pub fn write_launch_reservation(
     install_root: &Path,
     reservation: &AppLaunchReservation,
 ) -> Result<()> {
-    assert_inside(
+    assert_runtime_executable(
         install_root,
         &reservation.executable,
         "launch reservation executable",

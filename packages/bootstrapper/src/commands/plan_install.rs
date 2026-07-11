@@ -7,7 +7,7 @@ use crate::{
     domain::{
         artifacts::ArtifactKey,
         install_plan::{create_install_plan, default_install_artifact_keys},
-        manifest::{BootstrapperUpdateDecision, decide_update, load_manifest},
+        manifest::{ArtifactLayout, BootstrapperUpdateDecision, decide_update, load_manifest},
     },
 };
 use serde_json::{Value, to_value};
@@ -28,6 +28,13 @@ pub fn plan_install(args: &Args) -> Result<Value> {
     let staging_dir = PathBuf::from(required_arg(args, "--staging-dir")?);
     let backup_dir = arg_value(args, "--backup-dir").map(PathBuf::from);
     let decision = decide_update(&manifest, &installed_version, &dist);
+    if decision
+        .artifacts
+        .as_ref()
+        .is_some_and(|artifacts| artifacts.layout == ArtifactLayout::MacosBundle)
+    {
+        return Err("plan-install does not support layout=macos-bundle; use prepare-update with --state-root and --host-bundle".into());
+    }
     let artifact_keys = artifact_keys(args, &decision)?;
 
     Ok(to_value(create_install_plan(

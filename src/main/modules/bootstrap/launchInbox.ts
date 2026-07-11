@@ -15,7 +15,7 @@ export class LaunchInbox {
 
     public constructor(
         private readonly options: {
-            installRoot: string
+            stateRoot: string
             launcher: BootstrapperLauncher
             lease: ActiveAppLeaseV1
         },
@@ -25,7 +25,7 @@ export class LaunchInbox {
         await enqueueLaunchRequest({
             activeLeaseId: this.options.lease.leaseId,
             input,
-            installRoot: this.options.installRoot,
+            stateRoot: this.options.stateRoot,
             launcher: this.options.launcher,
         })
         void this.reconcile()
@@ -68,7 +68,7 @@ export class LaunchInbox {
         while (this.delivery && !this.frozen) {
             const result = await claimLaunchRequests({
                 activeLeaseId: this.options.lease.leaseId,
-                installRoot: this.options.installRoot,
+                stateRoot: this.options.stateRoot,
                 launcher: this.options.launcher,
                 limit: 64,
             })
@@ -78,7 +78,7 @@ export class LaunchInbox {
                 if (!this.delivery || this.frozen || !(await this.delivery(request))) return
                 await ackLaunchRequest({
                     activeLeaseId: this.options.lease.leaseId,
-                    installRoot: this.options.installRoot,
+                    stateRoot: this.options.stateRoot,
                     launcher: this.options.launcher,
                     requestId: request.id,
                 })
@@ -89,7 +89,7 @@ export class LaunchInbox {
 
     private startWatcher(): void {
         this.closeWatcher()
-        const inboxDir = path.join(this.options.installRoot, 'runtime', 'launch-inbox', this.options.lease.inboxId)
+        const inboxDir = path.join(this.options.stateRoot, 'runtime', 'launch-inbox', this.options.lease.inboxId)
         try {
             this.watcher = fs.watch(inboxDir, () => void this.reconcile())
         } catch {

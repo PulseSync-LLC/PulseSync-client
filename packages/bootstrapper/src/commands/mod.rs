@@ -9,4 +9,5 @@ pub mod launch_inbox;
 pub mod plan_install;
 pub mod prepare_install;
 pub mod prepare_update;
+pub mod recover_update;
 pub mod start;
