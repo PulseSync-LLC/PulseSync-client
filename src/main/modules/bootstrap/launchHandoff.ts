@@ -43,14 +43,6 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
 
     runtime.inbox.freeze()
     await runtime.queue.flush()
-    runtime.publishState?.({
-        schemaVersion: 1,
-        phase: 'restarting',
-        statusKey: 'restarting-client',
-        progress: { kind: 'indeterminate' },
-        actions: [],
-    })
-
     try {
         const armed = await relaunchThroughBootstrapper({
             activeLeaseId: runtime.lease.leaseId,
