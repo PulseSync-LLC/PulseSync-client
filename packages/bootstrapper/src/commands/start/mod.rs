@@ -142,7 +142,7 @@ pub fn start(args: &Args) -> Result<Value> {
         drop(session_lock);
     }
 
-    let _update_lock = install_root
+    let mut update_lock = install_root
         .as_deref()
         .map(|root| UpdateLock::acquire(root, Duration::from_secs(30)))
         .transpose()?;
@@ -359,6 +359,7 @@ pub fn start(args: &Args) -> Result<Value> {
                             }
                         };
                     drop(session_lock.take());
+                    drop(update_lock.take());
                     let install_root = install_root
                         .as_deref()
                         .ok_or("macOS bundle update requires --state-root")?;
@@ -383,6 +384,7 @@ pub fn start(args: &Args) -> Result<Value> {
                 }
                 if let Some(prepared_bootstrapper) = prepared_bootstrapper_path(&selected.path)? {
                     drop(session_lock.take());
+                    drop(update_lock.take());
                     let install_root = install_root
                         .as_deref()
                         .ok_or("self-update requires --install-root")?;

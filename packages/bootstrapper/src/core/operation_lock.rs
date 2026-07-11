@@ -42,7 +42,7 @@ fn acquire_lock(path: PathBuf, timeout: Duration, label: &str) -> Result<UpdateL
     loop {
         match file.try_lock_exclusive() {
             Ok(()) => return Ok(UpdateLock { file }),
-            Err(error) if error.kind() == io::ErrorKind::WouldBlock => {
+            Err(error) if lock_is_contended(&error) => {
                 if started.elapsed() >= timeout {
                     return Err(format!(
                         "{label} lock is busy after {}ms: {}",
@@ -56,4 +56,9 @@ fn acquire_lock(path: PathBuf, timeout: Duration, label: &str) -> Result<UpdateL
             Err(error) => return Err(error.into()),
         }
     }
+}
+
+fn lock_is_contended(error: &io::Error) -> bool {
+    error.kind() == io::ErrorKind::WouldBlock
+        || (cfg!(windows) && matches!(error.raw_os_error(), Some(32 | 33)))
 }

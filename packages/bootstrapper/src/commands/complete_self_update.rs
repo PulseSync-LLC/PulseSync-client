@@ -5,7 +5,7 @@ use crate::{
         active_app::{
             HandoffTransferState, current_process_identity, mark_handoff_launch_failed,
             process_start_is_live, read_active_lease, read_handoff_transfer,
-            take_over_failed_handoff,
+            take_over_failed_handoff, write_json_atomic,
         },
         error::Result,
         layout::{assert_inside, canonical_install_root, resolve_layout, resolve_macos_layout},
@@ -70,6 +70,32 @@ fn transaction_contains_current_bootstrapper(
 }
 
 pub fn complete_self_update(args: &Args) -> Result<Value> {
+    match complete_self_update_inner(args) {
+        Ok(result) => Ok(result),
+        Err(error) => {
+            if let Ok(state_root) = required_state_root(args) {
+                let install_root = PathBuf::from(state_root);
+                let reservation = read_self_update_reservation(&install_root).ok().flatten();
+                let payload = json!({
+                    "schemaVersion": 1,
+                    "state": "error",
+                    "command": "complete-self-update",
+                    "error": error.to_string(),
+                    "handoffId": reservation.as_ref().map(|value| value.id.as_str()),
+                    "parentPid": reservation.as_ref().map(|value| value.parent_pid),
+                    "childPid": reservation.as_ref().map(|value| value.child_pid),
+                });
+                let _ = write_json_atomic(
+                    &install_root.join("updates/self-update-handoff-error.json"),
+                    &payload,
+                );
+            }
+            Err(error)
+        }
+    }
+}
+
+fn complete_self_update_inner(args: &Args) -> Result<Value> {
     let install_root = canonical_install_root(&PathBuf::from(required_state_root(args)?))?;
     let transaction_file = PathBuf::from(required_arg(args, "--transaction-file")?);
     let transaction_value: Value = serde_json::from_slice(&fs::read(&transaction_file)?)?;
@@ -78,7 +104,6 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         .map_err(|_| "PULSESYNC_SELF_UPDATE_HANDOFF_ID is required")?;
     let current_process = current_process_identity()?;
 
-    let _update_lock = UpdateLock::acquire(&install_root, SELF_UPDATE_LOCK_TIMEOUT)?;
     let mut session_lock = Some(SessionLock::acquire(
         &install_root,
         Duration::from_secs(10),
@@ -150,6 +175,7 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         }));
     }
 
+    let _update_lock = UpdateLock::acquire(&install_root, SELF_UPDATE_LOCK_TIMEOUT)?;
     session_lock = Some(SessionLock::acquire(
         &install_root,
         Duration::from_secs(10),

@@ -17,7 +17,7 @@ export type PrepareDesktopUpdateOptions = {
     activeLeaseId: string
     appExecutable: string
     appExecutableName?: string
-    channel: 'beta' | 'dev'
+    channel: 'beta' | 'alpha' | 'dev'
     dist: string
     githubOwner?: string
     githubRepo?: string
@@ -57,8 +57,10 @@ export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions)
         '--active-lease-id',
         options.activeLeaseId,
     ]
-    pushArg(args, '--host-bundle', options.hostBundle ?? undefined)
-    pushArg(args, '--app-executable', options.appExecutable)
+    if (options.hostBundle) {
+        pushArg(args, '--host-bundle', options.hostBundle)
+        pushArg(args, '--app-executable', options.appExecutable)
+    }
     pushArg(args, '--app-executable-name', options.appExecutableName)
     pushArg(args, '--manifest-url', options.manifestUrl)
     pushArg(args, '--server-health-url', options.serverHealthUrl)
