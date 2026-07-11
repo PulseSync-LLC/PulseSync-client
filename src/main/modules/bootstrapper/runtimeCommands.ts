@@ -143,4 +143,31 @@ export async function startPreparedHandoff(options: {
     )
 }
 
+export async function startCanonicalApp(options: {
+    appExecutable: string
+    appExecutableName: string
+    hostBundle?: string | null
+    launcher: BootstrapperLauncher
+    passthrough?: string[]
+    stateRoot: string
+}): Promise<StartResultV1> {
+    const args = [
+        ...runtimePathArgs(options),
+        '--app-executable-name',
+        options.appExecutableName,
+        '--app-executable',
+        options.appExecutable,
+        '--',
+        ...(options.passthrough ?? []),
+    ]
+    return unwrapSemanticResult(
+        await runBootstrapperCommand({
+            launcher: options.launcher,
+            command: 'start',
+            args,
+            parseResult: parseStartResult,
+        }),
+    )
+}
+
 export type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1, RustHandoffArmedEventV1, StartResultV1 } from './contracts'

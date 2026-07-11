@@ -20,6 +20,7 @@
         "bootstrapper:verify-package-layout": "tsx scripts/bootstrapper/verify-package-layout.ts",
         "bootstrapper:verify-setup-layout": "tsx scripts/bootstrapper/verify-setup-layout.ts",
         "bootstrapper:verify-macos-update": "cargo build --manifest-path packages/bootstrapper/Cargo.toml && tsx scripts/bootstrapper/verify-macos-update.ts",
+        "bootstrapper:verify-launch-routing": "tsx scripts/bootstrapper/verify-launch-routing.ts",
         "bootstrapper:verify-release-routing": "tsx scripts/bootstrapper/verify-release-routing.ts",
         "release:manifest": "tsx scripts/desktop-release-manifest.ts",
         "build:package": "tsx scripts/build.ts --application --debug",

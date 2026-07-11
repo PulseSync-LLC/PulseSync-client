@@ -12,7 +12,9 @@ const STATUS_TEXT: Record<BootstrapStatusKey, string> = {
     'launching-client': 'Запускаем PulseSync…',
     'update-blocked': 'Обновление сейчас невозможно',
     'update-failed': 'Не удалось проверить или подготовить обновление',
-    'canonical-launch-required': 'Запустите PulseSync через основной ярлык',
+    'bootstrapper-missing': 'Установка PulseSync повреждена',
+    'launch-blocked': 'PulseSync временно не может запуститься',
+    'launch-failed': 'Не удалось запустить PulseSync',
 }
 
 const root = document.querySelector<HTMLElement>('#bootstrap-root')
@@ -140,7 +142,7 @@ if (api) {
     renderState({
         schemaVersion: 1,
         phase: 'error',
-        statusKey: 'canonical-launch-required',
+        statusKey: 'launch-failed',
         progress: { kind: 'indeterminate' },
         actions: [],
     })
