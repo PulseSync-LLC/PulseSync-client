@@ -1,12 +1,19 @@
 import path from 'node:path'
 import { app } from 'electron'
+import type { BootstrapStatusKey } from './common/types/bootstrapEvents'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
 import { StartupCoordinator, type ApplicationBootstrapRuntime, type ApplicationStartupHandle } from './main/modules/bootstrap/startupCoordinator'
-import { claimActiveApp } from './main/modules/bootstrapper/runtimeCommands'
-import { getBootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
+import {
+    canonicalStartSucceeded,
+    claimShouldUseCanonicalStart,
+    normalizeSecondInstanceArgv,
+    requiresCanonicalStart,
+} from './main/modules/bootstrapper/launchRouting'
+import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
+import { claimActiveApp, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
 
@@ -45,11 +52,12 @@ app.on('open-file', (event, filePath) => {
 
 function registerSecondInstanceDelivery(): void {
     app.on('second-instance', (_event, commandLine, workingDirectory, additionalData) => {
+        const argv = normalizeSecondInstanceArgv(commandLine, app.isPackaged)
         launchQueue.enqueue(
             createLaunchRequestInput({
                 additionalData,
-                argv: commandLine,
-                kind: commandLine.length > 0 ? 'arguments' : 'activate',
+                argv,
+                kind: argv.length > 0 ? 'arguments' : 'activate',
                 workingDirectory,
             }),
         )
@@ -64,16 +72,51 @@ function loadApplicationMain(
     return applicationMain.startMainApplication({ bootstrapRuntime, bootstrapWindow })
 }
 
-async function showCanonicalLaunchRequired(window: BootstrapWindowController): Promise<void> {
+async function showBootstrapFailure(
+    window: BootstrapWindowController,
+    statusKey: Extract<BootstrapStatusKey, 'bootstrapper-missing' | 'launch-blocked' | 'launch-failed'>,
+): Promise<void> {
     window.publish({
         schemaVersion: 1,
         phase: 'error',
-        statusKey: 'canonical-launch-required',
+        statusKey,
         progress: { kind: 'indeterminate' },
         actions: [],
     })
     await new Promise(resolve => setTimeout(resolve, 4_000))
     app.quit()
+}
+
+async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths): Promise<void> {
+    const launcher = runtimePaths.launcher
+    if (!launcher) {
+        const bootstrapWindow = await createBootstrapWindow()
+        await showBootstrapFailure(bootstrapWindow, 'bootstrapper-missing')
+        return
+    }
+
+    app.releaseSingleInstanceLock()
+    try {
+        const result = await startCanonicalApp({
+            appExecutable: runtimePaths.appExecutable,
+            appExecutableName: runtimePaths.appExecutableName,
+            hostBundle: runtimePaths.hostBundle,
+            launcher,
+            passthrough: process.argv.slice(1),
+            stateRoot: runtimePaths.stateRoot,
+        })
+        if (canonicalStartSucceeded(result)) {
+            app.quit()
+            return
+        }
+        console.error('Canonical PulseSync start was blocked', result)
+        const bootstrapWindow = await createBootstrapWindow()
+        await showBootstrapFailure(bootstrapWindow, result.state === 'blocked' || result.state === 'busy' ? 'launch-blocked' : 'launch-failed')
+    } catch (error) {
+        console.error('Canonical PulseSync start failed', error)
+        const bootstrapWindow = await createBootstrapWindow()
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+    }
 }
 
 async function startDevelopmentApplication(): Promise<void> {
@@ -94,42 +137,62 @@ async function startDevelopmentApplication(): Promise<void> {
 }
 
 async function startPackagedBootstrap(): Promise<void> {
+    const isFirstInstance = allowSecondInstance || app.requestSingleInstanceLock()
+    if (!isFirstInstance) {
+        app.quit()
+        return
+    }
+    registerSecondInstanceDelivery()
     await app.whenReady()
-    const bootstrapWindow = await createBootstrapWindow()
     const runtimePaths = getBootstrapperRuntimePaths()
     if (!runtimePaths.launcher) {
-        await showCanonicalLaunchRequired(bootstrapWindow)
+        const bootstrapWindow = await createBootstrapWindow()
+        await showBootstrapFailure(bootstrapWindow, 'bootstrapper-missing')
         return
     }
 
     const launchReservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
     const handoffId = process.env.PULSESYNC_HANDOFF_ID
-    if (app.isPackaged && !launchReservationId && process.platform !== 'darwin') {
-        await showCanonicalLaunchRequired(bootstrapWindow)
+    if (
+        requiresCanonicalStart({
+            handoffId,
+            isPackaged: app.isPackaged,
+            launchReservationId,
+            platform: process.platform,
+        })
+    ) {
+        await routeThroughCanonicalStart(runtimePaths)
         return
     }
 
-    const claim = await claimActiveApp({
-        stateRoot: runtimePaths.stateRoot,
-        hostBundle: runtimePaths.hostBundle,
-        appExecutable: runtimePaths.appExecutable,
-        launcher: runtimePaths.launcher,
-        launchReservationId,
-        handoffId,
-        allowUnreservedRecovery: !app.isPackaged || process.platform === 'darwin',
-    }).catch(async () => null)
-    if (!claim || claim.state !== 'claimed') {
-        await showCanonicalLaunchRequired(bootstrapWindow)
+    const bootstrapWindow = await createBootstrapWindow()
+    let claim
+    try {
+        claim = await claimActiveApp({
+            stateRoot: runtimePaths.stateRoot,
+            hostBundle: runtimePaths.hostBundle,
+            appExecutable: runtimePaths.appExecutable,
+            launcher: runtimePaths.launcher,
+            launchReservationId,
+            handoffId,
+            allowUnreservedRecovery: !app.isPackaged || process.platform === 'darwin',
+        })
+    } catch (error) {
+        console.error('PulseSync active-app claim failed', error)
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
         return
     }
 
-    const isFirstInstance = allowSecondInstance || app.requestSingleInstanceLock()
-    if (!isFirstInstance) {
+    if (claimShouldUseCanonicalStart(claim)) {
         bootstrapWindow.destroy()
-        app.quit()
+        await routeThroughCanonicalStart(runtimePaths)
         return
     }
-    registerSecondInstanceDelivery()
+    if (claim.state !== 'claimed') {
+        console.error('PulseSync active-app claim was blocked', claim.block)
+        await showBootstrapFailure(bootstrapWindow, 'launch-blocked')
+        return
+    }
 
     const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
     await launchQueue.bindSink(input => inbox.enqueue(input))
