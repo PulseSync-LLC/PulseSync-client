@@ -56,7 +56,8 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
             activeLeaseId: runtime.lease.leaseId,
             appExecutable: runtime.runtimePaths.appExecutable,
             appExecutableName: runtime.runtimePaths.appExecutableName,
-            installRoot: runtime.runtimePaths.installRoot,
+            stateRoot: runtime.runtimePaths.stateRoot,
+            hostBundle: runtime.runtimePaths.hostBundle,
             launcher,
             waitForPid: process.pid,
             onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
@@ -85,7 +86,8 @@ async function recoverTimedOutHandoff(runtime: LaunchHandoffRuntime): Promise<vo
     if (!launcher) return
     try {
         const result = await claimActiveApp({
-            installRoot: runtime.runtimePaths.installRoot,
+            stateRoot: runtime.runtimePaths.stateRoot,
+            hostBundle: runtime.runtimePaths.hostBundle,
             appExecutable: runtime.runtimePaths.appExecutable,
             launcher,
             expectedLeaseId: runtime.lease.leaseId,

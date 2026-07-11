@@ -22,6 +22,7 @@ use crate::{
         plan_install::plan_install,
         prepare_install::prepare_install,
         prepare_update::prepare_update_command,
+        recover_update::recover_update,
         start::start,
     },
     core::{
@@ -146,6 +147,7 @@ fn run(args: &Args) -> Result<Value> {
         "claim-launch-requests" => claim_launch_requests(args),
         "ack-launch-request" => ack_launch_request(args),
         "prepare-update" => prepare_update_command(args),
+        "recover-update" => recover_update(args),
         "discard-prepared-update" => discard_prepared_update_command(args),
         "check" => check_update(args),
         "download" => {

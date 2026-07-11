@@ -7,10 +7,11 @@ export type BootstrapperRelaunchOptions = {
     activeLeaseId: string
     appExecutableName: string
     appExecutable: string
-    installRoot: string
+    hostBundle?: string | null
     launcher: BootstrapperLauncher
     onDiagnostic?: (line: string) => void
     passthrough?: string[]
+    stateRoot: string
     waitForPid: number
 }
 
@@ -32,8 +33,9 @@ export function createBootstrapperStartInvocation(options: BootstrapperRelaunchO
             'start',
             '--json',
             '--progress-json',
-            '--install-root',
-            options.installRoot,
+            '--state-root',
+            options.stateRoot,
+            ...(options.hostBundle ? ['--host-bundle', options.hostBundle] : []),
             '--app-executable-name',
             options.appExecutableName,
             '--app-executable',

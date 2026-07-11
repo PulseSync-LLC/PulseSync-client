@@ -1,6 +1,14 @@
 use serde::{Deserialize, Serialize};
 use std::collections::BTreeMap;
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum ArtifactLayout {
+    #[default]
+    VersionedComponents,
+    MacosBundle,
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BootstrapperArtifact {
     pub sha256: String,
@@ -13,6 +21,8 @@ pub struct BootstrapperArtifact {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct BootstrapperDistArtifacts {
+    #[serde(default)]
+    pub layout: ArtifactLayout,
     pub app: BootstrapperArtifact,
     pub bootstrapper: Option<BootstrapperArtifact>,
     #[serde(default)]

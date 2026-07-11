@@ -104,6 +104,42 @@ function main(): void {
 
     const platform = readTargetPlatform(args)
     const installRoot = resolveInsideProject(installRootArg)
+    if (platform === 'darwin') {
+        const contentsDir = requirePath(path.join(installRoot, 'Contents'), 'directory')
+        const resourcesDir = requirePath(path.join(contentsDir, 'Resources'), 'directory')
+        const appPayloadExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
+        const installedBootstrapperDir = requirePath(path.join(resourcesDir, 'bootstrapper'), 'directory')
+        const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, 'pulsesync-bootstrapper'), 'file')
+        const modulesDir = requirePath(path.join(contentsDir, 'modules'), 'directory')
+        const artifactWorkerFile = requireModuleFile(contentsDir, 'artifactWorker', 'artifactWorker.cjs')
+        const nativeModuleFile = requireModuleFile(contentsDir, 'pulsesyncNative', 'pulsesyncNative.node')
+        requireExecutableBit(appPayloadExecutable)
+        requireExecutableBit(installedNativeExecutable)
+        rejectBootstrapperEntrypointScript(appPayloadExecutable)
+        rejectPath(path.join(contentsDir, 'current.json'))
+        rejectPath(path.join(contentsDir, 'updates'))
+        if (fs.readdirSync(contentsDir).some(name => /^app-/iu.test(name))) {
+            throw new Error(`Expected no versioned app directories inside macOS bundle: ${contentsDir}`)
+        }
+        console.log(
+            JSON.stringify(
+                {
+                    state: 'ok',
+                    platform,
+                    installRoot,
+                    installedBootstrapperDir,
+                    appPayloadExecutable,
+                    installedNativeExecutable,
+                    artifactWorkerFile,
+                    modulesHasFiles: hasFiles(modulesDir),
+                    nativeModuleFile,
+                },
+                null,
+                4,
+            ),
+        )
+        return
+    }
     const installedBootstrapperDir = requirePath(path.join(installRoot, 'bootstrapper'), 'directory')
     const updatesDir = requirePath(path.join(installRoot, 'updates'), 'directory')
     const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, nativeExecutableName(platform)), 'file')

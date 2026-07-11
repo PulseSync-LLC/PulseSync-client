@@ -1,5 +1,5 @@
 use crate::{
-    cli::args::{Args, arg_value, required_arg, usize_arg},
+    cli::args::{Args, arg_value, required_arg, required_state_root, usize_arg},
     core::error::Result,
     domain::{
         install_workflow::events::{
@@ -37,7 +37,9 @@ pub fn prepare_update_command(args: &Args) -> Result<Value> {
         .map_err(input_error)?
         .ok_or_else(|| input_error("--retain-app-versions is required"))?;
     let options = PrepareUpdateOptions {
-        install_root: PathBuf::from(required_input(args, "--install-root")?),
+        state_root: PathBuf::from(required_state_root(args).map_err(input_error)?),
+        host_bundle: arg_value(args, "--host-bundle").map(PathBuf::from),
+        app_executable: arg_value(args, "--app-executable").map(PathBuf::from),
         app_executable_name: arg_value(args, "--app-executable-name"),
         installed_version: required_input(args, "--installed-version")?,
         dist: required_input(args, "--dist")?,

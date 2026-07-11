@@ -23,17 +23,24 @@ function pushArg(args: string[], name: string, value: string | undefined): void 
     }
 }
 
+function runtimePathArgs(options: { hostBundle?: string | null; stateRoot: string }): string[] {
+    const args = ['--state-root', options.stateRoot]
+    pushArg(args, '--host-bundle', options.hostBundle ?? undefined)
+    return args
+}
+
 export async function claimActiveApp(options: {
     allowUnreservedRecovery?: boolean
     appExecutable: string
     expectedLeaseId?: string
     handoffId?: string
-    installRoot: string
+    hostBundle?: string | null
     launchReservationId?: string
     launcher: BootstrapperLauncher
     pid?: number
+    stateRoot: string
 }): Promise<ClaimActiveAppResultV1> {
-    const args = ['--install-root', options.installRoot, '--pid', String(options.pid ?? process.pid), '--app-executable', options.appExecutable]
+    const args = [...runtimePathArgs(options), '--pid', String(options.pid ?? process.pid), '--app-executable', options.appExecutable]
     pushArg(args, '--launch-reservation-id', options.launchReservationId)
     pushArg(args, '--handoff-id', options.handoffId)
     pushArg(args, '--expected-lease-id', options.expectedLeaseId)
@@ -48,14 +55,14 @@ export async function claimActiveApp(options: {
 export async function enqueueLaunchRequest(options: {
     activeLeaseId: string
     input: LaunchRequestInputV1
-    installRoot: string
+    stateRoot: string
     launcher: BootstrapperLauncher
 }): Promise<EnqueueLaunchRequestResultV1> {
     return unwrapSemanticResult(
         await runBootstrapperCommand({
             launcher: options.launcher,
             command: 'enqueue-launch-request',
-            args: ['--install-root', options.installRoot, '--active-lease-id', options.activeLeaseId],
+            args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId],
             stdin: `${JSON.stringify(options.input)}\n`,
             parseResult: parseEnqueueResult,
         }),
@@ -64,7 +71,7 @@ export async function enqueueLaunchRequest(options: {
 
 export async function claimLaunchRequests(options: {
     activeLeaseId: string
-    installRoot: string
+    stateRoot: string
     launcher: BootstrapperLauncher
     limit?: number
 }): Promise<ClaimLaunchRequestsResultV1> {
@@ -72,7 +79,7 @@ export async function claimLaunchRequests(options: {
         await runBootstrapperCommand({
             launcher: options.launcher,
             command: 'claim-launch-requests',
-            args: ['--install-root', options.installRoot, '--active-lease-id', options.activeLeaseId, '--limit', String(options.limit ?? 64)],
+            args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--limit', String(options.limit ?? 64)],
             parseResult: parseClaimRequestsResult,
         }),
     )
@@ -80,7 +87,7 @@ export async function claimLaunchRequests(options: {
 
 export async function ackLaunchRequest(options: {
     activeLeaseId: string
-    installRoot: string
+    stateRoot: string
     launcher: BootstrapperLauncher
     requestId: string
 }): Promise<AckLaunchRequestResultV1> {
@@ -88,7 +95,7 @@ export async function ackLaunchRequest(options: {
         await runBootstrapperCommand({
             launcher: options.launcher,
             command: 'ack-launch-request',
-            args: ['--install-root', options.installRoot, '--active-lease-id', options.activeLeaseId, '--request-id', options.requestId],
+            args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--request-id', options.requestId],
             parseResult: parseAckResult,
         }),
     )
@@ -98,17 +105,17 @@ export async function startPreparedHandoff(options: {
     activeLeaseId: string
     appExecutable: string
     appExecutableName: string
-    installRoot: string
+    hostBundle?: string | null
     launcher: BootstrapperLauncher
     onArmed: (event: RustHandoffArmedEventV1) => void
     onDiagnostic?: (line: string) => void
     passthrough?: string[]
+    stateRoot: string
     waitForPid: number
     waitTimeoutMs?: number
 }): Promise<StartResultV1> {
     const args = [
-        '--install-root',
-        options.installRoot,
+        ...runtimePathArgs(options),
         '--app-executable-name',
         options.appExecutableName,
         '--app-executable',
@@ -136,10 +143,4 @@ export async function startPreparedHandoff(options: {
     )
 }
 
-export type {
-    ActiveAppLeaseV1,
-    LaunchRequestEnvelopeV1,
-    LaunchRequestInputV1,
-    RustHandoffArmedEventV1,
-    StartResultV1,
-} from './contracts'
+export type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1, RustHandoffArmedEventV1, StartResultV1 } from './contracts'

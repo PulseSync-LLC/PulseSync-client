@@ -1,5 +1,5 @@
 use crate::{
-    cli::args::{Args, arg_value},
+    cli::args::{Args, arg_value, state_root_arg},
     core::{
         active_app::{
             ActiveAppLease, ActiveAppLeaseState, HandoffTransfer, HandoffTransferState,
@@ -12,7 +12,7 @@ use crate::{
             remove_launch_reservation, take_over_failed_handoff, verified_live_lease,
         },
         error::Result,
-        layout::{assert_inside, canonical_install_root, resolve_layout},
+        layout::{assert_inside, canonical_install_root, resolve_layout, resolve_macos_layout},
         operation_lock::UpdateLock,
         self_update::{
             SelfUpdateHandoffReservation, SelfUpdateMutationGate, new_self_update_reservation,
@@ -28,6 +28,7 @@ use crate::{
             launch_request_result_value,
         },
         launcher::{launch_app, launch_app_with_env},
+        macos_bundle,
         transactions::{
             apply_transaction_file, newest_transaction, rollback_transaction_file,
             transaction_artifacts,
@@ -479,10 +480,12 @@ fn launch_self_update_handoff(
     prepared_bootstrapper: &Path,
     transaction_file: &Path,
     install_root: &Path,
+    host_bundle: Option<&Path>,
     app_executable_name: Option<&str>,
     app_executable: &Path,
     passthrough_args: &[OsString],
     context: Option<&mut HandoffContext>,
+    parent_override: Option<&ProcessIdentity>,
 ) -> Result<Value> {
     let _session_lock = SessionLock::acquire(install_root, Duration::from_secs(10))?;
     let (app_handoff_id, active_lease_id, inbox_id, inbox_generation, transfer_state) =
@@ -523,7 +526,9 @@ fn launch_self_update_handoff(
         return Err("prepared bootstrapper is missing".into());
     }
     let reservation_id = Uuid::new_v4().to_string();
-    let parent = current_process_identity()?;
+    let parent = parent_override
+        .cloned()
+        .unwrap_or(current_process_identity()?);
     let mut command = Command::new(prepared_bootstrapper);
     command
         .arg("complete-self-update")
@@ -532,9 +537,12 @@ fn launch_self_update_handoff(
         .arg(transaction_file)
         .arg("--app-executable")
         .arg(app_executable)
-        .arg("--install-root")
+        .arg("--state-root")
         .arg(install_root)
         .env("PULSESYNC_SELF_UPDATE_HANDOFF_ID", &reservation_id);
+    if let Some(host_bundle) = host_bundle {
+        command.arg("--host-bundle").arg(host_bundle);
+    }
     if let Some(app_executable_name) = app_executable_name {
         command
             .arg("--app-executable-name")
@@ -566,6 +574,23 @@ fn launch_self_update_handoff(
         transfer_state,
     )?;
     write_self_update_reservation(install_root, &reservation)?;
+    if host_bundle.is_some()
+        && let Err(error) = (|| -> Result<()> {
+            macos_bundle::bind_app_handoff(transaction_file, app_handoff_id.as_deref())?;
+            macos_bundle::register_recovery_agent(
+                transaction_file,
+                prepared_bootstrapper,
+                child_identity.pid,
+                &child_identity.process_start_id,
+            )
+        })()
+    {
+        let _ = macos_bundle::signal_process(child_identity.pid, false);
+        let _ = remove_self_update_reservation(install_root);
+        let _ = macos_bundle::recover_transaction(transaction_file);
+        let _ = launch_app(app_executable, &[]);
+        return Err(error);
+    }
     let result = write_self_update_result(install_root, "reserved", &reservation)?;
     Ok(json!({
         "schemaVersion": 1,
@@ -579,9 +604,13 @@ fn launch_self_update_handoff(
 
 fn resolve_current_app_executable(
     install_root: Option<&PathBuf>,
+    host_bundle: Option<&PathBuf>,
     app_executable_name: Option<String>,
     fallback: &Path,
 ) -> Result<PathBuf> {
+    if host_bundle.is_some() {
+        return Ok(fallback.to_path_buf());
+    }
     if let Some(install_root) = install_root {
         return Ok(resolve_layout(install_root.clone(), app_executable_name)?.app_executable);
     }
@@ -604,11 +633,12 @@ fn ensure_app_executable(app_executable: &Path) -> Result<()> {
 pub fn start(args: &Args) -> Result<Value> {
     if arg_value(args, "--transaction-root").is_some() {
         return Err(
-            "--transaction-root is not supported; it is derived from --install-root".into(),
+            "--transaction-root is not supported; it is derived from the selected state root"
+                .into(),
         );
     }
     let handoff_request = handoff_request(args)?;
-    let explicit_install_root = arg_value(args, "--install-root").map(PathBuf::from);
+    let explicit_install_root = state_root_arg(args)?.map(PathBuf::from);
     let inferred_install_root = explicit_install_root
         .clone()
         .or_else(|| infer_install_root().ok());
@@ -617,14 +647,25 @@ pub fn start(args: &Args) -> Result<Value> {
         .map(|path| canonical_install_root(&path))
         .transpose()?;
     let app_executable_name = arg_value(args, "--app-executable-name");
-    let layout = install_root
-        .as_ref()
-        .map(|install_root| resolve_layout(install_root.clone(), app_executable_name.clone()))
-        .transpose()?;
+    let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
+    let explicit_app_executable = arg_value(args, "--app-executable").map(PathBuf::from);
+    let layout = match (&install_root, &host_bundle, &explicit_app_executable) {
+        (Some(state_root), Some(host_bundle), Some(app_executable)) => Some(resolve_macos_layout(
+            state_root.clone(),
+            host_bundle.clone(),
+            app_executable.clone(),
+        )?),
+        (Some(install_root), None, _) => Some(resolve_layout(
+            install_root.clone(),
+            app_executable_name.clone(),
+        )?),
+        (_, Some(_), None) => return Err("--host-bundle requires --app-executable".into()),
+        _ => None,
+    };
     let transaction_root = layout
         .as_ref()
         .map(|value| value.transaction_root.clone())
-        .ok_or("--install-root is required")?;
+        .ok_or("--state-root or legacy --install-root is required")?;
     if let Some(install_root) = install_root.as_deref() {
         let session_lock = SessionLock::acquire(install_root, Duration::from_secs(10))?;
         if let Some(reservation) = read_self_update_reservation(install_root)?
@@ -719,6 +760,56 @@ pub fn start(args: &Args) -> Result<Value> {
                     transfer,
                     rust_process,
                 };
+
+                if let Some(selected) = newest_transaction(&transaction_root)?
+                    && selected.state == "prepared"
+                {
+                    let transaction_value = read_transaction_file(&selected.path)?;
+                    if macos_bundle::is_macos_transaction(&transaction_value) {
+                        let current_helper = env::current_exe()?;
+                        let layout = layout.as_ref().ok_or("macOS runtime layout is missing")?;
+                        let expected_seed = layout.bootstrapper_dir.join("pulsesync-bootstrapper");
+                        if current_helper.canonicalize()? != expected_seed.canonicalize()? {
+                            return Err(format!(
+                                "macOS update must be armed by the current bundle seed: {}",
+                                expected_seed.display()
+                            )
+                            .into());
+                        }
+                        let prepared_helper =
+                            macos_bundle::arm_transaction(&selected.path, &current_helper)?;
+                        let app_executable = explicit_app_executable
+                            .clone()
+                            .or_else(|| Some(layout.app_executable.clone()))
+                            .ok_or("--app-executable is required for a macOS bundle update")?;
+                        let passthrough_args = args
+                            .passthrough
+                            .iter()
+                            .map(OsString::from)
+                            .collect::<Vec<_>>();
+                        let parent = context.predecessor.process_identity();
+                        drop(session_lock.take());
+                        let mut reserved = launch_self_update_handoff(
+                            &prepared_helper,
+                            &selected.path,
+                            install_root,
+                            host_bundle.as_deref(),
+                            app_executable_name.as_deref(),
+                            &app_executable,
+                            &passthrough_args,
+                            Some(&mut context),
+                            Some(&parent),
+                        )?;
+                        emit_handoff_armed(args, &context);
+                        reserved["appExecutable"] = json!(app_executable);
+                        reserved["hostBundle"] = json!(host_bundle);
+                        reserved["transactionRoot"] = json!(transaction_root);
+                        reserved["transactionAction"] = json!("macos-bundle-handoff");
+                        reserved["selectedTransactionFile"] = json!(selected.path);
+                        reserved["preparedBootstrapper"] = json!(prepared_helper);
+                        return Ok(reserved);
+                    }
+                }
                 emit_handoff_armed(args, &context);
                 drop(session_lock.take());
 
@@ -779,10 +870,9 @@ pub fn start(args: &Args) -> Result<Value> {
             },
         }
     }
-    let app_executable = arg_value(args, "--app-executable")
-        .map(PathBuf::from)
+    let app_executable = explicit_app_executable
         .or_else(|| layout.as_ref().map(|value| value.app_executable.clone()))
-        .ok_or("--install-root or --app-executable is required")?;
+        .ok_or("--state-root/--install-root or --app-executable is required")?;
 
     let passthrough_args = args
         .passthrough
@@ -793,6 +883,64 @@ pub fn start(args: &Args) -> Result<Value> {
     if let Some(selected) = selected {
         match selected.state.as_str() {
             "prepared" => {
+                let transaction_value = read_transaction_file(&selected.path)?;
+                if macos_bundle::is_macos_transaction(&transaction_value) {
+                    if handoff_context.is_none() {
+                        return Ok(json!({
+                            "schemaVersion": 1,
+                            "state": "blocked",
+                            "launched": false,
+                            "block": {
+                                "code": "macos-update-requires-active-handoff",
+                                "retryable": true,
+                                "safeToContinue": true,
+                            }
+                        }));
+                    }
+                    let current_helper = env::current_exe()?;
+                    let expected_seed = layout
+                        .as_ref()
+                        .ok_or("macOS runtime layout is missing")?
+                        .bootstrapper_dir
+                        .join("pulsesync-bootstrapper");
+                    if current_helper.canonicalize()? != expected_seed.canonicalize()? {
+                        return Err(format!(
+                            "macOS update must be armed by the current bundle seed: {}",
+                            expected_seed.display()
+                        )
+                        .into());
+                    }
+                    let prepared_helper =
+                        match macos_bundle::arm_transaction(&selected.path, &current_helper) {
+                            Ok(helper) => helper,
+                            Err(error) => {
+                                let _ = launch_app(&app_executable, &[]);
+                                return Err(error);
+                            }
+                        };
+                    drop(session_lock.take());
+                    let install_root = install_root
+                        .as_deref()
+                        .ok_or("macOS bundle update requires --state-root")?;
+                    let mut reserved = launch_self_update_handoff(
+                        &prepared_helper,
+                        &selected.path,
+                        install_root,
+                        host_bundle.as_deref(),
+                        app_executable_name.as_deref(),
+                        &app_executable,
+                        &passthrough_args,
+                        handoff_context.as_mut(),
+                        None,
+                    )?;
+                    reserved["appExecutable"] = json!(app_executable);
+                    reserved["hostBundle"] = json!(host_bundle);
+                    reserved["transactionRoot"] = json!(transaction_root);
+                    reserved["transactionAction"] = json!("macos-bundle-handoff");
+                    reserved["selectedTransactionFile"] = json!(selected.path);
+                    reserved["preparedBootstrapper"] = json!(prepared_helper);
+                    return Ok(reserved);
+                }
                 if let Some(prepared_bootstrapper) = prepared_bootstrapper_path(&selected.path)? {
                     drop(session_lock.take());
                     let install_root = install_root
@@ -802,10 +950,12 @@ pub fn start(args: &Args) -> Result<Value> {
                         &prepared_bootstrapper,
                         &selected.path,
                         install_root,
+                        None,
                         app_executable_name.as_deref(),
                         &app_executable,
                         &passthrough_args,
                         handoff_context.as_mut(),
+                        None,
                     )?;
                     reserved["appExecutable"] = json!(app_executable);
                     reserved["transactionRoot"] = json!(transaction_root);
@@ -835,6 +985,7 @@ pub fn start(args: &Args) -> Result<Value> {
                 }
                 let launch_executable = resolve_current_app_executable(
                     install_root.as_ref(),
+                    host_bundle.as_ref(),
                     app_executable_name.clone(),
                     &app_executable,
                 )?;
@@ -881,6 +1032,7 @@ pub fn start(args: &Args) -> Result<Value> {
                 }
                 let launch_executable = resolve_current_app_executable(
                     install_root.as_ref(),
+                    host_bundle.as_ref(),
                     app_executable_name.clone(),
                     &app_executable,
                 )?;
@@ -906,9 +1058,56 @@ pub fn start(args: &Args) -> Result<Value> {
                     "reason": "Failed transaction rolled back before launch"
                 }));
             }
-            "applied" | "rolled-back" => {
+            "commit-slot-ready" | "exchanged" | "verified" | "rollback-persisted" => {
+                let transaction_value = read_transaction_file(&selected.path)?;
+                if macos_bundle::is_macos_transaction(&transaction_value) {
+                    let reconciled = if selected.state == "verified"
+                        && macos_bundle::startup_acknowledged(&selected.path)?
+                    {
+                        macos_bundle::finalize_transaction(&selected.path)?
+                    } else {
+                        macos_bundle::recover_transaction(&selected.path)?
+                    };
+                    if let Some(install_root) = install_root.as_deref() {
+                        remove_self_update_reservation(install_root)?;
+                    }
+                    macos_bundle::remove_recovery_agent(&selected.path)?;
+                    let launch_executable = resolve_current_app_executable(
+                        install_root.as_ref(),
+                        host_bundle.as_ref(),
+                        app_executable_name.clone(),
+                        &app_executable,
+                    )?;
+                    ensure_app_executable(&launch_executable)?;
+                    let (pid, lease) = launch_for_start(
+                        install_root.as_deref(),
+                        &launch_executable,
+                        &passthrough_args,
+                        handoff_context.as_mut(),
+                    )?;
+                    return Ok(json!({
+                        "schemaVersion": 1,
+                        "state": "launched",
+                        "launched": true,
+                        "pid": pid,
+                        "lease": lease,
+                        "appExecutable": launch_executable,
+                        "transactionRoot": transaction_root,
+                        "transactionAction": "macos-reconcile",
+                        "selectedTransactionFile": selected.path,
+                        "transactionStateBefore": selected.state,
+                        "transactionStateAfter": reconciled.get("state").and_then(Value::as_str).unwrap_or("failed"),
+                    }));
+                }
+            }
+            "applied" | "complete" | "rolled-back" => {
+                let transaction_value = read_transaction_file(&selected.path)?;
+                if macos_bundle::is_macos_transaction(&transaction_value) {
+                    macos_bundle::remove_recovery_agent(&selected.path)?;
+                }
                 let launch_executable = resolve_current_app_executable(
                     install_root.as_ref(),
+                    host_bundle.as_ref(),
                     app_executable_name.clone(),
                     &app_executable,
                 )?;
@@ -957,6 +1156,7 @@ pub fn start(args: &Args) -> Result<Value> {
 
     let launch_executable = resolve_current_app_executable(
         install_root.as_ref(),
+        host_bundle.as_ref(),
         app_executable_name,
         &app_executable,
     )?;

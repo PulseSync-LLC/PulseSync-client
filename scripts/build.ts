@@ -4,7 +4,7 @@ import os from 'os'
 import path from 'path'
 import crypto from 'crypto'
 import { promisify } from 'util'
-import { exec as _exec, execSync } from 'child_process'
+import { exec as _exec, execFileSync, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
 import chalk from 'chalk'
 import yaml from 'js-yaml'
@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
-import { copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
+import { buildBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -419,26 +419,6 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
     fs.chmodSync(launcherPath, 0o755)
 }
 
-function writeMacBootstrapperEntrypoint(setupRoot: string): void {
-    if (os.platform() !== 'darwin') {
-        return
-    }
-
-    const productName = getProductNameFromConfig()
-    const launcherPath = path.join(setupRoot, 'MacOS', productName)
-    const launcher = [
-        '#!/usr/bin/env bash',
-        'set -euo pipefail',
-        'APP_CONTENTS="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"',
-        'exec "${APP_CONTENTS}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_CONTENTS}" -- "$@"',
-        '',
-    ].join('\n')
-
-    fs.mkdirSync(path.dirname(launcherPath), { recursive: true })
-    fs.writeFileSync(launcherPath, launcher, 'utf-8')
-    fs.chmodSync(launcherPath, 0o755)
-}
-
 function applyApplicationSetupArtifactName(configObj: any): void {
     if (os.platform() !== 'win32') {
         return
@@ -469,6 +449,7 @@ function isManagedReleaseArtifact(fileName: string): boolean {
         /^desktop-update-[a-z0-9_-]+\.json$/iu.test(fileName) ||
         /^pulsesync-app-/iu.test(fileName) ||
         /^pulsesync-app-payload-/iu.test(fileName) ||
+        /^pulsesync-host-bundle-/iu.test(fileName) ||
         /^pulsesync-bootstrapper-/iu.test(fileName) ||
         /^pulsesync-module-/iu.test(fileName) ||
         /^pulsesync-native-modules-/iu.test(fileName)
@@ -539,7 +520,38 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     return installRoot
 }
 
+async function installMacBootstrapperSeed(outDir: string): Promise<string> {
+    if (os.platform() !== 'darwin') {
+        throw new Error('installMacBootstrapperSeed is only valid on macOS')
+    }
+    const executable = await buildBootstrapperExecutable()
+    fs.rmSync(getBootstrapperInstallerRoot(outDir), { force: true, recursive: true })
+    fs.rmSync(path.join(path.dirname(outDir), `${path.basename(outDir)}-bootstrapper-setup`), { force: true, recursive: true })
+    const targetDir = path.join(getPackagedResourcesDir(outDir), 'bootstrapper')
+    const targetExecutable = path.join(targetDir, 'pulsesync-bootstrapper')
+    fs.rmSync(targetDir, { force: true, recursive: true })
+    fs.mkdirSync(targetDir, { recursive: true })
+    fs.copyFileSync(executable, targetExecutable)
+    fs.chmodSync(targetExecutable, 0o755)
+    const identity = process.env.PULSESYNC_MAC_SIGN_IDENTITY?.trim() || (publishBranch ? null : '-')
+    if (!identity) {
+        throw new Error('PULSESYNC_MAC_SIGN_IDENTITY is required for a published macOS build')
+    }
+    const signingArgs = ['--force', '--deep', '--sign', identity]
+    if (identity === '-') {
+        signingArgs.push('--timestamp=none')
+    } else {
+        signingArgs.push('--options', 'runtime', '--timestamp')
+    }
+    signingArgs.push(path.join(outDir, `${getProductNameFromConfig()}.app`))
+    execFileSync('/usr/bin/codesign', signingArgs, { stdio: debug ? 'inherit' : 'pipe' })
+    return targetDir
+}
+
 async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string, version: string): Promise<string> {
+    if (os.platform() === 'darwin') {
+        throw new Error('macOS uses the intact Forge application bundle; setup-root transformation is forbidden')
+    }
     const setupRoot = getBootstrapperSetupRoot(outDir)
     fs.rmSync(setupRoot, { force: true, recursive: true })
     fs.mkdirSync(getBootstrapperResourcesDir(setupRoot), { recursive: true })
@@ -552,13 +564,8 @@ async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dis
     }
     await copyBootstrapperToInstallRoot(setupRoot)
     writeBootstrapperSetupConfig(setupRoot, channel, dist, version)
-    fs.writeFileSync(
-        path.join(setupRoot, 'current.json'),
-        `${JSON.stringify({ schemaVersion: 1, version }, null, 4)}\n`,
-        'utf-8',
-    )
+    fs.writeFileSync(path.join(setupRoot, 'current.json'), `${JSON.stringify({ schemaVersion: 1, version }, null, 4)}\n`, 'utf-8')
     writeLinuxBootstrapperEntrypoint(setupRoot)
-    writeMacBootstrapperEntrypoint(setupRoot)
     return setupRoot
 }
 
@@ -694,9 +701,15 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
-        await prepareBootstrapperInstallerRoot(pdPath)
         const setupDist = setBuildDist(os.platform(), targetArch)
-        const setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, readPackageVersion())
+        let setupRoot: string
+        if (os.platform() === 'darwin') {
+            await installMacBootstrapperSeed(pdPath)
+            setupRoot = pdPath
+        } else {
+            await prepareBootstrapperInstallerRoot(pdPath)
+            setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, readPackageVersion())
+        }
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -733,10 +746,7 @@ async function main(): Promise<void> {
         cleanManagedReleaseArtifacts(releaseDir)
         const { version } = generateBuildInfo()
 
-        const buildDist =
-            os.platform() === 'darwin'
-                ? setBuildDist('darwin', targetArch)
-                : setBuildDist(os.platform(), os.arch())
+        const buildDist = os.platform() === 'darwin' ? setBuildDist('darwin', targetArch) : setBuildDist(os.platform(), os.arch())
 
         if (os.platform() === 'darwin') {
             await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
@@ -747,8 +757,16 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
-        const payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
-        const setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version)
+        let payloadRoot: string
+        let setupRoot: string
+        if (os.platform() === 'darwin') {
+            await installMacBootstrapperSeed(outDir)
+            payloadRoot = outDir
+            setupRoot = outDir
+        } else {
+            payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
+            setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version)
+        }
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
         } else if (os.platform() === 'linux') {
@@ -803,10 +821,7 @@ async function main(): Promise<void> {
                 )
             }
         } else {
-            await runCommandStep(
-                'Build (electron-builder)',
-                `electron-builder --pd "${setupRoot}" --config "${tmpPath}" --publish never`,
-            )
+            await runCommandStep('Build (electron-builder)', `electron-builder --pd "${setupRoot}" --config "${tmpPath}" --publish never`)
         }
         removeUnpublishedReleaseArtifacts(releaseDir)
 

@@ -1,5 +1,5 @@
 use crate::{
-    cli::args::{Args, required_arg},
+    cli::args::{Args, required_arg, required_state_root},
     core::error::Result,
     domain::update_workflow::{
         UpdateWorkflowError, discard_prepared_update, serialize_discard_result,
@@ -32,7 +32,7 @@ pub fn discard_prepared_update_command(args: &Args) -> Result<Value> {
         return Err(input_error(format!("unsupported discard reason: {reason}")).into());
     }
     serialize_discard_result(discard_prepared_update(
-        PathBuf::from(required_input(args, "--install-root")?),
+        PathBuf::from(required_state_root(args).map_err(input_error)?),
         required_input(args, "--transaction-id")?,
     )?)
 }

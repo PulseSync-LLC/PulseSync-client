@@ -5,6 +5,11 @@ fn main() {
         return;
     }
 
+    embed_windows_resources();
+}
+
+#[cfg(windows)]
+fn embed_windows_resources() {
     let mut resource = winresource::WindowsResource::new();
     resource.set_icon("../../icons/icon.ico");
     resource.set("ProductName", "PulseSync");
@@ -15,3 +20,6 @@ fn main() {
         .compile()
         .expect("failed to embed PulseSync bootstrapper Windows resources");
 }
+
+#[cfg(not(windows))]
+fn embed_windows_resources() {}

@@ -14,9 +14,9 @@ use crate::{
         error::Result as CoreResult,
         fs_ops::sha256_file,
         layout::{
-            Layout, assert_inside, canonical_install_root, is_inside,
-            normalize_retain_app_versions, read_current_version, resolve_layout, versioned_app_dir,
-            versioned_modules_dir,
+            Layout, LayoutKind, assert_inside, canonical_install_root, is_inside,
+            normalize_retain_app_versions, read_current_version, resolve_layout,
+            resolve_macos_layout, versioned_app_dir, versioned_modules_dir,
         },
         operation_lock::UpdateLock,
         path_segment::sanitize_path_segment,
@@ -27,11 +27,12 @@ use crate::{
         artifacts::{ArtifactKey, artifact_file_name, stage_artifacts},
         install_plan::{create_install_plan, default_install_artifact_keys},
         install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
+        macos_bundle,
         manifest::{
-            BootstrapperArtifact, BootstrapperUpdateDecision, BootstrapperUpdateManifest,
-            DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO, GitHubManifestFallback, artifact_for_key,
-            decide_update, github_manifest_url, health_check_available, read_source,
-            validate_manifest,
+            ArtifactLayout, BootstrapperArtifact, BootstrapperUpdateDecision,
+            BootstrapperUpdateManifest, DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO,
+            GitHubManifestFallback, artifact_for_key, decide_update, github_manifest_url,
+            health_check_available, read_source, validate_manifest,
         },
         transactions::{
             TransactionRecord, prepare_transaction_file_at, prepared_transactions,
@@ -55,7 +56,9 @@ const UPDATE_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 const SESSION_LOCK_TIMEOUT: Duration = Duration::from_secs(10);
 
 pub struct PrepareUpdateOptions {
-    pub install_root: PathBuf,
+    pub state_root: PathBuf,
+    pub host_bundle: Option<PathBuf>,
+    pub app_executable: Option<PathBuf>,
     pub app_executable_name: Option<String>,
     pub installed_version: String,
     pub dist: String,
@@ -142,6 +145,13 @@ fn paths_match(left: &Path, right: &Path) -> bool {
 }
 
 fn current_install_is_safe(layout: &Layout, installed_version: Option<&str>) -> bool {
+    if layout.layout_kind == LayoutKind::MacosBundle {
+        return layout
+            .host_bundle
+            .as_ref()
+            .is_some_and(|bundle| bundle.join("Contents").join("Info.plist").is_file())
+            && layout.app_executable.is_file();
+    }
     let Some(current_version) = layout.current_version.as_deref() else {
         return false;
     };
@@ -155,6 +165,19 @@ fn current_install_is_safe(layout: &Layout, installed_version: Option<&str>) -> 
             .flatten()
             .as_deref()
             == Some(current_version)
+}
+
+fn resolve_options_layout(
+    options: &PrepareUpdateOptions,
+    state_root: PathBuf,
+) -> CoreResult<Layout> {
+    match (&options.host_bundle, &options.app_executable) {
+        (Some(host_bundle), Some(app_executable)) => {
+            resolve_macos_layout(state_root, host_bundle.clone(), app_executable.clone())
+        }
+        (None, None) => resolve_layout(state_root, options.app_executable_name.clone()),
+        _ => Err("--host-bundle and --app-executable must be provided together".into()),
+    }
 }
 
 fn relative_executable_name_is_safe(value: &str) -> bool {
@@ -473,6 +496,32 @@ fn transaction_matches(
     let Some(transaction_id) = value.get("transactionId").and_then(Value::as_str) else {
         return false;
     };
+    if macos_bundle::is_macos_transaction(value) {
+        let Some(artifacts) = decision.artifacts.as_ref() else {
+            return false;
+        };
+        return artifacts.layout == ArtifactLayout::MacosBundle
+            && value.get("schemaVersion").and_then(Value::as_u64) == Some(1)
+            && record.candidate.state == "prepared"
+            && Uuid::parse_str(transaction_id).is_ok()
+            && value.get("channel").and_then(Value::as_str) == Some(decision.channel.as_str())
+            && value.get("dist").and_then(Value::as_str) == Some(decision.dist.as_str())
+            && value.get("targetVersion").and_then(Value::as_str)
+                == Some(decision.target_version.as_str())
+            && value.get("applyDeferredByLeaseId").and_then(Value::as_str) == Some(lease_id)
+            && value_path(value, "stateRoot")
+                .is_some_and(|path| paths_match(&path, &layout.state_root))
+            && value_path(value, "hostBundle").is_some_and(|path| {
+                layout
+                    .host_bundle
+                    .as_ref()
+                    .is_some_and(|host| paths_match(&path, host))
+            })
+            && value
+                .get("archiveSha256")
+                .and_then(Value::as_str)
+                .is_some_and(|sha| sha.eq_ignore_ascii_case(&artifacts.app.sha256));
+    }
     if value.get("schemaVersion").and_then(Value::as_u64) != Some(1)
         || record.candidate.state != "prepared"
         || Uuid::parse_str(transaction_id).is_err()
@@ -652,7 +701,7 @@ pub fn prepare_update(
         ));
     }
 
-    let install_root = canonical_install_root(&options.install_root).map_err(|error| {
+    let install_root = canonical_install_root(&options.state_root).map_err(|error| {
         workflow_error(
             PREPARE_COMMAND,
             "unsafe-install-root",
@@ -662,8 +711,7 @@ pub fn prepare_update(
             false,
         )
     })?;
-    let prelock_layout =
-        resolve_layout(install_root.clone(), options.app_executable_name.clone()).ok();
+    let prelock_layout = resolve_options_layout(&options, install_root.clone()).ok();
     let prelock_safe = prelock_layout
         .as_ref()
         .is_some_and(|layout| current_install_is_safe(layout, Some(&options.installed_version)));
@@ -679,7 +727,7 @@ pub fn prepare_update(
             )
         })?;
     reject_live_self_update(&install_root, PREPARE_COMMAND, prelock_safe)?;
-    let layout = match resolve_layout(install_root, options.app_executable_name.clone()) {
+    let layout = match resolve_options_layout(&options, install_root) {
         Ok(layout) => layout,
         Err(_) => {
             return Ok(PrepareUpdateResult::blocked(
@@ -694,7 +742,9 @@ pub fn prepare_update(
     };
     let safe_to_continue = current_install_is_safe(&layout, Some(&options.installed_version));
 
-    if layout.current_version.as_deref() != Some(options.installed_version.as_str()) {
+    if layout.layout_kind == LayoutKind::VersionedComponents
+        && layout.current_version.as_deref() != Some(options.installed_version.as_str())
+    {
         return Ok(PrepareUpdateResult::blocked(
             None,
             None,
@@ -859,6 +909,29 @@ pub fn prepare_update(
     let decision = decide_update(&manifest, &options.installed_version, &options.dist);
     let public_decision = public_decision(&decision, &manifest);
 
+    let artifact_layout = decision
+        .artifacts
+        .as_ref()
+        .map(|artifacts| artifacts.layout);
+    let layout_matches_manifest = matches!(
+        (layout.layout_kind, artifact_layout),
+        (LayoutKind::MacosBundle, Some(ArtifactLayout::MacosBundle))
+            | (
+                LayoutKind::VersionedComponents,
+                Some(ArtifactLayout::VersionedComponents)
+            )
+    );
+    if decision.artifacts.is_some() && !layout_matches_manifest {
+        return Ok(PrepareUpdateResult::blocked(
+            Some(public_decision),
+            Some(source),
+            "artifact-layout-mismatch",
+            false,
+            safe_to_continue,
+            vec!["manifest-artifact-layout".to_string()],
+        ));
+    }
+
     if manifest.channel != options.channel {
         return Ok(PrepareUpdateResult::blocked(
             Some(public_decision),
@@ -966,6 +1039,66 @@ pub fn prepare_update(
             )
         },
     )?;
+
+    if artifact_layout == Some(ArtifactLayout::MacosBundle) {
+        if !active_lease_matches(&layout, &options.active_lease_id).map_err(|error| {
+            workflow_error(
+                PREPARE_COMMAND,
+                "session-lock-failed",
+                "lock",
+                error,
+                true,
+                safe_to_continue,
+            )
+        })? {
+            return Ok(PrepareUpdateResult::blocked(
+                None,
+                None,
+                "active-lease-mismatch",
+                true,
+                safe_to_continue,
+                vec!["active-lease-before-prepare".to_string()],
+            ));
+        }
+        fs::create_dir_all(&layout.transaction_root).map_err(|error| {
+            workflow_error(
+                PREPARE_COMMAND,
+                "transaction-root-failed",
+                "prepare",
+                error,
+                false,
+                safe_to_continue,
+            )
+        })?;
+        let transaction = macos_bundle::prepare_transaction(
+            &layout,
+            &decision,
+            &staging_root,
+            &options.active_lease_id,
+        )
+        .map_err(|error| {
+            let code = if error.to_string().starts_with("elevation-required:") {
+                "elevation-required"
+            } else {
+                "macos-transaction-prepare-failed"
+            };
+            workflow_error(
+                PREPARE_COMMAND,
+                code,
+                "prepare",
+                error,
+                false,
+                safe_to_continue,
+            )
+        })?;
+        return Ok(PrepareUpdateResult::prepared(
+            public_decision,
+            source,
+            false,
+            transaction,
+            options.active_lease_id,
+        ));
+    }
 
     reporter.emit(InstallWorkflowEvent::stage(
         "planning",
@@ -1320,6 +1453,72 @@ pub fn discard_prepared_update(
                 safe_to_continue,
             },
             removed: empty_removed,
+        });
+    }
+
+    if macos_bundle::is_macos_transaction(&record.value) {
+        let transaction_dir = record
+            .candidate
+            .path
+            .parent()
+            .map(Path::to_path_buf)
+            .ok_or_else(|| {
+                workflow_error(
+                    DISCARD_COMMAND,
+                    "unsafe-transaction-layout",
+                    "discard",
+                    "macOS transaction file has no parent directory",
+                    false,
+                    safe_to_continue,
+                )
+            })?;
+        let recorded_state_root = value_path(&record.value, "stateRoot");
+        let staging_dir = value_path(&record.value, "stagingDir");
+        if !is_inside(&layout.transaction_root, &transaction_dir)
+            || recorded_state_root
+                .as_ref()
+                .is_none_or(|root| !paths_match(root, &layout.state_root))
+            || staging_dir
+                .as_ref()
+                .is_none_or(|path| !is_inside(&layout.updates_dir, path))
+        {
+            return Err(workflow_error(
+                DISCARD_COMMAND,
+                "unsafe-transaction-layout",
+                "discard",
+                "macOS transaction paths are outside the state root",
+                false,
+                safe_to_continue,
+            ));
+        }
+        fs::remove_dir_all(&transaction_dir).map_err(|error| {
+            workflow_error(
+                DISCARD_COMMAND,
+                "transaction-discard-failed",
+                "discard",
+                error,
+                false,
+                safe_to_continue,
+            )
+        })?;
+        let staging_removed = staging_dir.as_ref().is_some_and(|path| {
+            remove_contained_directory(path, &layout.updates_dir).unwrap_or(false)
+        });
+        return Ok(DiscardPreparedUpdateResult {
+            schema_version: 1,
+            state: "discarded".to_string(),
+            transaction_id,
+            target_version,
+            reason: DiscardReason {
+                code: "discarded".to_string(),
+                retryable: false,
+                safe_to_continue,
+            },
+            removed: RemovedPreparedState {
+                transaction: true,
+                staging: staging_removed,
+                backup: false,
+            },
         });
     }
 

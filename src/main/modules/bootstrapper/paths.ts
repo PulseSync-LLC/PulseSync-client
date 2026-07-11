@@ -16,8 +16,9 @@ export type BootstrapperLauncher = {
 export type BootstrapperRuntimePaths = {
     appExecutable: string
     appExecutableName: string
-    installRoot: string
+    hostBundle: string | null
     launcher: BootstrapperLauncher | null
+    stateRoot: string
 }
 
 const BOOTSTRAPPER_DIR_NAME = 'bootstrapper'
@@ -47,11 +48,22 @@ function getAppPayloadInfo() {
     const executableDir = path.dirname(appExecutable)
     const parentDir = path.dirname(executableDir)
 
+    if (process.platform === 'darwin' && path.basename(executableDir) === 'MacOS' && path.basename(parentDir) === 'Contents') {
+        const hostBundle = path.dirname(parentDir)
+        return {
+            appExecutable,
+            appExecutableName: path.relative(hostBundle, appExecutable),
+            hostBundle,
+            stateRoot: app.getPath('userData'),
+        }
+    }
+
     if (path.basename(executableDir).toLowerCase() === 'app') {
         return {
             appExecutable,
             appExecutableName: path.basename(appExecutable),
-            installRoot: parentDir,
+            hostBundle: null,
+            stateRoot: parentDir,
         }
     }
 
@@ -59,49 +71,32 @@ function getAppPayloadInfo() {
         return {
             appExecutable,
             appExecutableName: path.basename(appExecutable),
-            installRoot: parentDir,
-        }
-    }
-
-    if (process.platform === 'darwin' && path.basename(executableDir) === 'MacOS' && path.basename(parentDir).toLowerCase() === 'app') {
-        return {
-            appExecutable,
-            appExecutableName: path.join('MacOS', path.basename(appExecutable)),
-            installRoot: path.dirname(parentDir),
-        }
-    }
-
-    if (process.platform === 'darwin' && path.basename(executableDir) === 'MacOS' && path.basename(parentDir).toLowerCase().startsWith('app-')) {
-        return {
-            appExecutable,
-            appExecutableName: path.join('MacOS', path.basename(appExecutable)),
-            installRoot: path.dirname(parentDir),
+            hostBundle: null,
+            stateRoot: parentDir,
         }
     }
 
     return {
         appExecutable,
         appExecutableName: path.basename(appExecutable),
-        installRoot: executableDir,
+        hostBundle: null,
+        stateRoot: executableDir,
     }
-}
-
-function getInstalledRootFromAppExecutable(): string {
-    return getAppPayloadInfo().installRoot
 }
 
 function getRuntimeLayout() {
     const appPayload = getAppPayloadInfo()
-    const installRoot = appPayload.installRoot
+    const stateRoot = appPayload.stateRoot
     const appExecutableName = appPayload.appExecutableName
 
     return {
         appExecutableName,
-        appDir: path.join(installRoot, 'app'),
+        appDir: path.join(stateRoot, 'app'),
         appExecutable: appPayload.appExecutable,
-        bootstrapperDir: path.join(installRoot, BOOTSTRAPPER_DIR_NAME),
-        installRoot,
-        modulesDir: path.join(installRoot, 'modules'),
+        bootstrapperDir: path.join(stateRoot, BOOTSTRAPPER_DIR_NAME),
+        hostBundle: appPayload.hostBundle,
+        stateRoot,
+        modulesDir: path.join(stateRoot, 'modules'),
     }
 }
 
@@ -147,7 +142,11 @@ function resolveLauncherFromDir(bootstrapperDir: string): BootstrapperLauncher |
 }
 
 function resolveInstalledLauncher(): BootstrapperLauncher | null {
-    return resolveLauncherFromDir(getRuntimeLayout().bootstrapperDir)
+    const layout = getRuntimeLayout()
+    if (process.platform === 'darwin' && layout.hostBundle) {
+        return resolveLauncherFromDir(path.join(layout.hostBundle, 'Contents', 'Resources', BOOTSTRAPPER_DIR_NAME))
+    }
+    return resolveLauncherFromDir(layout.bootstrapperDir)
 }
 
 export function getBootstrapperRuntimePaths(): BootstrapperRuntimePaths {
@@ -155,7 +154,8 @@ export function getBootstrapperRuntimePaths(): BootstrapperRuntimePaths {
     return {
         appExecutable: layout.appExecutable,
         appExecutableName: layout.appExecutableName,
-        installRoot: layout.installRoot,
+        hostBundle: layout.hostBundle,
         launcher: isAppDev ? resolveDevLauncher() : resolveInstalledLauncher(),
+        stateRoot: layout.stateRoot,
     }
 }
