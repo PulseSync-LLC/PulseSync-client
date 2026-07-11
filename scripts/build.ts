@@ -34,6 +34,13 @@ const BOOTSTRAPPER_RETAIN_APP_VERSIONS = 2
 const DEFAULT_S3_URL = 'https://s3.pulsesync.dev'
 const DEFAULT_SERVER_HEALTH_URL = 'https://ru-node-1.pulsesync.dev/api/v2/health'
 
+function readBootstrapperVersion(): string {
+    const cargoToml = fs.readFileSync(path.resolve(__dirname, '../packages/bootstrapper/Cargo.toml'), 'utf8')
+    const version = /^version\s*=\s*"([^"]+)"/mu.exec(cargoToml)?.[1]
+    if (!version) throw new Error('Bootstrapper package version is missing')
+    return version
+}
+
 const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
@@ -144,11 +151,13 @@ function signBuildIdentity(identity: { origin: string; version: string; commit: 
     return crypto.sign(null, createBuildIdentityPayload(identity), privateKey).toString('base64')
 }
 
-function generateBuildInfo(): { version: string } {
-    const pkgPath = path.resolve(__dirname, '../package.json')
-    log(LogLevel.INFO, `Reading package.json from ${pkgPath}`)
-    const raw = fs.readFileSync(pkgPath, 'utf-8')
+function generateBuildInfo(): { coreVersion: string; hostVersion: string } {
+    const hostPackagePath = path.resolve(__dirname, '../package.json')
+    const corePackagePath = path.resolve(__dirname, '../packages/desktop-core/package.json')
+    log(LogLevel.INFO, `Reading desktop core package from ${corePackagePath}`)
+    const raw = fs.readFileSync(corePackagePath, 'utf-8')
     const pkg = JSON.parse(raw) as { version: string; buildInfo?: any; [key: string]: any }
+    const hostPackage = JSON.parse(fs.readFileSync(hostPackagePath, 'utf-8')) as { version: string }
 
     const buildVersionRaw = process.env.BUILD_VERSION?.trim()
     if (buildVersionRaw) {
@@ -192,12 +201,12 @@ function generateBuildInfo(): { version: string } {
         SIGNATURE: signature,
     }
 
-    fs.writeFileSync(pkgPath, JSON.stringify(pkg, null, 4), 'utf-8')
+    fs.writeFileSync(corePackagePath, JSON.stringify(pkg, null, 4), 'utf-8')
     log(
         LogLevel.SUCCESS,
-        `Updated package.json → version=${newVersion}, buildInfo.BRANCH=${branchHash}, buildIdentity=${signature ? 'signed' : 'unsigned'}`,
+        `Updated desktop core package → version=${newVersion}, hostVersion=${hostPackage.version}, buildInfo.BRANCH=${branchHash}, buildIdentity=${signature ? 'signed' : 'unsigned'}`,
     )
-    return { version: newVersion }
+    return { coreVersion: newVersion, hostVersion: hostPackage.version }
 }
 
 function getProductNameFromConfig(): string {
@@ -449,7 +458,7 @@ function isManagedReleaseArtifact(fileName: string): boolean {
         fileName.endsWith('.blockmap') ||
         /^desktop-update-[a-z0-9_-]+\.json$/iu.test(fileName) ||
         /^pulsesync-app-/iu.test(fileName) ||
-        /^pulsesync-app-payload-/iu.test(fileName) ||
+        /^pulsesync-host-/iu.test(fileName) ||
         /^pulsesync-host-bundle-/iu.test(fileName) ||
         /^pulsesync-bootstrapper-/iu.test(fileName) ||
         /^pulsesync-module-/iu.test(fileName) ||
@@ -507,9 +516,9 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     const installRoot = getBootstrapperPayloadRoot(outDir)
     const packagedAppRoot = getPackagedAppRoot(outDir)
 
-    const appPayloadDir = path.join(installRoot, 'app')
+    const hostPayloadDir = path.join(installRoot, 'host')
     fs.rmSync(installRoot, { force: true, recursive: true })
-    copyDirectoryEntries(packagedAppRoot, appPayloadDir, new Set(['app', 'bootstrapper', 'modules', 'native', 'updates']))
+    copyDirectoryEntries(packagedAppRoot, hostPayloadDir, new Set(['app', 'bootstrapper', 'modules', 'native', 'updates']))
 
     const sourceModulesDir = path.join(packagedAppRoot, 'modules')
     if (fs.existsSync(sourceModulesDir)) {
@@ -549,7 +558,13 @@ async function installMacBootstrapperSeed(outDir: string): Promise<string> {
     return targetDir
 }
 
-async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dist: string, version: string): Promise<string> {
+async function prepareBootstrapperSetupRoot(
+    outDir: string,
+    channel: string,
+    dist: string,
+    coreVersion: string,
+    hostVersion: string,
+): Promise<string> {
     if (os.platform() === 'darwin') {
         throw new Error('macOS uses the intact Forge application bundle; setup-root transformation is forbidden')
     }
@@ -557,15 +572,64 @@ async function prepareBootstrapperSetupRoot(outDir: string, channel: string, dis
     fs.rmSync(setupRoot, { force: true, recursive: true })
     fs.mkdirSync(getBootstrapperResourcesDir(setupRoot), { recursive: true })
     const payloadRoot = getBootstrapperPayloadRoot(outDir)
-    const versionedAppRoot = path.join(setupRoot, `app-${version}`)
-    copyDirectoryEntries(path.join(payloadRoot, 'app'), versionedAppRoot)
+    const versionedHostRoot = path.join(setupRoot, `host-${hostVersion}`)
+    copyDirectoryEntries(path.join(payloadRoot, 'host'), versionedHostRoot)
     const modulesRoot = path.join(payloadRoot, 'modules')
     if (fs.existsSync(modulesRoot)) {
-        fs.cpSync(modulesRoot, path.join(versionedAppRoot, 'modules'), { recursive: true })
+        fs.cpSync(modulesRoot, path.join(setupRoot, 'modules'), { recursive: true })
     }
     await copyBootstrapperToInstallRoot(setupRoot)
-    writeBootstrapperSetupConfig(setupRoot, channel, dist, version)
-    fs.writeFileSync(path.join(setupRoot, 'current.json'), `${JSON.stringify({ schemaVersion: 1, version }, null, 4)}\n`, 'utf-8')
+    writeBootstrapperSetupConfig(setupRoot, channel, dist, coreVersion)
+    const coreRelativePath = path.join('modules', `desktopCore-${coreVersion}`, 'desktopCore')
+    const coreDirectory = path.join(setupRoot, coreRelativePath)
+    const coreEntryPath = path.join(coreDirectory, 'index.cjs')
+    if (!fs.existsSync(coreEntryPath) || !fs.statSync(coreEntryPath).isFile()) {
+        throw new Error(`Desktop core entry is missing from setup layout: ${coreEntryPath}`)
+    }
+    const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
+    const components: Record<string, { version: string; path: string; sha256: string; electronAbi?: string }> = {
+        desktopCore: {
+            version: coreVersion,
+            path: coreRelativePath.replace(/\\/gu, '/'),
+            sha256: hashDirectory(coreDirectory),
+        },
+    }
+    for (const entry of fs.readdirSync(path.join(setupRoot, 'modules'), { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('desktopCore-')) continue
+        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
+        if (!match) throw new Error(`Expected Discord-style module directory: ${entry.name}`)
+        const [, moduleName, version] = match
+        const relativePath = path.join('modules', entry.name, moduleName)
+        components[moduleName] = {
+            version,
+            path: relativePath.replace(/\\/gu, '/'),
+            sha256: hashDirectory(path.join(setupRoot, relativePath)),
+            ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
+        }
+    }
+    const bootstrapperRelativePath = path.join('bootstrapper', os.platform() === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper')
+    const bootstrapperPath = path.join(setupRoot, bootstrapperRelativePath)
+    components.bootstrapper = {
+        version: readBootstrapperVersion(),
+        path: bootstrapperRelativePath.replace(/\\/gu, '/'),
+        sha256: crypto.createHash('sha256').update(fs.readFileSync(bootstrapperPath)).digest('hex'),
+    }
+    const installState = {
+        schemaVersion: 2,
+        generation: 1,
+        metadataVersion: 0,
+        activation: { state: 'confirmed', generation: 1 },
+        active: {
+            host: { version: hostVersion, path: `host-${hostVersion}`, electronAbi },
+            components,
+        },
+        previous: null,
+    }
+    const runtimeDir = path.join(setupRoot, 'runtime')
+    fs.mkdirSync(runtimeDir, { recursive: true })
+    fs.writeFileSync(path.join(runtimeDir, 'install-state.json'), `${JSON.stringify(installState, null, 4)}\n`, 'utf-8')
+    fs.mkdirSync(path.join(setupRoot, 'updates', 'staging'), { recursive: true })
+    fs.mkdirSync(path.join(setupRoot, 'updates', 'transactions'), { recursive: true })
     writeLinuxBootstrapperEntrypoint(setupRoot)
     return setupRoot
 }
@@ -598,7 +662,6 @@ function copyRuntimeNativeModules(outDir: string): void {
     const nativeDir = path.resolve(__dirname, '../nativeModules')
     const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
 
-    fs.rmSync(modulesDir, { force: true, recursive: true })
     fs.rmSync(path.join(getPackagedAppRoot(outDir), 'native'), { force: true, recursive: true })
 
     for (const mod of fs.readdirSync(nativeDir)) {
@@ -619,6 +682,7 @@ function copyRuntimeNativeModules(outDir: string): void {
             .readdirSync(releasePath, { withFileTypes: true })
             .filter(entry => entry.isFile() && path.extname(entry.name).toLowerCase() === '.node')
 
+        fs.rmSync(path.join(modulesDir, mod), { force: true, recursive: true })
         for (const artifact of compiledArtifacts) {
             const sourcePath = path.join(releasePath, artifact.name)
             const dest = path.join(modulesDir, mod, artifact.name)
@@ -640,6 +704,46 @@ function copyArtifactWorker(outDir: string): void {
     fs.copyFileSync(source, dest)
     fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'app.asar.unpacked', '.vite', 'worker'), { force: true, recursive: true })
     log(LogLevel.SUCCESS, `Copied artifact worker to ${dest}`)
+}
+
+function hashDirectory(directory: string): string {
+    const hash = crypto.createHash('sha256')
+    const visit = (current: string): void => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+            const entryPath = path.join(current, entry.name)
+            if (entry.isDirectory()) {
+                visit(entryPath)
+                continue
+            }
+            const relative = path.relative(directory, entryPath).replace(/\\/gu, '/')
+            hash.update(relative)
+            hash.update('\0')
+            hash.update(fs.readFileSync(entryPath))
+            hash.update('\0')
+        }
+    }
+    visit(directory)
+    return hash.digest('hex')
+}
+
+function normalizeVersionedRuntimeModules(outDir: string): void {
+    const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
+    if (!fs.existsSync(modulesDir)) return
+    const corePackage = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8')) as {
+        componentVersions?: Record<string, string>
+    }
+    for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || entry.name.startsWith('desktopCore-') || /^.+-.+$/u.test(entry.name)) continue
+        const moduleDir = path.join(modulesDir, entry.name)
+        if (!fs.readdirSync(moduleDir).length) continue
+        const version = corePackage.componentVersions?.[entry.name]
+        if (!version || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/u.test(version)) {
+            throw new Error(`Missing explicit component version for ${entry.name}`)
+        }
+        const versionedModuleDir = path.join(modulesDir, `${entry.name}-${version}`)
+        fs.mkdirSync(versionedModuleDir, { recursive: true })
+        fs.renameSync(moduleDir, path.join(versionedModuleDir, entry.name))
+    }
 }
 
 async function main(): Promise<void> {
@@ -702,6 +806,7 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
+        normalizeVersionedRuntimeModules(pdPath)
         const setupDist = setBuildDist(os.platform(), targetArch)
         let setupRoot: string
         if (os.platform() === 'darwin') {
@@ -709,7 +814,9 @@ async function main(): Promise<void> {
             setupRoot = pdPath
         } else {
             await prepareBootstrapperInstallerRoot(pdPath)
-            setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, readPackageVersion())
+            const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8'))
+                .version as string
+            setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, coreVersion, readPackageVersion())
         }
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
@@ -745,7 +852,7 @@ async function main(): Promise<void> {
         const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${targetArch}`)
         const releaseDir = path.join('.', 'release')
         cleanManagedReleaseArtifacts(releaseDir)
-        const { version } = generateBuildInfo()
+        const { coreVersion: version, hostVersion } = generateBuildInfo()
 
         const buildDist = os.platform() === 'darwin' ? setBuildDist('darwin', targetArch) : setBuildDist(os.platform(), os.arch())
 
@@ -758,6 +865,7 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
+        normalizeVersionedRuntimeModules(outDir)
         let payloadRoot: string
         let setupRoot: string
         if (os.platform() === 'darwin') {
@@ -766,7 +874,7 @@ async function main(): Promise<void> {
             setupRoot = outDir
         } else {
             payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
-            setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version)
+            setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version, hostVersion)
         }
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
@@ -793,7 +901,7 @@ async function main(): Promise<void> {
         if (publishBranch) {
             configObj.extraMetadata = configObj.extraMetadata || {}
             configObj.extraMetadata.branch = publishBranch
-            configObj.extraMetadata.version = version
+            configObj.extraMetadata.version = hostVersion
         }
 
         if (os.platform() === 'darwin') {
@@ -844,7 +952,9 @@ async function main(): Promise<void> {
                 packagedAppRootDir: payloadRoot,
                 releaseDir,
                 rendererManifestUrl: process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
-                version,
+                coreVersion: version,
+                hostVersion,
+                metadataVersion: process.env.DESKTOP_METADATA_VERSION,
             })
             await publishToS3(publishBranch, releaseDir, version)
             if (publishChangelogFlag) {
