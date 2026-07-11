@@ -8,7 +8,7 @@ import { IoCloseSharp } from 'react-icons/io5'
 import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideModal.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
-type UpdateChannel = 'beta' | 'dev'
+type UpdateChannel = 'beta' | 'alpha' | 'dev'
 type ChannelSelection = UpdateChannel | 'default'
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
@@ -114,6 +114,10 @@ const UpdateChannelOverrideModal: React.FC = () => {
                 label: t('header.updateChannel.optionBeta'),
             },
             {
+                value: 'alpha',
+                label: t('header.updateChannel.optionAlpha'),
+            },
+            {
                 value: 'dev',
                 label: t('header.updateChannel.optionDev'),
             },
@@ -209,7 +213,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
                 {!isSwitchBlocked && selection !== 'default' && (
                     <div className={styles.hint}>
                         {t('header.updateChannel.nextChannel', { channel: nextChannel })}
-                        {selection === 'beta' && channelState.effectiveChannel === 'dev' ? ` ${t('header.updateChannel.hint')}` : ''}
+                        {selection === 'beta' && channelState.effectiveChannel !== 'beta' ? ` ${t('header.updateChannel.hint')}` : ''}
                     </div>
                 )}
             </div>
