@@ -126,7 +126,7 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
     let releases = releases
         .as_array()
         .ok_or("GitHub releases response must be an array")?;
-    let want_prerelease = fallback.channel == "dev";
+    let want_prerelease = matches!(fallback.channel.as_str(), "alpha" | "dev");
     let asset_name = format!("desktop-update-{}.json", fallback.dist);
 
     for release in releases {
@@ -144,6 +144,16 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
             != want_prerelease
         {
             continue;
+        }
+        if want_prerelease {
+            let release_channel = release
+                .get("tag_name")
+                .and_then(Value::as_str)
+                .and_then(|tag| tag.trim_start_matches('v').split_once('-'))
+                .map(|(_, prerelease)| prerelease.split('.').next().unwrap_or_default());
+            if release_channel != Some(fallback.channel.as_str()) {
+                continue;
+            }
         }
 
         let Some(assets) = release.get("assets").and_then(Value::as_array) else {
