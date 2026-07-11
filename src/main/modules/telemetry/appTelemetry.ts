@@ -3,6 +3,7 @@ import fs from 'node:fs/promises'
 import os from 'node:os'
 import { randomUUID } from 'node:crypto'
 import { app } from 'electron'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import logger from '../logger'
 import { getState } from '../state'
 import { APP_TELEMETRY_CONFIG } from '../../constants/telemetry'
@@ -186,7 +187,7 @@ function buildBasePayload(installId: string): BaseTelemetryPayload {
         platform: os.platform(),
         arch: os.arch(),
         app_name: TELEMETRY_APP_NAME,
-        app_version: app.getVersion(),
+        app_version: DESKTOP_CORE_VERSION,
     }
 }
 

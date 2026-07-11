@@ -237,26 +237,11 @@ const schema = {
                 description: t('main.storage.app.version'),
                 default: '',
             },
-            updateChannelOverride: {
-                type: 'string',
-                default: '',
-            },
-            updateSource: {
-                type: 'string',
-                default: 'backend',
-            },
-            remoteRendererManifestUrl: {
-                type: 'string',
-                default: '',
-            },
         },
-        required: ['version', 'updateChannelOverride', 'updateSource', 'remoteRendererManifestUrl'],
+        required: ['version'],
         additionalProperties: true,
         default: {
             version: '',
-            updateChannelOverride: '',
-            updateSource: 'backend',
-            remoteRendererManifestUrl: '',
         },
     },
 

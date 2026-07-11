@@ -11,6 +11,7 @@ import type {
     InstallUnpackedArtifactRequest,
     PrepareAsarArtifactRequest,
 } from './artifactWorker.types'
+import { getActiveComponentPath } from '../../bootstrap/activeComponents'
 
 const ARTIFACT_WORKER_TIMEOUT_MS = 5 * 60 * 1000
 const ARTIFACT_WORKER_IDLE_TIMEOUT_MS = 15 * 1000
@@ -44,8 +45,11 @@ function resolveArtifactWorkerPath(): string {
         return path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
     }
 
-    const appDir = path.dirname(process.resourcesPath)
-    const installRoot = path.basename(appDir).toLowerCase() === 'app' ? path.dirname(appDir) : appDir
+    const activeComponentPath = getActiveComponentPath('artifactWorker')
+    if (activeComponentPath) return path.join(activeComponentPath, 'artifactWorker.cjs')
+
+    const hostDir = path.dirname(process.resourcesPath)
+    const installRoot = path.basename(hostDir).toLowerCase().startsWith('host-') ? path.dirname(hostDir) : hostDir
     return path.join(installRoot, 'modules', 'artifactWorker', 'artifactWorker.cjs')
 }
 
