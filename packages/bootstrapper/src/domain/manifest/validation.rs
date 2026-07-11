@@ -1,6 +1,6 @@
 use crate::{
     core::error::Result,
-    domain::manifest::{BootstrapperArtifact, BootstrapperUpdateManifest},
+    domain::manifest::{ArtifactLayout, BootstrapperArtifact, BootstrapperUpdateManifest},
 };
 
 fn validate_artifact(artifact: &BootstrapperArtifact, label: &str) -> Result<()> {
@@ -41,6 +41,21 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
 
     for (dist, artifacts) in &manifest.artifacts {
         validate_artifact(&artifacts.app, &format!("{dist}.app"))?;
+        if artifacts.layout == ArtifactLayout::MacosBundle {
+            if !dist.starts_with("darwin-") {
+                return Err(format!(
+                    "{dist}.layout=macos-bundle is only valid for darwin distributions"
+                )
+                .into());
+            }
+            if artifacts.bootstrapper.is_some() || !artifacts.modules.is_empty() {
+                return Err(format!(
+                    "{dist}.layout=macos-bundle must contain only the app artifact"
+                )
+                .into());
+            }
+            continue;
+        }
         if let Some(artifact) = &artifacts.bootstrapper {
             validate_artifact(artifact, &format!("{dist}.bootstrapper"))?;
         }
@@ -62,4 +77,48 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn manifest(dist_artifacts: serde_json::Value) -> BootstrapperUpdateManifest {
+        serde_json::from_value(serde_json::json!({
+            "schemaVersion": 1,
+            "channel": "dev",
+            "clientVersion": "2.0.0",
+            "artifacts": { "darwin-arm64": dist_artifacts }
+        }))
+        .unwrap()
+    }
+
+    fn artifact() -> serde_json::Value {
+        serde_json::json!({
+            "url": "/tmp/host.zip",
+            "sha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+            "size": 10
+        })
+    }
+
+    #[test]
+    fn macos_bundle_accepts_only_full_host_artifact() {
+        let manifest = manifest(serde_json::json!({
+            "layout": "macos-bundle",
+            "app": artifact(),
+            "modules": {}
+        }));
+        assert!(validate_manifest(&manifest).is_ok());
+    }
+
+    #[test]
+    fn macos_bundle_rejects_independent_components() {
+        let manifest = manifest(serde_json::json!({
+            "layout": "macos-bundle",
+            "app": artifact(),
+            "bootstrapper": artifact(),
+            "modules": { "native": artifact() }
+        }));
+        assert!(validate_manifest(&manifest).is_err());
+    }
 }

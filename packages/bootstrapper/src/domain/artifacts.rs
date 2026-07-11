@@ -6,8 +6,8 @@ use crate::{
     },
     domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
-        BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
-        artifact_for_key, read_source,
+        ArtifactLayout, BootstrapperArtifact, BootstrapperDistArtifacts,
+        BootstrapperUpdateDecision, artifact_for_key, read_source,
     },
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
@@ -97,6 +97,9 @@ pub struct StagingResult {
 pub fn default_artifact_keys(artifacts: Option<&BootstrapperDistArtifacts>) -> Vec<ArtifactKey> {
     let mut keys = vec![ArtifactKey::App];
     if let Some(artifacts) = artifacts {
+        if artifacts.layout == ArtifactLayout::MacosBundle {
+            return keys;
+        }
         keys.extend(artifacts.modules.keys().cloned().map(ArtifactKey::Module));
         if artifacts.bootstrapper.is_some() {
             keys.push(ArtifactKey::Bootstrapper);

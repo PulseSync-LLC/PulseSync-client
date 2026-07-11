@@ -63,11 +63,14 @@ function main(): void {
     const outDir = path.join(outRoot, `${productName}-${platform}-${arch}`)
     const payloadRoot = `${outDir}-bootstrapper`
     const setupRoot =
-        platform === 'win32'
-            ? `${outDir}-bootstrapper-setup`
-            : platform === 'darwin'
-              ? path.join(outDir, `${productName}.app`, 'Contents')
-              : outDir
+        platform === 'win32' ? `${outDir}-bootstrapper-setup` : platform === 'darwin' ? path.join(outDir, `${productName}.app`, 'Contents') : outDir
+
+    if (platform === 'darwin') {
+        const bundleRoot = path.join(outDir, `${productName}.app`)
+        runTsxScript('scripts/bootstrapper/verify-package-layout.ts', ['--install-root', bundleRoot, '--platform', platform])
+        runTsxScript('scripts/bootstrapper/verify-setup-layout.ts', ['--install-root', bundleRoot, '--platform', platform, '--arch', arch])
+        return
+    }
 
     runTsxScript('scripts/bootstrapper/verify-package-layout.ts', ['--install-root', payloadRoot, '--platform', platform])
     runTsxScript('scripts/bootstrapper/verify-setup-layout.ts', ['--install-root', setupRoot, '--platform', platform, '--arch', arch])

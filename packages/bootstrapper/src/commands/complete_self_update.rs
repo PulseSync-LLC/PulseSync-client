@@ -1,5 +1,5 @@
 use crate::{
-    cli::args::{Args, arg_value, required_arg},
+    cli::args::{Args, arg_value, required_arg, required_state_root},
     commands::start::{HandoffContext, launch_handoff_successor, launch_with_active_lease},
     core::{
         active_app::{
@@ -8,14 +8,17 @@ use crate::{
             take_over_failed_handoff,
         },
         error::Result,
-        layout::{assert_inside, canonical_install_root, resolve_layout},
+        layout::{assert_inside, canonical_install_root, resolve_layout, resolve_macos_layout},
         operation_lock::UpdateLock,
         self_update::{
             read_self_update_reservation, remove_self_update_reservation, write_self_update_result,
         },
         session_lock::SessionLock,
     },
-    domain::transactions::{apply_transaction_file, transaction_artifacts},
+    domain::{
+        macos_bundle,
+        transactions::{apply_transaction_file, transaction_artifacts},
+    },
 };
 use serde_json::{Value, json};
 use std::{
@@ -67,9 +70,10 @@ fn transaction_contains_current_bootstrapper(
 }
 
 pub fn complete_self_update(args: &Args) -> Result<Value> {
-    let install_root =
-        canonical_install_root(&PathBuf::from(required_arg(args, "--install-root")?))?;
+    let install_root = canonical_install_root(&PathBuf::from(required_state_root(args)?))?;
     let transaction_file = PathBuf::from(required_arg(args, "--transaction-file")?);
+    let transaction_value: Value = serde_json::from_slice(&fs::read(&transaction_file)?)?;
+    let is_macos_bundle = macos_bundle::is_macos_transaction(&transaction_value);
     let expected_reservation_id = env::var("PULSESYNC_SELF_UPDATE_HANDOFF_ID")
         .map_err(|_| "PULSESYNC_SELF_UPDATE_HANDOFF_ID is required")?;
     let current_process = current_process_identity()?;
@@ -91,16 +95,42 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
     {
         return Err("self-update handoff reservation identity mismatch".into());
     }
-    let layout = resolve_layout(
-        install_root.clone(),
-        arg_value(args, "--app-executable-name"),
-    )?;
+    let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
+    let explicit_app_executable = PathBuf::from(required_arg(args, "--app-executable")?);
+    let layout = if let Some(host_bundle) = host_bundle.as_ref() {
+        resolve_macos_layout(
+            install_root.clone(),
+            host_bundle.clone(),
+            explicit_app_executable.clone(),
+        )?
+    } else {
+        resolve_layout(
+            install_root.clone(),
+            arg_value(args, "--app-executable-name"),
+        )?
+    };
     assert_inside(
         &layout.transaction_root,
         &transaction_file,
         "self-update transaction file",
     )?;
-    if !transaction_contains_current_bootstrapper(&transaction_file, &current_process.executable)? {
+    if is_macos_bundle {
+        if !macos_bundle::transaction_helper_matches(
+            &transaction_file,
+            &current_process.executable,
+        )? {
+            return Err("macOS transaction helper identity mismatch".into());
+        }
+        if !macos_bundle::recovery_agent_ready(&transaction_file)? {
+            return Err("macOS recovery agent activation was not durably acknowledged".into());
+        }
+        if !macos_bundle::app_handoff_bound(&transaction_file)? {
+            return Err("macOS bundle exchange requires a transaction-bound app handoff".into());
+        }
+    } else if !transaction_contains_current_bootstrapper(
+        &transaction_file,
+        &current_process.executable,
+    )? {
         return Err(
             "self-update transaction does not contain the running prepared bootstrapper".into(),
         );
@@ -158,8 +188,17 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
     remove_self_update_reservation(&install_root)?;
     drop(session_lock.take());
 
-    let applied = apply_transaction_file(&transaction_file)?;
-    if applied.get("state").and_then(Value::as_str) != Some("applied") {
+    let applied = if is_macos_bundle {
+        macos_bundle::exchange_transaction(&transaction_file)?
+    } else {
+        apply_transaction_file(&transaction_file)?
+    };
+    let expected_applied_state = if is_macos_bundle {
+        "verified"
+    } else {
+        "applied"
+    };
+    if applied.get("state").and_then(Value::as_str) != Some(expected_applied_state) {
         if let Some(context) = handoff_context.as_mut() {
             let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
             context.transfer = mark_handoff_launch_failed(&install_root, &context.transfer)?;
@@ -178,11 +217,15 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         }));
     }
 
-    let launch_executable = resolve_layout(
-        install_root.clone(),
-        arg_value(args, "--app-executable-name"),
-    )?
-    .app_executable;
+    let launch_executable = if is_macos_bundle {
+        explicit_app_executable
+    } else {
+        resolve_layout(
+            install_root.clone(),
+            arg_value(args, "--app-executable-name"),
+        )?
+        .app_executable
+    };
     if !launch_executable.is_file() {
         return Err("self-update target app executable is missing".into());
     }
@@ -191,17 +234,99 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         .iter()
         .map(OsString::from)
         .collect::<Vec<_>>();
-    let (pid, lease) = if let Some(context) = handoff_context.as_mut() {
-        let (pid, lease) = launch_handoff_successor(
+    let launch_result = if let Some(context) = handoff_context.as_mut() {
+        launch_handoff_successor(
             &install_root,
             context,
             &launch_executable,
             &passthrough_args,
-        )?;
-        (pid, Some(lease))
+        )
+        .map(|(pid, lease)| (pid, Some(lease)))
     } else {
         let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
-        launch_with_active_lease(Some(&install_root), &launch_executable, &passthrough_args)?
+        launch_with_active_lease(Some(&install_root), &launch_executable, &passthrough_args)
+    };
+    let (pid, lease) = match launch_result {
+        Ok(result) => result,
+        Err(error) if is_macos_bundle => {
+            let rollback = macos_bundle::rollback_transaction(&transaction_file)?;
+            return Ok(json!({
+                "schemaVersion": 1,
+                "state": "blocked",
+                "launched": false,
+                "block": {
+                    "code": "macos-successor-launch-failed",
+                    "retryable": true,
+                    "safeToContinue": true,
+                },
+                "error": error.to_string(),
+                "rollback": rollback,
+            }));
+        }
+        Err(error) => return Err(error),
+    };
+    if is_macos_bundle {
+        let started = Instant::now();
+        while !macos_bundle::startup_acknowledged(&transaction_file)?
+            && started.elapsed() < Duration::from_secs(30)
+        {
+            thread::sleep(Duration::from_millis(50));
+        }
+        if !macos_bundle::startup_acknowledged(&transaction_file)? {
+            let successor = lease
+                .as_ref()
+                .ok_or("macOS successor lease is missing during startup rollback")?;
+            macos_bundle::signal_process(pid, false)?;
+            let mut stopped = false;
+            for _ in 0..100 {
+                if !process_start_is_live(pid, &successor.process_start_id)? {
+                    stopped = true;
+                    break;
+                }
+                thread::sleep(Duration::from_millis(50));
+            }
+            if !stopped {
+                macos_bundle::signal_process(pid, true)?;
+                for _ in 0..100 {
+                    if !process_start_is_live(pid, &successor.process_start_id)? {
+                        stopped = true;
+                        break;
+                    }
+                    thread::sleep(Duration::from_millis(50));
+                }
+            }
+            if !stopped {
+                return Ok(json!({
+                    "schemaVersion": 1,
+                    "state": "blocked",
+                    "launched": false,
+                    "block": {
+                        "code": "macos-successor-still-live",
+                        "retryable": true,
+                        "safeToContinue": false,
+                    }
+                }));
+            }
+            let rollback = macos_bundle::rollback_transaction(&transaction_file)?;
+            return Ok(json!({
+                "schemaVersion": 1,
+                "state": "blocked",
+                "launched": false,
+                "block": {
+                    "code": "macos-startup-ack-timeout",
+                    "retryable": true,
+                    "safeToContinue": true,
+                },
+                "rollback": rollback,
+            }));
+        }
+    }
+    let finalized = if is_macos_bundle {
+        let result = macos_bundle::finalize_transaction(&transaction_file)?;
+        macos_bundle::remove_recovery_agent(&transaction_file)?;
+        Some(result)
+    } else {
+        None
     };
     Ok(json!({
         "schemaVersion": 1,
@@ -212,5 +337,6 @@ pub fn complete_self_update(args: &Args) -> Result<Value> {
         "selfUpdate": consumed,
         "transactionFile": transaction_file,
         "applyResult": applied,
+        "finalizeResult": finalized,
     }))
 }

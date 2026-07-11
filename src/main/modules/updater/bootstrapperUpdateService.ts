@@ -15,12 +15,13 @@ import type { BootstrapperLauncher } from '../bootstrapper/paths'
 
 export type PrepareDesktopUpdateOptions = {
     activeLeaseId: string
+    appExecutable: string
     appExecutableName?: string
     channel: 'beta' | 'dev'
     dist: string
     githubOwner?: string
     githubRepo?: string
-    installRoot: string
+    hostBundle?: string | null
     installedVersion: string
     launcher: BootstrapperLauncher
     manifestUrl?: string
@@ -29,6 +30,7 @@ export type PrepareDesktopUpdateOptions = {
     requestedSource: RequestedManifestSource
     retainAppVersions: number
     serverHealthUrl?: string
+    stateRoot: string
     stagingDir?: string
 }
 
@@ -40,8 +42,8 @@ function pushArg(args: string[], name: string, value: string | undefined): void 
 
 export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions): Promise<PrepareUpdateResultV1> {
     const args = [
-        '--install-root',
-        options.installRoot,
+        '--state-root',
+        options.stateRoot,
         '--installed-version',
         options.installedVersion,
         '--dist',
@@ -55,6 +57,8 @@ export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions)
         '--active-lease-id',
         options.activeLeaseId,
     ]
+    pushArg(args, '--host-bundle', options.hostBundle ?? undefined)
+    pushArg(args, '--app-executable', options.appExecutable)
     pushArg(args, '--app-executable-name', options.appExecutableName)
     pushArg(args, '--manifest-url', options.manifestUrl)
     pushArg(args, '--server-health-url', options.serverHealthUrl)
@@ -77,16 +81,25 @@ export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions)
 }
 
 export async function discardPreparedUpdate(options: {
-    installRoot: string
+    hostBundle?: string | null
     launcher: BootstrapperLauncher
     reason: 'channel-change' | 'source-change' | 'manual-reset'
+    stateRoot: string
     transactionId: string
 }): Promise<DiscardPreparedUpdateResultV1> {
     return unwrapSemanticResult(
         await runBootstrapperCommand({
             launcher: options.launcher,
             command: 'discard-prepared-update',
-            args: ['--install-root', options.installRoot, '--transaction-id', options.transactionId, '--reason', options.reason],
+            args: [
+                '--state-root',
+                options.stateRoot,
+                ...(options.hostBundle ? ['--host-bundle', options.hostBundle] : []),
+                '--transaction-id',
+                options.transactionId,
+                '--reason',
+                options.reason,
+            ],
             parseResult: parseDiscardResult,
         }),
     )
