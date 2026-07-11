@@ -1,9 +1,5 @@
 use crate::{
-    core::{
-        error::Result,
-        layout::{versioned_app_dir, versioned_modules_dir},
-        path_segment::sanitize_path_segment,
-    },
+    core::{error::Result, path_segment::sanitize_path_segment},
     domain::{artifacts::ArtifactKey, manifest::BootstrapperUpdateDecision},
 };
 use std::path::{Path, PathBuf};
@@ -44,10 +40,17 @@ pub(crate) fn target_path(
     _artifact_file_name: &str,
 ) -> Result<PathBuf> {
     match key {
-        ArtifactKey::App => versioned_app_dir(install_dir, target_version),
-        ArtifactKey::Module(module_name) => {
-            Ok(versioned_modules_dir(install_dir, target_version)?.join(module_name))
+        ArtifactKey::Host => {
+            Ok(install_dir.join(format!("host-{}", sanitize_path_segment(target_version)?)))
         }
+        ArtifactKey::Module(module_name) => Ok(install_dir
+            .join("modules")
+            .join(format!(
+                "{}-{}",
+                sanitize_path_segment(module_name)?,
+                sanitize_path_segment(target_version)?
+            ))
+            .join(sanitize_path_segment(module_name)?)),
         ArtifactKey::Bootstrapper => Ok(install_dir
             .join("bootstrapper")
             .join(bootstrapper_executable_name())),
@@ -60,7 +63,7 @@ pub(crate) fn backup_path(
     _artifact_file_name: &str,
 ) -> PathBuf {
     match key {
-        ArtifactKey::App => backup_dir.join("app"),
+        ArtifactKey::Host => backup_dir.join("host"),
         ArtifactKey::Module(module_name) => backup_dir.join("modules").join(module_name),
         ArtifactKey::Bootstrapper => backup_dir
             .join("bootstrapper")
@@ -70,7 +73,7 @@ pub(crate) fn backup_path(
 
 pub(crate) fn action(key: &ArtifactKey) -> &'static str {
     match key {
-        ArtifactKey::App | ArtifactKey::Module(_) => "replace-directory-archive",
+        ArtifactKey::Host | ArtifactKey::Module(_) => "replace-directory-archive",
         ArtifactKey::Bootstrapper => "replace-file",
     }
 }
@@ -80,7 +83,7 @@ pub(crate) fn install_keys(keys: Vec<ArtifactKey>) -> Vec<ArtifactKey> {
         .filter(|key| {
             matches!(
                 key,
-                ArtifactKey::App | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
+                ArtifactKey::Host | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
             )
         })
         .fold(Vec::new(), |mut selected, key| {

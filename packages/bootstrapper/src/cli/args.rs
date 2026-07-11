@@ -18,19 +18,16 @@ fn is_command(value: &str) -> bool {
             | "ack-launch-request"
             | "claim-launch-requests"
             | "check"
-            | "download"
             | "discard-prepared-update"
             | "complete-self-update"
-            | "plan-install"
-            | "prepare-install"
             | "prepare-update"
             | "recover-update"
-            | "ensure-installed"
             | "enqueue-launch-request"
-            | "install-workflow"
             | "start"
             | "apply-install"
             | "rollback-install"
+            | "resolve-runtime"
+            | "acknowledge-runtime"
     )
 }
 

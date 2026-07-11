@@ -48,7 +48,7 @@ pub fn prepare_transaction(
         .artifacts
         .as_ref()
         .ok_or("macOS manifest artifacts are missing")?;
-    let source_name = artifact_file_name(&artifacts.app, &ArtifactKey::App)?;
+    let source_name = artifact_file_name(&artifacts.host, &ArtifactKey::Host)?;
     let staging_dir = staging_root
         .join(sanitize_path_segment(&decision.channel)?)
         .join(sanitize_path_segment(&decision.target_version)?)
@@ -56,8 +56,8 @@ pub fn prepare_transaction(
     let source_path = staging_dir.join(source_name);
     let source_size = fs::metadata(&source_path)?.len();
     let source_sha = sha256_file(&source_path)?;
-    if !source_sha.eq_ignore_ascii_case(&artifacts.app.sha256)
-        || artifacts.app.size.is_some_and(|size| size != source_size)
+    if !source_sha.eq_ignore_ascii_case(&artifacts.host.sha256)
+        || artifacts.host.size.is_some_and(|size| size != source_size)
     {
         return Err("staged macOS host artifact does not match the manifest".into());
     }
@@ -133,7 +133,7 @@ pub fn prepare_transaction(
         "artifacts": [{
             "action": "replace-macos-bundle",
             "backupPath": backup_dir,
-            "key": "app",
+            "key": "host",
             "preparedKind": "archive",
             "preparedPath": archive_path,
             "sha256": source_sha,

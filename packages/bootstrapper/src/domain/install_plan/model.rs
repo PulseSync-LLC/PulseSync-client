@@ -1,6 +1,6 @@
 use crate::domain::artifacts::ArtifactKey;
 use serde::{Deserialize, Serialize};
-use std::path::PathBuf;
+use std::{collections::BTreeMap, path::PathBuf};
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InstallPlanArtifact {
@@ -45,4 +45,16 @@ pub struct InstallPlan {
     pub target_version: String,
     #[serde(rename = "updateAvailable")]
     pub update_available: bool,
+    #[serde(rename = "hostVersion")]
+    pub host_version: String,
+    #[serde(rename = "bootstrapperVersion")]
+    pub bootstrapper_version: String,
+    #[serde(rename = "componentVersions")]
+    pub component_versions: BTreeMap<String, String>,
+    #[serde(rename = "metadataVersion")]
+    pub metadata_version: u64,
+    #[serde(rename = "hostElectronAbi")]
+    pub host_electron_abi: Option<String>,
+    #[serde(rename = "componentElectronAbis")]
+    pub component_electron_abis: BTreeMap<String, String>,
 }

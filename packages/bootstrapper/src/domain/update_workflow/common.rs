@@ -2,7 +2,7 @@ use super::{PrepareUpdateOptions, SESSION_LOCK_TIMEOUT, UpdateWorkflowError};
 use crate::core::{
     active_app::{ActiveAppLeaseState, verified_live_lease},
     error::Result as CoreResult,
-    layout::{Layout, LayoutKind, read_current_version, resolve_layout, resolve_macos_layout},
+    layout::{Layout, LayoutKind, resolve_layout, resolve_macos_layout},
     path_segment::sanitize_path_segment,
     self_update::{SelfUpdateMutationGate, reconcile_self_update_mutation},
     session_lock::SessionLock,
@@ -106,19 +106,17 @@ pub(super) fn current_install_is_safe(layout: &Layout, installed_version: Option
             .is_some_and(|bundle| bundle.join("Contents").join("Info.plist").is_file())
             && layout.app_executable.is_file();
     }
-    let Some(current_version) = layout.current_version.as_deref() else {
+    let Ok(state) = crate::core::install_state::read_install_state(&layout.install_root) else {
         return false;
     };
-    if installed_version.is_some_and(|expected| expected != current_version) {
-        return false;
-    }
-    layout.current_version_file.is_file()
+    let core_version = state
+        .active
+        .components
+        .get("desktopCore")
+        .map(|value| value.version.as_str());
+    installed_version.is_none_or(|expected| core_version == Some(expected))
+        && layout.install_state_file.is_file()
         && layout.app_executable.is_file()
-        && read_current_version(&layout.install_root)
-            .ok()
-            .flatten()
-            .as_deref()
-            == Some(current_version)
 }
 
 pub(super) fn resolve_options_layout(

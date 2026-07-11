@@ -5,14 +5,14 @@ mod version;
 
 pub use model::{
     ArtifactLayout, BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
-    BootstrapperUpdateManifest,
+    BootstrapperUpdateManifest, VersionedArtifact,
 };
 pub use source::{
     DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO, GitHubManifestFallback, github_manifest_url,
-    health_check_available, load_manifest, read_source, resolve_manifest_source,
+    health_check_available, load_manifest, read_source,
 };
 pub use validation::validate_manifest;
-pub use version::decide_update;
+pub use version::{decide_component_update, decide_update};
 
 use crate::domain::artifacts::ArtifactKey;
 
@@ -21,7 +21,7 @@ pub fn artifact_for_key<'a>(
     key: &ArtifactKey,
 ) -> Option<&'a BootstrapperArtifact> {
     match key {
-        ArtifactKey::App => Some(&artifacts.app),
+        ArtifactKey::Host => Some(&artifacts.host),
         ArtifactKey::Bootstrapper => artifacts.bootstrapper.as_ref(),
         ArtifactKey::Module(module_name) => artifacts.modules.get(module_name),
     }

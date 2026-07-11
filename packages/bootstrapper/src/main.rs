@@ -15,14 +15,10 @@ use crate::{
         claim_active_app::claim_active_app,
         complete_self_update::complete_self_update,
         discard_prepared_update::discard_prepared_update_command,
-        download::download_artifacts,
-        install::ensure_installed,
-        install_workflow::install_workflow,
         launch_inbox::{ack_launch_request, claim_launch_requests, enqueue_launch_request},
-        plan_install::plan_install,
-        prepare_install::prepare_install,
         prepare_update::prepare_update_command,
         recover_update::recover_update,
+        resolve_runtime::{acknowledge_runtime_command, resolve_runtime},
         start::start,
     },
     core::{
@@ -150,33 +146,6 @@ fn run(args: &Args) -> Result<Value> {
         "recover-update" => recover_update(args),
         "discard-prepared-update" => discard_prepared_update_command(args),
         "check" => check_update(args),
-        "download" => {
-            let root = install_root_from_updates_path(&PathBuf::from(required_arg(
-                args,
-                "--staging-dir",
-            )?))?;
-            run_guarded_mutation(root, || download_artifacts(args))
-        }
-        "plan-install" => {
-            run_guarded_mutation(PathBuf::from(required_arg(args, "--install-dir")?), || {
-                plan_install(args)
-            })
-        }
-        "prepare-install" => {
-            let root =
-                install_root_from_updates_path(&PathBuf::from(required_arg(args, "--plan-file")?))?;
-            run_guarded_mutation(root, || prepare_install(args))
-        }
-        "ensure-installed" => {
-            run_guarded_mutation(PathBuf::from(required_arg(args, "--install-root")?), || {
-                ensure_installed(args)
-            })
-        }
-        "install-workflow" => {
-            run_guarded_mutation(PathBuf::from(required_arg(args, "--install-root")?), || {
-                install_workflow(args)
-            })
-        }
         "start" => start(args),
         "complete-self-update" => complete_self_update(args),
         "apply-install" => {
@@ -189,6 +158,8 @@ fn run(args: &Args) -> Result<Value> {
             let root = install_root_from_updates_path(&transaction_file)?;
             run_guarded_mutation(root, || rollback_transaction_file(&transaction_file))
         }
+        "resolve-runtime" => resolve_runtime(args),
+        "acknowledge-runtime" => acknowledge_runtime_command(args),
         _ => Err(format!("unknown command: {}", args.command).into()),
     }
 }
