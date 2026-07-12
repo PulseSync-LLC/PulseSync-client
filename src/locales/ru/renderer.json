@@ -1,4 +1,8 @@
 {
+    "browserDownload": {
+        "description": "PulseSync доступен только в приложении. Скачай клиент, чтобы продолжить.",
+        "action": "Скачать PulseSync"
+    },
     "common": {
         "ok": "Ясно",
         "all": "Все",
