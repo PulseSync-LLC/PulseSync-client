@@ -5,6 +5,7 @@ pub mod host_contract;
 pub mod install_state;
 pub mod layout;
 pub mod operation_lock;
+pub mod packaged_runtime;
 pub mod path_segment;
 pub mod self_update;
 pub mod session_lock;

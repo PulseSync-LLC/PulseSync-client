@@ -1,9 +1,10 @@
 use crate::{
-    cli::args::{Args, required_arg, required_state_root},
+    cli::args::{Args, arg_value, required_arg, required_state_root},
     core::{
         active_app::verified_live_lease,
         error::Result,
         install_state::{acknowledge_runtime, resolve_active_runtime},
+        packaged_runtime::resolve_packaged_runtime,
     },
 };
 use serde_json::{Value, json};
@@ -21,10 +22,12 @@ pub fn resolve_runtime(args: &Args) -> Result<Value> {
     let state_root = PathBuf::from(required_state_root(args)?);
     let lease_id = required_arg(args, "--active-lease-id")?;
     require_active_lease(&state_root, &lease_id)?;
-    Ok(serde_json::to_value(resolve_active_runtime(
-        &state_root,
-        &lease_id,
-    )?)?)
+    let runtime = if let Some(host_bundle) = arg_value(args, "--host-bundle") {
+        resolve_packaged_runtime(&PathBuf::from(host_bundle))?
+    } else {
+        resolve_active_runtime(&state_root, &lease_id)?
+    };
+    Ok(serde_json::to_value(runtime)?)
 }
 
 pub fn acknowledge_runtime_command(args: &Args) -> Result<Value> {

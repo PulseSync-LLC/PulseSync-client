@@ -136,14 +136,23 @@ async function main(): Promise<void> {
             manifest,
             `${JSON.stringify(
                 {
-                    schemaVersion: 1,
+                    schemaVersion: 2,
+                    metadataVersion: 1,
                     channel: 'dev',
-                    clientVersion: '2.0.0',
-                    artifacts: {
+                    releaseVersion: '2.0.0',
+                    desktopApi: '1.0.0',
+                    targets: {
                         [dist]: {
                             layout: 'macos-bundle',
-                            app: { url: archive, sha256: sha256(archive), size: fs.statSync(archive).size },
-                            modules: {},
+                            host: {
+                                version: '2.0.0',
+                                artifact: { url: archive, sha256: sha256(archive), size: fs.statSync(archive).size },
+                            },
+                            components: {},
+                            bootstrapper: {
+                                version: '0.2.0',
+                                artifact: { url: bootstrapper, sha256: sha256(bootstrapper), size: fs.statSync(bootstrapper).size },
+                            },
                         },
                     },
                 },

@@ -14,7 +14,7 @@ use std::{
     path::{Path, PathBuf},
     process::Command,
 };
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 use uuid::Uuid;
 
 mod launch_agent;
@@ -22,13 +22,13 @@ mod staging;
 mod transaction;
 
 pub use launch_agent::{register_recovery_agent, remove_recovery_agent};
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 use staging::validate_archive_entries;
 pub use staging::{arm_transaction, prepare_transaction};
 pub use transaction::{
     exchange_transaction, finalize_transaction, recover_transaction, rollback_transaction,
 };
-#[cfg(test)]
+#[cfg(all(test, target_os = "macos"))]
 use transaction::{exchange_transaction_with_fault, finalize_transaction_with_fault};
 
 pub const MACOS_TRANSACTION_KIND: &str = "macos-bundle";

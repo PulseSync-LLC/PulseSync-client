@@ -51,10 +51,31 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
     }
 
     for (dist, target) in &manifest.targets {
-        if dist.starts_with("darwin-") {
-            return Err("macOS modular publishing is not supported yet".into());
-        }
         validate_versioned_artifact(&target.host, &format!("targets.{dist}.host"))?;
+        validate_versioned_artifact(
+            &target.bootstrapper,
+            &format!("targets.{dist}.bootstrapper"),
+        )?;
+        if target.layout == crate::domain::manifest::ArtifactLayout::MacosBundle {
+            if !dist.starts_with("darwin-") {
+                return Err("macos-bundle layout is only valid for darwin targets".into());
+            }
+            if target.host.version != manifest.release_version {
+                return Err(format!(
+                    "targets.{dist}.host.version must equal releaseVersion for macos-bundle"
+                )
+                .into());
+            }
+            if !target.components.is_empty() {
+                return Err(
+                    format!("targets.{dist}.components must be empty for macos-bundle").into(),
+                );
+            }
+            continue;
+        }
+        if dist.starts_with("darwin-") {
+            return Err("darwin targets must use macos-bundle layout".into());
+        }
         let host_version = Version::parse(&target.host.version)
             .map_err(|_| format!("targets.{dist}.host.version is invalid"))?;
         let host_abi = target
@@ -63,10 +84,6 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
             .as_deref()
             .filter(|value| !value.trim().is_empty())
             .ok_or_else(|| format!("targets.{dist}.host.electronAbi is required"))?;
-        validate_versioned_artifact(
-            &target.bootstrapper,
-            &format!("targets.{dist}.bootstrapper"),
-        )?;
         if !target.components.contains_key("desktopCore") {
             return Err(
                 format!("manifest targets.{dist}.components.desktopCore is required").into(),
@@ -125,12 +142,14 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
 mod tests {
     use super::*;
 
-    fn manifest(dist_artifacts: serde_json::Value) -> BootstrapperUpdateManifest {
+    fn manifest(target: serde_json::Value) -> BootstrapperUpdateManifest {
         serde_json::from_value(serde_json::json!({
-            "schemaVersion": 1,
+            "schemaVersion": 2,
+            "metadataVersion": 1,
             "channel": "dev",
-            "clientVersion": "2.0.0",
-            "artifacts": { "darwin-arm64": dist_artifacts }
+            "releaseVersion": "2.0.0",
+            "desktopApi": "1.0.0",
+            "targets": { "darwin-arm64": target }
         }))
         .unwrap()
     }
@@ -147,8 +166,9 @@ mod tests {
     fn macos_bundle_accepts_only_full_host_artifact() {
         let manifest = manifest(serde_json::json!({
             "layout": "macos-bundle",
-            "app": artifact(),
-            "modules": {}
+            "host": { "version": "2.0.0", "artifact": artifact() },
+            "components": {},
+            "bootstrapper": { "version": "0.2.0", "artifact": artifact() }
         }));
         assert!(validate_manifest(&manifest).is_ok());
     }
@@ -157,9 +177,15 @@ mod tests {
     fn macos_bundle_rejects_independent_components() {
         let manifest = manifest(serde_json::json!({
             "layout": "macos-bundle",
-            "app": artifact(),
-            "bootstrapper": artifact(),
-            "modules": { "native": artifact() }
+            "host": { "version": "2.0.0", "artifact": artifact() },
+            "components": {
+                "desktopCore": {
+                    "version": "2.0.0",
+                    "requiresHost": ">=1.0.0",
+                    "artifact": artifact()
+                }
+            },
+            "bootstrapper": { "version": "0.2.0", "artifact": artifact() }
         }));
         assert!(validate_manifest(&manifest).is_err());
     }
