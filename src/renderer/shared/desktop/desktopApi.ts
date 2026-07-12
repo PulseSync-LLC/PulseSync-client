@@ -42,7 +42,7 @@ export const desktopApi = {
         getModChangelog: () => requireDesktopApi().updates.getModChangelog(),
         needModalUpdate: () => requireDesktopApi().updates.needModalUpdate(),
         onCheck: (listener: (payload: unknown) => void) => requireDesktopApi().updates.onCheck(listener),
-        onAvailable: (listener: (version: unknown) => void) => requireDesktopApi().updates.onAvailable(listener),
+        onAvailable: (listener: Parameters<PulseSyncDesktopApi['updates']['onAvailable']>[0]) => requireDesktopApi().updates.onAvailable(listener),
         onDownloadProgress: (listener: (progress: unknown) => void) => requireDesktopApi().updates.onDownloadProgress(listener),
         onDownloadFinished: (listener: () => void) => requireDesktopApi().updates.onDownloadFinished(listener),
         onDownloadFailed: (listener: () => void) => requireDesktopApi().updates.onDownloadFailed(listener),
