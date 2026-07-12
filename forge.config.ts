@@ -6,12 +6,12 @@ import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'node:url'
 import { prepareGlitchTipSourceMaps } from './scripts/glitchtip-sourcemaps.js'
+import { componentContainerName, readRuntimeComponentMetadata } from './scripts/component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const shouldBundleMainRenderer =
     process.env.PULSESYNC_BUNDLE_RENDERER === '1' && process.env.GITHUB_ACTIONS === 'true' && process.env.GITHUB_REF?.startsWith('refs/tags/')
 
-const DESKTOP_CORE_MODULE_NAME = 'desktopCore'
 const desktopCorePackage = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages', 'desktop-core', 'package.json'), 'utf8')) as {
     name: string
     private: boolean
@@ -20,6 +20,7 @@ const desktopCorePackage = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'p
 }
 
 async function packageDesktopCore(buildPath: string): Promise<void> {
+    const desktopCore = readRuntimeComponentMetadata(__dirname).desktopCore
     const mainOutputDir = path.join(buildPath, '.vite', 'main')
     const coreFiles = [
         { source: 'desktopCore.cjs', target: 'index.cjs' },
@@ -28,12 +29,12 @@ async function packageDesktopCore(buildPath: string): Promise<void> {
     const resourcesPath = path.resolve(buildPath, '..')
     const packagedAppRoot = path.resolve(resourcesPath, '..')
     const modulesRoot = path.join(packagedAppRoot, 'modules')
-    const coreModuleRoot = path.join(modulesRoot, `${DESKTOP_CORE_MODULE_NAME}-${desktopCorePackage.version}`)
-    const coreModuleDir = path.join(coreModuleRoot, DESKTOP_CORE_MODULE_NAME)
+    const coreModuleRoot = path.join(modulesRoot, componentContainerName(desktopCore))
+    const coreModuleDir = path.join(coreModuleRoot, desktopCore.diskName)
 
     if (fs.existsSync(modulesRoot)) {
         for (const name of fs.readdirSync(modulesRoot)) {
-            if (name === DESKTOP_CORE_MODULE_NAME || name.startsWith(`${DESKTOP_CORE_MODULE_NAME}-`)) {
+            if (name === desktopCore.name || name.startsWith(`${desktopCore.name}-`) || name.startsWith(`${desktopCore.diskName}-`)) {
                 fs.rmSync(path.join(modulesRoot, name), { force: true, recursive: true })
             }
         }

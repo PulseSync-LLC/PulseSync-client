@@ -786,7 +786,11 @@ pub fn stage_artifacts(
                             }),
                         ),
                         ArtifactKey::Module(module_name) => (
-                            module_name.as_str(),
+                            decision
+                                .component_disk_names
+                                .get(module_name)
+                                .map(String::as_str)
+                                .unwrap_or(module_name.as_str()),
                             installed_state.as_ref().and_then(|state| {
                                 state_root.and_then(|root| {
                                     state

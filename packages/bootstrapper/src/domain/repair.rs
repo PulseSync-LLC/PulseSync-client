@@ -1,7 +1,9 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
+        fs_ops::{
+            ensure_executable, extract_zip_to, sha256_directory, sha256_file, sha256_host_directory,
+        },
         install_state::{RuntimeComponentV3, RuntimeSnapshotV3, read_install_state_metadata},
         layout::{assert_inside, canonical_install_root},
         path_segment::sanitize_path_segment,
@@ -68,6 +70,14 @@ fn path_hash(path: &Path) -> Result<String> {
         sha256_directory(path)
     } else {
         Err(format!("path is missing: {}", path.display()).into())
+    }
+}
+
+fn candidate_hash(candidate: &RepairCandidate<'_>) -> Result<String> {
+    if matches!(candidate.key, ArtifactKey::Host) {
+        sha256_host_directory(&candidate.target_path)
+    } else {
+        path_hash(&candidate.target_path)
     }
 }
 
@@ -262,7 +272,21 @@ fn repair_candidate(candidate: &RepairCandidate<'_>, work_dir: &Path) -> Result<
         )
         .into());
     }
-    replace_path(&candidate.target_path, &prepared, &backup)?;
+    if matches!(candidate.key, ArtifactKey::Host) {
+        let modules = candidate.target_path.join("modules");
+        let preserved_modules = work_dir.join("preserved-modules");
+        if modules.is_dir() {
+            fs::rename(&modules, &preserved_modules)?;
+        }
+        let replace_result = replace_path(&candidate.target_path, &prepared, &backup);
+        if preserved_modules.exists() {
+            fs::create_dir_all(&candidate.target_path)?;
+            fs::rename(&preserved_modules, candidate.target_path.join("modules"))?;
+        }
+        replace_result?;
+    } else {
+        replace_path(&candidate.target_path, &prepared, &backup)?;
+    }
     Ok(())
 }
 
@@ -281,7 +305,7 @@ pub fn repair_install(state_root: &Path, manifest_url: &str, dist: &str) -> Resu
     let mut items = Vec::new();
     let result = (|| -> Result<()> {
         for candidate in candidates {
-            match path_hash(&candidate.target_path) {
+            match candidate_hash(&candidate) {
                 Ok(actual) if actual.eq_ignore_ascii_case(candidate.expected_content_sha256) => {
                     items.push(RepairItem {
                         key: candidate.key.as_str(),

@@ -16,6 +16,7 @@ import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-p
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { buildBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopReleaseManifest } from './desktop-release-manifest.js'
+import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -548,19 +549,16 @@ function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVer
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
     const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {}
+    const componentMetadata = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
-    for (const entry of fs.readdirSync(modulesRoot, { withFileTypes: true })) {
-        if (!entry.isDirectory()) continue
-        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
-        if (!match) throw new Error(`Expected Discord-style module directory: ${entry.name}`)
-        const [, moduleName, version] = match
-        const relativePath = path.join('modules', entry.name, moduleName)
-        components[moduleName] = {
-            version,
+    for (const component of Object.values(componentMetadata)) {
+        const relativePath = path.join('modules', componentContainerName(component), component.diskName)
+        components[component.name] = {
+            version: component.version,
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(contentsRoot, relativePath)),
             required: true,
-            ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
+            ...(component.name === 'pulsesyncNative' ? { electronAbi } : {}),
         }
     }
     if (components.desktopCore?.version !== desktopVersion) {
@@ -637,41 +635,36 @@ async function prepareBootstrapperSetupRoot(
     fs.rmSync(setupRoot, { force: true, recursive: true })
     fs.mkdirSync(getBootstrapperResourcesDir(setupRoot), { recursive: true })
     const payloadRoot = getBootstrapperPayloadRoot(outDir)
-    const versionedHostRoot = path.join(setupRoot, `host-${hostVersion}`)
+    const componentMetadata = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
+    if (componentMetadata.desktopCore.version !== coreVersion) {
+        throw new Error(`Expected desktop core ${coreVersion}, got ${componentMetadata.desktopCore.version}`)
+    }
+    const versionedHostRoot = path.join(setupRoot, `app-${hostVersion}`)
     copyDirectoryEntries(path.join(payloadRoot, 'host'), versionedHostRoot)
+    const hostSha256 = hashDirectory(versionedHostRoot)
     const modulesRoot = path.join(payloadRoot, 'modules')
     if (fs.existsSync(modulesRoot)) {
-        fs.cpSync(modulesRoot, path.join(setupRoot, 'modules'), { recursive: true })
+        fs.cpSync(modulesRoot, path.join(versionedHostRoot, 'modules'), { recursive: true })
     }
     await copyBootstrapperToInstallRoot(setupRoot)
     writeBootstrapperSetupConfig(setupRoot, channel, dist, coreVersion)
-    const coreRelativePath = path.join('modules', `desktopCore-${coreVersion}`, 'desktopCore')
+    const desktopCore = componentMetadata.desktopCore
+    const coreRelativePath = path.join(`app-${hostVersion}`, 'modules', componentContainerName(desktopCore), desktopCore.diskName)
     const coreDirectory = path.join(setupRoot, coreRelativePath)
     const coreEntryPath = path.join(coreDirectory, 'index.cjs')
     if (!fs.existsSync(coreEntryPath) || !fs.statSync(coreEntryPath).isFile()) {
         throw new Error(`Desktop core entry is missing from setup layout: ${coreEntryPath}`)
     }
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
-    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {
-        desktopCore: {
-            version: coreVersion,
-            path: coreRelativePath.replace(/\\/gu, '/'),
-            sha256: hashDirectory(coreDirectory),
-            required: true,
-        },
-    }
-    for (const entry of fs.readdirSync(path.join(setupRoot, 'modules'), { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.name.startsWith('desktopCore-')) continue
-        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
-        if (!match) throw new Error(`Expected Discord-style module directory: ${entry.name}`)
-        const [, moduleName, version] = match
-        const relativePath = path.join('modules', entry.name, moduleName)
-        components[moduleName] = {
-            version,
+    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {}
+    for (const component of Object.values(componentMetadata)) {
+        const relativePath = path.join(`app-${hostVersion}`, 'modules', componentContainerName(component), component.diskName)
+        components[component.name] = {
+            version: component.version,
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(setupRoot, relativePath)),
             required: true,
-            ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
+            ...(component.name === 'pulsesyncNative' ? { electronAbi } : {}),
         }
     }
     const bootstrapperRelativePath = path.join('bootstrapper', os.platform() === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper')
@@ -687,8 +680,8 @@ async function prepareBootstrapperSetupRoot(
         metadataVersion: Number(bundleVersion),
         host: {
             version: hostVersion,
-            path: `host-${hostVersion}`,
-            sha256: hashDirectory(path.join(setupRoot, `host-${hostVersion}`)),
+            path: `app-${hostVersion}`,
+            sha256: hostSha256,
             electronAbi,
         },
         components,
@@ -812,21 +805,36 @@ function hashDirectory(directory: string): string {
 function normalizeVersionedRuntimeModules(outDir: string): void {
     const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
     if (!fs.existsSync(modulesDir)) return
-    const corePackage = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8')) as {
-        componentVersions?: Record<string, string>
-    }
-    for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
-        if (!entry.isDirectory() || entry.name.startsWith('desktopCore-') || /^.+-.+$/u.test(entry.name)) continue
-        const moduleDir = path.join(modulesDir, entry.name)
-        if (!fs.readdirSync(moduleDir).length) continue
-        const version = corePackage.componentVersions?.[entry.name]
-        if (!version || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/u.test(version)) {
-            throw new Error(`Missing explicit component version for ${entry.name}`)
+    const components = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
+    for (const component of Object.values(components)) {
+        const targetContainer = path.join(modulesDir, componentContainerName(component))
+        const targetModule = path.join(targetContainer, component.diskName)
+        if (fs.existsSync(targetModule)) continue
+
+        const sourceEntry = fs
+            .readdirSync(modulesDir, { withFileTypes: true })
+            .find(entry => entry.isDirectory() && (entry.name === component.name || entry.name.startsWith(`${component.name}-`)))
+        if (!sourceEntry) throw new Error(`Packaged component is missing: ${component.name}`)
+        const sourceContainer = path.join(modulesDir, sourceEntry.name)
+        const nestedSource = path.join(sourceContainer, component.name)
+        const sourceModule = fs.existsSync(nestedSource) ? nestedSource : sourceContainer
+        fs.mkdirSync(targetContainer, { recursive: true })
+        if (sourceModule === sourceContainer) {
+            const temporaryModule = path.join(modulesDir, `.${component.diskName}-staging`)
+            fs.rmSync(temporaryModule, { force: true, recursive: true })
+            fs.renameSync(sourceModule, temporaryModule)
+            fs.renameSync(temporaryModule, targetModule)
+        } else {
+            fs.renameSync(sourceModule, targetModule)
+            fs.rmSync(sourceContainer, { force: true, recursive: true })
         }
-        const versionedModuleDir = path.join(modulesDir, `${entry.name}-${version}`)
-        fs.rmSync(versionedModuleDir, { force: true, recursive: true })
-        fs.mkdirSync(versionedModuleDir, { recursive: true })
-        fs.renameSync(moduleDir, path.join(versionedModuleDir, entry.name))
+    }
+
+    const expectedContainers = new Set(Object.values(components).map(componentContainerName))
+    for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true })) {
+        if (!entry.isDirectory() || !expectedContainers.has(entry.name)) {
+            throw new Error(`Unexpected packaged module entry: ${entry.name}`)
+        }
     }
 }
 

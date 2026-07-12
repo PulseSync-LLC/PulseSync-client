@@ -73,6 +73,9 @@ pub struct ComponentFileSet {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VersionedArtifact {
     pub version: String,
+    pub revision: Option<u64>,
+    #[serde(rename = "diskName")]
+    pub disk_name: Option<String>,
     pub required: bool,
     #[serde(rename = "contentSha256")]
     pub content_sha256: Option<String>,
@@ -169,6 +172,10 @@ pub struct BootstrapperUpdateDecision {
     pub bootstrapper_version: Option<String>,
     #[serde(rename = "componentVersions")]
     pub component_versions: BTreeMap<String, String>,
+    #[serde(rename = "componentRevisions")]
+    pub component_revisions: BTreeMap<String, u64>,
+    #[serde(rename = "componentDiskNames")]
+    pub component_disk_names: BTreeMap<String, String>,
     #[serde(rename = "selectedArtifacts")]
     pub selected_artifacts: Vec<String>,
     pub plan: Vec<UpdatePlanItem>,

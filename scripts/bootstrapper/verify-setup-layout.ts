@@ -2,6 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { componentContainerName, readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -304,9 +305,12 @@ function main(): void {
     }
     const hostVersion = requireString(installState.latest?.host?.version, 'installState.latest.host.version')
     const hostRelativePath = requireString(installState.latest?.host?.path, 'installState.latest.host.path')
+    if (!/^app-[0-9A-Za-z][0-9A-Za-z._-]*$/u.test(hostRelativePath)) {
+        throw new Error(`Expected app-scoped host path, got ${hostRelativePath}`)
+    }
     const versionedHostRoot = requirePath(path.join(installRoot, hostRelativePath), 'directory')
     const hostExecutable = requirePath(path.join(versionedHostRoot, appExecutableName(platform)), 'file')
-    const modulesDir = requirePath(path.join(installRoot, 'modules'), 'directory')
+    const modulesDir = requirePath(path.join(versionedHostRoot, 'modules'), 'directory')
     if (!hasFiles(modulesDir)) {
         throw new Error(`Expected versioned runtime modules: ${modulesDir}`)
     }
@@ -320,11 +324,21 @@ function main(): void {
     const coreDir = requirePath(path.join(installRoot, requireString(core.path, 'installState.latest.components.desktopCore.path')), 'directory')
     requirePath(path.join(coreDir, 'index.cjs'), 'file')
     requirePath(path.join(coreDir, 'mainWindowPreload.cjs'), 'file')
+    const componentMetadata = readRuntimeComponentMetadata(projectRoot)
+    for (const component of Object.values(componentMetadata)) {
+        const installedComponent = installState.latest?.components?.[component.name]
+        const expectedPath = path.join(hostRelativePath, 'modules', componentContainerName(component), component.diskName).replace(/\\/gu, '/')
+        if (installedComponent?.version !== component.version || installedComponent?.path !== expectedPath) {
+            throw new Error(`Unexpected installed layout for ${component.name}: ${String(installedComponent?.path)}`)
+        }
+        requirePath(path.join(installRoot, expectedPath), 'directory')
+    }
 
     rejectPath(path.join(installRoot, 'app'))
     rejectPath(path.join(installRoot, 'current.json'))
-    if (fs.readdirSync(installRoot).some(name => /^app-/iu.test(name))) {
-        throw new Error(`Expected no legacy app-* directories inside ${installRoot}`)
+    rejectPath(path.join(installRoot, 'modules'))
+    if (fs.readdirSync(installRoot).some(name => /^host-/iu.test(name))) {
+        throw new Error(`Expected no host-* directories inside ${installRoot}`)
     }
     rejectPath(path.join(installRoot, 'native'))
     const entrypoint = verifyEntrypoint(installRoot, platform)

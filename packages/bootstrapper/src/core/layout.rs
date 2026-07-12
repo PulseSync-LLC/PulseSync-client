@@ -152,7 +152,7 @@ pub fn resolve_layout(
             .clone(),
     );
     let app_dir = install_root.join(&install_state.latest.host.path);
-    let modules_dir = install_root.join("modules");
+    let modules_dir = app_dir.join("modules");
     let updates_dir = install_root.join("updates");
     let layout = Layout {
         layout_kind: LayoutKind::VersionedComponents,

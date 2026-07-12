@@ -292,7 +292,11 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                 .ok_or("hostVersion is required")?
                 .to_string();
             next_snapshot.host.path = relative_path;
-            next_snapshot.host.sha256 = sha256_directory(&artifact.target_path)?;
+            next_snapshot.host.sha256 = transaction
+                .get("hostContentSha256")
+                .and_then(Value::as_str)
+                .ok_or("hostContentSha256 is required")?
+                .to_string();
             next_snapshot.host.artifact_sha256 = Some(artifact.sha256.clone());
             next_snapshot.host.electron_abi = transaction
                 .get("hostElectronAbi")
