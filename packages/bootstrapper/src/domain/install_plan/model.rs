@@ -66,10 +66,16 @@ pub struct InstallPlan {
     pub host_electron_abi: Option<String>,
     #[serde(rename = "hostContentSha256")]
     pub host_content_sha256: Option<String>,
+    #[serde(rename = "hostArtifactSha256")]
+    pub host_artifact_sha256: Option<String>,
+    #[serde(rename = "bootstrapperArtifactSha256")]
+    pub bootstrapper_artifact_sha256: Option<String>,
     #[serde(rename = "componentElectronAbis")]
     pub component_electron_abis: BTreeMap<String, String>,
     #[serde(rename = "componentContentSha256s")]
     pub component_content_sha256s: BTreeMap<String, String>,
+    #[serde(rename = "componentArtifactSha256s")]
+    pub component_artifact_sha256s: BTreeMap<String, String>,
     #[serde(rename = "omittedComponents")]
     pub omitted_components: Vec<String>,
 }
