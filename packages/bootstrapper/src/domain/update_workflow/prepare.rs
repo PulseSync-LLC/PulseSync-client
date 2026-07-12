@@ -7,7 +7,8 @@ use super::{
         workflow_error,
     },
     prepare_validation::{
-        prepared_ref, public_decision, resolve_effective_source, transaction_matches,
+        prepared_ref, public_decision as make_public_decision, resolve_effective_source,
+        transaction_matches,
     },
 };
 use crate::{
@@ -18,16 +19,17 @@ use crate::{
             normalize_retain_app_versions,
         },
         operation_lock::UpdateLock,
+        packaged_runtime::packaged_bundle_version,
         path_segment::sanitize_path_segment,
     },
     domain::{
         artifacts::stage_artifacts,
-        install_plan::create_install_plan,
+        install_plan::{checks::warn, create_install_plan},
         install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
         macos_bundle,
         manifest::{
-            ArtifactLayout, BootstrapperUpdateManifest, decide_component_update, decide_update,
-            read_source, validate_manifest,
+            ArtifactLayout, BootstrapperUpdateManifest, UpdatePlanAction, UpdatePlanDelivery,
+            decide_component_update, decide_update, read_source, validate_manifest,
         },
         transactions::{prepare_transaction_file_at, prepared_transactions},
     },
@@ -266,7 +268,7 @@ pub fn prepare_update(
             safe_to_continue,
         )
     })?;
-    let decision = if layout.layout_kind == LayoutKind::VersionedComponents {
+    let mut decision = if layout.layout_kind == LayoutKind::VersionedComponents {
         let installed = crate::core::install_state::read_install_state(&layout.state_root)
             .map_err(|error| {
                 workflow_error(
@@ -280,9 +282,30 @@ pub fn prepare_update(
             })?;
         decide_component_update(&manifest, &installed, &options.dist)
     } else {
-        decide_update(&manifest, &options.installed_version, &options.dist)
+        let bundle_version = layout
+            .host_bundle
+            .as_deref()
+            .map(packaged_bundle_version)
+            .transpose()
+            .map_err(|error| {
+                workflow_error(
+                    PREPARE_COMMAND,
+                    "packaged-runtime-invalid",
+                    "decide",
+                    error,
+                    false,
+                    safe_to_continue,
+                )
+            })?
+            .unwrap_or_else(|| "0".to_string());
+        decide_update(
+            &manifest,
+            &options.installed_version,
+            &bundle_version,
+            &options.dist,
+        )
     };
-    let public_decision = public_decision(&decision, &manifest);
+    let mut public_decision = make_public_decision(&decision, &manifest);
 
     let artifact_layout = decision
         .artifacts
@@ -415,18 +438,57 @@ pub fn prepare_update(
                 safe_to_continue,
             )
         })?;
-    stage_artifacts(&decision, &staging_root, artifact_keys.clone(), reporter).map_err(
-        |error| {
-            workflow_error(
-                PREPARE_COMMAND,
-                "artifact-download-failed",
-                "download",
-                error,
-                true,
-                safe_to_continue,
-            )
-        },
-    )?;
+    let staging = stage_artifacts(
+        &decision,
+        Some(&layout.install_root),
+        &staging_root,
+        artifact_keys.clone(),
+        reporter,
+    )
+    .map_err(|error| {
+        workflow_error(
+            PREPARE_COMMAND,
+            "artifact-download-failed",
+            "download",
+            error,
+            true,
+            safe_to_continue,
+        )
+    })?;
+    for failure in &staging.failures {
+        if let Some(item) = decision
+            .plan
+            .iter_mut()
+            .find(|item| item.key == failure.key.as_str())
+        {
+            item.action = UpdatePlanAction::Blocked;
+            item.delivery = UpdatePlanDelivery::None;
+            item.download_bytes = 0;
+            item.restart_required = false;
+        }
+    }
+    for staged in &staging.artifacts {
+        if let Some(item) = decision
+            .plan
+            .iter_mut()
+            .find(|item| item.key == staged.key.as_str())
+        {
+            item.download_bytes = staged.downloaded_bytes;
+            let downloaded_operations = staged
+                .file_operations
+                .iter()
+                .filter(|operation| operation.download_bytes > 0)
+                .collect::<Vec<_>>();
+            if !downloaded_operations.is_empty()
+                && downloaded_operations
+                    .iter()
+                    .all(|operation| operation.delivery == "bsdiff")
+            {
+                item.delivery = UpdatePlanDelivery::Bsdiff;
+            }
+        }
+    }
+    public_decision = make_public_decision(&decision, &manifest);
 
     if artifact_layout == Some(ArtifactLayout::MacosBundle) {
         if !active_lease_matches(&layout, &options.active_lease_id).map_err(|error| {
@@ -488,16 +550,27 @@ pub fn prepare_update(
         ));
     }
 
+    let has_state_removals = decision.plan.iter().any(|item| {
+        matches!(item.action, UpdatePlanAction::Remove)
+            || (matches!(item.action, UpdatePlanAction::Blocked) && !item.required)
+    });
+    if staging.artifacts.is_empty() && !has_state_removals {
+        decision.reason = "up-to-date".to_string();
+        decision.update_available = false;
+        public_decision = make_public_decision(&decision, &manifest);
+        return Ok(PrepareUpdateResult::up_to_date(public_decision, source));
+    }
+
     reporter.emit(InstallWorkflowEvent::stage(
         "planning",
         "Creating update plan",
     ));
-    let plan = create_install_plan(
+    let mut plan = create_install_plan(
         &decision,
         &layout.install_root,
         &staging_root,
         None,
-        artifact_keys,
+        staging.artifacts.clone(),
         retain_app_versions,
     )
     .map_err(|error| {
@@ -510,6 +583,17 @@ pub fn prepare_update(
             safe_to_continue,
         )
     })?;
+    for failure in staging.failures {
+        plan.preflight.push(warn(
+            &format!("optional-{}-download", failure.key.as_str()),
+            format!(
+                "Optional {} artifact was not staged: {}",
+                failure.key.as_str(),
+                failure.reason
+            ),
+            None,
+        ));
+    }
     let blocked_checks = plan
         .preflight
         .iter()
@@ -601,7 +685,7 @@ pub fn prepare_update(
             )
         })?)
         .join(
-            sanitize_path_segment(&decision.target_version).map_err(|error| {
+            sanitize_path_segment(&decision.bundle_version).map_err(|error| {
                 workflow_error(
                     PREPARE_COMMAND,
                     "unsafe-layout",

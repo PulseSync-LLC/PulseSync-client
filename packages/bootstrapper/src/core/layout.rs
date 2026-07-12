@@ -144,14 +144,14 @@ pub fn resolve_layout(
     let install_state_file = install_state_path(&install_root);
     let current_version = Some(
         install_state
-            .active
+            .latest
             .components
             .get("desktopCore")
             .ok_or("install state is missing desktopCore")?
             .version
             .clone(),
     );
-    let app_dir = install_root.join(&install_state.active.host.path);
+    let app_dir = install_root.join(&install_state.latest.host.path);
     let modules_dir = install_root.join("modules");
     let updates_dir = install_root.join("updates");
     let layout = Layout {

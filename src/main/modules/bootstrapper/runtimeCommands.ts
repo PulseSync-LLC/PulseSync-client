@@ -6,8 +6,9 @@ import {
     parseEnqueueResult,
     parseHandoffArmedProgress,
     parseStartResult,
-    parseActiveRuntimeV2,
-    parseRuntimeAcknowledgementV2,
+    parseActiveRuntimeV3,
+    parseRuntimeAcknowledgementV3,
+    parseRepairRuntimeResultV3,
     unwrapSemanticResult,
     type AckLaunchRequestResultV1,
     type ClaimActiveAppResultV1,
@@ -16,8 +17,9 @@ import {
     type LaunchRequestInputV1,
     type RustHandoffArmedEventV1,
     type StartResultV1,
-    type ActiveRuntimeV2,
-    type RuntimeAcknowledgementV2,
+    type ActiveRuntimeV3,
+    type RuntimeAcknowledgementV3,
+    type RepairRuntimeResultV3,
 } from './contracts'
 import type { BootstrapperLauncher } from './paths'
 
@@ -179,14 +181,14 @@ export async function resolveActiveRuntime(options: {
     hostBundle?: string | null
     launcher: BootstrapperLauncher
     stateRoot: string
-}): Promise<ActiveRuntimeV2> {
+}): Promise<ActiveRuntimeV3> {
     const args = ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId]
     if (options.hostBundle) args.push('--host-bundle', options.hostBundle)
     return await runBootstrapperCommand({
         launcher: options.launcher,
         command: 'resolve-runtime',
         args,
-        parseResult: parseActiveRuntimeV2,
+        parseResult: parseActiveRuntimeV3,
     })
 }
 
@@ -195,12 +197,41 @@ export async function acknowledgeActiveRuntime(options: {
     generation: number
     launcher: BootstrapperLauncher
     stateRoot: string
-}): Promise<RuntimeAcknowledgementV2> {
+}): Promise<RuntimeAcknowledgementV3> {
     return await runBootstrapperCommand({
         launcher: options.launcher,
         command: 'acknowledge-runtime',
         args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--generation', String(options.generation)],
-        parseResult: parseRuntimeAcknowledgementV2,
+        parseResult: parseRuntimeAcknowledgementV3,
+    })
+}
+
+export async function repairActiveRuntime(options: {
+    channel: string
+    dist: string
+    launcher: BootstrapperLauncher
+    manifestUrl?: string
+    requestedSource: 'backend' | 'github' | 'direct'
+    serverHealthUrl?: string
+    stateRoot: string
+}): Promise<RepairRuntimeResultV3> {
+    const args = [
+        '--state-root',
+        options.stateRoot,
+        '--channel',
+        options.channel,
+        '--dist',
+        options.dist,
+        '--requested-source',
+        options.requestedSource,
+    ]
+    pushArg(args, '--manifest-url', options.manifestUrl)
+    pushArg(args, '--server-health-url', options.serverHealthUrl)
+    return await runBootstrapperCommand({
+        launcher: options.launcher,
+        command: 'repair',
+        args,
+        parseResult: parseRepairRuntimeResultV3,
     })
 }
 

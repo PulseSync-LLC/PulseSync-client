@@ -3,7 +3,7 @@ use crate::{
         error::Result,
         fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
         install_state::{
-            ActivationState, RuntimeActivationV2, RuntimeComponentV2, read_install_state,
+            ActivationState, RuntimeActivationV3, RuntimeComponentV3, read_install_state,
             write_install_state,
         },
         layout::assert_inside,
@@ -178,6 +178,32 @@ fn apply_artifact(artifact: &TransactionArtifact, transaction_dir: &Path) -> Res
     }
 }
 
+fn verify_result_content(transaction: &Value, artifact: &TransactionArtifact) -> Result<()> {
+    let expected = if artifact.key == "host" {
+        transaction.get("hostContentSha256").and_then(Value::as_str)
+    } else if let Some(name) = artifact.key.strip_prefix("module:") {
+        transaction
+            .get("componentContentSha256s")
+            .and_then(Value::as_object)
+            .and_then(|values| values.get(name))
+            .and_then(Value::as_str)
+    } else {
+        None
+    };
+    let Some(expected) = expected else {
+        return Ok(());
+    };
+    let actual = sha256_directory(&artifact.target_path)?;
+    if !actual.eq_ignore_ascii_case(expected) {
+        return Err(format!(
+            "{} result content sha256 mismatch: expected {expected}, got {actual}",
+            artifact.key
+        )
+        .into());
+    }
+    Ok(())
+}
+
 pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     let payload = fs::read_to_string(transaction_file)?;
     let mut transaction: Value = serde_json::from_str(&payload)?;
@@ -214,7 +240,9 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         )?;
         assert_inside(&install_dir, &artifact.target_path, "target artifact")?;
         assert_inside(&backup_dir, &artifact.backup_path, "backup artifact")?;
-        match apply_artifact(artifact, &transaction_dir) {
+        match apply_artifact(artifact, &transaction_dir)
+            .and_then(|value| verify_result_content(&transaction, artifact).map(|_| value))
+        {
             Ok(value) => applied.push(value),
             Err(error) => {
                 transaction["state"] = json!("failed");
@@ -231,7 +259,7 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
     let mut install_state = read_install_state(&install_dir)?;
-    let previous_snapshot = install_state.active.clone();
+    let mut next_snapshot = install_state.latest.clone();
     let component_versions = transaction
         .get("componentVersions")
         .and_then(Value::as_object)
@@ -240,27 +268,40 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         .get("componentElectronAbis")
         .and_then(Value::as_object)
         .ok_or("componentElectronAbis is required")?;
+    let omitted_values = transaction
+        .get("omittedComponents")
+        .and_then(Value::as_array)
+        .ok_or("omittedComponents is required")?;
+    let mut omitted_components = Vec::with_capacity(omitted_values.len());
+    for value in omitted_values {
+        omitted_components.push(
+            value
+                .as_str()
+                .ok_or("omittedComponents must contain strings")?,
+        );
+    }
     for artifact in &artifacts {
         let relative_path = artifact
             .target_path
             .strip_prefix(&install_dir)?
             .to_path_buf();
         if artifact.key == "host" {
-            install_state.active.host.version = transaction
+            next_snapshot.host.version = transaction
                 .get("hostVersion")
                 .and_then(Value::as_str)
                 .ok_or("hostVersion is required")?
                 .to_string();
-            install_state.active.host.path = relative_path;
-            install_state.active.host.artifact_sha256 = Some(artifact.sha256.clone());
-            install_state.active.host.electron_abi = transaction
+            next_snapshot.host.path = relative_path;
+            next_snapshot.host.sha256 = sha256_directory(&artifact.target_path)?;
+            next_snapshot.host.artifact_sha256 = Some(artifact.sha256.clone());
+            next_snapshot.host.electron_abi = transaction
                 .get("hostElectronAbi")
                 .and_then(Value::as_str)
                 .map(str::to_string);
         } else if artifact.key == "bootstrapper" {
-            install_state.active.components.insert(
+            next_snapshot.components.insert(
                 "bootstrapper".to_string(),
-                RuntimeComponentV2 {
+                RuntimeComponentV3 {
                     version: transaction
                         .get("bootstrapperVersion")
                         .and_then(Value::as_str)
@@ -268,6 +309,7 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                         .to_string(),
                     path: relative_path,
                     sha256: sha256_file(&artifact.target_path)?,
+                    required: artifact.required,
                     artifact_sha256: Some(artifact.sha256.clone()),
                     electron_abi: None,
                 },
@@ -279,12 +321,13 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                 .ok_or("component version is required")?
                 .to_string();
             let sha256 = sha256_directory(&artifact.target_path)?;
-            install_state.active.components.insert(
+            next_snapshot.components.insert(
                 name.to_string(),
-                RuntimeComponentV2 {
+                RuntimeComponentV3 {
                     version,
                     path: relative_path,
                     sha256,
+                    required: artifact.required,
                     artifact_sha256: Some(artifact.sha256.clone()),
                     electron_abi: component_electron_abis
                         .get(name)
@@ -294,16 +337,30 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
             );
         }
     }
-    install_state.previous = Some(previous_snapshot);
-    install_state.metadata_version = transaction
+    for name in omitted_components {
+        if name == "desktopCore" || name == "bootstrapper" {
+            return Err(format!("protected runtime component cannot be omitted: {name}").into());
+        }
+        next_snapshot.components.remove(name);
+    }
+    next_snapshot.metadata_version = transaction
         .get("metadataVersion")
         .and_then(Value::as_u64)
         .ok_or("metadataVersion is required")?;
+    next_snapshot.bundle_version = transaction
+        .get("bundleVersion")
+        .and_then(Value::as_str)
+        .ok_or("bundleVersion is required")?
+        .to_string();
+    if next_snapshot.bundle_version != next_snapshot.metadata_version.to_string() {
+        return Err("bundleVersion must equal metadataVersion".into());
+    }
+    install_state.latest = next_snapshot;
     install_state.generation = install_state
         .generation
         .checked_add(1)
         .ok_or("install-state generation overflow")?;
-    install_state.activation = RuntimeActivationV2 {
+    install_state.activation = RuntimeActivationV3 {
         state: ActivationState::Pending,
         generation: install_state.generation,
         launch_owner: None,

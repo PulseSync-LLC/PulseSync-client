@@ -1,8 +1,10 @@
 pub mod check;
 pub mod claim_active_app;
 pub mod complete_self_update;
+pub mod delta;
 pub mod discard_prepared_update;
 pub mod launch_inbox;
+pub mod maintenance;
 pub mod prepare_update;
 pub mod recover_update;
 pub mod resolve_runtime;
