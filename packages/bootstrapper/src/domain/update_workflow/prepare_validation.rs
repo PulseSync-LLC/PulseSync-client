@@ -10,12 +10,12 @@ use crate::{
         path_segment::sanitize_path_segment,
     },
     domain::{
-        artifacts::{ArtifactKey, artifact_file_name},
+        artifacts::ArtifactKey,
+        install_plan::InstallPlan,
         macos_bundle,
         manifest::{
-            ArtifactLayout, BootstrapperArtifact, BootstrapperUpdateDecision,
-            BootstrapperUpdateManifest, GitHubManifestFallback, artifact_for_key,
-            github_manifest_url, health_check_available,
+            ArtifactLayout, BootstrapperUpdateDecision, BootstrapperUpdateManifest,
+            GitHubManifestFallback, UpdatePlanAction, github_manifest_url, health_check_available,
         },
         transactions::{TransactionRecord, transaction_artifacts},
     },
@@ -206,73 +206,13 @@ pub(super) fn public_decision(
         dist: decision.dist.clone(),
         current_version: decision.current_version.clone(),
         target_version: decision.target_version.clone(),
+        bundle_version: decision.bundle_version.clone(),
         update_available: decision.update_available,
+        plan: decision.plan.clone(),
         policy: evaluate_policy(
             manifest,
             &decision.current_version,
             decision.update_available,
-        ),
-    }
-}
-
-pub(super) fn artifact_map(
-    decision: &BootstrapperUpdateDecision,
-) -> BTreeMap<String, (ArtifactKey, BootstrapperArtifact)> {
-    let mut artifacts = BTreeMap::new();
-    let Some(dist_artifacts) = decision.artifacts.as_ref() else {
-        return artifacts;
-    };
-    for key in crate::domain::artifacts::selected_artifact_keys(decision).unwrap_or_default() {
-        if let Some(artifact) = artifact_for_key(dist_artifacts, &key) {
-            artifacts.insert(key.as_str(), (key, artifact.clone()));
-        }
-    }
-    artifacts
-}
-
-pub(super) fn bootstrapper_executable_name() -> &'static str {
-    if cfg!(windows) {
-        "pulsesync-bootstrapper.exe"
-    } else {
-        "pulsesync-bootstrapper"
-    }
-}
-
-pub(super) fn expected_target_path(
-    layout: &Layout,
-    decision: &BootstrapperUpdateDecision,
-    key: &ArtifactKey,
-) -> Option<PathBuf> {
-    match key {
-        ArtifactKey::Host => Some(layout.install_root.join(format!(
-            "host-{}",
-            sanitize_path_segment(&decision.host_version).ok()?
-        ))),
-        ArtifactKey::Module(module_name) => Some(
-            layout
-                .install_root
-                .join("modules")
-                .join(format!(
-                    "{}-{}",
-                    sanitize_path_segment(module_name).ok()?,
-                    sanitize_path_segment(decision.component_versions.get(module_name)?).ok()?
-                ))
-                .join(sanitize_path_segment(module_name).ok()?),
-        ),
-        ArtifactKey::Bootstrapper => {
-            Some(layout.bootstrapper_dir.join(bootstrapper_executable_name()))
-        }
-    }
-}
-
-pub(super) fn expected_backup_path(backup_dir: &Path, key: &ArtifactKey) -> Option<PathBuf> {
-    match key {
-        ArtifactKey::Host => Some(backup_dir.join("host")),
-        ArtifactKey::Module(module_name) => Some(backup_dir.join("modules").join(module_name)),
-        ArtifactKey::Bootstrapper => Some(
-            backup_dir
-                .join("bootstrapper")
-                .join(bootstrapper_executable_name()),
         ),
     }
 }
@@ -319,6 +259,8 @@ pub(super) fn transaction_matches(
             && value.get("dist").and_then(Value::as_str) == Some(decision.dist.as_str())
             && value.get("targetVersion").and_then(Value::as_str)
                 == Some(decision.target_version.as_str())
+            && value.get("bundleVersion").and_then(Value::as_str)
+                == Some(decision.bundle_version.as_str())
             && value.get("applyDeferredByLeaseId").and_then(Value::as_str) == Some(lease_id)
             && value_path(value, "stateRoot")
                 .is_some_and(|path| paths_match(&path, &layout.state_root))
@@ -343,6 +285,8 @@ pub(super) fn transaction_matches(
             != Some(decision.current_version.as_str())
         || value.get("targetVersion").and_then(Value::as_str)
             != Some(decision.target_version.as_str())
+        || value.get("bundleVersion").and_then(Value::as_str)
+            != Some(decision.bundle_version.as_str())
         || value.get("retainAppVersions").and_then(Value::as_u64)
             != Some(retain_app_versions as u64)
         || value.get("applyDeferredByLeaseId").and_then(Value::as_str) != Some(lease_id)
@@ -359,7 +303,7 @@ pub(super) fn transaction_matches(
     let Some(expected_transaction_dir) = scoped_update_path(
         &layout.transaction_root,
         &decision.channel,
-        &decision.target_version,
+        &decision.bundle_version,
         &decision.dist,
     )
     .map(|path| path.join(transaction_id)) else {
@@ -379,7 +323,7 @@ pub(super) fn transaction_matches(
     let Some(expected_staging_dir) = scoped_update_path(
         &staging_root,
         &decision.channel,
-        &decision.target_version,
+        &decision.bundle_version,
         &decision.dist,
     ) else {
         return false;
@@ -387,12 +331,15 @@ pub(super) fn transaction_matches(
     let Some(expected_backup_dir) = scoped_update_path(
         &staging_root.join("backups"),
         &decision.channel,
-        &decision.target_version,
+        &decision.bundle_version,
         &decision.dist,
     ) else {
         return false;
     };
     let Some(backup_dir) = value_path(value, "backupDir") else {
+        return false;
+    };
+    let Some(plan_file) = value_path(value, "planFile") else {
         return false;
     };
     if !paths_match(&transaction_dir, actual_dir)
@@ -405,13 +352,60 @@ pub(super) fn transaction_matches(
         || !is_inside(&layout.updates_dir, &staging_dir)
         || !paths_match(&backup_dir, &expected_backup_dir)
         || !is_inside(&layout.updates_dir, &backup_dir)
-        || value_path(value, "planFile")
-            .is_none_or(|path| !paths_match(&path, &staging_dir.join("install-plan.json")))
+        || !paths_match(&plan_file, &staging_dir.join("install-plan.json"))
     {
         return false;
     }
 
-    let expected = artifact_map(decision);
+    let Ok(plan) = fs::read(&plan_file)
+        .map_err(|_| ())
+        .and_then(|bytes| serde_json::from_slice::<InstallPlan>(&bytes).map_err(|_| ()))
+    else {
+        return false;
+    };
+    let Some(decision_artifacts) = decision.artifacts.as_ref() else {
+        return false;
+    };
+    let expected_host_content = decision_artifacts
+        .host_files
+        .as_ref()
+        .map(|files| files.content_sha256.clone());
+    let expected_component_content = decision_artifacts
+        .module_files
+        .iter()
+        .map(|(name, files)| (name.clone(), files.content_sha256.clone()))
+        .collect::<BTreeMap<_, _>>();
+    let expected_omitted_components = decision
+        .plan
+        .iter()
+        .filter(|item| {
+            matches!(item.action, UpdatePlanAction::Remove)
+                || (matches!(item.action, UpdatePlanAction::Blocked) && !item.required)
+        })
+        .filter_map(|item| item.key.strip_prefix("module:").map(str::to_string))
+        .collect::<Vec<_>>();
+    let transaction_omitted_components = value
+        .get("omittedComponents")
+        .and_then(Value::as_array)
+        .and_then(|items| {
+            items
+                .iter()
+                .map(|item| item.as_str().map(str::to_string))
+                .collect::<Option<Vec<_>>>()
+        });
+    if plan.bundle_version != decision.bundle_version
+        || plan.host_content_sha256 != expected_host_content
+        || plan.component_content_sha256s != expected_component_content
+        || plan.omitted_components != expected_omitted_components
+        || transaction_omitted_components.as_ref() != Some(&plan.omitted_components)
+    {
+        return false;
+    }
+    let expected = plan
+        .artifacts
+        .iter()
+        .map(|artifact| (artifact.key.as_str(), artifact))
+        .collect::<BTreeMap<_, _>>();
     let Ok(actual) = transaction_artifacts(value) else {
         return false;
     };
@@ -423,44 +417,31 @@ pub(super) fn transaction_matches(
         if !seen_keys.insert(artifact.key.clone()) {
             return false;
         }
-        let Some((key, expected_artifact)) = expected.get(&artifact.key) else {
+        let Some(expected_artifact) = expected.get(&artifact.key) else {
             return false;
         };
-        let Ok(source_file_name) = artifact_file_name(expected_artifact, key) else {
-            return false;
-        };
-        let expected_source_path = staging_dir.join(source_file_name);
-        let Some(expected_target_path) = expected_target_path(layout, decision, key) else {
-            return false;
-        };
-        let Some(expected_backup_path) = expected_backup_path(&backup_dir, key) else {
-            return false;
-        };
+        let key = &expected_artifact.key;
+        let expected_source_path = &expected_artifact.source_path;
         let Some(expected_prepared_path) =
-            expected_prepared_path(actual_dir, &expected_source_path, key)
+            expected_prepared_path(actual_dir, expected_source_path, key)
         else {
             return false;
-        };
-        let expected_action = if matches!(key, ArtifactKey::Bootstrapper) {
-            "replace-file"
-        } else {
-            "replace-directory-archive"
         };
         let expected_prepared_kind = if matches!(key, ArtifactKey::Bootstrapper) {
             "file"
         } else {
             "archive"
         };
-        if artifact.action != expected_action
+        if artifact.action != expected_artifact.action
             || artifact.prepared_kind != expected_prepared_kind
-            || !paths_match(&artifact.source_path, &expected_source_path)
-            || !paths_match(&artifact.target_path, &expected_target_path)
-            || !paths_match(&artifact.backup_path, &expected_backup_path)
+            || !paths_match(&artifact.source_path, expected_source_path)
+            || !paths_match(&artifact.target_path, &expected_artifact.target_path)
+            || !paths_match(&artifact.backup_path, &expected_artifact.backup_path)
             || !paths_match(&artifact.prepared_path, &expected_prepared_path)
             || artifact.sha256.to_lowercase() != expected_artifact.sha256.to_lowercase()
-            || expected_artifact
-                .size
-                .is_some_and(|size| size != artifact.size)
+            || artifact.size != expected_artifact.size
+            || artifact.required != expected_artifact.required
+            || artifact.file_operations != expected_artifact.file_operations
             || !is_inside(actual_dir, &artifact.prepared_path)
             || fs::metadata(&artifact.prepared_path)
                 .ok()

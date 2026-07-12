@@ -1,6 +1,6 @@
 import { app, type BrowserWindow } from 'electron'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
-import type { ActiveRuntimeV2 } from '@common/desktopRuntime/contract'
+import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
 import logger from '../logger'
 import { BootstrapperCommandError } from '../bootstrapper/command'
 import { isUpdateErrorV1, type ActiveAppLeaseV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../bootstrapper/contracts'
@@ -20,7 +20,7 @@ export type ApplicationStartupHandle = {
 }
 
 export type ApplicationBootstrapRuntime = {
-    activeRuntime: ActiveRuntimeV2
+    activeRuntime: ActiveRuntimeV3
     getLastCheckAt(): number | null
     handoffPreparedUpdate(): Promise<boolean>
     leaseId: string
@@ -30,7 +30,7 @@ export type ApplicationBootstrapRuntime = {
 export type ApplicationMainLoader = (
     bootstrapWindow: BrowserWindow,
     bootstrapRuntime: ApplicationBootstrapRuntime,
-    activeRuntime: ActiveRuntimeV2,
+    activeRuntime: ActiveRuntimeV3,
 ) => Promise<ApplicationStartupHandle>
 
 export class StartupCoordinator {
@@ -41,7 +41,7 @@ export class StartupCoordinator {
     public constructor(
         private readonly options: {
             bootstrapWindow: BootstrapWindowController
-            activeRuntime: ActiveRuntimeV2
+            activeRuntime: ActiveRuntimeV3
             inbox: LaunchInbox
             lease: ActiveAppLeaseV1
             loadApplicationMain: ApplicationMainLoader

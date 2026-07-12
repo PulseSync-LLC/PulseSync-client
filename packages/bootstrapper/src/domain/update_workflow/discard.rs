@@ -181,6 +181,11 @@ pub fn discard_prepared_update(
         .get("targetVersion")
         .and_then(Value::as_str)
         .map(str::to_string);
+    let bundle_version = record
+        .value
+        .get("bundleVersion")
+        .and_then(Value::as_str)
+        .map(str::to_string);
     if record.candidate.state != "prepared" {
         return Ok(DiscardPreparedUpdateResult {
             schema_version: 1,
@@ -336,12 +341,12 @@ pub fn discard_prepared_update(
                 safe_to_continue,
             )
         })?;
-    let target_version_value = target_version.as_deref().ok_or_else(|| {
+    let bundle_version_value = bundle_version.as_deref().ok_or_else(|| {
         workflow_error(
             DISCARD_COMMAND,
             "unsafe-transaction-layout",
             "discard",
-            "transaction is missing targetVersion",
+            "transaction is missing bundleVersion",
             false,
             safe_to_continue,
         )
@@ -366,13 +371,13 @@ pub fn discard_prepared_update(
     let expected_transaction_dir = scoped_update_path(
         &layout.transaction_root,
         channel,
-        target_version_value,
+        bundle_version_value,
         dist,
     )
     .map(|path| path.join(&transaction_id));
     let expected_staging_dir =
-        scoped_update_path(&staging_root, channel, target_version_value, dist);
-    let expected_backup_dir = scoped_update_path(&backup_root, channel, target_version_value, dist);
+        scoped_update_path(&staging_root, channel, bundle_version_value, dist);
+    let expected_backup_dir = scoped_update_path(&backup_root, channel, bundle_version_value, dist);
     let plan_file = value_path(&record.value, "planFile");
     let install_dir = value_path(&record.value, "installDir");
     let artifacts = transaction_artifacts(&record.value).map_err(|error| {

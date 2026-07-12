@@ -1,9 +1,11 @@
 pub mod artifacts;
+pub mod delta;
 pub mod install_plan;
 pub mod install_workflow;
 pub mod launch_inbox;
 pub mod launcher;
 pub mod macos_bundle;
 pub mod manifest;
+pub mod repair;
 pub mod transactions;
 pub mod update_workflow;

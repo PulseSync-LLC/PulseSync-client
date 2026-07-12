@@ -8,9 +8,9 @@ use crate::{
     },
 };
 use serde_json::{Value, json};
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
-fn require_active_lease(state_root: &PathBuf, lease_id: &str) -> Result<()> {
+fn require_active_lease(state_root: &Path, lease_id: &str) -> Result<()> {
     let lease = verified_live_lease(state_root)?.ok_or("active app lease is missing")?;
     if lease.lease_id != lease_id {
         return Err("active app lease mismatch".into());
@@ -39,7 +39,7 @@ pub fn acknowledge_runtime_command(args: &Args) -> Result<Value> {
     require_active_lease(&state_root, &lease_id)?;
     let state = acknowledge_runtime(&state_root, &lease_id, generation)?;
     Ok(json!({
-        "schemaVersion": 2,
+        "schemaVersion": 3,
         "state": "confirmed",
         "generation": state.generation,
     }))

@@ -22,18 +22,7 @@ pub enum ActivationState {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct RuntimeHostV2 {
-    pub version: String,
-    pub path: PathBuf,
-    #[serde(rename = "artifactSha256", skip_serializing_if = "Option::is_none")]
-    pub artifact_sha256: Option<String>,
-    #[serde(rename = "electronAbi", skip_serializing_if = "Option::is_none")]
-    pub electron_abi: Option<String>,
-}
-
-#[derive(Clone, Debug, Deserialize, Serialize)]
-#[serde(deny_unknown_fields)]
-pub struct RuntimeComponentV2 {
+pub struct RuntimeHostV3 {
     pub version: String,
     pub path: PathBuf,
     pub sha256: String,
@@ -45,14 +34,31 @@ pub struct RuntimeComponentV2 {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct RuntimeSnapshotV2 {
-    pub host: RuntimeHostV2,
-    pub components: BTreeMap<String, RuntimeComponentV2>,
+pub struct RuntimeComponentV3 {
+    pub version: String,
+    pub path: PathBuf,
+    pub sha256: String,
+    pub required: bool,
+    #[serde(rename = "artifactSha256", skip_serializing_if = "Option::is_none")]
+    pub artifact_sha256: Option<String>,
+    #[serde(rename = "electronAbi", skip_serializing_if = "Option::is_none")]
+    pub electron_abi: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct RuntimeActivationV2 {
+pub struct RuntimeSnapshotV3 {
+    #[serde(rename = "bundleVersion")]
+    pub bundle_version: String,
+    #[serde(rename = "metadataVersion")]
+    pub metadata_version: u64,
+    pub host: RuntimeHostV3,
+    pub components: BTreeMap<String, RuntimeComponentV3>,
+}
+
+#[derive(Clone, Debug, Deserialize, Serialize)]
+#[serde(deny_unknown_fields)]
+pub struct RuntimeActivationV3 {
     pub state: ActivationState,
     pub generation: u64,
     #[serde(rename = "launchOwner", skip_serializing_if = "Option::is_none")]
@@ -61,22 +67,29 @@ pub struct RuntimeActivationV2 {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
-pub struct InstallStateV2 {
+pub struct InstallStateV3 {
     #[serde(rename = "schemaVersion")]
     pub schema_version: u64,
     pub generation: u64,
-    #[serde(rename = "metadataVersion")]
-    pub metadata_version: u64,
-    pub activation: RuntimeActivationV2,
-    pub active: RuntimeSnapshotV2,
-    pub previous: Option<RuntimeSnapshotV2>,
+    pub activation: RuntimeActivationV3,
+    pub latest: RuntimeSnapshotV3,
+    pub running: RuntimeSnapshotV3,
+    #[serde(rename = "lastSuccessful")]
+    pub last_successful: RuntimeSnapshotV3,
+    #[serde(rename = "knownGood")]
+    pub known_good: RuntimeSnapshotV3,
+    pub pinned: Option<RuntimeSnapshotV3>,
 }
 
 #[derive(Debug, Serialize)]
-pub struct ActiveRuntimeV2 {
+pub struct ActiveRuntimeV3 {
     #[serde(rename = "schemaVersion")]
     pub schema_version: u64,
     pub generation: u64,
+    #[serde(rename = "bundleVersion")]
+    pub bundle_version: String,
+    #[serde(rename = "metadataVersion")]
+    pub metadata_version: u64,
     #[serde(rename = "hostVersion")]
     pub host_version: String,
     #[serde(rename = "hostPath")]
@@ -91,7 +104,9 @@ pub struct ActiveRuntimeV2 {
     pub core_preload: PathBuf,
     #[serde(rename = "activationState")]
     pub activation_state: ActivationState,
-    pub components: BTreeMap<String, ActiveComponentV2>,
+    pub components: BTreeMap<String, ActiveComponentV3>,
+    #[serde(rename = "optionalFailures")]
+    pub optional_failures: Vec<RuntimeComponentFailureV3>,
 }
 
 #[cfg(windows)]
@@ -112,10 +127,17 @@ pub(crate) fn node_runtime_path(path: PathBuf) -> PathBuf {
 }
 
 #[derive(Debug, Serialize)]
-pub struct ActiveComponentV2 {
+pub struct ActiveComponentV3 {
     pub version: String,
     pub path: PathBuf,
     pub sha256: String,
+    pub required: bool,
+}
+
+#[derive(Debug, Serialize)]
+pub struct RuntimeComponentFailureV3 {
+    pub key: String,
+    pub reason: String,
 }
 
 pub fn install_state_path(state_root: &Path) -> PathBuf {
@@ -143,9 +165,17 @@ fn resolve_relative(state_root: &Path, relative: &Path, label: &str) -> Result<P
     Ok(resolved)
 }
 
-fn validate_snapshot(state_root: &Path, snapshot: &RuntimeSnapshotV2) -> Result<()> {
-    if snapshot.host.version.trim().is_empty() {
-        return Err("runtime host version is required".into());
+fn validate_snapshot(state_root: &Path, snapshot: &RuntimeSnapshotV3) -> Result<()> {
+    validate_snapshot_identity(snapshot)?;
+    if snapshot.host.version.trim().is_empty()
+        || snapshot.host.sha256.len() != 64
+        || !snapshot
+            .host
+            .sha256
+            .chars()
+            .all(|value| value.is_ascii_hexdigit())
+    {
+        return Err("runtime host version or sha256 is invalid".into());
     }
     let host_path = resolve_relative(state_root, &snapshot.host.path, "runtime host path")?;
     if !host_path.is_dir() {
@@ -159,63 +189,127 @@ fn validate_snapshot(state_root: &Path, snapshot: &RuntimeSnapshotV2) -> Result<
         .components
         .get("desktopCore")
         .ok_or("desktopCore component is required")?;
-    if core.version.trim().is_empty()
-        || core.sha256.len() != 64
-        || !core.sha256.chars().all(|value| value.is_ascii_hexdigit())
-    {
-        return Err("desktopCore version or sha256 is invalid".into());
-    }
-    let core_path = resolve_relative(state_root, &core.path, "desktopCore path")?;
-    let entry = core_path.join("index.cjs");
-    let preload = core_path.join("mainWindowPreload.cjs");
-    if !entry.is_file() || !preload.is_file() {
-        return Err(format!("desktopCore is incomplete: {}", core_path.display()).into());
-    }
-    if sha256_directory(&core_path)? != core.sha256.to_ascii_lowercase() {
-        return Err(format!(
-            "desktopCore directory hash mismatch: {}",
-            core_path.display()
-        )
-        .into());
+    if !core.required {
+        return Err("desktopCore component must be required".into());
     }
     for (name, component) in &snapshot.components {
-        if name == "desktopCore" {
-            continue;
-        }
-        let component_path = resolve_relative(
-            state_root,
-            &component.path,
-            &format!("{name} component path"),
-        )?;
-        let actual = if component_path.is_file() {
-            sha256_file(&component_path)?
-        } else if component_path.is_dir() {
-            sha256_directory(&component_path)?
-        } else {
-            return Err(format!(
-                "component path does not exist: {}",
-                component_path.display()
-            )
-            .into());
-        };
-        if actual != component.sha256.to_ascii_lowercase() {
-            return Err(format!(
-                "{name} component hash mismatch: {}",
-                component_path.display()
-            )
-            .into());
+        if let Err(error) = validate_component(state_root, name, component)
+            && component.required
+        {
+            return Err(error);
         }
     }
     Ok(())
 }
 
-pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV2> {
+fn validate_component(
+    state_root: &Path,
+    name: &str,
+    component: &RuntimeComponentV3,
+) -> Result<PathBuf> {
+    if component.version.trim().is_empty()
+        || component.sha256.len() != 64
+        || !component
+            .sha256
+            .chars()
+            .all(|value| value.is_ascii_hexdigit())
+    {
+        return Err(format!("{name} version or sha256 is invalid").into());
+    }
+    let component_path = resolve_relative(
+        state_root,
+        &component.path,
+        &format!("{name} component path"),
+    )?;
+    if name == "desktopCore"
+        && (!component_path.join("index.cjs").is_file()
+            || !component_path.join("mainWindowPreload.cjs").is_file())
+    {
+        return Err(format!("desktopCore is incomplete: {}", component_path.display()).into());
+    }
+    let actual = if component_path.is_file() {
+        sha256_file(&component_path)?
+    } else if component_path.is_dir() {
+        sha256_directory(&component_path)?
+    } else {
+        return Err(format!(
+            "component path does not exist: {}",
+            component_path.display()
+        )
+        .into());
+    };
+    if actual != component.sha256.to_ascii_lowercase() {
+        return Err(format!(
+            "{name} component hash mismatch: {}",
+            component_path.display()
+        )
+        .into());
+    }
+    Ok(component_path)
+}
+
+fn validate_snapshot_identity(snapshot: &RuntimeSnapshotV3) -> Result<()> {
+    if snapshot.bundle_version.trim().is_empty()
+        || snapshot.bundle_version != snapshot.metadata_version.to_string()
+    {
+        return Err("runtime snapshot bundleVersion must equal metadataVersion".into());
+    }
+    Ok(())
+}
+
+fn same_snapshot(left: &RuntimeSnapshotV3, right: &RuntimeSnapshotV3) -> bool {
+    left.bundle_version == right.bundle_version
+}
+
+fn validate_lifecycle(state: &InstallStateV3) -> Result<()> {
+    for snapshot in [
+        Some(&state.latest),
+        Some(&state.running),
+        Some(&state.last_successful),
+        Some(&state.known_good),
+        state.pinned.as_ref(),
+    ]
+    .into_iter()
+    .flatten()
+    {
+        validate_snapshot_identity(snapshot)?;
+    }
+    if !same_snapshot(&state.last_successful, &state.known_good) {
+        return Err("lastSuccessful and knownGood must identify the same snapshot".into());
+    }
+    match state.activation.state {
+        ActivationState::Confirmed => {
+            if state.activation.launch_owner.is_some()
+                || !same_snapshot(&state.latest, &state.running)
+                || !same_snapshot(&state.running, &state.last_successful)
+            {
+                return Err("confirmed runtime lifecycle is inconsistent".into());
+            }
+        }
+        ActivationState::Pending => {
+            if state.latest.metadata_version <= state.known_good.metadata_version {
+                return Err("pending latest snapshot must be newer than knownGood".into());
+            }
+            let expected_running = if state.activation.launch_owner.is_some() {
+                &state.latest
+            } else {
+                &state.known_good
+            };
+            if !same_snapshot(&state.running, expected_running) {
+                return Err("pending running snapshot does not match activation ownership".into());
+            }
+        }
+    }
+    Ok(())
+}
+
+pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let state_path = install_state_path(&state_root);
-    let state: InstallStateV2 = serde_json::from_slice(&fs::read(&state_path)?)?;
-    if state.schema_version != 2 {
+    let state: InstallStateV3 = serde_json::from_slice(&fs::read(&state_path)?)?;
+    if state.schema_version != 3 {
         return Err(format!(
-            "install-state schemaVersion must be 2: {}",
+            "install-state schemaVersion must be 3: {}",
             state_path.display()
         )
         .into());
@@ -223,45 +317,49 @@ pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV2> 
     if state.generation == 0 || state.activation.generation != state.generation {
         return Err("install-state generation is invalid".into());
     }
+    validate_lifecycle(&state)?;
     Ok(state)
 }
 
-pub fn read_install_state(state_root: &Path) -> Result<InstallStateV2> {
+pub fn read_install_state(state_root: &Path) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let state = read_install_state_metadata(&state_root)?;
-    validate_snapshot(&state_root, &state.active)?;
-    if let Some(previous) = &state.previous {
-        validate_snapshot(&state_root, previous)?;
+    validate_snapshot(&state_root, &state.latest)?;
+    validate_snapshot(&state_root, &state.running)?;
+    validate_snapshot(&state_root, &state.last_successful)?;
+    validate_snapshot(&state_root, &state.known_good)?;
+    if let Some(pinned) = &state.pinned {
+        validate_snapshot(&state_root, pinned)?;
     }
     Ok(state)
 }
 
-pub fn write_install_state(state_root: &Path, state: &InstallStateV2) -> Result<PathBuf> {
+pub fn write_install_state(state_root: &Path, state: &InstallStateV3) -> Result<PathBuf> {
     let state_root = canonical_install_root(state_root)?;
+    validate_lifecycle(state)?;
     let path = install_state_path(&state_root);
     write_json_atomic(&path, state)?;
     Ok(path)
 }
 
-pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<ActiveRuntimeV2> {
+pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<ActiveRuntimeV3> {
     let state_root = canonical_install_root(state_root)?;
     let mut state = read_install_state_metadata(&state_root)?;
     if matches!(state.activation.state, ActivationState::Pending) {
         match state.activation.launch_owner.as_deref() {
-            None => state.activation.launch_owner = Some(lease_id.to_string()),
+            None => {
+                state.running = state.latest.clone();
+                state.activation.launch_owner = Some(lease_id.to_string());
+            }
             Some(owner) if owner == lease_id => {}
             Some(_) => {
-                let previous = state
-                    .previous
-                    .clone()
-                    .ok_or("pending runtime has no rollback snapshot")?;
-                state.active = previous;
-                state.previous = None;
+                state.latest = state.known_good.clone();
+                state.running = state.known_good.clone();
                 state.generation = state
                     .generation
                     .checked_add(1)
                     .ok_or("install-state generation overflow")?;
-                state.activation = RuntimeActivationV2 {
+                state.activation = RuntimeActivationV3 {
                     state: ActivationState::Confirmed,
                     generation: state.generation,
                     launch_owner: None,
@@ -273,46 +371,49 @@ pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<Activ
             cleanup_inactive_runtime(&state_root, &state)?;
         }
     }
-    validate_snapshot(&state_root, &state.active)?;
+    validate_snapshot(&state_root, &state.running)?;
 
     let core = state
-        .active
+        .running
         .components
         .get("desktopCore")
         .ok_or("desktopCore component is required")?;
     let host_path = node_runtime_path(resolve_relative(
         &state_root,
-        &state.active.host.path,
+        &state.running.host.path,
         "runtime host path",
     )?);
-    let core_path = node_runtime_path(resolve_relative(
-        &state_root,
-        &core.path,
-        "desktopCore path",
-    )?);
-    let components = state
-        .active
-        .components
-        .iter()
-        .map(|(name, component)| {
-            Ok((
-                name.clone(),
-                ActiveComponentV2 {
-                    version: component.version.clone(),
-                    path: node_runtime_path(resolve_relative(
-                        &state_root,
-                        &component.path,
-                        &format!("{name} component path"),
-                    )?),
-                    sha256: component.sha256.clone(),
-                },
-            ))
-        })
-        .collect::<Result<BTreeMap<_, _>>>()?;
-    Ok(ActiveRuntimeV2 {
-        schema_version: 2,
+    let core_path = node_runtime_path(validate_component(&state_root, "desktopCore", core)?);
+    let mut components = BTreeMap::new();
+    let mut optional_failures = Vec::new();
+    for (name, component) in &state.running.components {
+        match validate_component(&state_root, name, component) {
+            Ok(path) => {
+                components.insert(
+                    name.clone(),
+                    ActiveComponentV3 {
+                        version: component.version.clone(),
+                        path: node_runtime_path(path),
+                        sha256: component.sha256.clone(),
+                        required: component.required,
+                    },
+                );
+            }
+            Err(error) if !component.required => {
+                optional_failures.push(RuntimeComponentFailureV3 {
+                    key: format!("module:{name}"),
+                    reason: error.to_string(),
+                })
+            }
+            Err(error) => return Err(error),
+        }
+    }
+    Ok(ActiveRuntimeV3 {
+        schema_version: 3,
         generation: state.generation,
-        host_version: state.active.host.version,
+        bundle_version: state.running.bundle_version.clone(),
+        metadata_version: state.running.metadata_version,
+        host_version: state.running.host.version,
         host_path,
         core_version: core.version.clone(),
         core_entry: core_path.join("index.cjs"),
@@ -320,6 +421,7 @@ pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<Activ
         core_path,
         activation_state: state.activation.state,
         components,
+        optional_failures,
     })
 }
 
@@ -327,7 +429,7 @@ pub fn acknowledge_runtime(
     state_root: &Path,
     lease_id: &str,
     generation: u64,
-) -> Result<InstallStateV2> {
+) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let mut state = read_install_state(&state_root)?;
     if state.generation != generation {
@@ -343,17 +445,29 @@ pub fn acknowledge_runtime(
         }
         state.activation.state = ActivationState::Confirmed;
         state.activation.launch_owner = None;
+        state.last_successful = state.running.clone();
+        state.known_good = state.running.clone();
+        state.latest = state.running.clone();
         write_install_state(&state_root, &state)?;
         cleanup_inactive_runtime(&state_root, &state)?;
     }
     Ok(state)
 }
 
-fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV2) -> Result<()> {
-    let mut keep_hosts = vec![state.active.host.path.clone()];
-    if let Some(previous) = &state.previous {
-        keep_hosts.push(previous.host.path.clone());
-    }
+fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result<Vec<PathBuf>> {
+    let mut removed = Vec::new();
+    let snapshots = [
+        Some(&state.latest),
+        Some(&state.running),
+        Some(&state.last_successful),
+        Some(&state.known_good),
+        state.pinned.as_ref(),
+    ];
+    let keep_hosts = snapshots
+        .iter()
+        .flatten()
+        .map(|snapshot| snapshot.host.path.clone())
+        .collect::<Vec<_>>();
     for entry in fs::read_dir(state_root)? {
         let entry = entry?;
         let path = entry.path();
@@ -363,16 +477,17 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV2) -> Result
             && !keep_hosts.iter().any(|keep| state_root.join(keep) == path)
         {
             assert_inside(state_root, &path, "inactive host")?;
-            fs::remove_dir_all(path)?;
+            fs::remove_dir_all(&path)?;
+            removed.push(path);
         }
     }
 
     let modules_root = state_root.join("modules");
     if !modules_root.is_dir() {
-        return Ok(());
+        return Ok(removed);
     }
     let mut keep_modules = Vec::new();
-    for snapshot in std::iter::once(&state.active).chain(state.previous.iter()) {
+    for snapshot in snapshots.into_iter().flatten() {
         for component in snapshot.components.values() {
             let parts = component.path.components().collect::<Vec<_>>();
             if parts.len() >= 3
@@ -394,36 +509,51 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV2) -> Result
             && !keep_modules.iter().any(|candidate| candidate == &path)
         {
             assert_inside(&modules_root, &path, "inactive component")?;
-            fs::remove_dir_all(path)?;
+            fs::remove_dir_all(&path)?;
+            removed.push(path);
         }
     }
-    Ok(())
+    Ok(removed)
+}
+
+pub fn collect_runtime_garbage(state_root: &Path) -> Result<Vec<PathBuf>> {
+    let state_root = canonical_install_root(state_root)?;
+    let state = read_install_state(&state_root)?;
+    cleanup_inactive_runtime(&state_root, &state)
+}
+
+pub fn pin_runtime_snapshot(
+    state_root: &Path,
+    bundle_version: Option<&str>,
+) -> Result<InstallStateV3> {
+    let state_root = canonical_install_root(state_root)?;
+    let mut state = read_install_state(&state_root)?;
+    state.pinned = if let Some(bundle_version) = bundle_version {
+        [
+            &state.latest,
+            &state.running,
+            &state.last_successful,
+            &state.known_good,
+        ]
+        .into_iter()
+        .find(|snapshot| snapshot.bundle_version == bundle_version)
+        .cloned()
+        .ok_or("requested bundleVersion is not retained")?
+        .into()
+    } else {
+        None
+    };
+    write_install_state(&state_root, &state)?;
+    Ok(state)
 }
 
 pub fn recover_unowned_pending_runtime(state_root: &Path) -> Result<bool> {
     let state_root = canonical_install_root(state_root)?;
-    let mut state = read_install_state_metadata(&state_root)?;
-    if !matches!(state.activation.state, ActivationState::Pending)
-        || state.activation.launch_owner.is_some()
+    let state = read_install_state_metadata(&state_root)?;
+    if matches!(state.activation.state, ActivationState::Pending)
+        && state.activation.launch_owner.is_none()
     {
-        return Ok(false);
+        validate_snapshot(&state_root, &state.latest)?;
     }
-    let previous = state
-        .previous
-        .take()
-        .ok_or("pending runtime has no rollback snapshot")?;
-    state.active = previous;
-    state.generation = state
-        .generation
-        .checked_add(1)
-        .ok_or("install-state generation overflow")?;
-    state.activation = RuntimeActivationV2 {
-        state: ActivationState::Confirmed,
-        generation: state.generation,
-        launch_owner: None,
-    };
-    validate_snapshot(&state_root, &state.active)?;
-    write_install_state(&state_root, &state)?;
-    cleanup_inactive_runtime(&state_root, &state)?;
-    Ok(true)
+    Ok(false)
 }

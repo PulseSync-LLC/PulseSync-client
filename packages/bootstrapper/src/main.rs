@@ -9,13 +9,15 @@ mod core;
 mod domain;
 
 use crate::{
-    cli::args::{Args, parse_args, required_arg},
+    cli::args::{Args, parse_args, required_arg, required_state_root},
     commands::{
         check::check_update,
         claim_active_app::claim_active_app,
         complete_self_update::complete_self_update,
+        delta::make_delta,
         discard_prepared_update::discard_prepared_update_command,
         launch_inbox::{ack_launch_request, claim_launch_requests, enqueue_launch_request},
+        maintenance::{collect_garbage, pin_runtime, repair},
         prepare_update::prepare_update_command,
         recover_update::recover_update,
         resolve_runtime::{acknowledge_runtime_command, resolve_runtime},
@@ -146,8 +148,21 @@ fn run(args: &Args) -> Result<Value> {
         "recover-update" => recover_update(args),
         "discard-prepared-update" => discard_prepared_update_command(args),
         "check" => check_update(args),
+        "make-delta" => make_delta(args),
         "start" => start(args),
         "complete-self-update" => complete_self_update(args),
+        "collect-garbage" => {
+            let root = PathBuf::from(required_state_root(args)?);
+            run_guarded_mutation(root, || collect_garbage(args))
+        }
+        "repair" => {
+            let root = PathBuf::from(required_state_root(args)?);
+            run_guarded_mutation(root, || repair(args))
+        }
+        "pin-runtime" => {
+            let root = PathBuf::from(required_state_root(args)?);
+            run_guarded_mutation(root, || pin_runtime(args))
+        }
         "apply-install" => {
             let transaction_file = PathBuf::from(required_arg(args, "--transaction-file")?);
             let root = install_root_from_updates_path(&transaction_file)?;

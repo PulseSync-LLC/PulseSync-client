@@ -1,6 +1,6 @@
 [package]
 name = "pulsesync-bootstrapper"
-version = "0.2.0"
+version = "0.3.0"
 edition = "2024"
 publish = false
 
@@ -13,6 +13,7 @@ fs2 = "0.4"
 hex = "0.4"
 libc = "0.2"
 node-semver = "2.2"
+qbsdiff = "1.4.4"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 sha2 = "0.10"

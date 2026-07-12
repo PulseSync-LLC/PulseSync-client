@@ -10,7 +10,7 @@ pub(crate) fn staging_dir(
 ) -> Result<PathBuf> {
     Ok(staging_root
         .join(sanitize_path_segment(&decision.channel)?)
-        .join(sanitize_path_segment(&decision.target_version)?)
+        .join(sanitize_path_segment(&decision.bundle_version)?)
         .join(sanitize_path_segment(&decision.dist)?))
 }
 
@@ -21,7 +21,7 @@ pub(crate) fn default_backup_dir(
     Ok(staging_root
         .join("backups")
         .join(sanitize_path_segment(&decision.channel)?)
-        .join(sanitize_path_segment(&decision.target_version)?)
+        .join(sanitize_path_segment(&decision.bundle_version)?)
         .join(sanitize_path_segment(&decision.dist)?))
 }
 
@@ -76,20 +76,4 @@ pub(crate) fn action(key: &ArtifactKey) -> &'static str {
         ArtifactKey::Host | ArtifactKey::Module(_) => "replace-directory-archive",
         ArtifactKey::Bootstrapper => "replace-file",
     }
-}
-
-pub(crate) fn install_keys(keys: Vec<ArtifactKey>) -> Vec<ArtifactKey> {
-    keys.into_iter()
-        .filter(|key| {
-            matches!(
-                key,
-                ArtifactKey::Host | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
-            )
-        })
-        .fold(Vec::new(), |mut selected, key| {
-            if !selected.contains(&key) {
-                selected.push(key);
-            }
-            selected
-        })
 }

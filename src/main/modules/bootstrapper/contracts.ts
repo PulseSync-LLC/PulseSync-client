@@ -81,7 +81,18 @@ export type UpdateDecisionV1 = {
     dist: string
     currentVersion: string
     targetVersion: string
+    bundleVersion: string
     updateAvailable: boolean
+    plan: Array<{
+        key: string
+        action: 'blocked' | 'install' | 'remove' | 'reuse'
+        required: boolean
+        fromVersion?: string
+        toVersion: string
+        delivery: 'none' | 'full' | 'bsdiff'
+        downloadBytes: number
+        restartRequired: boolean
+    }>
     policy: {
         currentVersionDeprecated: boolean
         matchedDeprecatedRange?: string
@@ -122,6 +133,13 @@ export type DiscardPreparedUpdateResultV1 = {
     removed: { transaction: boolean; staging: boolean; backup: boolean }
 }
 
+export type RepairRuntimeResultV3 = {
+    schemaVersion: 3
+    state: 'healthy' | 'repaired' | 'partial'
+    bundleVersion: string
+    items: Array<{ key: string; required: boolean; state: 'healthy' | 'repaired' | 'failed'; reason?: string }>
+}
+
 export type LaunchRequestInputV1 = {
     schemaVersion: 1
     kind: 'activate' | 'arguments'
@@ -146,8 +164,8 @@ export type EnqueueLaunchRequestResultV1 = { schemaVersion: 1; state: 'enqueued'
 export type ClaimLaunchRequestsResultV1 = { schemaVersion: 1; state: 'claimed'; requests: LaunchRequestEnvelopeV1[] }
 export type AckLaunchRequestResultV1 = { schemaVersion: 1; state: 'acked' | 'already-acked' | 'not-found'; requestId: string }
 export type StartResultV1 = Record<string, unknown> & { schemaVersion: 1; state: 'blocked' | 'busy' | 'enqueued' | 'launched' | 'reserved' }
-export type { ActiveRuntimeV2, RuntimeAcknowledgementV2 } from '@common/desktopRuntime/contract'
-import type { ActiveRuntimeV2, RuntimeAcknowledgementV2 } from '@common/desktopRuntime/contract'
+export type { ActiveRuntimeV3, RuntimeAcknowledgementV3 } from '@common/desktopRuntime/contract'
+import type { ActiveRuntimeV3, RuntimeAcknowledgementV3 } from '@common/desktopRuntime/contract'
 
 const UPDATE_STAGES: RustUpdateStage[] = ['resolving-source', 'checking', 'downloading', 'planning', 'preparing', 'prepared', 'up-to-date', 'blocked']
 const UPDATE_ERROR_PHASES: UpdateErrorV1['error']['phase'][] = [
@@ -295,7 +313,23 @@ function isUpdateDecision(value: unknown): value is UpdateDecisionV1 {
         isNonEmptyString(value.dist) &&
         isNonEmptyString(value.currentVersion) &&
         isNonEmptyString(value.targetVersion) &&
+        isNonEmptyString(value.bundleVersion) &&
         isBoolean(value.updateAvailable) &&
+        Array.isArray(value.plan) &&
+        value.plan.every(
+            item =>
+                isRecord(item) &&
+                isNonEmptyString(item.key) &&
+                (item.action === 'blocked' || item.action === 'install' || item.action === 'remove' || item.action === 'reuse') &&
+                isBoolean(item.required) &&
+                (item.fromVersion === undefined || isNonEmptyString(item.fromVersion)) &&
+                isNonEmptyString(item.toVersion) &&
+                (item.delivery === 'none' || item.delivery === 'full' || item.delivery === 'bsdiff') &&
+                typeof item.downloadBytes === 'number' &&
+                Number.isSafeInteger(item.downloadBytes) &&
+                item.downloadBytes >= 0 &&
+                isBoolean(item.restartRequired),
+        ) &&
         isRecord(value.policy) &&
         isBoolean(value.policy.currentVersionDeprecated) &&
         Array.isArray(value.policy.invalidDeprecatedRanges) &&
@@ -423,11 +457,15 @@ function isStartResult(value: unknown): value is StartResultV1 | UpdateErrorV1 {
     )
 }
 
-function isActiveRuntimeV2(value: unknown): value is ActiveRuntimeV2 {
+function isActiveRuntimeV3(value: unknown): value is ActiveRuntimeV3 {
     return (
         isRecord(value) &&
-        value.schemaVersion === 2 &&
+        value.schemaVersion === 3 &&
         isPositiveInteger(value.generation) &&
+        isNonEmptyString(value.bundleVersion) &&
+        typeof value.metadataVersion === 'number' &&
+        Number.isSafeInteger(value.metadataVersion) &&
+        value.metadataVersion >= 0 &&
         isNonEmptyString(value.hostVersion) &&
         isNonEmptyString(value.hostPath) &&
         isNonEmptyString(value.coreVersion) &&
@@ -437,14 +475,38 @@ function isActiveRuntimeV2(value: unknown): value is ActiveRuntimeV2 {
         isRecord(value.components) &&
         Object.values(value.components).every(
             component =>
-                isRecord(component) && isNonEmptyString(component.version) && isNonEmptyString(component.path) && isNonEmptyString(component.sha256),
+                isRecord(component) &&
+                isNonEmptyString(component.version) &&
+                isNonEmptyString(component.path) &&
+                isNonEmptyString(component.sha256) &&
+                isBoolean(component.required),
         ) &&
+        Array.isArray(value.optionalFailures) &&
+        value.optionalFailures.every(failure => isRecord(failure) && isNonEmptyString(failure.key) && isNonEmptyString(failure.reason)) &&
         (value.activationState === 'pending' || value.activationState === 'confirmed')
     )
 }
 
-function isRuntimeAcknowledgementV2(value: unknown): value is RuntimeAcknowledgementV2 {
-    return isRecord(value) && value.schemaVersion === 2 && value.state === 'confirmed' && isPositiveInteger(value.generation)
+function isRuntimeAcknowledgementV3(value: unknown): value is RuntimeAcknowledgementV3 {
+    return isRecord(value) && value.schemaVersion === 3 && value.state === 'confirmed' && isPositiveInteger(value.generation)
+}
+
+function isRepairRuntimeResultV3(value: unknown): value is RepairRuntimeResultV3 {
+    return (
+        isRecord(value) &&
+        value.schemaVersion === 3 &&
+        (value.state === 'healthy' || value.state === 'repaired' || value.state === 'partial') &&
+        isNonEmptyString(value.bundleVersion) &&
+        Array.isArray(value.items) &&
+        value.items.every(
+            item =>
+                isRecord(item) &&
+                isNonEmptyString(item.key) &&
+                isBoolean(item.required) &&
+                (item.state === 'healthy' || item.state === 'repaired' || item.state === 'failed') &&
+                (item.reason === undefined || isNonEmptyString(item.reason)),
+        )
+    )
 }
 
 export const parseClaimResult = (value: unknown): ClaimActiveAppResultV1 | UpdateErrorV1 =>
@@ -460,9 +522,11 @@ export const parseClaimRequestsResult = (value: unknown): ClaimLaunchRequestsRes
 export const parseAckResult = (value: unknown): AckLaunchRequestResultV1 | UpdateErrorV1 =>
     requireContract(value, isAckResult, 'ack-launch-request result')
 export const parseStartResult = (value: unknown): StartResultV1 | UpdateErrorV1 => requireContract(value, isStartResult, 'start result')
-export const parseActiveRuntimeV2 = (value: unknown): ActiveRuntimeV2 => requireContract(value, isActiveRuntimeV2, 'active runtime v2')
-export const parseRuntimeAcknowledgementV2 = (value: unknown): RuntimeAcknowledgementV2 =>
-    requireContract(value, isRuntimeAcknowledgementV2, 'runtime acknowledgement v2')
+export const parseActiveRuntimeV3 = (value: unknown): ActiveRuntimeV3 => requireContract(value, isActiveRuntimeV3, 'active runtime v3')
+export const parseRuntimeAcknowledgementV3 = (value: unknown): RuntimeAcknowledgementV3 =>
+    requireContract(value, isRuntimeAcknowledgementV3, 'runtime acknowledgement v3')
+export const parseRepairRuntimeResultV3 = (value: unknown): RepairRuntimeResultV3 =>
+    requireContract(value, isRepairRuntimeResultV3, 'repair runtime result v3')
 
 export function unwrapSemanticResult<TResult>(result: TResult | UpdateErrorV1): TResult {
     if (isUpdateErrorV1(result)) {
