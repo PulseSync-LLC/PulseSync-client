@@ -14,6 +14,7 @@ import { importPextFile, isPextFilePath } from './pextImporter'
 import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
 import config from '@common/appConfig'
 import remoteRendererErrorPageHtml from './remoteRendererErrorPage.html?raw'
+import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import {
     buildRemoteRendererContentSecurityPolicy,
     getRemoteRendererUrlPattern,
@@ -208,6 +209,9 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
         : {}
 
     window.webContents.session.webRequest.onBeforeSendHeaders({ urls: apiUrlPatterns }, (details, callback) => {
+        const userAgentHeader = Object.keys(details.requestHeaders).find(header => header.toLowerCase() === 'user-agent') ?? 'User-Agent'
+        details.requestHeaders[userAgentHeader] = getPulseSyncUserAgent()
+
         const requestOrigin = details.requestHeaders.Origin || details.requestHeaders.origin
         if (requestOrigin === activeRemoteOrigin) {
             const requestedHeaders = details.requestHeaders['Access-Control-Request-Headers'] || details.requestHeaders['access-control-request-headers']
