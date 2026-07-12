@@ -13,8 +13,8 @@ import { fileURLToPath } from 'node:url'
 import { importPextFile, isPextFilePath } from './pextImporter'
 import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
 import config from '@common/appConfig'
-import remoteRendererErrorPageHtml from './remoteRendererErrorPage.html?raw'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
+import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
 import {
     buildRemoteRendererContentSecurityPolicy,
     getRemoteRendererUrlPattern,
@@ -75,50 +75,6 @@ const resolveDroppedPextPath = (navigationUrl: string): string | null => {
     } catch {
         return null
     }
-}
-
-const escapeHtml = (value: string): string =>
-    value
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;')
-        .replace(/'/g, '&#39;')
-
-const getRemoteRendererErrorCopy = (): { description: string; lang: 'en' | 'ru'; status: string; title: string } => {
-    const isRussian = app.getLocale().toLowerCase().startsWith('ru')
-
-    if (isRussian) {
-        return {
-            lang: 'ru',
-            title: 'Не удалось загрузить PulseSync',
-            description: 'Клиент не смог открыть удаленный интерфейс. Проверьте подключение и запустите приложение еще раз.',
-            status: 'Интерфейс недоступен',
-        }
-    }
-
-    return {
-        lang: 'en',
-        title: 'PulseSync could not load',
-        description: 'The client could not open the remote interface. Check your connection and start the app again.',
-        status: 'Renderer unavailable',
-    }
-}
-
-const renderRemoteRendererErrorPage = (error: unknown): string => {
-    const message = error instanceof Error ? error.message : String(error || 'Remote renderer failed')
-    const copy = getRemoteRendererErrorCopy()
-
-    return remoteRendererErrorPageHtml
-        .replace(/__LANG__/g, copy.lang)
-        .replace(/__TITLE__/g, escapeHtml(copy.title))
-        .replace(/__DESCRIPTION__/g, escapeHtml(copy.description))
-        .replace(/__STATUS__/g, escapeHtml(copy.status))
-        .replace(/__ERROR_MESSAGE__/g, escapeHtml(message))
-}
-
-const loadRemoteRendererErrorPage = async (window: BrowserWindow, error: unknown): Promise<void> => {
-    await window.loadURL(`data:text/html;charset=utf-8,${encodeURIComponent(renderRemoteRendererErrorPage(error))}`)
 }
 
 const getMainWindowPreloadPath = (): string => {
@@ -263,8 +219,8 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
     logger.main.info('Remote renderer response headers enforced', { origin: activeRemoteOrigin })
 }
 
-const loadMainWindowRenderer = async (window: BrowserWindow): Promise<MainRendererSource> => {
-    const source = await resolveMainRendererSource()
+const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: MainRendererSource): Promise<MainRendererSource> => {
+    const source = resolvedSource ?? (await resolveMainRendererSource())
 
     try {
         if (isAppDev) {
@@ -344,26 +300,11 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
         },
     })
     registerRemoteMainWindowSecurity(mainWindow)
+    const rendererWindow = mainWindow
     mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
         logger.main.error('Main window preload failed', { preloadPath, error })
     })
 
-    let mainRendererSource: MainRendererSource | null = null
-    loadMainWindowRenderer(mainWindow)
-        .then(source => {
-            mainRendererSource = source
-            logger.main.info('Main renderer loaded', { source: source.kind })
-        })
-        .catch(error => {
-            logger.main.error('Failed to load main renderer', error)
-            void loadRemoteRendererErrorPage(mainWindow, error)
-                .then(() => {
-                    logger.main.info('Remote renderer error page loaded')
-                })
-                .catch(errorPageError => {
-                    logger.main.error('Failed to load remote renderer error page', errorPageError)
-                })
-        })
     let resolveReady!: () => void
     const ready = new Promise<void>(resolve => {
         resolveReady = resolve
@@ -383,8 +324,44 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
         }
         resolveReady()
     }
-    mainWindow.once('ready-to-show', handleMainWindowReady)
-    mainWindow.webContents.once('did-finish-load', handleMainWindowReady)
+    let mainRendererSource: MainRendererSource | null = null
+    let rendererRetryTimer: NodeJS.Timeout | null = null
+    const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
+        const previousSource = mainRendererSource
+        try {
+            mainRendererSource = await loadMainWindowRenderer(rendererWindow, source)
+        } catch (error) {
+            if (previousSource) {
+                logger.main.warn('Restoring previous renderer after update failure', { buildNumber: previousSource.manifest.buildNumber })
+                mainRendererSource = await loadMainWindowRenderer(rendererWindow, previousSource)
+            }
+            throw error
+        }
+    }
+    const loadMainRenderer = async (): Promise<void> => {
+        try {
+            const source = await loadMainWindowRenderer(rendererWindow)
+            mainRendererSource = source
+            logger.main.info('Main renderer loaded', { source: source.kind })
+            startRendererUpdateMonitor({
+                activate: activateMainRenderer,
+                getActiveSource: () => mainRendererSource,
+                window: rendererWindow,
+            })
+            handleMainWindowReady()
+        } catch (error) {
+            logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
+            if (!rendererWindow.isDestroyed()) {
+                rendererRetryTimer = setTimeout(() => void loadMainRenderer(), 5000)
+                rendererRetryTimer.unref()
+            }
+        }
+    }
+    void loadMainRenderer()
+    rendererWindow.once('closed', () => {
+        if (rendererRetryTimer) clearTimeout(rendererRetryTimer)
+        stopRendererUpdateMonitor()
+    })
 
     mainWindow.webContents.on('before-input-event', (e, input) => {
         if (input.control && (input.key === '+' || input.key === '-')) {
