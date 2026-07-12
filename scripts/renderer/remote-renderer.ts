@@ -16,7 +16,6 @@ type RemoteRendererBuildOptions = {
     buildNumber: string
     cdnBaseUrl: string
     outRoot: string
-    minClientVersion?: string
 }
 
 function argValue(flag: string): string | null {
@@ -111,7 +110,6 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
                 buildNumber: options.buildNumber,
                 url: rendererUrl,
                 requiresDesktopApi: `^${DESKTOP_API_VERSION}`,
-                ...(options.minClientVersion ? { minClientVersion: options.minClientVersion } : {}),
             },
             null,
             4,
@@ -128,7 +126,6 @@ function readBuildOptions(): RemoteRendererBuildOptions {
         buildNumber: resolveBuildNumber(),
         cdnBaseUrl: normalizeCdnBaseUrl(argValue('--cdn-url') || process.env.PULSESYNC_REMOTE_RENDERER_CDN_URL || DEFAULT_CDN_BASE_URL),
         outRoot: path.resolve(projectRoot, argValue('--out-dir') || process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR_ROOT || DEFAULT_OUT_ROOT),
-        minClientVersion: argValue('--min-client-version') || process.env.PULSESYNC_REMOTE_RENDERER_MIN_CLIENT_VERSION,
     }
 }
 
