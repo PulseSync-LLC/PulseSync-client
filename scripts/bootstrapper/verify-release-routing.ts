@@ -13,7 +13,7 @@ try {
     fs.writeFileSync(artifact, 'macos-host-fixture')
     const hash = crypto.createHash('sha256').update(fs.readFileSync(artifact)).digest('hex').slice(0, 16)
     const actual = await resolveStructuredPublishPath(artifact, version)
-    const expected = `versions/${version}/${dist}/app/${hash}/${fileName}`
+    const expected = `hosts/${version}/${dist}/${hash}/${fileName}`
     if (actual !== expected) {
         throw new Error(`macOS host artifact route mismatch: expected ${expected}, got ${actual}`)
     }

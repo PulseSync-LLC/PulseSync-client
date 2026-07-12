@@ -42,6 +42,7 @@ type BootstrapperUpdateManifest = {
     targets: Record<
         string,
         {
+            layout: 'versioned-components' | 'macos-bundle'
             host: VersionedArtifact
             components: Record<string, VersionedArtifact>
             bootstrapper: VersionedArtifact
@@ -252,7 +253,10 @@ function bootstrapperExecutableName(platform: NodeJS.Platform): string {
 
 function createBootstrapperArtifact(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
     const { platform } = parseDist(dist)
-    const sourcePath = path.join(packagedAppRootDir, 'bootstrapper', bootstrapperExecutableName(platform))
+    const sourcePath =
+        platform === 'darwin'
+            ? path.join(packagedAppRootDir, 'PulseSync.app', 'Contents', 'Resources', 'bootstrapper', bootstrapperExecutableName(platform))
+            : path.join(packagedAppRootDir, 'bootstrapper', bootstrapperExecutableName(platform))
     if (!fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
         throw new Error(`Cannot create bootstrapper artifact: ${sourcePath} is not a file`)
     }
@@ -299,22 +303,27 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const packagedAppRootDir = resolveInsideProject(options.packagedAppRootDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
     const { platform } = parseDist(options.dist)
-    if (platform === 'darwin') {
-        throw new Error('macOS modular desktop publishing is blocked until the bundle slice is implemented')
-    }
+    const macosBundle = platform === 'darwin'
     const metadataVersion = Number(options.metadataVersion)
     if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
         throw new Error('metadataVersion must be an explicit positive integer')
     }
-    const hostArtifactPath = createHostArchive(releaseDir, packagedAppRootDir, options.hostVersion, options.dist)
+    const targetHostVersion = macosBundle ? options.coreVersion : options.hostVersion
+    const hostArtifactPath = macosBundle
+        ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
+        : createHostArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
     const bootstrapperVersion = readBootstrapperVersion()
     const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
-    const moduleArchivePaths = createModuleArchives(releaseDir, packagedAppRootDir, options.coreVersion, options.dist)
+    const moduleArchivePaths = macosBundle ? {} : createModuleArchives(releaseDir, packagedAppRootDir, options.coreVersion, options.dist)
     removeStaleBootstrapperArchive(releaseDir, bootstrapperVersion, options.dist)
     removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
     removeStaleInstallerAppArtifact(releaseDir, options.coreVersion)
 
-    const hostArtifact = await createVersionedArtifactDescriptor(hostArtifactPath, baseUrl, path.join('hosts', options.hostVersion, options.dist))
+    const hostArtifact = await createVersionedArtifactDescriptor(
+        hostArtifactPath,
+        baseUrl,
+        path.join('hosts', targetHostVersion, options.dist),
+    )
     const bootstrapperArtifact = await createVersionedArtifactDescriptor(
         bootstrapperArtifactPath,
         baseUrl,
@@ -342,7 +351,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
             }),
         ),
     )
-    if (!components.desktopCore) {
+    if (!macosBundle && !components.desktopCore) {
         throw new Error('desktopCore component artifact is required')
     }
     const manifest: BootstrapperUpdateManifest = {
@@ -354,7 +363,8 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
         targets: {
             [options.dist]: {
-                host: { version: options.hostVersion, electronAbi, artifact: hostArtifact },
+                layout: macosBundle ? 'macos-bundle' : 'versioned-components',
+                host: { version: targetHostVersion, ...(macosBundle ? {} : { electronAbi }), artifact: hostArtifact },
                 components,
                 bootstrapper: { version: bootstrapperVersion, artifact: bootstrapperArtifact },
             },
