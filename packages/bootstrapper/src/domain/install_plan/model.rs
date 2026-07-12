@@ -56,6 +56,10 @@ pub struct InstallPlan {
     pub bootstrapper_version: Option<String>,
     #[serde(rename = "componentVersions")]
     pub component_versions: BTreeMap<String, String>,
+    #[serde(rename = "componentRevisions")]
+    pub component_revisions: BTreeMap<String, u64>,
+    #[serde(rename = "componentDiskNames")]
+    pub component_disk_names: BTreeMap<String, String>,
     #[serde(rename = "metadataVersion")]
     pub metadata_version: u64,
     #[serde(rename = "hostElectronAbi")]

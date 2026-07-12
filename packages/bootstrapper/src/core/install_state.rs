@@ -456,16 +456,17 @@ pub fn acknowledge_runtime(
 
 fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result<Vec<PathBuf>> {
     let mut removed = Vec::new();
-    let snapshots = [
-        Some(&state.latest),
-        Some(&state.running),
-        Some(&state.last_successful),
-        Some(&state.known_good),
-        state.pinned.as_ref(),
+    let mut snapshots = vec![
+        &state.latest,
+        &state.running,
+        &state.last_successful,
+        &state.known_good,
     ];
+    if let Some(pinned) = state.pinned.as_ref() {
+        snapshots.push(pinned);
+    }
     let keep_hosts = snapshots
         .iter()
-        .flatten()
         .map(|snapshot| snapshot.host.path.clone())
         .collect::<Vec<_>>();
     for entry in fs::read_dir(state_root)? {
@@ -473,44 +474,44 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
         if entry.file_type()?.is_dir()
-            && name.starts_with("host-")
+            && name.starts_with("app-")
             && !keep_hosts.iter().any(|keep| state_root.join(keep) == path)
         {
-            assert_inside(state_root, &path, "inactive host")?;
+            assert_inside(state_root, &path, "inactive app")?;
             fs::remove_dir_all(&path)?;
             removed.push(path);
         }
     }
 
-    let modules_root = state_root.join("modules");
-    if !modules_root.is_dir() {
-        return Ok(removed);
-    }
     let mut keep_modules = Vec::new();
-    for snapshot in snapshots.into_iter().flatten() {
+    for snapshot in &snapshots {
         for component in snapshot.components.values() {
-            let parts = component.path.components().collect::<Vec<_>>();
-            if parts.len() >= 3
-                && parts[0].as_os_str() == "modules"
-                && let Component::Normal(container) = parts[1]
+            let component_path = state_root.join(&component.path);
+            if component_path
+                .parent()
+                .and_then(Path::parent)
+                .is_some_and(|parent| parent.file_name().is_some_and(|name| name == "modules"))
+                && let Some(container) = component_path.parent()
             {
-                keep_modules.push(modules_root.join(container));
+                keep_modules.push(container.to_path_buf());
             }
         }
     }
-    for module in fs::read_dir(&modules_root)? {
-        let module = module?;
-        let Some(name) = module.file_name().to_str().map(str::to_string) else {
+    for host in keep_hosts {
+        let modules_root = state_root.join(host).join("modules");
+        if !modules_root.is_dir() {
             continue;
-        };
-        let path = module.path();
-        if module.file_type()?.is_dir()
-            && name.contains('-')
-            && !keep_modules.iter().any(|candidate| candidate == &path)
-        {
-            assert_inside(&modules_root, &path, "inactive component")?;
-            fs::remove_dir_all(&path)?;
-            removed.push(path);
+        }
+        for module in fs::read_dir(&modules_root)? {
+            let module = module?;
+            let path = module.path();
+            if module.file_type()?.is_dir()
+                && !keep_modules.iter().any(|candidate| candidate == &path)
+            {
+                assert_inside(&modules_root, &path, "inactive component")?;
+                fs::remove_dir_all(&path)?;
+                removed.push(path);
+            }
         }
     }
     Ok(removed)

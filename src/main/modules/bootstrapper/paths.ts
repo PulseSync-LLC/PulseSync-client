@@ -58,7 +58,7 @@ function getHostInfo() {
         }
     }
 
-    if (path.basename(executableDir).toLowerCase().startsWith('host-')) {
+    if (path.basename(executableDir).toLowerCase().startsWith('app-')) {
         return {
             appExecutable,
             appExecutableName: path.basename(appExecutable),
@@ -86,7 +86,6 @@ function getRuntimeLayout() {
         bootstrapperDir: path.join(stateRoot, BOOTSTRAPPER_DIR_NAME),
         hostBundle: host.hostBundle,
         stateRoot,
-        modulesDir: path.join(stateRoot, 'modules'),
     }
 }
 
