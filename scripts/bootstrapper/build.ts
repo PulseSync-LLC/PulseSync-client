@@ -1,8 +1,11 @@
+import 'dotenv/config'
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
 import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
+import { emitBootstrapperUpdateManifest } from '../desktop-release-manifest.js'
+import { publishToS3 } from '../s3-upload.js'
 
 const execFileAsync = promisify(execFile)
 
@@ -76,6 +79,40 @@ function readArgValue(args: string[], name: string): string | null {
     return args[index + 1] ?? null
 }
 
+async function publishBootstrapper(args: string[]): Promise<void> {
+    const channel = readArgValue(args, '--channel')
+    const dist = readArgValue(args, '--dist') || `${process.platform}-${process.arch}`
+    if (!channel || !/^[a-z0-9][a-z0-9-]*$/u.test(channel)) {
+        throw new Error('Usage: tsx scripts/bootstrapper/build.ts publish --channel <name> [--dist win32-x64]')
+    }
+    const s3Url = process.env.S3_URL?.trim()
+    if (!s3Url) throw new Error('S3_URL is required to publish bootstrapper updates')
+
+    const releaseDir = path.join(projectRoot, 'release', 'bootstrapper')
+    fs.rmSync(releaseDir, { force: true, recursive: true })
+    const executable = await buildBootstrapperExecutable()
+    const baseUrl = `${s3Url.replace(/\/+$/u, '')}/builds/app/${channel}`
+    const previousManifestUrl = `${baseUrl}/desktop-update-${dist}.json?_=${Date.now()}`
+    const metadataVersion = process.env.DESKTOP_METADATA_VERSION?.trim() || String(Date.now())
+    const manifestPath = await emitBootstrapperUpdateManifest({
+        baseUrl,
+        bootstrapperExecutable: executable,
+        channel,
+        dist,
+        metadataVersion,
+        previousManifestUrl,
+        releaseDir,
+    })
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
+        desktopVersion: string
+        targets: Record<string, { bootstrapper?: { version: string } }>
+    }
+    const version = manifest.targets[dist]?.bootstrapper?.version
+    if (!version) throw new Error(`Generated manifest does not contain bootstrapper for ${dist}`)
+    await publishToS3(channel, releaseDir, version, { keepRecentVersions: null })
+    console.log(`PulseSync bootstrapper ${version} published for ${channel}/${dist}; desktop core remains ${manifest.desktopVersion}`)
+}
+
 function parseCopyOptions(args: string[]): CopyOptions {
     const installRoot = readArgValue(args, '--install-root')
     if (!installRoot) {
@@ -101,6 +138,11 @@ async function main(): Promise<void> {
         const options = parseCopyOptions(args)
         const outputDir = await copyBootstrapperToInstallRoot(options.installRoot, { build: options.build })
         console.log(`PulseSync bootstrapper copied: ${outputDir}`)
+        return
+    }
+
+    if (command === 'publish') {
+        await publishBootstrapper(args)
         return
     }
 
