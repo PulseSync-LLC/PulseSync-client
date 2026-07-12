@@ -95,7 +95,7 @@ pub struct ActiveRuntimeV2 {
 }
 
 #[cfg(windows)]
-fn node_runtime_path(path: PathBuf) -> PathBuf {
+pub(crate) fn node_runtime_path(path: PathBuf) -> PathBuf {
     let value = path.to_string_lossy();
     if let Some(rest) = value.strip_prefix(r"\\?\UNC\") {
         return PathBuf::from(format!(r"\\{rest}"));
@@ -107,7 +107,7 @@ fn node_runtime_path(path: PathBuf) -> PathBuf {
 }
 
 #[cfg(not(windows))]
-fn node_runtime_path(path: PathBuf) -> PathBuf {
+pub(crate) fn node_runtime_path(path: PathBuf) -> PathBuf {
     path
 }
 

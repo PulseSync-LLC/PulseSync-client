@@ -132,7 +132,7 @@ pub fn decide_update(
     let (Some(current), Some(target_version)) = (current, target_version) else {
         return BootstrapperUpdateDecision {
             artifacts: Some(BootstrapperDistArtifacts {
-                layout: ArtifactLayout::VersionedComponents,
+                layout: target.layout,
                 host: target.host.artifact.clone(),
                 bootstrapper: Some(target.bootstrapper.artifact.clone()),
                 modules: target
@@ -169,21 +169,25 @@ pub fn decide_update(
 
     let update_available = compare_versions(&target_version, &current) > 0;
     let selected_artifacts = if update_available {
-        std::iter::once("host".to_string())
-            .chain(
-                target
-                    .components
-                    .keys()
-                    .map(|name| format!("module:{name}")),
-            )
-            .chain(std::iter::once("bootstrapper".to_string()))
-            .collect()
+        if target.layout == ArtifactLayout::MacosBundle {
+            vec!["host".to_string()]
+        } else {
+            std::iter::once("host".to_string())
+                .chain(
+                    target
+                        .components
+                        .keys()
+                        .map(|name| format!("module:{name}")),
+                )
+                .chain(std::iter::once("bootstrapper".to_string()))
+                .collect()
+        }
     } else {
         Vec::new()
     };
     BootstrapperUpdateDecision {
         artifacts: Some(BootstrapperDistArtifacts {
-            layout: ArtifactLayout::VersionedComponents,
+            layout: target.layout,
             host: target.host.artifact.clone(),
             bootstrapper: Some(target.bootstrapper.artifact.clone()),
             modules: target

@@ -41,6 +41,8 @@ pub struct VersionedArtifact {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct DesktopTargetV2 {
+    #[serde(default)]
+    pub layout: ArtifactLayout,
     pub host: VersionedArtifact,
     pub bootstrapper: VersionedArtifact,
     pub components: BTreeMap<String, VersionedArtifact>,

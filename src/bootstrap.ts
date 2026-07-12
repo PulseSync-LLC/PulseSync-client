@@ -200,6 +200,7 @@ async function startPackagedBootstrap(): Promise<void> {
     const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
     const activeRuntime = await resolveActiveRuntime({
         activeLeaseId: claim.lease.leaseId,
+        hostBundle: runtimePaths.hostBundle,
         launcher: runtimePaths.launcher,
         stateRoot: runtimePaths.stateRoot,
     })
