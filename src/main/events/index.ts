@@ -56,6 +56,7 @@ import { setMainErrorTrackingUser } from '../modules/errorTracking'
 import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../modules/updater/githubReleaseResolver'
 import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
+import { checkRendererUpdate, installRendererUpdate } from '../modules/rendererUpdate'
 
 const updater = getUpdater()
 const State = getState()
@@ -727,7 +728,11 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
 
 const registerUpdateEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
-        await updater.install()
+        if (updater.getStatus() === UpdateStatus.DOWNLOADED) {
+            await updater.install()
+            return
+        }
+        await installRendererUpdate()
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
@@ -740,7 +745,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
         if (!updaterStartListenerBound) {
             updaterStartListenerBound = true
             updater.onUpdate(version => {
-                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
+                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version })
                 mainWindow.flashFrame(true)
                 updateAvailable = true
             })
@@ -1077,7 +1082,7 @@ export const handleEvents = (window: BrowserWindow): void => {
 
 export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
-    const status = await updater.check(manual)
+    const status = await updater.check(manual, { suppressUpToDateEvent: true })
     if (status === UpdateStatus.DOWNLOADED) {
         if (hard) await updater.install()
         updateAvailable = true
@@ -1085,5 +1090,9 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
         updateAvailable = true
     } else if (status === UpdateStatus.IDLE || status === null) {
         updateAvailable = false
+        const rendererUpdateAvailable = await checkRendererUpdate()
+        if (!rendererUpdateAvailable && status === null) {
+            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+        }
     }
 }

@@ -31,8 +31,8 @@ const subscribe = (channel: string, listener: (...args: unknown[]) => void) => {
     return () => ipcRenderer.off(channel, wrapped)
 }
 
-const subscribePayload = (channel: string, listener: (payload: unknown) => void) =>
-    subscribe(channel, (...args) => listener(args.length > 1 ? args : args[0]))
+const subscribePayload = <T>(channel: string, listener: (payload: T) => void) =>
+    subscribe(channel, (...args) => listener((args.length > 1 ? args : args[0]) as T))
 
 const subscribeVoid = (channel: string, listener: () => void) => subscribe(channel, () => listener())
 

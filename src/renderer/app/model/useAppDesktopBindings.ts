@@ -8,6 +8,7 @@ import toast from '@shared/ui/toast'
 import { fetchSettings } from '@entities/settings/api/settings'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
+import type { DesktopUpdateAvailablePayload } from '@common/desktopApi/contract'
 
 const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
 
@@ -43,6 +44,7 @@ export function useAppDesktopBindings({
     toastReference,
 }: Params) {
     const manualUpdateCheckPendingRef = useRef(false)
+    const rendererUpdateAvailableRef = useRef(false)
 
     const handleOpenAddon = useCallback(
         (data: unknown) => {
@@ -130,7 +132,7 @@ export function useAppDesktopBindings({
             }
 
             if (data?.updateAvailable === false) {
-                setUpdate(false)
+                setUpdate(rendererUpdateAvailableRef.current)
 
                 if (isManualCheck && !isChecking) {
                     if (toastReference.current) {
@@ -168,7 +170,7 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadFailed = () => {
-            setUpdate(false)
+            setUpdate(rendererUpdateAvailableRef.current)
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'error',
@@ -197,8 +199,15 @@ export function useAppDesktopBindings({
             setUpdate(true)
         }
 
-        const handleUpdateAvailable = async () => {
+        const handleUpdateAvailable = async (payload: DesktopUpdateAvailablePayload) => {
             manualUpdateCheckPendingRef.current = false
+            if (payload.kind === 'renderer') {
+                rendererUpdateAvailableRef.current = true
+                toast.dismiss(CLIENT_UPDATE_TOAST_ID)
+                toastReference.current = null
+                setUpdate(true)
+                return
+            }
             const nextStatus = await desktopApi.updates.getStatus()
             setUpdate(nextStatus === 'DOWNLOADED')
         }

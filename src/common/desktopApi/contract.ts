@@ -49,6 +49,11 @@ export interface DesktopCheckUpdateRequest {
     manual?: boolean
 }
 
+export interface DesktopUpdateAvailablePayload {
+    kind: 'client' | 'renderer'
+    version: string
+}
+
 export interface DesktopInstallModRequest {
     version: string
     musicVersion?: string
@@ -164,7 +169,7 @@ export interface PulseSyncDesktopApi {
         getModChangelog(): Promise<unknown>
         needModalUpdate(): Promise<boolean>
         onCheck(listener: (payload: unknown) => void): DesktopUnsubscribe
-        onAvailable(listener: (version: unknown) => void): DesktopUnsubscribe
+        onAvailable(listener: (payload: DesktopUpdateAvailablePayload) => void): DesktopUnsubscribe
         onDownloadProgress(listener: (progress: unknown) => void): DesktopUnsubscribe
         onDownloadFinished(listener: () => void): DesktopUnsubscribe
         onDownloadFailed(listener: () => void): DesktopUnsubscribe

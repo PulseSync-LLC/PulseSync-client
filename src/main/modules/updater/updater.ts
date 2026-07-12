@@ -98,15 +98,15 @@ class Updater {
         this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, percent)
     }
 
-    public async check(manual = false, options?: { sourceOverride?: UpdateSource }): Promise<UpdateStatus | null> {
+    public async check(manual = false, options?: { sourceOverride?: UpdateSource; suppressUpToDateEvent?: boolean }): Promise<UpdateStatus | null> {
         if (!this.isRuntimeUpdateEnabled()) {
             logger.updater.info('Skipping desktop update check in non-packaged runtime')
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+            if (!options?.suppressUpToDateEvent) this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
             return null
         }
         if (this.updateStatus !== UpdateStatus.IDLE) {
             if (this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
-                this.safeSend(RendererEvents.UPDATE_AVAILABLE, this.latestAvailableVersion)
+                this.safeSend(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version: this.latestAvailableVersion })
                 this.flashFrame(true)
             }
             return this.updateStatus
@@ -139,7 +139,7 @@ class Updater {
                 onDiagnostic: line => logger.updater.warn('Bootstrapper diagnostic', line),
                 onProgress: (_event, uiState) => this.handleProgress(uiState),
             })
-            return await this.handleResult(result, manual)
+            return await this.handleResult(result, manual, options?.suppressUpToDateEvent ?? false)
         } catch (error) {
             this.latestAvailableVersion = null
             this.preparedTransactionId = null
@@ -151,14 +151,14 @@ class Updater {
         }
     }
 
-    private async handleResult(result: PrepareUpdateResultV1, manual: boolean): Promise<UpdateStatus | null> {
+    private async handleResult(result: PrepareUpdateResultV1, manual: boolean, suppressUpToDateEvent: boolean): Promise<UpdateStatus | null> {
         if (result.state === 'up-to-date') {
             this.latestAvailableVersion = null
             this.preparedTransactionId = null
             this.updateStatus = UpdateStatus.IDLE
             this.setProgressBar(-1)
             this.flashFrame(false)
-            this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+            if (!suppressUpToDateEvent) this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
             return null
         }
         if (result.state === 'blocked') {
