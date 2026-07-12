@@ -165,7 +165,11 @@ fn resolve_relative(state_root: &Path, relative: &Path, label: &str) -> Result<P
     Ok(resolved)
 }
 
-fn validate_snapshot(state_root: &Path, snapshot: &RuntimeSnapshotV3) -> Result<()> {
+fn validate_snapshot(
+    state_root: &Path,
+    snapshot: &RuntimeSnapshotV3,
+    skip_mutable_bootstrapper: bool,
+) -> Result<()> {
     validate_snapshot_identity(snapshot)?;
     if snapshot.host.version.trim().is_empty()
         || snapshot.host.sha256.len() != 64
@@ -193,6 +197,12 @@ fn validate_snapshot(state_root: &Path, snapshot: &RuntimeSnapshotV3) -> Result<
         return Err("desktopCore component must be required".into());
     }
     for (name, component) in &snapshot.components {
+        // The bootstrapper has one stable launcher path and is replaced in
+        // place. Older snapshots therefore retain useful version metadata but
+        // cannot retain a separately hashable bootstrapper file.
+        if skip_mutable_bootstrapper && name == "bootstrapper" {
+            continue;
+        }
         if let Err(error) = validate_component(state_root, name, component)
             && component.required
         {
@@ -324,12 +334,28 @@ pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV3> 
 pub fn read_install_state(state_root: &Path) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let state = read_install_state_metadata(&state_root)?;
-    validate_snapshot(&state_root, &state.latest)?;
-    validate_snapshot(&state_root, &state.running)?;
-    validate_snapshot(&state_root, &state.last_successful)?;
-    validate_snapshot(&state_root, &state.known_good)?;
+    validate_snapshot(&state_root, &state.latest, false)?;
+    validate_snapshot(
+        &state_root,
+        &state.running,
+        !same_snapshot(&state.running, &state.latest),
+    )?;
+    validate_snapshot(
+        &state_root,
+        &state.last_successful,
+        !same_snapshot(&state.last_successful, &state.latest),
+    )?;
+    validate_snapshot(
+        &state_root,
+        &state.known_good,
+        !same_snapshot(&state.known_good, &state.latest),
+    )?;
     if let Some(pinned) = &state.pinned {
-        validate_snapshot(&state_root, pinned)?;
+        validate_snapshot(
+            &state_root,
+            pinned,
+            !same_snapshot(pinned, &state.latest),
+        )?;
     }
     Ok(state)
 }
@@ -371,7 +397,7 @@ pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<Activ
             cleanup_inactive_runtime(&state_root, &state)?;
         }
     }
-    validate_snapshot(&state_root, &state.running)?;
+    validate_snapshot(&state_root, &state.running, false)?;
 
     let core = state
         .running
@@ -554,7 +580,7 @@ pub fn recover_unowned_pending_runtime(state_root: &Path) -> Result<bool> {
     if matches!(state.activation.state, ActivationState::Pending)
         && state.activation.launch_owner.is_none()
     {
-        validate_snapshot(&state_root, &state.latest)?;
+        validate_snapshot(&state_root, &state.latest, false)?;
     }
     Ok(false)
 }

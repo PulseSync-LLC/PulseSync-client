@@ -230,6 +230,11 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
             .ok_or("backupDir is required")?,
     );
     let artifacts = transaction_artifacts(&transaction)?;
+    // Validate and capture the current runtime before replacing any component.
+    // A bootstrapper self-update changes the file referenced by the current
+    // snapshot, so reading the state after the replacement would incorrectly
+    // reject the old snapshot because its recorded hash no longer matches.
+    let mut install_state = read_install_state(&install_dir)?;
     let mut applied = Vec::new();
 
     for artifact in &artifacts {
@@ -258,7 +263,6 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["state"] = json!("applied");
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
-    let mut install_state = read_install_state(&install_dir)?;
     let mut next_snapshot = install_state.latest.clone();
     let component_versions = transaction
         .get("componentVersions")
