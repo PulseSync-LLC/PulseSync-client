@@ -188,6 +188,11 @@ function main(): void {
         const pkgInfo = requirePath(path.join(contentsDir, 'PkgInfo'), 'file')
         const appExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
         const bootstrapperExecutable = requirePath(path.join(resourcesDir, 'bootstrapper', 'pulsesync-bootstrapper'), 'file')
+        const runtimeDescriptor = requirePath(path.join(resourcesDir, 'pulsesync-runtime.json'), 'file')
+        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as { schemaVersion?: unknown; coreVersion?: unknown }
+        if (runtime.schemaVersion !== 2 || typeof runtime.coreVersion !== 'string' || !runtime.coreVersion) {
+            throw new Error(`Expected packaged runtime schema v2: ${runtimeDescriptor}`)
+        }
         const icons = fs.readdirSync(resourcesDir).filter(name => name.toLowerCase().endsWith('.icns'))
         if (!icons.length) {
             throw new Error(`Expected a macOS icon under ${resourcesDir}`)
@@ -216,6 +221,7 @@ function main(): void {
                     pkgInfo,
                     appExecutable,
                     bootstrapperExecutable,
+                    runtimeDescriptor,
                     icon: path.join(resourcesDir, icons[0]),
                     resourcesDir,
                 },
