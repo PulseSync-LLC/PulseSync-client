@@ -2,6 +2,7 @@ import { defineConfig, type UserConfig } from 'vite'
 import path from 'path'
 import fs from 'fs'
 import { fileURLToPath } from 'node:url'
+import { builtinModules } from 'node:module'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
@@ -12,6 +13,7 @@ const desktopCorePackageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname
     version: string
 }
 const buildDist = process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
+const nodeExternals = [...new Set([...builtinModules, ...builtinModules.map(moduleName => `node:${moduleName}`)])]
 
 export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const isDevMode = mode === 'development'
@@ -31,7 +33,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
                 formats: ['cjs'],
             },
             rolldownOptions: {
-                external: ['electron', 'original-fs'],
+                external: ['electron', 'original-fs', ...nodeExternals],
                 output: {
                     format: 'cjs' as const,
                     preserveModules: false,
@@ -57,6 +59,8 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
                 '@': path.resolve(__dirname, 'static'),
                 '@common': path.resolve(__dirname, 'src/common'),
             },
+            conditions: ['node'],
+            mainFields: ['module', 'jsnext:main', 'jsnext'],
         },
     }
 })
