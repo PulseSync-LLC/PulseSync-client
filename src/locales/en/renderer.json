@@ -687,11 +687,11 @@
     },
     "modals": {
         "appUpdate": {
-            "title": "Update ready to install",
-            "description": "A new version has been downloaded. Install the update now?",
+            "title": "Update available",
+            "description": "Apply the update now?",
             "buttons": {
-                "later": "Install later",
-                "install": "Install update"
+                "later": "Later",
+                "install": "Apply update"
             }
         },
         "linuxAsarPath": {
@@ -781,7 +781,7 @@
         "infoTitle": "Info.",
         "installAction": "Install",
         "installErrorTitle": "Install error",
-        "installUpdateTooltip": "Install update",
+        "installUpdateTooltip": "Apply update",
         "authRequired": {
             "description": "This section is available only after you sign in. Sign in first, then open it again.",
             "title": "Sign in required"
