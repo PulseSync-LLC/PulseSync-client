@@ -189,9 +189,33 @@ function main(): void {
         const appExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
         const bootstrapperExecutable = requirePath(path.join(resourcesDir, 'bootstrapper', 'pulsesync-bootstrapper'), 'file')
         const runtimeDescriptor = requirePath(path.join(resourcesDir, 'pulsesync-runtime.json'), 'file')
-        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as { schemaVersion?: unknown; coreVersion?: unknown }
-        if (runtime.schemaVersion !== 2 || typeof runtime.coreVersion !== 'string' || !runtime.coreVersion) {
-            throw new Error(`Expected packaged runtime schema v2: ${runtimeDescriptor}`)
+        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as {
+            schemaVersion?: unknown
+            desktopVersion?: unknown
+            hostVersion?: unknown
+            bundleVersion?: unknown
+            components?: Record<string, { version?: unknown; required?: unknown }>
+        }
+        const desktopCore = runtime.components?.desktopCore
+        if (
+            runtime.schemaVersion !== 3 ||
+            typeof runtime.desktopVersion !== 'string' ||
+            !runtime.desktopVersion ||
+            typeof runtime.hostVersion !== 'string' ||
+            !runtime.hostVersion ||
+            typeof runtime.bundleVersion !== 'string' ||
+            !runtime.bundleVersion ||
+            desktopCore?.version !== runtime.desktopVersion ||
+            desktopCore.required !== true
+        ) {
+            throw new Error(`Expected packaged runtime schema v3: ${runtimeDescriptor}`)
+        }
+        const shortVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleShortVersionString', infoPlist], {
+            encoding: 'utf8',
+        }).trim()
+        const bundleVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', infoPlist], { encoding: 'utf8' }).trim()
+        if (shortVersion !== runtime.desktopVersion || bundleVersion !== runtime.bundleVersion) {
+            throw new Error(`Expected Info.plist versions to match packaged runtime descriptor: ${runtimeDescriptor}`)
         }
         const icons = fs.readdirSync(resourcesDir).filter(name => name.toLowerCase().endsWith('.icns'))
         if (!icons.length) {
@@ -258,28 +282,42 @@ function main(): void {
 
     const installStatePath = requirePath(path.join(installRoot, 'runtime', 'install-state.json'), 'file')
     const installState = JSON.parse(fs.readFileSync(installStatePath, 'utf8')) as any
+    const initialBundleVersion = installState.latest?.bundleVersion
+    const initialMetadataVersion = installState.latest?.metadataVersion
+    const hasValidInitialVersion =
+        typeof initialBundleVersion === 'string' &&
+        /^\d+$/u.test(initialBundleVersion) &&
+        Number.isSafeInteger(initialMetadataVersion) &&
+        initialMetadataVersion >= 0 &&
+        initialBundleVersion === String(initialMetadataVersion)
     if (
-        installState.schemaVersion !== 2 ||
+        installState.schemaVersion !== 3 ||
         installState.generation !== 1 ||
-        installState.metadataVersion !== 0 ||
         installState.activation?.state !== 'confirmed' ||
-        installState.activation?.generation !== 1
+        installState.activation?.generation !== 1 ||
+        !hasValidInitialVersion ||
+        JSON.stringify(installState.latest) !== JSON.stringify(installState.running) ||
+        JSON.stringify(installState.latest) !== JSON.stringify(installState.lastSuccessful) ||
+        JSON.stringify(installState.latest) !== JSON.stringify(installState.knownGood)
     ) {
-        throw new Error(`Expected confirmed install-state schema v2: ${installStatePath}`)
+        throw new Error(`Expected confirmed install-state schema v3: ${installStatePath}`)
     }
-    const hostVersion = requireString(installState.active?.host?.version, 'installState.active.host.version')
-    const hostRelativePath = requireString(installState.active?.host?.path, 'installState.active.host.path')
+    const hostVersion = requireString(installState.latest?.host?.version, 'installState.latest.host.version')
+    const hostRelativePath = requireString(installState.latest?.host?.path, 'installState.latest.host.path')
     const versionedHostRoot = requirePath(path.join(installRoot, hostRelativePath), 'directory')
     const hostExecutable = requirePath(path.join(versionedHostRoot, appExecutableName(platform)), 'file')
     const modulesDir = requirePath(path.join(installRoot, 'modules'), 'directory')
     if (!hasFiles(modulesDir)) {
         throw new Error(`Expected versioned runtime modules: ${modulesDir}`)
     }
-    const core = installState.active?.components?.desktopCore
+    const core = installState.latest?.components?.desktopCore
     if (core?.version !== config.installedVersion) {
         throw new Error(`Expected desktopCore version=${config.installedVersion}, got ${String(core?.version)}`)
     }
-    const coreDir = requirePath(path.join(installRoot, requireString(core.path, 'installState.active.components.desktopCore.path')), 'directory')
+    if (core?.required !== true) {
+        throw new Error('Expected desktopCore to be required in install-state schema v3')
+    }
+    const coreDir = requirePath(path.join(installRoot, requireString(core.path, 'installState.latest.components.desktopCore.path')), 'directory')
     requirePath(path.join(coreDir, 'index.cjs'), 'file')
     requirePath(path.join(coreDir, 'mainWindowPreload.cjs'), 'file')
 

@@ -39,20 +39,28 @@ function waitFor(predicate: () => boolean, timeoutMs: number, label: string): Pr
     })
 }
 
-function plist(version: string): string {
+function plist(desktopVersion: string, bundleVersion: string): string {
     return `<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
 <key>CFBundleExecutable</key><string>PulseSync</string>
 <key>CFBundleIdentifier</key><string>app.pulsesync.fixture</string>
 <key>CFBundlePackageType</key><string>APPL</string>
-<key>CFBundleShortVersionString</key><string>${version}</string>
-<key>CFBundleVersion</key><string>${version}</string>
+<key>CFBundleShortVersionString</key><string>${desktopVersion}</string>
+<key>CFBundleVersion</key><string>${bundleVersion}</string>
 </dict></plist>
 `
 }
 
-function createBundle(root: string, version: string, fixtureExecutable: string, bootstrapper: string, stateRoot: string, claimDelayMs = 0): string {
+function createBundle(
+    root: string,
+    desktopVersion: string,
+    bundleVersion: string,
+    fixtureExecutable: string,
+    bootstrapper: string,
+    stateRoot: string,
+    claimDelayMs = 0,
+): string {
     const bundle = path.join(root, 'PulseSync.app')
     const contents = path.join(bundle, 'Contents')
     const executable = path.join(contents, 'MacOS', 'PulseSync')
@@ -64,10 +72,14 @@ function createBundle(root: string, version: string, fixtureExecutable: string, 
     fs.copyFileSync(bootstrapper, seed)
     fs.chmodSync(executable, 0o755)
     fs.chmodSync(seed, 0o755)
-    fs.writeFileSync(path.join(contents, 'Info.plist'), plist(version))
+    fs.writeFileSync(path.join(contents, 'Info.plist'), plist(desktopVersion, bundleVersion))
     fs.writeFileSync(path.join(contents, 'PkgInfo'), 'APPL????')
+    fs.writeFileSync(
+        path.join(resources, 'pulsesync-runtime.json'),
+        `${JSON.stringify({ schemaVersion: 3, hostVersion: desktopVersion, desktopVersion, bundleVersion, components: {} }, null, 4)}\n`,
+    )
     fs.writeFileSync(path.join(resources, 'fixture-state-root.txt'), `${stateRoot}\n`)
-    fs.writeFileSync(path.join(resources, 'fixture-version.txt'), `${version}\n`)
+    fs.writeFileSync(path.join(resources, 'fixture-version.txt'), `${desktopVersion}\n`)
     fs.writeFileSync(path.join(resources, 'fixture-claim-delay-ms.txt'), `${claimDelayMs}\n`)
     return bundle
 }
@@ -105,7 +117,7 @@ async function main(): Promise<void> {
         if (!fs.existsSync(bootstrapper)) throw new Error(`${profile} bootstrapper is missing: ${bootstrapper}`)
         run('rustc', ['--edition', '2024', source, '-o', fixtureExecutable])
         fs.mkdirSync(applications, { recursive: true })
-        const hostBundle = createBundle(applications, '1.0.0', fixtureExecutable, bootstrapper, stateRoot)
+        const hostBundle = createBundle(applications, '1.0.0', '1', fixtureExecutable, bootstrapper, stateRoot)
         const appExecutable = path.join(hostBundle, 'Contents', 'MacOS', 'PulseSync')
         const old = spawn(appExecutable, [], { detached: false, stdio: 'ignore' })
         oldPid = old.pid ?? null
@@ -124,35 +136,34 @@ async function main(): Promise<void> {
         const incomingBundle = createBundle(
             incomingRoot,
             '2.0.0',
+            '2',
             fixtureExecutable,
             bootstrapper,
             stateRoot,
             killHelperAfterExchange ? 5_000 : killHelperAfterAck ? 1_000 : 0,
         )
-        const archive = path.join(root, `pulsesync-host-bundle-2.0.0-${dist}.zip`)
+        const archive = path.join(root, `pulsesync-host-bundle-2-${dist}.zip`)
         run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', incomingBundle, archive])
         const manifest = path.join(root, 'manifest.json')
         fs.writeFileSync(
             manifest,
             `${JSON.stringify(
                 {
-                    schemaVersion: 2,
-                    metadataVersion: 1,
+                    schemaVersion: 3,
+                    metadataVersion: 2,
+                    bundleVersion: '2',
                     channel: 'dev',
-                    releaseVersion: '2.0.0',
+                    desktopVersion: '2.0.0',
                     desktopApi: '1.0.0',
                     targets: {
                         [dist]: {
                             layout: 'macos-bundle',
                             host: {
                                 version: '2.0.0',
+                                required: true,
                                 artifact: { url: archive, sha256: sha256(archive), size: fs.statSync(archive).size },
                             },
                             components: {},
-                            bootstrapper: {
-                                version: '0.2.0',
-                                artifact: { url: bootstrapper, sha256: sha256(bootstrapper), size: fs.statSync(bootstrapper).size },
-                            },
                         },
                     },
                 },
@@ -261,6 +272,9 @@ async function main(): Promise<void> {
             ) {
                 throw new Error('LaunchAgent recovery did not restore version A')
             }
+            if (run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(hostBundle, 'Contents', 'Info.plist')]) !== '1') {
+                throw new Error('LaunchAgent recovery did not restore bundle identity 1')
+            }
             console.log(
                 JSON.stringify(
                     {
@@ -301,6 +315,9 @@ async function main(): Promise<void> {
             ) {
                 throw new Error('Acknowledged version B was rolled back after helper crash')
             }
+            if (run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(hostBundle, 'Contents', 'Info.plist')]) !== '2') {
+                throw new Error('Acknowledged bundle identity 2 was rolled back after helper crash')
+            }
             console.log(
                 JSON.stringify(
                     {
@@ -332,6 +349,9 @@ async function main(): Promise<void> {
         ) {
             throw new Error('Host bundle did not switch to version B')
         }
+        if (run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(hostBundle, 'Contents', 'Info.plist')]) !== '2') {
+            throw new Error('Host bundle did not switch to bundle identity 2')
+        }
         const transaction = JSON.parse(fs.readFileSync(prepare.transaction.file, 'utf8')) as { backupDir: string; commitSlot: string; state: string }
         if (fs.existsSync(transaction.commitSlot)) throw new Error('Transient commit slot was not removed')
         if (
@@ -342,6 +362,9 @@ async function main(): Promise<void> {
             ]) !== '1.0.0'
         ) {
             throw new Error('Previous bundle was not retained')
+        }
+        if (run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(transaction.backupDir, 'Contents', 'Info.plist')]) !== '1') {
+            throw new Error('Previous bundle identity was not retained')
         }
         console.log(
             JSON.stringify(

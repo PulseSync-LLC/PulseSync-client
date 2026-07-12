@@ -429,12 +429,12 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
     fs.chmodSync(launcherPath, 0o755)
 }
 
-function applyApplicationSetupArtifactName(configObj: any): void {
+function applyApplicationSetupArtifactName(configObj: any, desktopVersion: string): void {
     if (os.platform() !== 'win32') {
         return
     }
 
-    const artifactName = 'pulsesync-app-${version}-${arch}.${ext}'
+    const artifactName = `pulsesync-app-${desktopVersion}-\${arch}.\${ext}`
     configObj.artifactName = artifactName
     configObj.nsis = configObj.nsis || {}
     configObj.nsis.artifactName = artifactName
@@ -461,6 +461,7 @@ function isManagedReleaseArtifact(fileName: string): boolean {
         /^pulsesync-host-/iu.test(fileName) ||
         /^pulsesync-host-bundle-/iu.test(fileName) ||
         /^pulsesync-bootstrapper-/iu.test(fileName) ||
+        /^pulsesync-component-/iu.test(fileName) ||
         /^pulsesync-module-/iu.test(fileName) ||
         /^pulsesync-native-modules-/iu.test(fileName)
     )
@@ -530,10 +531,23 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     return installRoot
 }
 
-function writeMacPackagedRuntime(outDir: string, coreVersion: string, hostVersion: string): string {
+function resolveBundleVersion(): string {
+    const raw = process.env.DESKTOP_METADATA_VERSION?.trim()
+    if (!raw) {
+        if (publishBranch) throw new Error('DESKTOP_METADATA_VERSION is required for a published desktop build')
+        return '0'
+    }
+    const value = Number(raw)
+    if (!Number.isSafeInteger(value) || value <= 0) {
+        throw new Error('DESKTOP_METADATA_VERSION must be a positive integer')
+    }
+    return String(value)
+}
+
+function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
-    const components: Record<string, { version: string; path: string; sha256: string; electronAbi?: string }> = {}
+    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {}
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
     for (const entry of fs.readdirSync(modulesRoot, { withFileTypes: true })) {
         if (!entry.isDirectory()) continue
@@ -545,11 +559,12 @@ function writeMacPackagedRuntime(outDir: string, coreVersion: string, hostVersio
             version,
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(contentsRoot, relativePath)),
+            required: true,
             ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
         }
     }
-    if (components.desktopCore?.version !== coreVersion) {
-        throw new Error(`Expected packaged desktopCore ${coreVersion}`)
+    if (components.desktopCore?.version !== desktopVersion) {
+        throw new Error(`Expected packaged desktopCore ${desktopVersion}`)
     }
     const bootstrapperRelativePath = path.join('Resources', 'bootstrapper', 'pulsesync-bootstrapper')
     const bootstrapperPath = path.join(contentsRoot, bootstrapperRelativePath)
@@ -557,11 +572,13 @@ function writeMacPackagedRuntime(outDir: string, coreVersion: string, hostVersio
         version: readBootstrapperVersion(),
         path: bootstrapperRelativePath.replace(/\\/gu, '/'),
         sha256: crypto.createHash('sha256').update(fs.readFileSync(bootstrapperPath)).digest('hex'),
+        required: true,
     }
     const descriptor = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         hostVersion,
-        coreVersion,
+        desktopVersion,
+        bundleVersion,
         components,
     }
     const descriptorPath = path.join(contentsRoot, 'Resources', 'pulsesync-runtime.json')
@@ -569,7 +586,7 @@ function writeMacPackagedRuntime(outDir: string, coreVersion: string, hostVersio
     return descriptorPath
 }
 
-async function installMacBootstrapperSeed(outDir: string, coreVersion: string, hostVersion: string): Promise<string> {
+async function installMacBootstrapperSeed(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): Promise<string> {
     if (os.platform() !== 'darwin') {
         throw new Error('installMacBootstrapperSeed is only valid on macOS')
     }
@@ -583,10 +600,13 @@ async function installMacBootstrapperSeed(outDir: string, coreVersion: string, h
     fs.copyFileSync(executable, targetExecutable)
     fs.chmodSync(targetExecutable, 0o755)
     const infoPlist = path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents', 'Info.plist')
-    execFileSync('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${coreVersion}`, infoPlist], {
+    execFileSync('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${desktopVersion}`, infoPlist], {
         stdio: debug ? 'inherit' : 'pipe',
     })
-    writeMacPackagedRuntime(outDir, coreVersion, hostVersion)
+    execFileSync('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleVersion ${bundleVersion}`, infoPlist], {
+        stdio: debug ? 'inherit' : 'pipe',
+    })
+    writeMacPackagedRuntime(outDir, desktopVersion, hostVersion, bundleVersion)
     const identity = process.env.PULSESYNC_MAC_SIGN_IDENTITY?.trim() || (publishBranch ? null : '-')
     if (!identity) {
         throw new Error('PULSESYNC_MAC_SIGN_IDENTITY is required for a published macOS build')
@@ -608,6 +628,7 @@ async function prepareBootstrapperSetupRoot(
     dist: string,
     coreVersion: string,
     hostVersion: string,
+    bundleVersion: string,
 ): Promise<string> {
     if (os.platform() === 'darwin') {
         throw new Error('macOS uses the intact Forge application bundle; setup-root transformation is forbidden')
@@ -631,11 +652,12 @@ async function prepareBootstrapperSetupRoot(
         throw new Error(`Desktop core entry is missing from setup layout: ${coreEntryPath}`)
     }
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
-    const components: Record<string, { version: string; path: string; sha256: string; electronAbi?: string }> = {
+    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {
         desktopCore: {
             version: coreVersion,
             path: coreRelativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(coreDirectory),
+            required: true,
         },
     }
     for (const entry of fs.readdirSync(path.join(setupRoot, 'modules'), { withFileTypes: true })) {
@@ -648,6 +670,7 @@ async function prepareBootstrapperSetupRoot(
             version,
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(setupRoot, relativePath)),
+            required: true,
             ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
         }
     }
@@ -657,17 +680,28 @@ async function prepareBootstrapperSetupRoot(
         version: readBootstrapperVersion(),
         path: bootstrapperRelativePath.replace(/\\/gu, '/'),
         sha256: crypto.createHash('sha256').update(fs.readFileSync(bootstrapperPath)).digest('hex'),
+        required: true,
+    }
+    const initialSnapshot = {
+        bundleVersion,
+        metadataVersion: Number(bundleVersion),
+        host: {
+            version: hostVersion,
+            path: `host-${hostVersion}`,
+            sha256: hashDirectory(path.join(setupRoot, `host-${hostVersion}`)),
+            electronAbi,
+        },
+        components,
     }
     const installState = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         generation: 1,
-        metadataVersion: 0,
         activation: { state: 'confirmed', generation: 1 },
-        active: {
-            host: { version: hostVersion, path: `host-${hostVersion}`, electronAbi },
-            components,
-        },
-        previous: null,
+        latest: initialSnapshot,
+        running: initialSnapshot,
+        lastSuccessful: initialSnapshot,
+        knownGood: initialSnapshot,
+        pinned: null,
     }
     const runtimeDir = path.join(setupRoot, 'runtime')
     fs.mkdirSync(runtimeDir, { recursive: true })
@@ -752,21 +786,26 @@ function copyArtifactWorker(outDir: string): void {
 
 function hashDirectory(directory: string): string {
     const hash = crypto.createHash('sha256')
+    const files: Array<{ nativeRelative: string; normalizedRelative: string; path: string }> = []
     const visit = (current: string): void => {
-        for (const entry of fs.readdirSync(current, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
             const entryPath = path.join(current, entry.name)
             if (entry.isDirectory()) {
                 visit(entryPath)
                 continue
             }
-            const relative = path.relative(directory, entryPath).replace(/\\/gu, '/')
-            hash.update(relative)
-            hash.update('\0')
-            hash.update(fs.readFileSync(entryPath))
-            hash.update('\0')
+            const nativeRelative = path.relative(directory, entryPath)
+            files.push({ nativeRelative, normalizedRelative: nativeRelative.replace(/\\/gu, '/'), path: entryPath })
         }
     }
     visit(directory)
+    files.sort((left, right) => (left.nativeRelative < right.nativeRelative ? -1 : left.nativeRelative > right.nativeRelative ? 1 : 0))
+    for (const file of files) {
+        hash.update(file.normalizedRelative)
+        hash.update('\0')
+        hash.update(fs.readFileSync(file.path))
+        hash.update('\0')
+    }
     return hash.digest('hex')
 }
 
@@ -785,6 +824,7 @@ function normalizeVersionedRuntimeModules(outDir: string): void {
             throw new Error(`Missing explicit component version for ${entry.name}`)
         }
         const versionedModuleDir = path.join(modulesDir, `${entry.name}-${version}`)
+        fs.rmSync(versionedModuleDir, { force: true, recursive: true })
         fs.mkdirSync(versionedModuleDir, { recursive: true })
         fs.renameSync(moduleDir, path.join(versionedModuleDir, entry.name))
     }
@@ -852,23 +892,27 @@ async function main(): Promise<void> {
         copyArtifactWorker(pdPath)
         normalizeVersionedRuntimeModules(pdPath)
         const setupDist = setBuildDist(os.platform(), targetArch)
+        const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8')).version as string
         let setupRoot: string
         if (os.platform() === 'darwin') {
-            const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8'))
-                .version as string
-            await installMacBootstrapperSeed(pdPath, coreVersion, readPackageVersion())
+            await installMacBootstrapperSeed(pdPath, coreVersion, readPackageVersion(), resolveBundleVersion())
             setupRoot = pdPath
         } else {
             await prepareBootstrapperInstallerRoot(pdPath)
-            const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8'))
-                .version as string
-            setupRoot = await prepareBootstrapperSetupRoot(pdPath, branchForConfig, setupDist, coreVersion, readPackageVersion())
+            setupRoot = await prepareBootstrapperSetupRoot(
+                pdPath,
+                branchForConfig,
+                setupDist,
+                coreVersion,
+                readPackageVersion(),
+                resolveBundleVersion(),
+            )
         }
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
-        applyApplicationSetupArtifactName(configObj)
+        applyApplicationSetupArtifactName(configObj, coreVersion)
 
         if (os.platform() === 'darwin') {
             configObj.dmg = configObj.dmg || {}
@@ -915,12 +959,12 @@ async function main(): Promise<void> {
         let payloadRoot: string
         let setupRoot: string
         if (os.platform() === 'darwin') {
-            await installMacBootstrapperSeed(outDir, version, hostVersion)
+            await installMacBootstrapperSeed(outDir, version, hostVersion, resolveBundleVersion())
             payloadRoot = outDir
             setupRoot = outDir
         } else {
             payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
-            setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version, hostVersion)
+            setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version, hostVersion, resolveBundleVersion())
         }
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
             await createLinuxAurTarball(version, outDir, releaseDir)
@@ -934,7 +978,7 @@ async function main(): Promise<void> {
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
         const configObj = yaml.load(baseYml) as any
-        applyApplicationSetupArtifactName(configObj)
+        applyApplicationSetupArtifactName(configObj, version)
 
         if (!configObj.linux) configObj.linux = {}
         configObj.linux.executableName = 'pulsesync'
@@ -991,8 +1035,9 @@ async function main(): Promise<void> {
                 throw new Error('S3_URL is required to generate desktop release manifest')
             }
 
+            const desktopArtifactBaseUrl = `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}`
             await emitDesktopReleaseManifest({
-                baseUrl: `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}`,
+                baseUrl: desktopArtifactBaseUrl,
                 channel: publishBranch,
                 dist: buildDist,
                 packagedAppRootDir: payloadRoot,
@@ -1001,6 +1046,7 @@ async function main(): Promise<void> {
                 coreVersion: version,
                 hostVersion,
                 metadataVersion: process.env.DESKTOP_METADATA_VERSION,
+                previousManifestUrl: `${desktopArtifactBaseUrl}/desktop-update-${buildDist}.json`,
             })
             await publishToS3(publishBranch, releaseDir, version)
             if (publishChangelogFlag) {
