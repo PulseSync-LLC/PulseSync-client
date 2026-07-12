@@ -1,0 +1,98 @@
+name: Desktop Tests
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: "Git ref to test"
+        required: false
+        type: string
+        default: ""
+
+permissions:
+  contents: read
+
+jobs:
+  common:
+    name: Common checks
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --no-self-update
+          rustup default 1.88.0
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            packages/bootstrapper/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Check bootstrapper formatting
+        run: cargo fmt --manifest-path packages/bootstrapper/Cargo.toml --check
+
+      - name: Check bootstrapper
+        run: cargo check --manifest-path packages/bootstrapper/Cargo.toml
+
+      - name: Test bootstrapper
+        run: cargo test --manifest-path packages/bootstrapper/Cargo.toml
+
+      - name: Verify release routing
+        run: yarn bootstrapper:verify-release-routing
+
+  macos-updater:
+    name: macOS updater checks
+    runs-on: macos-26
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref || github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 --profile minimal --no-self-update
+          rustup default 1.88.0
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            packages/bootstrapper/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Verify atomic bundle update
+        run: yarn bootstrapper:verify-macos-update
+
+      - name: Verify external recovery across helper crashes
+        run: |
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange
+          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-ack
