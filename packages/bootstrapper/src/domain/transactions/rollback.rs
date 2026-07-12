@@ -2,7 +2,7 @@ use crate::{
     core::{
         error::Result,
         install_state::{
-            ActivationState, RuntimeActivationV2, read_install_state, write_install_state,
+            ActivationState, RuntimeActivationV3, read_install_state, write_install_state,
         },
     },
     domain::transactions::store::{transaction_artifacts, write_transaction},
@@ -33,21 +33,23 @@ fn restore_install_state(transaction: &mut Value) -> Result<()> {
             .ok_or("installDir is required to restore install state")?,
     );
     let mut state = read_install_state(&install_dir)?;
-    if let Some(previous) = state.previous.take() {
-        state.active = previous;
-        state.generation = state
-            .generation
-            .checked_add(1)
-            .ok_or("install-state generation overflow")?;
-        state.activation = RuntimeActivationV2 {
-            state: ActivationState::Confirmed,
-            generation: state.generation,
-            launch_owner: None,
-        };
-        let path = write_install_state(&install_dir, &state)?;
-        transaction["installStateRestored"] =
-            json!({ "state": "restored", "generation": state.generation, "path": path });
+    if !matches!(state.activation.state, ActivationState::Pending) {
+        return Err("confirmed runtime cannot be rolled back by an update transaction".into());
     }
+    state.latest = state.known_good.clone();
+    state.running = state.known_good.clone();
+    state.generation = state
+        .generation
+        .checked_add(1)
+        .ok_or("install-state generation overflow")?;
+    state.activation = RuntimeActivationV3 {
+        state: ActivationState::Confirmed,
+        generation: state.generation,
+        launch_owner: None,
+    };
+    let path = write_install_state(&install_dir, &state)?;
+    transaction["installStateRestored"] =
+        json!({ "state": "restored", "generation": state.generation, "path": path });
     Ok(())
 }
 

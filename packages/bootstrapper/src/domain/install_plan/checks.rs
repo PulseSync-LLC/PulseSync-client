@@ -30,6 +30,19 @@ pub(crate) fn block(
     }
 }
 
+pub(crate) fn warn(
+    id: &str,
+    message: impl Into<String>,
+    path: Option<PathBuf>,
+) -> InstallPlanCheck {
+    InstallPlanCheck {
+        id: id.to_string(),
+        message: message.into(),
+        path,
+        status: "warn".to_string(),
+    }
+}
+
 pub(crate) fn check_install_dir(install_dir: &Path) -> InstallPlanCheck {
     match fs::metadata(install_dir) {
         Ok(metadata) if metadata.is_dir() => pass(

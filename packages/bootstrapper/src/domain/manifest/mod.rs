@@ -5,7 +5,8 @@ mod version;
 
 pub use model::{
     ArtifactLayout, BootstrapperArtifact, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
-    BootstrapperUpdateManifest, VersionedArtifact,
+    BootstrapperUpdateManifest, ComponentFileSet, DeltaArtifact, DeltaProvider, DesktopTargetV3,
+    UpdatePlanAction, UpdatePlanDelivery, UpdatePlanItem, VersionedArtifact,
 };
 pub use source::{
     DEFAULT_GITHUB_OWNER, DEFAULT_GITHUB_REPO, GitHubManifestFallback, github_manifest_url,

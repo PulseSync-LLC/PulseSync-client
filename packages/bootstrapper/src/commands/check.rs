@@ -19,6 +19,7 @@ pub fn check_update(args: &Args) -> Result<Value> {
         decide_update(
             &manifest,
             &required_arg(args, "--installed-version")?,
+            &arg_value(args, "--installed-bundle-version").unwrap_or_else(|| "0".to_string()),
             &dist,
         )
     };

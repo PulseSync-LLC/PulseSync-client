@@ -1,21 +1,26 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, file_size, sha256_file},
+        fs_ops::{ensure_executable, file_size, sha256_directory, sha256_file},
+        install_state::read_install_state_metadata,
         path_segment::sanitize_path_segment,
     },
+    domain::delta::apply_delta,
     domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
-        BootstrapperArtifact, BootstrapperUpdateDecision, artifact_for_key, read_source,
+        BootstrapperArtifact, BootstrapperUpdateDecision, ComponentFileSet, artifact_for_key,
+        read_source,
     },
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::{
+    collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Write},
     path::{Path, PathBuf},
     time::Duration,
 };
+use zip::{ZipWriter, write::SimpleFileOptions};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ArtifactKey {
@@ -77,11 +82,27 @@ pub struct StagedArtifact {
     pub sha256: String,
     pub size: u64,
     pub url: String,
+    #[serde(rename = "downloadedBytes")]
+    pub downloaded_bytes: u64,
+    #[serde(rename = "fileOperations")]
+    pub file_operations: Vec<StagedFileOperation>,
+}
+
+#[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
+pub struct StagedFileOperation {
+    pub path: String,
+    pub action: String,
+    pub delivery: String,
+    #[serde(rename = "downloadBytes")]
+    pub download_bytes: u64,
+    #[serde(rename = "resultSha256")]
+    pub result_sha256: String,
 }
 
 #[derive(Clone, Debug, Serialize)]
 pub struct StagingResult {
     pub artifacts: Vec<StagedArtifact>,
+    pub failures: Vec<StagingFailure>,
     pub channel: String,
     pub dist: String,
     pub reason: String,
@@ -89,8 +110,17 @@ pub struct StagingResult {
     pub staging_dir: PathBuf,
     #[serde(rename = "targetVersion")]
     pub target_version: String,
+    #[serde(rename = "bundleVersion")]
+    pub bundle_version: String,
     #[serde(rename = "updateAvailable")]
     pub update_available: bool,
+}
+
+#[derive(Clone, Debug, Serialize)]
+pub struct StagingFailure {
+    pub key: ArtifactKey,
+    pub required: bool,
+    pub reason: String,
 }
 
 pub fn selected_artifact_keys(decision: &BootstrapperUpdateDecision) -> Result<Vec<ArtifactKey>> {
@@ -127,14 +157,14 @@ pub fn verify_artifact_file(
     key: &ArtifactKey,
 ) -> Result<(String, u64)> {
     let size = file_size(path)?;
-    if let Some(expected) = artifact.size {
-        if expected != size {
-            return Err(format!(
-                "downloaded {} size mismatch: expected {expected}, got {size}",
-                key.as_str()
-            )
-            .into());
-        }
+    if let Some(expected) = artifact.size
+        && expected != size
+    {
+        return Err(format!(
+            "downloaded {} size mismatch: expected {expected}, got {size}",
+            key.as_str()
+        )
+        .into());
     }
 
     let sha256 = sha256_file(path)?;
@@ -153,7 +183,7 @@ pub fn verify_artifact_file(
 fn staging_dir(decision: &BootstrapperUpdateDecision, staging_root: &Path) -> Result<PathBuf> {
     Ok(staging_root
         .join(sanitize_path_segment(&decision.channel)?)
-        .join(sanitize_path_segment(&decision.target_version)?)
+        .join(sanitize_path_segment(&decision.bundle_version)?)
         .join(sanitize_path_segment(&decision.dist)?))
 }
 
@@ -289,7 +319,7 @@ fn ensure_artifact_executable(path: &Path, key: &ArtifactKey) -> Result<()> {
     Ok(())
 }
 
-fn stage_artifact(
+pub(crate) fn stage_artifact(
     artifact: &BootstrapperArtifact,
     key: ArtifactKey,
     staging_dir: &Path,
@@ -320,6 +350,8 @@ fn stage_artifact(
                 sha256,
                 size,
                 url: artifact.url.clone(),
+                downloaded_bytes: 0,
+                file_operations: Vec::new(),
             });
         }
         let _ = fs::remove_file(&target_path);
@@ -352,12 +384,320 @@ fn stage_artifact(
             sha256,
             size,
             url: artifact.url.clone(),
+            downloaded_bytes: size,
+            file_operations: Vec::new(),
         })
     })();
     if result.is_err() {
         let _ = fs::remove_file(&temp_path);
     }
     result
+}
+
+fn safe_relative_path(value: &str) -> Result<PathBuf> {
+    let mut path = PathBuf::new();
+    for segment in value.split('/') {
+        if segment.is_empty() || segment == "." || segment == ".." {
+            return Err(format!("unsafe component file path: {value}").into());
+        }
+        path.push(segment);
+    }
+    Ok(path)
+}
+
+fn collect_relative_files(root: &Path) -> Result<Vec<String>> {
+    fn visit(root: &Path, current: &Path, files: &mut Vec<String>) -> Result<()> {
+        if !current.is_dir() {
+            return Ok(());
+        }
+        for entry in fs::read_dir(current)? {
+            let entry = entry?;
+            let path = entry.path();
+            if path.is_dir() {
+                visit(root, &path, files)?;
+            } else if path.is_file() {
+                files.push(
+                    path.strip_prefix(root)?
+                        .to_string_lossy()
+                        .replace('\\', "/"),
+                );
+            }
+        }
+        Ok(())
+    }
+    let mut files = Vec::new();
+    visit(root, root, &mut files)?;
+    files.sort();
+    Ok(files)
+}
+
+#[cfg(unix)]
+fn zip_permissions(path: &Path) -> Result<u32> {
+    use std::os::unix::fs::PermissionsExt;
+    Ok(fs::metadata(path)?.permissions().mode() & 0o777)
+}
+
+#[cfg(not(unix))]
+fn zip_permissions(_path: &Path) -> Result<u32> {
+    Ok(0o644)
+}
+
+fn write_snapshot_archive(source: &Path, module_name: &str, target: &Path) -> Result<()> {
+    let file = fs::File::create(target)?;
+    let mut archive = ZipWriter::new(file);
+    for relative in collect_relative_files(source)? {
+        let source_path = source.join(safe_relative_path(&relative)?);
+        let options = SimpleFileOptions::default()
+            .compression_method(zip::CompressionMethod::Deflated)
+            .unix_permissions(zip_permissions(&source_path)?);
+        archive.start_file(format!("{module_name}/{relative}"), options)?;
+        let mut input = fs::File::open(source_path)?;
+        std::io::copy(&mut input, &mut archive)?;
+    }
+    archive.finish()?;
+    Ok(())
+}
+
+fn stage_full_fallback(
+    fallback: &BootstrapperArtifact,
+    key: ArtifactKey,
+    result_sha256: &str,
+    staging_dir: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<StagedArtifact> {
+    let mut staged = stage_artifact(
+        fallback,
+        key,
+        staging_dir,
+        artifact_index,
+        artifact_count,
+        reporter,
+    )?;
+    staged.file_operations.push(StagedFileOperation {
+        path: "*".to_string(),
+        action: "new".to_string(),
+        delivery: "full-fallback".to_string(),
+        download_bytes: staged.downloaded_bytes,
+        result_sha256: result_sha256.to_string(),
+    });
+    Ok(staged)
+}
+
+fn stage_file_set(
+    key: ArtifactKey,
+    archive_root: &str,
+    file_set: &ComponentFileSet,
+    fallback: &BootstrapperArtifact,
+    source_root: Option<PathBuf>,
+    staging_dir: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<StagedArtifact> {
+    let source_root = source_root.filter(|path| path.is_dir());
+    let source_hashes = source_root
+        .as_ref()
+        .map(|root| {
+            file_set
+                .files
+                .iter()
+                .filter_map(|file| {
+                    let source = safe_relative_path(&file.path)
+                        .ok()
+                        .map(|path| root.join(path))?;
+                    source
+                        .is_file()
+                        .then(|| sha256_file(&source).ok())
+                        .flatten()
+                        .map(|sha| (file.path.clone(), sha))
+                })
+                .collect::<BTreeMap<_, _>>()
+        })
+        .unwrap_or_default();
+    let estimated_download = file_set.files.iter().fold(0_u64, |total, file| {
+        let bytes = match source_hashes.get(&file.path) {
+            Some(source_sha) if source_sha.eq_ignore_ascii_case(&file.sha256) => 0,
+            Some(source_sha) => file
+                .patches
+                .iter()
+                .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha))
+                .and_then(|patch| patch.artifact.size)
+                .unwrap_or(file.size),
+            None => file.size,
+        };
+        total.saturating_add(bytes)
+    });
+    if fallback
+        .size
+        .is_some_and(|fallback_size| estimated_download >= fallback_size)
+    {
+        return stage_full_fallback(
+            fallback,
+            key,
+            &file_set.content_sha256,
+            staging_dir,
+            artifact_index,
+            artifact_count,
+            reporter,
+        );
+    }
+    let safe_key = sanitize_path_segment(&key.as_str().replace(':', "-"))?;
+    let work_dir = staging_dir.join(format!(".snapshot-{}-{}", safe_key, std::process::id()));
+    let snapshot_dir = work_dir.join("snapshot");
+    if work_dir.exists() {
+        fs::remove_dir_all(&work_dir)?;
+    }
+    fs::create_dir_all(&snapshot_dir)?;
+    let result = (|| -> Result<StagedArtifact> {
+        let target_paths = file_set
+            .files
+            .iter()
+            .map(|file| file.path.clone())
+            .collect::<BTreeSet<_>>();
+        let mut operations = Vec::new();
+        let mut downloaded_bytes = 0_u64;
+        for (file_index, file) in file_set.files.iter().enumerate() {
+            let relative = safe_relative_path(&file.path)?;
+            let destination = snapshot_dir.join(&relative);
+            if let Some(parent) = destination.parent() {
+                fs::create_dir_all(parent)?;
+            }
+            let source = source_root.as_ref().map(|root| root.join(&relative));
+            let source_with_sha = source
+                .as_ref()
+                .and_then(|path| source_hashes.get(&file.path).map(|sha| (path, sha.clone())));
+            let (action, delivery, operation_download_bytes) = if let Some((source, _)) =
+                source_with_sha
+                    .as_ref()
+                    .filter(|(_, sha)| sha.eq_ignore_ascii_case(&file.sha256))
+            {
+                if fs::hard_link(source, &destination).is_ok() {
+                    ("link", "none", 0)
+                } else {
+                    fs::copy(source, &destination)?;
+                    ("existing", "none", 0)
+                }
+            } else {
+                let patched = source_with_sha.as_ref().and_then(|(source, source_sha)| {
+                    let delta = file
+                        .patches
+                        .iter()
+                        .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha))?;
+                    let patch_dir = work_dir.join("patches");
+                    fs::create_dir_all(&patch_dir).ok()?;
+                    let patch_path = patch_dir.join(format!("{file_index}.patch"));
+                    let result = (|| -> Result<()> {
+                        materialize_artifact_with_progress(
+                            &delta.artifact,
+                            &key,
+                            &patch_path,
+                            file_index + 1,
+                            file_set.files.len(),
+                            reporter,
+                        )?;
+                        verify_artifact_file(&patch_path, &delta.artifact, &key)?;
+                        apply_delta(source, &patch_path, &destination, delta)
+                    })();
+                    let _ = fs::remove_file(&patch_path);
+                    result.ok().map(|_| delta.artifact.size.unwrap_or(0))
+                });
+                if let Some(patch_bytes) = patched {
+                    downloaded_bytes = downloaded_bytes.saturating_add(patch_bytes);
+                    ("new", "bsdiff", patch_bytes)
+                } else {
+                    let _ = fs::remove_file(&destination);
+                    materialize_artifact_with_progress(
+                        &file.artifact,
+                        &key,
+                        &destination,
+                        file_index + 1,
+                        file_set.files.len(),
+                        reporter,
+                    )?;
+                    verify_artifact_file(&destination, &file.artifact, &key)?;
+                    downloaded_bytes = downloaded_bytes.saturating_add(file.size);
+                    ("new", "full", file.size)
+                }
+            };
+            if file.executable {
+                ensure_executable(&destination)?;
+            }
+            operations.push(StagedFileOperation {
+                path: file.path.clone(),
+                action: action.to_string(),
+                delivery: delivery.to_string(),
+                download_bytes: operation_download_bytes,
+                result_sha256: file.sha256.clone(),
+            });
+        }
+        if let Some(source_root) = source_root.as_ref() {
+            for deleted in collect_relative_files(source_root)?
+                .into_iter()
+                .filter(|path| !target_paths.contains(path))
+            {
+                operations.push(StagedFileOperation {
+                    path: deleted,
+                    action: "delete".to_string(),
+                    delivery: "none".to_string(),
+                    download_bytes: 0,
+                    result_sha256: String::new(),
+                });
+            }
+        }
+        let content_sha = sha256_directory(&snapshot_dir)?;
+        if !content_sha.eq_ignore_ascii_case(&file_set.content_sha256) {
+            return Err(format!(
+                "reconstructed {} hash mismatch: expected {}, got {content_sha}",
+                key.as_str(),
+                file_set.content_sha256
+            )
+            .into());
+        }
+        let target_path = staging_dir.join(format!("pulsesync-{safe_key}-snapshot.zip"));
+        let temp_path = target_path.with_extension(format!("zip.part-{}", std::process::id()));
+        write_snapshot_archive(&snapshot_dir, archive_root, &temp_path)?;
+        if target_path.exists() {
+            fs::remove_file(&target_path)?;
+        }
+        fs::rename(&temp_path, &target_path)?;
+        let sha256 = sha256_file(&target_path)?;
+        let size = file_size(&target_path)?;
+        reporter.emit(InstallWorkflowEvent::artifact_progress(
+            "downloading",
+            "Component snapshot prepared",
+            key.as_str(),
+            artifact_index,
+            artifact_count,
+            downloaded_bytes,
+            Some(downloaded_bytes),
+            Some(target_path.clone()),
+        ));
+        Ok(StagedArtifact {
+            key: key.clone(),
+            path: target_path,
+            reused: downloaded_bytes == 0,
+            sha256,
+            size,
+            url: "reconstructed:file-inventory".to_string(),
+            downloaded_bytes,
+            file_operations: operations,
+        })
+    })();
+    let _ = fs::remove_dir_all(&work_dir);
+    match result {
+        Ok(staged) => Ok(staged),
+        Err(_) => stage_full_fallback(
+            fallback,
+            key,
+            &file_set.content_sha256,
+            staging_dir,
+            artifact_index,
+            artifact_count,
+            reporter,
+        ),
+    }
 }
 
 struct AggregateArtifactProgressReporter<'a> {
@@ -380,6 +720,7 @@ impl InstallProgressReporter for AggregateArtifactProgressReporter<'_> {
 
 pub fn stage_artifacts(
     decision: &BootstrapperUpdateDecision,
+    state_root: Option<&Path>,
     staging_root: &Path,
     artifact_keys: Vec<ArtifactKey>,
     reporter: &dyn InstallProgressReporter,
@@ -388,46 +729,135 @@ pub fn stage_artifacts(
     fs::create_dir_all(&staging_dir)?;
 
     let mut artifacts = Vec::new();
-    if decision.update_available {
-        if let Some(dist_artifacts) = &decision.artifacts {
-            let selected = artifact_keys
-                .into_iter()
-                .filter_map(|key| {
-                    artifact_for_key(dist_artifacts, &key).map(|artifact| (key, artifact))
+    let mut failures = Vec::new();
+    if decision.update_available
+        && let Some(dist_artifacts) = &decision.artifacts
+    {
+        let installed_state = state_root.and_then(|root| read_install_state_metadata(root).ok());
+        let selected = artifact_keys
+            .into_iter()
+            .filter_map(|key| {
+                artifact_for_key(dist_artifacts, &key).map(|artifact| {
+                    let file_set = match &key {
+                        ArtifactKey::Host => dist_artifacts.host_files.as_ref(),
+                        ArtifactKey::Module(module_name) => {
+                            dist_artifacts.module_files.get(module_name)
+                        }
+                        _ => None,
+                    };
+                    (key, artifact, file_set)
                 })
-                .collect::<Vec<_>>();
-            let bytes_total = selected.iter().try_fold(0_u64, |total, (_, artifact)| {
-                artifact.size.and_then(|size| total.checked_add(size))
+            })
+            .collect::<Vec<_>>();
+        let bytes_total = selected
+            .iter()
+            .try_fold(0_u64, |total, (_, artifact, file_set)| {
+                let size = file_set
+                    .map(|set| {
+                        let file_bytes = set.files.iter().map(|file| file.size).sum::<u64>();
+                        artifact
+                            .size
+                            .map_or(file_bytes, |archive_bytes| file_bytes.min(archive_bytes))
+                    })
+                    .or(artifact.size);
+                size.and_then(|size| total.checked_add(size))
             });
-            let artifact_count = selected.len();
-            let mut bytes_completed = 0_u64;
-            for (index, (key, artifact)) in selected.into_iter().enumerate() {
-                let aggregate_reporter = AggregateArtifactProgressReporter {
-                    inner: reporter,
-                    bytes_offset: bytes_completed,
-                    bytes_total,
-                };
-                let staged = stage_artifact(
+        let artifact_count = selected.len();
+        let mut bytes_completed = 0_u64;
+        for (index, (key, artifact, file_set)) in selected.into_iter().enumerate() {
+            let aggregate_reporter = AggregateArtifactProgressReporter {
+                inner: reporter,
+                bytes_offset: bytes_completed,
+                bytes_total,
+            };
+            let required = decision
+                .plan
+                .iter()
+                .find(|item| item.key == key.as_str())
+                .map(|item| item.required)
+                .unwrap_or(true);
+            let staged = match file_set {
+                Some(file_set) => {
+                    let (archive_root, source_root) = match &key {
+                        ArtifactKey::Host => (
+                            "host",
+                            installed_state.as_ref().and_then(|state| {
+                                state_root.map(|root| root.join(&state.latest.host.path))
+                            }),
+                        ),
+                        ArtifactKey::Module(module_name) => (
+                            module_name.as_str(),
+                            installed_state.as_ref().and_then(|state| {
+                                state_root.and_then(|root| {
+                                    state
+                                        .latest
+                                        .components
+                                        .get(module_name)
+                                        .map(|component| root.join(&component.path))
+                                })
+                            }),
+                        ),
+                        ArtifactKey::Bootstrapper => {
+                            unreachable!("bootstrapper has no file set")
+                        }
+                    };
+                    stage_file_set(
+                        key.clone(),
+                        archive_root,
+                        file_set,
+                        artifact,
+                        source_root,
+                        &staging_dir,
+                        index + 1,
+                        artifact_count,
+                        &aggregate_reporter,
+                    )
+                }
+                _ => stage_artifact(
                     artifact,
-                    key,
+                    key.clone(),
                     &staging_dir,
                     index + 1,
                     artifact_count,
                     &aggregate_reporter,
-                )?;
-                bytes_completed = bytes_completed.saturating_add(staged.size);
-                artifacts.push(staged);
+                ),
+            };
+            match staged {
+                Ok(staged) => {
+                    bytes_completed = bytes_completed.saturating_add(staged.downloaded_bytes);
+                    artifacts.push(staged);
+                }
+                Err(error) if !required => {
+                    let failed_bytes = file_set
+                        .map(|set| {
+                            let file_bytes = set.files.iter().map(|file| file.size).sum::<u64>();
+                            artifact
+                                .size
+                                .map_or(file_bytes, |archive_bytes| file_bytes.min(archive_bytes))
+                        })
+                        .or(artifact.size)
+                        .unwrap_or(0);
+                    bytes_completed = bytes_completed.saturating_add(failed_bytes);
+                    failures.push(StagingFailure {
+                        key,
+                        required,
+                        reason: error.to_string(),
+                    });
+                }
+                Err(error) => return Err(error),
             }
         }
     }
 
     Ok(StagingResult {
         artifacts,
+        failures,
         channel: decision.channel.clone(),
         dist: decision.dist.clone(),
         reason: decision.reason.clone(),
         staging_dir,
         target_version: decision.target_version.clone(),
+        bundle_version: decision.bundle_version.clone(),
         update_available: decision.update_available,
     })
 }

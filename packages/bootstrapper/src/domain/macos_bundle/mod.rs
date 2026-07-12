@@ -81,13 +81,13 @@ fn run_checked(program: &str, args: &[&std::ffi::OsStr], label: &str) -> Result<
     Ok(())
 }
 
-fn plist_version(bundle: &Path) -> Result<String> {
+fn plist_bundle_version(bundle: &Path) -> Result<String> {
     let output = Command::new("/usr/libexec/PlistBuddy")
-        .args(["-c", "Print :CFBundleShortVersionString"])
+        .args(["-c", "Print :CFBundleVersion"])
         .arg(bundle.join("Contents").join("Info.plist"))
         .output()?;
     if !output.status.success() {
-        return Err("macOS bundle Info.plist is missing CFBundleShortVersionString".into());
+        return Err("macOS bundle Info.plist is missing CFBundleVersion".into());
     }
     let version = String::from_utf8(output.stdout)?.trim().to_string();
     if version.is_empty() {
@@ -145,7 +145,7 @@ pub fn bundle_fingerprint(bundle: &Path, relative_executable: &Path) -> Result<B
     #[cfg(not(unix))]
     let (volume_id, file_id) = (0, 0);
     Ok(BundleFingerprint {
-        bundle_version: plist_version(bundle)?,
+        bundle_version: plist_bundle_version(bundle)?,
         executable_sha256: sha256_file(&executable_path(bundle, relative_executable)?)?,
         file_id,
         volume_id,

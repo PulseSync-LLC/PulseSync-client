@@ -1,3 +1,4 @@
+use crate::domain::artifacts::StagedFileOperation;
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{path::PathBuf, time::SystemTime};
@@ -21,6 +22,9 @@ pub struct TransactionArtifact {
     #[serde(rename = "backupPath")]
     pub backup_path: PathBuf,
     pub key: String,
+    pub required: bool,
+    #[serde(rename = "fileOperations")]
+    pub file_operations: Vec<StagedFileOperation>,
     #[serde(rename = "preparedKind")]
     pub prepared_kind: String,
     #[serde(rename = "preparedPath")]

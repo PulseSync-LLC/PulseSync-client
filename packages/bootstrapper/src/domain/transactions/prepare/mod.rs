@@ -6,7 +6,7 @@ use crate::{
         path_segment::sanitize_path_segment,
     },
     domain::{
-        artifacts::ArtifactKey,
+        artifacts::{ArtifactKey, StagedFileOperation},
         install_plan::{
             InstallPlan, InstallPlanArtifact, InstallPlanCheck,
             checks::{block, pass},
@@ -28,6 +28,9 @@ struct PreparedArtifact {
     #[serde(rename = "backupPath")]
     pub backup_path: PathBuf,
     pub key: ArtifactKey,
+    pub required: bool,
+    #[serde(rename = "fileOperations")]
+    pub file_operations: Vec<StagedFileOperation>,
     #[serde(rename = "preparedKind")]
     pub prepared_kind: String,
     #[serde(rename = "preparedPath")]
@@ -48,7 +51,7 @@ fn metadata_is_reparse(metadata: &fs::Metadata) -> bool {
     {
         use std::os::windows::fs::MetadataExt;
         const FILE_ATTRIBUTE_REPARSE_POINT: u32 = 0x400;
-        return metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0;
+        metadata.file_attributes() & FILE_ATTRIBUTE_REPARSE_POINT != 0
     }
     #[cfg(not(windows))]
     false
@@ -146,7 +149,7 @@ fn resolve_default_transaction_root(plan: &InstallPlan) -> PathBuf {
 fn resolve_default_transaction_dir(plan: &InstallPlan, transaction_id: &str) -> Result<PathBuf> {
     Ok(resolve_default_transaction_root(plan)
         .join(sanitize_path_segment(&plan.channel)?)
-        .join(sanitize_path_segment(&plan.target_version)?)
+        .join(sanitize_path_segment(&plan.bundle_version)?)
         .join(sanitize_path_segment(&plan.dist)?)
         .join(transaction_id))
 }
@@ -236,6 +239,8 @@ fn copy_prepared_artifact(
         action: artifact.action.clone(),
         backup_path: artifact.backup_path.clone(),
         key: artifact.key.clone(),
+        required: artifact.required,
+        file_operations: artifact.file_operations.clone(),
         prepared_kind: prepared_kind.to_string(),
         prepared_path,
         sha256: artifact.sha256.clone(),
@@ -259,6 +264,7 @@ fn blocked_result(
         "dist": partial.map(|plan| plan.dist.clone()).unwrap_or_default(),
         "currentVersion": partial.map(|plan| plan.current_version.clone()).unwrap_or_default(),
         "targetVersion": partial.map(|plan| plan.target_version.clone()).unwrap_or_default(),
+        "bundleVersion": partial.map(|plan| plan.bundle_version.clone()).unwrap_or_default(),
         "installDir": partial.map(|plan| plan.install_dir.clone()).unwrap_or_default(),
         "retainAppVersions": partial.map(|plan| plan.retain_app_versions).unwrap_or_default(),
         "stagingDir": partial.map(|plan| plan.staging_dir.clone()).unwrap_or_default(),
@@ -378,15 +384,17 @@ fn prepare_transaction_file_inner(
     });
 
     checks.push(
-        if plan.artifacts.iter().any(|artifact| {
-            matches!(
-                artifact.key,
-                ArtifactKey::Host | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
-            )
-        }) {
+        if !plan.omitted_components.is_empty()
+            || plan.artifacts.iter().any(|artifact| {
+                matches!(
+                    artifact.key,
+                    ArtifactKey::Host | ArtifactKey::Module(_) | ArtifactKey::Bootstrapper
+                )
+            })
+        {
             pass(
                 "plan-artifacts",
-                "Install plan includes at least one installable artifact",
+                "Install plan includes an artifact or runtime-state removal",
                 None,
             )
         } else {
@@ -437,12 +445,16 @@ fn prepare_transaction_file_inner(
             "dist": plan.dist,
             "currentVersion": plan.current_version,
             "targetVersion": plan.target_version,
+            "bundleVersion": plan.bundle_version,
             "hostVersion": plan.host_version,
             "bootstrapperVersion": plan.bootstrapper_version,
             "componentVersions": plan.component_versions,
             "metadataVersion": plan.metadata_version,
             "hostElectronAbi": plan.host_electron_abi,
+            "hostContentSha256": plan.host_content_sha256,
             "componentElectronAbis": plan.component_electron_abis,
+            "componentContentSha256s": plan.component_content_sha256s,
+            "omittedComponents": plan.omitted_components,
             "installDir": plan.install_dir,
             "retainAppVersions": plan.retain_app_versions,
             "stagingDir": plan.staging_dir,

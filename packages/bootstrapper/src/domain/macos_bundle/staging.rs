@@ -9,6 +9,7 @@ use crate::{
         error::Result,
         fs_ops::{ensure_executable, sha256_file},
         layout::{Layout, assert_inside, is_inside},
+        packaged_runtime::packaged_bundle_version,
         path_segment::sanitize_path_segment,
     },
     domain::{
@@ -33,7 +34,7 @@ fn transaction_dir(
     Ok(layout
         .transaction_root
         .join(sanitize_path_segment(&decision.channel)?)
-        .join(sanitize_path_segment(&decision.target_version)?)
+        .join(sanitize_path_segment(&decision.bundle_version)?)
         .join(sanitize_path_segment(&decision.dist)?)
         .join(id))
 }
@@ -51,7 +52,7 @@ pub fn prepare_transaction(
     let source_name = artifact_file_name(&artifacts.host, &ArtifactKey::Host)?;
     let staging_dir = staging_root
         .join(sanitize_path_segment(&decision.channel)?)
-        .join(sanitize_path_segment(&decision.target_version)?)
+        .join(sanitize_path_segment(&decision.bundle_version)?)
         .join(sanitize_path_segment(&decision.dist)?);
     let source_path = staging_dir.join(source_name);
     let source_size = fs::metadata(&source_path)?.len();
@@ -118,6 +119,7 @@ pub fn prepare_transaction(
         "dist": decision.dist,
         "currentVersion": decision.current_version,
         "targetVersion": decision.target_version,
+        "bundleVersion": decision.bundle_version,
         "stateRoot": layout.state_root,
         "hostBundle": host_bundle,
         "appExecutableRelative": layout.app_executable_name,
@@ -134,6 +136,8 @@ pub fn prepare_transaction(
             "action": "replace-macos-bundle",
             "backupPath": backup_dir,
             "key": "host",
+            "required": true,
+            "fileOperations": [],
             "preparedKind": "archive",
             "preparedPath": archive_path,
             "sha256": source_sha,
@@ -311,14 +315,19 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
         return Err("macOS bundle identity changed after update preparation".into());
     }
     let new_fingerprint = bundle_fingerprint(&commit_slot, &relative_executable)?;
+    let packaged_version = packaged_bundle_version(&commit_slot)?;
     if new_fingerprint.bundle_version
         != transaction
-            .get("targetVersion")
+            .get("bundleVersion")
             .and_then(Value::as_str)
-            .ok_or("targetVersion is missing")?
+            .ok_or("bundleVersion is missing")?
     {
         remove_path(&commit_slot)?;
-        return Err("staged macOS bundle version does not match targetVersion".into());
+        return Err("staged macOS bundle version does not match bundleVersion".into());
+    }
+    if packaged_version != new_fingerprint.bundle_version {
+        remove_path(&commit_slot)?;
+        return Err("staged macOS runtime descriptor does not match CFBundleVersion".into());
     }
     let helper_dir = transaction_dir.join("helper");
     fs::create_dir_all(&helper_dir)?;

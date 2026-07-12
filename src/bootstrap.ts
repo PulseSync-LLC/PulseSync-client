@@ -1,7 +1,7 @@
 import path from 'node:path'
 import { app } from 'electron'
 import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
-import type { ActiveRuntimeV2 } from '@common/desktopRuntime/contract'
+import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
@@ -14,7 +14,8 @@ import {
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
 import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
-import { claimActiveApp, resolveActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
+import { claimActiveApp, repairActiveRuntime, resolveActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
+import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
 
@@ -65,7 +66,7 @@ function registerSecondInstanceDelivery(): void {
 function loadApplicationMain(
     bootstrapWindow?: Electron.BrowserWindow,
     bootstrapRuntime?: ApplicationBootstrapRuntime,
-    activeRuntime?: ActiveRuntimeV2,
+    activeRuntime?: ActiveRuntimeV3,
 ): Promise<ApplicationStartupHandle> {
     const coreEntry = app.isPackaged ? activeRuntime?.corePath : path.join(__dirname, 'desktopCore.cjs')
     if (!coreEntry) throw new Error('Resolved desktop core path is missing')
@@ -198,12 +199,31 @@ async function startPackagedBootstrap(): Promise<void> {
     }
 
     const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
-    const activeRuntime = await resolveActiveRuntime({
-        activeLeaseId: claim.lease.leaseId,
-        hostBundle: runtimePaths.hostBundle,
-        launcher: runtimePaths.launcher,
-        stateRoot: runtimePaths.stateRoot,
-    })
+    const resolveRuntime = () =>
+        resolveActiveRuntime({
+            activeLeaseId: claim.lease.leaseId,
+            hostBundle: runtimePaths.hostBundle,
+            launcher: runtimePaths.launcher!,
+            stateRoot: runtimePaths.stateRoot,
+        })
+    let activeRuntime: ActiveRuntimeV3
+    try {
+        activeRuntime = await resolveRuntime()
+    } catch (error) {
+        if (runtimePaths.hostBundle) throw error
+        console.error('PulseSync runtime validation failed; attempting repair', error)
+        const request = getDesktopUpdateManifestRequest()
+        await repairActiveRuntime({
+            channel: request.channel,
+            dist: request.dist,
+            launcher: runtimePaths.launcher,
+            manifestUrl: request.manifestUrl,
+            requestedSource: request.requestedSource,
+            serverHealthUrl: request.serverHealthUrl,
+            stateRoot: runtimePaths.stateRoot,
+        })
+        activeRuntime = await resolveRuntime()
+    }
     await launchQueue.bindSink(input => inbox.enqueue(input))
     const coordinator = new StartupCoordinator({
         activeRuntime,

@@ -110,7 +110,7 @@ pub(super) fn current_install_is_safe(layout: &Layout, installed_version: Option
         return false;
     };
     let core_version = state
-        .active
+        .latest
         .components
         .get("desktopCore")
         .map(|value| value.version.as_str());

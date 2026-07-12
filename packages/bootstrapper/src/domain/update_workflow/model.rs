@@ -1,3 +1,4 @@
+use crate::domain::manifest::UpdatePlanItem;
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 
@@ -52,7 +53,9 @@ pub struct UpdateDecision {
     pub dist: String,
     pub current_version: String,
     pub target_version: String,
+    pub bundle_version: String,
     pub update_available: bool,
+    pub plan: Vec<UpdatePlanItem>,
     pub policy: UpdatePolicy,
 }
 

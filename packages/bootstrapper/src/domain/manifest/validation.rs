@@ -1,8 +1,11 @@
 use crate::{
     core::error::Result,
-    domain::manifest::{BootstrapperArtifact, BootstrapperUpdateManifest, VersionedArtifact},
+    domain::manifest::{
+        BootstrapperArtifact, BootstrapperUpdateManifest, DeltaProvider, VersionedArtifact,
+    },
 };
 use node_semver::{Range, Version};
+use std::collections::BTreeSet;
 
 fn validate_artifact(artifact: &BootstrapperArtifact, label: &str) -> Result<()> {
     if artifact.url.trim().is_empty() {
@@ -33,9 +36,90 @@ fn validate_versioned_artifact(artifact: &VersionedArtifact, label: &str) -> Res
     validate_artifact(&artifact.artifact, &format!("{label}.artifact"))
 }
 
+fn validate_component_files(component: &VersionedArtifact, label: &str) -> Result<()> {
+    let content_sha256 = component
+        .content_sha256
+        .as_deref()
+        .ok_or_else(|| format!("manifest {label}.contentSha256 is required"))?;
+    if content_sha256.len() != 64
+        || !content_sha256
+            .chars()
+            .all(|value| value.is_ascii_hexdigit())
+    {
+        return Err(format!("manifest {label}.contentSha256 is invalid").into());
+    }
+    if component.files.is_empty() {
+        return Err(format!("manifest {label}.files must not be empty").into());
+    }
+    let mut paths = BTreeSet::new();
+    for file in &component.files {
+        let safe_path = !file.path.is_empty()
+            && !file.path.starts_with('/')
+            && !file.path.contains('\\')
+            && file
+                .path
+                .split('/')
+                .all(|segment| !segment.is_empty() && segment != "." && segment != "..");
+        if !safe_path || !paths.insert(file.path.clone()) {
+            return Err(format!(
+                "manifest {label}.files contains an unsafe or duplicate path: {}",
+                file.path
+            )
+            .into());
+        }
+        if file.sha256.len() != 64 || !file.sha256.chars().all(|value| value.is_ascii_hexdigit()) {
+            return Err(format!("manifest {label}.files.{}.sha256 is invalid", file.path).into());
+        }
+        validate_artifact(
+            &file.artifact,
+            &format!("{label}.files.{}.artifact", file.path),
+        )?;
+        if !file.artifact.sha256.eq_ignore_ascii_case(&file.sha256)
+            || file.artifact.size != Some(file.size)
+        {
+            return Err(format!(
+                "manifest {label}.files.{} full artifact metadata is inconsistent",
+                file.path
+            )
+            .into());
+        }
+        let mut patch_sources = BTreeSet::new();
+        for patch in &file.patches {
+            if patch.provider == DeltaProvider::Zucchini {
+                return Err(format!(
+                    "manifest {label}.files.{} requests unavailable zucchini provider",
+                    file.path
+                )
+                .into());
+            }
+            if patch.from_sha256.len() != 64
+                || !patch
+                    .from_sha256
+                    .chars()
+                    .all(|value| value.is_ascii_hexdigit())
+                || !patch_sources.insert(patch.from_sha256.to_ascii_lowercase())
+                || patch.from_sha256.eq_ignore_ascii_case(&file.sha256)
+                || !patch.result_sha256.eq_ignore_ascii_case(&file.sha256)
+                || patch.result_size != file.size
+            {
+                return Err(format!(
+                    "manifest {label}.files.{} delta metadata is invalid",
+                    file.path
+                )
+                .into());
+            }
+            validate_artifact(
+                &patch.artifact,
+                &format!("{label}.files.{}.patch", file.path),
+            )?;
+        }
+    }
+    Ok(())
+}
+
 pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
-    if manifest.schema_version != 2 {
-        return Err("manifest schemaVersion must be 2".into());
+    if manifest.schema_version != 3 {
+        return Err("manifest schemaVersion must be 3".into());
     }
     if manifest.metadata_version == 0 {
         return Err("manifest metadataVersion must be greater than 0".into());
@@ -43,8 +127,11 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
     if manifest.channel.trim().is_empty() {
         return Err("manifest channel is required".into());
     }
-    if manifest.release_version.trim().is_empty() {
-        return Err("manifest releaseVersion is required".into());
+    if manifest.desktop_version.trim().is_empty() {
+        return Err("manifest desktopVersion is required".into());
+    }
+    if manifest.bundle_version != manifest.metadata_version.to_string() {
+        return Err("manifest bundleVersion must equal metadataVersion".into());
     }
     if manifest.targets.is_empty() {
         return Err("manifest targets must include at least one dist".into());
@@ -52,26 +139,41 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
 
     for (dist, target) in &manifest.targets {
         validate_versioned_artifact(&target.host, &format!("targets.{dist}.host"))?;
-        validate_versioned_artifact(
-            &target.bootstrapper,
-            &format!("targets.{dist}.bootstrapper"),
-        )?;
+        if !target.host.required {
+            return Err(format!("targets.{dist}.host must be required").into());
+        }
         if target.layout == crate::domain::manifest::ArtifactLayout::MacosBundle {
             if !dist.starts_with("darwin-") {
                 return Err("macos-bundle layout is only valid for darwin targets".into());
-            }
-            if target.host.version != manifest.release_version {
-                return Err(format!(
-                    "targets.{dist}.host.version must equal releaseVersion for macos-bundle"
-                )
-                .into());
             }
             if !target.components.is_empty() {
                 return Err(
                     format!("targets.{dist}.components must be empty for macos-bundle").into(),
                 );
             }
+            if target.bootstrapper.is_some() {
+                return Err(format!(
+                    "targets.{dist}.bootstrapper must be omitted for macos-bundle"
+                )
+                .into());
+            }
+            if target.host.content_sha256.is_some() || !target.host.files.is_empty() {
+                return Err(format!("targets.{dist}.host must not define component files").into());
+            }
             continue;
+        }
+        validate_component_files(&target.host, &format!("targets.{dist}.host"))?;
+        let bootstrapper = target.bootstrapper.as_ref().ok_or_else(|| {
+            format!("targets.{dist}.bootstrapper is required for versioned-components")
+        })?;
+        validate_versioned_artifact(bootstrapper, &format!("targets.{dist}.bootstrapper"))?;
+        if !bootstrapper.required {
+            return Err(format!("targets.{dist}.bootstrapper must be required").into());
+        }
+        if bootstrapper.content_sha256.is_some() || !bootstrapper.files.is_empty() {
+            return Err(
+                format!("targets.{dist}.bootstrapper must not define component files").into(),
+            );
         }
         if dist.starts_with("darwin-") {
             return Err("darwin targets must use macos-bundle layout".into());
@@ -93,12 +195,19 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
             .components
             .get("desktopCore")
             .map(|component| component.version.as_str())
-            != Some(manifest.release_version.as_str())
+            != Some(manifest.desktop_version.as_str())
         {
             return Err(format!(
-                "targets.{dist}.components.desktopCore.version must equal releaseVersion"
+                "targets.{dist}.components.desktopCore.version must equal desktopVersion"
             )
             .into());
+        }
+        if !target
+            .components
+            .get("desktopCore")
+            .is_some_and(|component| component.required)
+        {
+            return Err(format!("targets.{dist}.components.desktopCore must be required").into());
         }
         for (module_name, component) in &target.components {
             if !module_name
@@ -108,6 +217,10 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
                 return Err(format!("manifest module name is invalid: {module_name}").into());
             }
             validate_versioned_artifact(
+                component,
+                &format!("targets.{dist}.components.{module_name}"),
+            )?;
+            validate_component_files(
                 component,
                 &format!("targets.{dist}.components.{module_name}"),
             )?;
@@ -144,10 +257,11 @@ mod tests {
 
     fn manifest(target: serde_json::Value) -> BootstrapperUpdateManifest {
         serde_json::from_value(serde_json::json!({
-            "schemaVersion": 2,
+            "schemaVersion": 3,
             "metadataVersion": 1,
+            "bundleVersion": "1",
             "channel": "dev",
-            "releaseVersion": "2.0.0",
+            "desktopVersion": "2.0.0",
             "desktopApi": "1.0.0",
             "targets": { "darwin-arm64": target }
         }))
@@ -166,9 +280,8 @@ mod tests {
     fn macos_bundle_accepts_only_full_host_artifact() {
         let manifest = manifest(serde_json::json!({
             "layout": "macos-bundle",
-            "host": { "version": "2.0.0", "artifact": artifact() },
-            "components": {},
-            "bootstrapper": { "version": "0.2.0", "artifact": artifact() }
+            "host": { "version": "2.0.0", "required": true, "artifact": artifact() },
+            "components": {}
         }));
         assert!(validate_manifest(&manifest).is_ok());
     }
@@ -177,15 +290,15 @@ mod tests {
     fn macos_bundle_rejects_independent_components() {
         let manifest = manifest(serde_json::json!({
             "layout": "macos-bundle",
-            "host": { "version": "2.0.0", "artifact": artifact() },
+            "host": { "version": "2.0.0", "required": true, "artifact": artifact() },
             "components": {
                 "desktopCore": {
                     "version": "2.0.0",
+                    "required": true,
                     "requiresHost": ">=1.0.0",
                     "artifact": artifact()
                 }
-            },
-            "bootstrapper": { "version": "0.2.0", "artifact": artifact() }
+            }
         }));
         assert!(validate_manifest(&manifest).is_err());
     }
