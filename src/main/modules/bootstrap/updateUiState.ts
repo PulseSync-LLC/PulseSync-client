@@ -24,6 +24,15 @@ function progressFor(event: RustUpdateProgressEventV1): BootstrapUiStateV1['prog
 
 export function bootstrapUiStateFromProgress(event: RustUpdateProgressEventV1): BootstrapUiStateV1 {
     if (event.stage === 'downloading') {
+        if (event.artifactKey === undefined) {
+            return {
+                schemaVersion: 1,
+                phase: 'preparing',
+                statusKey: 'preparing-update',
+                progress: { kind: 'indeterminate' },
+                actions: [],
+            }
+        }
         const modules = event.artifactKey !== undefined && event.artifactKey !== 'host'
         return {
             schemaVersion: 1,

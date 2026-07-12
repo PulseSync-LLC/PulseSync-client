@@ -423,10 +423,6 @@ pub fn prepare_update(
         ));
     }
 
-    reporter.emit(InstallWorkflowEvent::stage(
-        "downloading",
-        "Downloading update artifacts",
-    ));
     let artifact_keys =
         crate::domain::artifacts::selected_artifact_keys(&decision).map_err(|error| {
             workflow_error(
