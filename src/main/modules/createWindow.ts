@@ -147,7 +147,7 @@ const assertRemotePreloadSurface = async (window: BrowserWindow): Promise<void> 
 
 const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemoteOrigin: string): void => {
     const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
-    const csp = buildRemoteRendererContentSecurityPolicy(allowDevRemoteRenderer)
+    const csp = buildRemoteRendererContentSecurityPolicy(allowDevRemoteRenderer, `http://127.0.0.1:${config.MAIN_PORT}`)
     const apiOrigins = Array.from(
         new Set(
             [config.SERVER_URL, config.SERVER_v2_URL]
