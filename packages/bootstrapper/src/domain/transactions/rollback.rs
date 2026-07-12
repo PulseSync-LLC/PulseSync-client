@@ -70,7 +70,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     let artifacts = transaction_artifacts(&transaction)?;
     restore_install_state(&mut transaction)?;
     let mut rolled_back = Vec::new();
-    for artifact in artifacts {
+    for artifact in artifacts.into_iter().rev() {
         let rollback_status = if artifact.backup_path.exists() {
             remove_target(&artifact.target_path)?;
             if let Some(parent) = artifact.target_path.parent() {

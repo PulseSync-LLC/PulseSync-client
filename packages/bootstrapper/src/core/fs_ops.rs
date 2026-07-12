@@ -51,13 +51,23 @@ pub fn sha256_file(path: &Path) -> Result<String> {
     Ok(hex::encode(hasher.finalize()))
 }
 
-pub fn sha256_directory(path: &Path) -> Result<String> {
-    fn collect(root: &Path, current: &Path, files: &mut Vec<std::path::PathBuf>) -> Result<()> {
+fn sha256_directory_filtered(path: &Path, excluded_root: Option<&str>) -> Result<String> {
+    fn collect(
+        root: &Path,
+        current: &Path,
+        excluded_root: Option<&str>,
+        files: &mut Vec<std::path::PathBuf>,
+    ) -> Result<()> {
         for entry in fs::read_dir(current)? {
             let entry = entry?;
             let entry_path = entry.path();
+            if current == root
+                && excluded_root.is_some_and(|excluded| entry.file_name() == excluded)
+            {
+                continue;
+            }
             if entry_path.is_dir() {
-                collect(root, &entry_path, files)?;
+                collect(root, &entry_path, excluded_root, files)?;
             } else if entry_path.is_file() {
                 files.push(entry_path.strip_prefix(root)?.to_path_buf());
             }
@@ -66,7 +76,7 @@ pub fn sha256_directory(path: &Path) -> Result<String> {
     }
 
     let mut files = Vec::new();
-    collect(path, path, &mut files)?;
+    collect(path, path, excluded_root, &mut files)?;
     files.sort_by(|left, right| left.to_string_lossy().cmp(&right.to_string_lossy()));
     let mut hasher = Sha256::new();
     for relative in files {
@@ -84,6 +94,14 @@ pub fn sha256_directory(path: &Path) -> Result<String> {
         hasher.update([0]);
     }
     Ok(hex::encode(hasher.finalize()))
+}
+
+pub fn sha256_directory(path: &Path) -> Result<String> {
+    sha256_directory_filtered(path, None)
+}
+
+pub fn sha256_host_directory(path: &Path) -> Result<String> {
+    sha256_directory_filtered(path, Some("modules"))
 }
 
 pub fn file_size(path: &Path) -> Result<u64> {

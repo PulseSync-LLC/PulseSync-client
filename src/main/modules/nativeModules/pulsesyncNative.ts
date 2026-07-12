@@ -75,9 +75,14 @@ export interface PulseSyncNativeAddon {
 
 let cachedAddon: PulseSyncNativeAddon | null | undefined
 
-function getInstalledRootFromResources(): string {
-    const hostDir = path.dirname(process.resourcesPath)
-    return path.basename(hostDir).toLowerCase().startsWith('host-') ? path.dirname(hostDir) : hostDir
+function findPackagedNativeModule(): string | null {
+    const modulesDir = path.join(path.dirname(process.resourcesPath), 'modules')
+    try {
+        const container = fs.readdirSync(modulesDir).find(name => name.startsWith('pulsesync_native-'))
+        return container ? path.join(modulesDir, container, 'pulsesync_native', 'pulsesyncNative.node') : null
+    } catch {
+        return null
+    }
 }
 
 function resolveNativeModulePath(): string | null {
@@ -85,7 +90,8 @@ function resolveNativeModulePath(): string | null {
     const activeComponentPath = getActiveComponentPath('pulsesyncNative')
     if (activeComponentPath) candidates.push(path.join(activeComponentPath, 'pulsesyncNative.node'))
     if (typeof process.resourcesPath === 'string') {
-        candidates.push(path.join(getInstalledRootFromResources(), 'modules', 'pulsesyncNative', 'pulsesyncNative.node'))
+        const packagedNativeModule = findPackagedNativeModule()
+        if (packagedNativeModule) candidates.push(packagedNativeModule)
     }
     return candidates.find(candidate => fs.existsSync(candidate)) ?? null
 }

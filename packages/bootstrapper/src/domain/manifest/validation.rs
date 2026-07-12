@@ -186,6 +186,7 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
             .as_deref()
             .filter(|value| !value.trim().is_empty())
             .ok_or_else(|| format!("targets.{dist}.host.electronAbi is required"))?;
+        let mut component_disk_names = BTreeSet::new();
         if !target.components.contains_key("desktopCore") {
             return Err(
                 format!("manifest targets.{dist}.components.desktopCore is required").into(),
@@ -224,6 +225,34 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
                 component,
                 &format!("targets.{dist}.components.{module_name}"),
             )?;
+            if component.revision.is_none_or(|revision| revision == 0) {
+                return Err(format!(
+                    "targets.{dist}.components.{module_name}.revision must be greater than 0"
+                )
+                .into());
+            }
+            let disk_name = component.disk_name.as_deref().ok_or_else(|| {
+                format!("targets.{dist}.components.{module_name}.diskName is required")
+            })?;
+            if disk_name.is_empty()
+                || !disk_name.chars().enumerate().all(|(index, value)| {
+                    if index == 0 {
+                        value.is_ascii_lowercase()
+                    } else {
+                        value.is_ascii_lowercase() || value.is_ascii_digit() || value == '_'
+                    }
+                })
+            {
+                return Err(
+                    format!("targets.{dist}.components.{module_name}.diskName is invalid").into(),
+                );
+            }
+            if !component_disk_names.insert(disk_name.to_string()) {
+                return Err(format!(
+                    "targets.{dist}.components contains duplicate diskName: {disk_name}"
+                )
+                .into());
+            }
             let requires_host = component.requires_host.as_deref().ok_or_else(|| {
                 format!("targets.{dist}.components.{module_name}.requiresHost is required")
             })?;

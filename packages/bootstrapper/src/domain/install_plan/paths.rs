@@ -35,22 +35,30 @@ fn bootstrapper_executable_name() -> &'static str {
 
 pub(crate) fn target_path(
     install_dir: &Path,
-    target_version: &str,
+    host_version: &str,
     key: &ArtifactKey,
+    component_revisions: &std::collections::BTreeMap<String, u64>,
+    component_disk_names: &std::collections::BTreeMap<String, String>,
     _artifact_file_name: &str,
 ) -> Result<PathBuf> {
     match key {
         ArtifactKey::Host => {
-            Ok(install_dir.join(format!("host-{}", sanitize_path_segment(target_version)?)))
+            Ok(install_dir.join(format!("app-{}", sanitize_path_segment(host_version)?)))
         }
-        ArtifactKey::Module(module_name) => Ok(install_dir
-            .join("modules")
-            .join(format!(
-                "{}-{}",
-                sanitize_path_segment(module_name)?,
-                sanitize_path_segment(target_version)?
-            ))
-            .join(sanitize_path_segment(module_name)?)),
+        ArtifactKey::Module(module_name) => {
+            let revision = component_revisions
+                .get(module_name)
+                .ok_or_else(|| format!("component revision is missing: {module_name}"))?;
+            let disk_name = component_disk_names
+                .get(module_name)
+                .ok_or_else(|| format!("component disk name is missing: {module_name}"))?;
+            let disk_name = sanitize_path_segment(disk_name)?;
+            Ok(install_dir
+                .join(format!("app-{}", sanitize_path_segment(host_version)?))
+                .join("modules")
+                .join(format!("{}-{}", disk_name, revision))
+                .join(disk_name))
+        }
         ArtifactKey::Bootstrapper => Ok(install_dir
             .join("bootstrapper")
             .join(bootstrapper_executable_name())),

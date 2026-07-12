@@ -11,7 +11,7 @@ use crate::{
         layout::{is_inside, normalize_retain_app_versions},
     },
     domain::{
-        artifacts::{ArtifactKey, StagedArtifact},
+        artifacts::StagedArtifact,
         install_plan::{
             checks::{block, check_install_dir, pass},
             paths::{action, backup_path, default_backup_dir, staging_dir, target_path},
@@ -25,7 +25,7 @@ fn artifact_plan_entry(
     staged: &StagedArtifact,
     required: bool,
     install_dir: &Path,
-    target_version: &str,
+    decision: &BootstrapperUpdateDecision,
     staging_dir: &Path,
     backup_dir: &Path,
 ) -> Result<(Option<InstallPlanArtifact>, Vec<InstallPlanCheck>)> {
@@ -35,7 +35,14 @@ fn artifact_plan_entry(
         .file_name()
         .and_then(|value| value.to_str())
         .ok_or("staged artifact file name is invalid")?;
-    let target_path = target_path(install_dir, target_version, &key, artifact_file_name)?;
+    let target_path = target_path(
+        install_dir,
+        &decision.host_version,
+        &key,
+        &decision.component_revisions,
+        &decision.component_disk_names,
+        artifact_file_name,
+    )?;
     let backup_path = backup_path(backup_dir, &key, artifact_file_name);
     let mut preflight = Vec::new();
 
@@ -191,18 +198,6 @@ pub fn create_install_plan(
     if decision.artifacts.is_some() {
         for staged in staged_artifacts {
             let key = &staged.key;
-            let artifact_version = match key {
-                ArtifactKey::Host => decision.host_version.as_str(),
-                ArtifactKey::Bootstrapper => decision
-                    .bootstrapper_version
-                    .as_deref()
-                    .unwrap_or(&decision.target_version),
-                ArtifactKey::Module(name) => decision
-                    .component_versions
-                    .get(name)
-                    .map(String::as_str)
-                    .unwrap_or(&decision.target_version),
-            };
             let required = decision
                 .plan
                 .iter()
@@ -213,7 +208,7 @@ pub fn create_install_plan(
                 &staged,
                 required,
                 &install_dir,
-                artifact_version,
+                decision,
                 &staging_dir,
                 &backup_dir,
             )?;
@@ -251,6 +246,8 @@ pub fn create_install_plan(
         host_version: decision.host_version.clone(),
         bootstrapper_version: decision.bootstrapper_version.clone(),
         component_versions: decision.component_versions.clone(),
+        component_revisions: decision.component_revisions.clone(),
+        component_disk_names: decision.component_disk_names.clone(),
         metadata_version: decision.metadata_version,
         host_electron_abi: decision.host_electron_abi.clone(),
         host_content_sha256: decision

@@ -5,6 +5,7 @@ import { execFileSync } from 'node:child_process'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import AdmZip from 'adm-zip'
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
+import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -27,6 +28,8 @@ type BootstrapperArtifact = {
 
 type VersionedArtifact = {
     version: string
+    revision?: number
+    diskName?: string
     required: boolean
     contentSha256?: string
     files?: VersionedFile[]
@@ -329,7 +332,14 @@ type ModuleFile = {
     size: number
 }
 
-type ModuleArchive = { archivePath: string; contentSha256: string; files: ModuleFile[]; version: string }
+type ModuleArchive = {
+    archivePath: string
+    contentSha256: string
+    diskName: string
+    files: ModuleFile[]
+    revision: number
+    version: string
+}
 
 function createFileInventory(sourceDir: string, releaseDir: string, artifactPrefix: string, version: string, dist: string): ModuleFile[] {
     const files: ModuleFile[] = []
@@ -391,25 +401,27 @@ function createModuleArchives(releaseDir: string, packagedAppRootDir: string, co
         throw new Error(`Cannot create module artifacts: ${modulesDir} is not a directory`)
     }
 
+    const metadata = readRuntimeComponentMetadata(projectRoot)
+    if (metadata.desktopCore.version !== coreVersion) {
+        throw new Error(`Expected desktop core ${coreVersion}, got ${metadata.desktopCore.version}`)
+    }
     const archives: Record<string, ModuleArchive> = {}
-    for (const entry of fs.readdirSync(modulesDir, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
-        if (!entry.isDirectory()) {
-            throw new Error(`Module payload entry must be a directory: ${path.join(modulesDir, entry.name)}`)
-        }
-        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
-        if (!match) throw new Error(`Module payload does not use Discord-style layout: ${entry.name}`)
-        const [, moduleName, moduleVersion] = match
+    for (const component of Object.values(metadata).sort((left, right) => left.name.localeCompare(right.name))) {
+        const moduleName = component.name
+        const moduleVersion = component.version
         assertModuleName(moduleName)
-        if (moduleName === 'desktopCore' && moduleVersion !== coreVersion) {
-            throw new Error(`Expected desktopCore-${coreVersion}, got ${entry.name}`)
+        const sourceDir = path.join(modulesDir, componentContainerName(component), component.diskName)
+        if (!fs.existsSync(sourceDir) || !fs.statSync(sourceDir).isDirectory()) {
+            throw new Error(`Component payload is missing: ${sourceDir}`)
         }
-        const sourceDir = path.join(modulesDir, entry.name, moduleName)
         const archivePath = path.join(releaseDir, `pulsesync-component-${moduleName}-${moduleVersion}-${dist}.zip`)
-        writeDirectoryZip(sourceDir, archivePath, moduleName)
+        writeDirectoryZip(sourceDir, archivePath, component.diskName)
         archives[moduleName] = {
             archivePath,
             contentSha256: hashDirectory(sourceDir),
+            diskName: component.diskName,
             files: createFileInventory(sourceDir, releaseDir, `pulsesync-component-file-${moduleName}`, moduleVersion, dist),
+            revision: component.revision,
             version: moduleVersion,
         }
     }
@@ -543,12 +555,23 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const components = Object.fromEntries(
         await Promise.all(
             Object.entries(moduleArchivePaths).map(async ([moduleName, moduleArchive]) => {
+                const previousComponent = previousTarget?.components[moduleName]
+                if (previousComponent?.revision !== undefined) {
+                    const contentChanged =
+                        previousComponent.version !== moduleArchive.version || previousComponent.contentSha256 !== moduleArchive.contentSha256
+                    if (moduleArchive.revision < previousComponent.revision) {
+                        throw new Error(`Component revision regressed for ${moduleName}`)
+                    }
+                    if (contentChanged && moduleArchive.revision <= previousComponent.revision) {
+                        throw new Error(`Component revision must advance when ${moduleName} content changes`)
+                    }
+                }
                 const artifact = await createVersionedArtifactDescriptor(
                     moduleArchive.archivePath,
                     baseUrl,
                     path.join('components', moduleName, moduleArchive.version, options.dist),
                 )
-                const previousFiles = previousTarget?.components[moduleName]?.files ?? []
+                const previousFiles = previousComponent?.files ?? []
                 const files: VersionedFile[] = []
                 for (const file of moduleArchive.files) {
                     const previousFile = previousFiles.find(previous => previous.path === file.relativePath)
@@ -577,6 +600,8 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                     moduleName,
                     {
                         version: moduleArchive.version,
+                        revision: moduleArchive.revision,
+                        diskName: moduleArchive.diskName,
                         required: true,
                         contentSha256: moduleArchive.contentSha256,
                         files,

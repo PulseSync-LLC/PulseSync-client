@@ -257,6 +257,8 @@ pub fn decide_update(
             host_version: String::new(),
             bootstrapper_version: None,
             component_versions: Default::default(),
+            component_revisions: Default::default(),
+            component_disk_names: Default::default(),
             selected_artifacts: Vec::new(),
             plan: Vec::new(),
             metadata_version: manifest.metadata_version,
@@ -301,6 +303,21 @@ pub fn decide_update(
                 .iter()
                 .map(|(name, value)| (name.clone(), value.version.clone()))
                 .collect(),
+            component_revisions: target
+                .components
+                .iter()
+                .filter_map(|(name, value)| value.revision.map(|revision| (name.clone(), revision)))
+                .collect(),
+            component_disk_names: target
+                .components
+                .iter()
+                .filter_map(|(name, value)| {
+                    value
+                        .disk_name
+                        .clone()
+                        .map(|disk_name| (name.clone(), disk_name))
+                })
+                .collect(),
             selected_artifacts: Vec::new(),
             plan: Vec::new(),
             metadata_version: manifest.metadata_version,
@@ -342,6 +359,8 @@ pub fn decide_update(
                 .as_ref()
                 .map(|bootstrapper| bootstrapper.version.clone()),
             component_versions: Default::default(),
+            component_revisions: Default::default(),
+            component_disk_names: Default::default(),
             selected_artifacts: Vec::new(),
             plan: target_plan(target, &[], None),
             metadata_version: manifest.metadata_version,
@@ -417,6 +436,21 @@ pub fn decide_update(
             .components
             .iter()
             .map(|(name, value)| (name.clone(), value.version.clone()))
+            .collect(),
+        component_revisions: target
+            .components
+            .iter()
+            .filter_map(|(name, value)| value.revision.map(|revision| (name.clone(), revision)))
+            .collect(),
+        component_disk_names: target
+            .components
+            .iter()
+            .filter_map(|(name, value)| {
+                value
+                    .disk_name
+                    .clone()
+                    .map(|disk_name| (name.clone(), disk_name))
+            })
             .collect(),
         selected_artifacts,
         plan,
@@ -523,22 +557,23 @@ pub fn decide_component_update(
         return decision;
     }
     let mut selected_artifacts = Vec::new();
-    if installed.latest.host.version != target.host.version
+    let host_changed = installed.latest.host.version != target.host.version
         || target
             .host
             .electron_abi
             .as_deref()
-            .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi))
-    {
+            .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi));
+    if host_changed {
         selected_artifacts.push("host".to_string());
     }
     for (name, component) in &target.components {
-        if installed
-            .latest
-            .components
-            .get(name)
-            .map(|value| value.version.as_str())
-            != Some(component.version.as_str())
+        if host_changed
+            || installed
+                .latest
+                .components
+                .get(name)
+                .map(|value| value.version.as_str())
+                != Some(component.version.as_str())
             || installed
                 .latest
                 .components
@@ -555,6 +590,44 @@ pub fn decide_component_update(
         {
             selected_artifacts.push(format!("module:{name}"));
         }
+    }
+    let revision_collision =
+        !host_changed
+            && target.components.iter().any(|(name, component)| {
+                selected_artifacts.contains(&format!("module:{name}"))
+                    && component
+                        .revision
+                        .zip(component.disk_name.as_deref())
+                        .is_some_and(|(revision, disk_name)| {
+                            installed.latest.components.get(name).is_some_and(
+                                |installed_component| {
+                                    let expected = std::path::PathBuf::from(format!(
+                                        "app-{}",
+                                        target.host.version
+                                    ))
+                                    .join("modules")
+                                    .join(format!("{disk_name}-{revision}"))
+                                    .join(disk_name);
+                                    installed_component
+                                        .path
+                                        .components()
+                                        .eq(expected.components())
+                                },
+                            )
+                        })
+            });
+    if revision_collision {
+        let mut decision = decide_update(
+            manifest,
+            installed_desktop_version,
+            &installed_bundle_version,
+            dist,
+        );
+        decision.reason = "component-revision-not-advanced".to_string();
+        decision.update_available = false;
+        decision.selected_artifacts.clear();
+        decision.plan = target_plan(target, &[], Some(installed));
+        return decision;
     }
     if let Some(bootstrapper) = target.bootstrapper.as_ref()
         && installed
@@ -615,6 +688,21 @@ pub fn decide_component_update(
             .components
             .iter()
             .map(|(name, value)| (name.clone(), value.version.clone()))
+            .collect(),
+        component_revisions: target
+            .components
+            .iter()
+            .filter_map(|(name, value)| value.revision.map(|revision| (name.clone(), revision)))
+            .collect(),
+        component_disk_names: target
+            .components
+            .iter()
+            .filter_map(|(name, value)| {
+                value
+                    .disk_name
+                    .clone()
+                    .map(|disk_name| (name.clone(), disk_name))
+            })
             .collect(),
         selected_artifacts,
         plan,

@@ -449,6 +449,8 @@ fn prepare_transaction_file_inner(
             "hostVersion": plan.host_version,
             "bootstrapperVersion": plan.bootstrapper_version,
             "componentVersions": plan.component_versions,
+            "componentRevisions": plan.component_revisions,
+            "componentDiskNames": plan.component_disk_names,
             "metadataVersion": plan.metadata_version,
             "hostElectronAbi": plan.host_electron_abi,
             "hostContentSha256": plan.host_content_sha256,

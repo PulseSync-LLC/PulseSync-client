@@ -1,3 +1,4 @@
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { Worker } from 'node:worker_threads'
 import isAppDev from '../../../utils/isAppDev'
@@ -48,9 +49,10 @@ function resolveArtifactWorkerPath(): string {
     const activeComponentPath = getActiveComponentPath('artifactWorker')
     if (activeComponentPath) return path.join(activeComponentPath, 'artifactWorker.cjs')
 
-    const hostDir = path.dirname(process.resourcesPath)
-    const installRoot = path.basename(hostDir).toLowerCase().startsWith('host-') ? path.dirname(hostDir) : hostDir
-    return path.join(installRoot, 'modules', 'artifactWorker', 'artifactWorker.cjs')
+    const modulesDir = path.join(path.dirname(process.resourcesPath), 'modules')
+    const container = fs.readdirSync(modulesDir).find(name => name.startsWith('pulsesync_artifact_worker-'))
+    if (!container) throw new Error(`Packaged artifact worker is missing from ${modulesDir}`)
+    return path.join(modulesDir, container, 'pulsesync_artifact_worker', 'artifactWorker.cjs')
 }
 
 class ArtifactWorkerSession {
