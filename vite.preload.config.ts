@@ -3,6 +3,7 @@ import path from 'path'
 import fs from 'fs'
 import { execSync } from 'child_process'
 import { fileURLToPath } from 'node:url'
+import { builtinModules } from 'node:module'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
@@ -12,6 +13,7 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
 const desktopCorePackageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'packages', 'desktop-core', 'package.json'), 'utf-8')) as {
     version: string
 }
+const nodeExternals = [...new Set([...builtinModules, ...builtinModules.map(moduleName => `node:${moduleName}`)])]
 
 function resolveBuildCommit(): string {
     if (packageJson.buildInfo?.BRANCH) {
@@ -63,11 +65,13 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             target: 'node24.17',
             outDir: path.resolve(__dirname, `.vite/main`),
             rolldownOptions: {
+                external: ['electron', 'original-fs', ...nodeExternals],
                 input: entry,
                 output: {
                     codeSplitting: false,
                     entryFileNames: '[name].cjs',
                     chunkFileNames: '[name].cjs',
+                    format: 'cjs',
                 },
             },
         },

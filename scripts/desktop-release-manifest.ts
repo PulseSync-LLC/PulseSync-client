@@ -87,6 +87,28 @@ type EmitDesktopReleaseManifestOptions = {
     previousManifestUrl?: string
 }
 
+export type EmitDesktopCoreUpdateManifestOptions = {
+    baseUrl: string
+    channel: string
+    coreModuleDir: string
+    coreVersion: string
+    dist: string
+    metadataVersion: string | number
+    previousManifestUrl: string
+    releaseDir: string
+    rendererManifestUrl?: string
+}
+
+export type EmitBootstrapperUpdateManifestOptions = {
+    baseUrl: string
+    bootstrapperExecutable: string
+    channel: string
+    dist: string
+    metadataVersion: string | number
+    previousManifestUrl: string
+    releaseDir: string
+}
+
 type ParsedDist = {
     arch: string
     platform: NodeJS.Platform
@@ -639,6 +661,179 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         },
     }
 
+    const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
+    return manifestPath
+}
+
+export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpdateManifestOptions): Promise<string> {
+    const releaseDir = resolveInsideProject(options.releaseDir)
+    const coreModuleDir = resolveInsideProject(options.coreModuleDir)
+    const baseUrl = normalizeBaseUrl(options.baseUrl)
+    const { platform } = parseDist(options.dist)
+    if (platform === 'darwin') throw new Error('Standalone desktop core updates are not supported for macOS bundles')
+
+    const metadataVersion = Number(options.metadataVersion)
+    if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
+        throw new Error('metadataVersion must be an explicit positive integer')
+    }
+
+    const previousManifest = await readPreviousManifest(options.previousManifestUrl)
+    if (!previousManifest) throw new Error(`Published desktop manifest is required: ${options.previousManifestUrl}`)
+    if (previousManifest.channel !== options.channel) {
+        throw new Error(`Published desktop manifest channel mismatch: expected ${options.channel}, got ${previousManifest.channel}`)
+    }
+    if (metadataVersion <= previousManifest.metadataVersion) {
+        throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
+    }
+
+    const previousTarget = previousManifest.targets[options.dist]
+    if (!previousTarget || previousTarget.layout !== 'versioned-components') {
+        throw new Error(`Published manifest does not contain a versioned-components target for ${options.dist}`)
+    }
+    const previousComponent = previousTarget.components.desktopCore
+    if (!previousComponent) throw new Error(`Published manifest does not contain desktopCore for ${options.dist}`)
+
+    const component = readRuntimeComponentMetadata(projectRoot).desktopCore
+    if (component.version !== options.coreVersion) {
+        throw new Error(`Expected desktop core ${options.coreVersion}, got ${component.version}`)
+    }
+    if (!fs.existsSync(coreModuleDir) || !fs.statSync(coreModuleDir).isDirectory()) {
+        throw new Error(`Desktop core module directory does not exist: ${coreModuleDir}`)
+    }
+
+    fs.mkdirSync(releaseDir, { recursive: true })
+    const archivePath = path.join(releaseDir, `pulsesync-component-desktopCore-${component.version}-${options.dist}.zip`)
+    writeDirectoryZip(coreModuleDir, archivePath, component.diskName)
+    const contentSha256 = hashDirectory(coreModuleDir)
+    const contentChanged = previousComponent.version !== component.version || previousComponent.contentSha256 !== contentSha256
+    if (component.revision < (previousComponent.revision ?? 0)) {
+        throw new Error('Desktop core revision regressed')
+    }
+    if (contentChanged && component.revision <= (previousComponent.revision ?? 0)) {
+        throw new Error('Desktop core revision must advance when content changes')
+    }
+
+    const artifact = await createVersionedArtifactDescriptor(
+        archivePath,
+        baseUrl,
+        path.join('components', 'desktopCore', component.version, options.dist),
+    )
+    const inventory = createFileInventory(coreModuleDir, releaseDir, 'pulsesync-component-file-desktopCore', component.version, options.dist)
+    const files: VersionedFile[] = []
+    for (const file of inventory) {
+        const previousFile = previousComponent.files?.find(candidate => candidate.path === file.relativePath)
+        files.push({
+            path: file.relativePath,
+            sha256: file.sha256,
+            size: file.size,
+            executable: file.executable,
+            artifact: await createVersionedArtifactDescriptor(
+                file.artifactPath,
+                baseUrl,
+                path.join('components', 'desktopCore', component.version, options.dist, 'files'),
+            ),
+            patches: await createBsdiffPatch(
+                releaseDir,
+                baseUrl,
+                options.dist,
+                `pulsesync-component-patch-bsdiff-desktopCore-${component.version}`,
+                path.join('components', 'desktopCore', component.version, options.dist),
+                file,
+                previousFile,
+            ),
+        })
+    }
+
+    const manifest: BootstrapperUpdateManifest = {
+        ...previousManifest,
+        metadataVersion,
+        desktopVersion: component.version,
+        bundleVersion: String(metadataVersion),
+        desktopApi: DESKTOP_API_VERSION,
+        rendererManifestUrl: options.rendererManifestUrl?.trim() || previousManifest.rendererManifestUrl || defaultRendererManifestUrl,
+        targets: {
+            ...previousManifest.targets,
+            [options.dist]: {
+                ...previousTarget,
+                components: {
+                    ...previousTarget.components,
+                    desktopCore: {
+                        version: component.version,
+                        revision: component.revision,
+                        diskName: component.diskName,
+                        required: true,
+                        contentSha256,
+                        files,
+                        requiresHost: previousComponent.requiresHost || '>=1.0.0 <2.0.0',
+                        artifact,
+                    },
+                },
+            },
+        },
+    }
+
+    const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
+    fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
+    return manifestPath
+}
+
+export async function emitBootstrapperUpdateManifest(options: EmitBootstrapperUpdateManifestOptions): Promise<string> {
+    const releaseDir = resolveInsideProject(options.releaseDir)
+    const executable = resolveInsideProject(options.bootstrapperExecutable)
+    const baseUrl = normalizeBaseUrl(options.baseUrl)
+    const { platform } = parseDist(options.dist)
+    if (platform === 'darwin') throw new Error('Standalone bootstrapper updates are not supported for macOS bundles')
+
+    const metadataVersion = Number(options.metadataVersion)
+    if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
+        throw new Error('metadataVersion must be an explicit positive integer')
+    }
+    const previousManifest = await readPreviousManifest(options.previousManifestUrl)
+    if (!previousManifest) throw new Error(`Published desktop manifest is required: ${options.previousManifestUrl}`)
+    if (previousManifest.channel !== options.channel) {
+        throw new Error(`Published desktop manifest channel mismatch: expected ${options.channel}, got ${previousManifest.channel}`)
+    }
+    if (metadataVersion <= previousManifest.metadataVersion) {
+        throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
+    }
+
+    const previousTarget = previousManifest.targets[options.dist]
+    if (!previousTarget || previousTarget.layout !== 'versioned-components') {
+        throw new Error(`Published manifest does not contain a versioned-components target for ${options.dist}`)
+    }
+    if (!previousTarget.bootstrapper) throw new Error(`Published manifest does not contain bootstrapper for ${options.dist}`)
+    if (!fs.existsSync(executable) || !fs.statSync(executable).isFile()) {
+        throw new Error(`Bootstrapper executable does not exist: ${executable}`)
+    }
+
+    const version = readBootstrapperVersion()
+    fs.mkdirSync(releaseDir, { recursive: true })
+    const extension = platform === 'win32' ? '.exe' : ''
+    const artifactPath = path.join(releaseDir, `pulsesync-bootstrapper-${version}-${options.dist}${extension}`)
+    fs.copyFileSync(executable, artifactPath)
+    const artifact = await createVersionedArtifactDescriptor(
+        artifactPath,
+        baseUrl,
+        path.join('components', 'bootstrapper', version, options.dist),
+    )
+
+    const manifest: BootstrapperUpdateManifest = {
+        ...previousManifest,
+        metadataVersion,
+        bundleVersion: String(metadataVersion),
+        targets: {
+            ...previousManifest.targets,
+            [options.dist]: {
+                ...previousTarget,
+                bootstrapper: {
+                    version,
+                    required: true,
+                    artifact,
+                },
+            },
+        },
+    }
     const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
     return manifestPath

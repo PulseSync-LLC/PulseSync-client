@@ -11,11 +11,12 @@ import yaml from 'js-yaml'
 import * as semver from 'semver'
 import * as tar from 'tar'
 import { fileURLToPath } from 'node:url'
+import { build as viteBuild } from 'vite'
 import { publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { buildBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
-import { emitDesktopReleaseManifest } from './desktop-release-manifest.js'
+import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -25,6 +26,7 @@ const exec = promisify(_exec)
 const debug = process.argv.includes('--debug') || process.argv.includes('-d')
 const buildOnlyInstaller = process.argv.includes('--installer') || process.argv.includes('-i')
 const buildApplication = process.argv.includes('--application') || process.argv.includes('-app')
+const buildDesktopCore = process.argv.includes('--core')
 const buildNativeModules = process.argv.includes('--nativeModules') || process.argv.includes('-n')
 const sendPatchNotesFlag = process.argv.includes('--sendPatchNotes') || process.argv.includes('-sp')
 const publishChangelogFlag = process.argv.includes('--publish-changelog') || process.argv.includes('--publishChangelog')
@@ -208,6 +210,102 @@ function generateBuildInfo(): { coreVersion: string; hostVersion: string } {
         `Updated desktop core package → version=${newVersion}, hostVersion=${hostPackage.version}, buildInfo.BRANCH=${branchHash}, buildIdentity=${signature ? 'signed' : 'unsigned'}`,
     )
     return { coreVersion: newVersion, hostVersion: hostPackage.version }
+}
+
+async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: string): Promise<number> {
+    const response = await fetch(previousManifestUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${previousManifestUrl}`)
+    const manifest = (await response.json()) as {
+        targets?: Record<string, { components?: { desktopCore?: { revision?: number } } }>
+    }
+    const previousRevision = manifest.targets?.[dist]?.components?.desktopCore?.revision
+    if (!Number.isSafeInteger(previousRevision) || previousRevision === undefined || previousRevision <= 0) {
+        throw new Error(`Published desktopCore revision is invalid for ${dist}`)
+    }
+
+    const packagePath = path.resolve(__dirname, '../packages/desktop-core/package.json')
+    const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as {
+        componentRevisions?: Record<string, number>
+    }
+    packageJson.componentRevisions = { ...packageJson.componentRevisions, desktopCore: previousRevision + 1 }
+    fs.writeFileSync(packagePath, `${JSON.stringify(packageJson, null, 4)}\n`, 'utf8')
+    return previousRevision + 1
+}
+
+async function buildDesktopCoreOnly(): Promise<void> {
+    if (os.platform() === 'darwin') throw new Error('Standalone desktop core publishing is not supported for macOS bundles')
+
+    const dist = setBuildDist(os.platform(), os.arch())
+    const baseS3Url = (process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')
+    const channel = publishBranch ?? 'local'
+    const previousManifestUrl = `${baseS3Url}/builds/app/${channel}/desktop-update-${dist}.json?_=${Date.now()}`
+    if (publishBranch) {
+        const revision = await advanceDesktopCoreRevision(previousManifestUrl, dist)
+        log(LogLevel.SUCCESS, `Advanced desktopCore revision to ${revision}`)
+    }
+
+    const { coreVersion } = generateBuildInfo()
+    const outputRoot = path.resolve(__dirname, '../out/desktop-core')
+    const viteOutputDir = path.join(outputRoot, 'vite')
+    const component = readRuntimeComponentMetadata(path.resolve(__dirname, '..')).desktopCore
+    const moduleDir = path.join(outputRoot, componentContainerName(component), component.diskName)
+    const releaseDir = path.resolve(__dirname, '../release/desktop-core')
+    fs.rmSync(outputRoot, { force: true, recursive: true })
+    fs.rmSync(releaseDir, { force: true, recursive: true })
+
+    await viteBuild({
+        configFile: path.resolve(__dirname, '../vite.main.config.ts'),
+        mode: 'production',
+        build: {
+            emptyOutDir: true,
+            outDir: viteOutputDir,
+            lib: {
+                entry: path.resolve(__dirname, '../src/desktopCore.ts'),
+                fileName: () => 'desktopCore.cjs',
+                formats: ['cjs'],
+            },
+        },
+    })
+    await viteBuild({
+        configFile: path.resolve(__dirname, '../vite.preload.config.ts'),
+        mode: 'production',
+        build: {
+            emptyOutDir: false,
+            outDir: viteOutputDir,
+            rolldownOptions: {
+                input: path.resolve(__dirname, '../src/main/mainWindowPreload.ts'),
+                output: {
+                    codeSplitting: false,
+                    entryFileNames: 'mainWindowPreload.cjs',
+                    chunkFileNames: '[name].cjs',
+                    format: 'cjs',
+                },
+            },
+        },
+    })
+
+    fs.mkdirSync(moduleDir, { recursive: true })
+    fs.copyFileSync(path.join(viteOutputDir, 'desktopCore.cjs'), path.join(moduleDir, 'index.cjs'))
+    fs.copyFileSync(path.join(viteOutputDir, 'mainWindowPreload.cjs'), path.join(moduleDir, 'mainWindowPreload.cjs'))
+    fs.copyFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), path.join(moduleDir, 'package.json'))
+    log(LogLevel.SUCCESS, `Built desktopCore ${coreVersion} revision ${component.revision} without Electron packaging`)
+
+    if (!publishBranch) return
+    const artifactBaseUrl = `${baseS3Url}/builds/app/${publishBranch}`
+    const metadataVersion = process.env.DESKTOP_METADATA_VERSION?.trim() || String(Date.now())
+    await emitDesktopCoreUpdateManifest({
+        baseUrl: artifactBaseUrl,
+        channel: publishBranch,
+        coreModuleDir: moduleDir,
+        coreVersion,
+        dist,
+        metadataVersion,
+        previousManifestUrl,
+        releaseDir,
+        rendererManifestUrl: process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
+    })
+    await publishToS3(publishBranch, releaseDir, coreVersion, { keepRecentVersions: null })
+    log(LogLevel.SUCCESS, `Published desktopCore ${coreVersion} revision ${component.revision}`)
 }
 
 function getProductNameFromConfig(): string {
@@ -854,6 +952,7 @@ async function main(): Promise<void> {
     log(LogLevel.INFO, `Installer only: ${buildOnlyInstaller ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Build native modules: ${buildNativeModules ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Build application: ${buildApplication ? 'YES' : 'NO'}`)
+    log(LogLevel.INFO, `Build desktop core only: ${buildDesktopCore ? 'YES' : 'NO'}`)
     log(LogLevel.INFO, `Publish branch: ${publishBranch ?? 'none'}`)
     if (publishBranch && publishBranchTagSource) {
         log(LogLevel.INFO, `Publish branch resolved from tag "${publishBranchTagSource}"`)
@@ -863,7 +962,12 @@ async function main(): Promise<void> {
     }
 
     const branchForConfig = publishBranch ?? 'beta'
-    setConfigBranch(branchForConfig)
+    if (!buildDesktopCore || publishBranch) setConfigBranch(branchForConfig)
+
+    if (buildDesktopCore) {
+        await buildDesktopCoreOnly()
+        return
+    }
 
     if (buildNativeModules) {
         const nmDir = path.resolve(__dirname, '../nativeModules')
