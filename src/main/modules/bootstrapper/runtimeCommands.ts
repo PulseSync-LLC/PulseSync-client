@@ -176,13 +176,16 @@ export async function startCanonicalApp(options: {
 
 export async function resolveActiveRuntime(options: {
     activeLeaseId: string
+    hostBundle?: string | null
     launcher: BootstrapperLauncher
     stateRoot: string
 }): Promise<ActiveRuntimeV2> {
+    const args = ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId]
+    if (options.hostBundle) args.push('--host-bundle', options.hostBundle)
     return await runBootstrapperCommand({
         launcher: options.launcher,
         command: 'resolve-runtime',
-        args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId],
+        args,
         parseResult: parseActiveRuntimeV2,
     })
 }

@@ -165,12 +165,14 @@ export class StartupCoordinator {
         this.applicationHandle = handle
         await this.options.inbox.start(request => handle.deliverLaunchRequest(request))
         await handle.ready
-        await acknowledgeActiveRuntime({
-            activeLeaseId: this.options.lease.leaseId,
-            generation: activeRuntime.generation,
-            launcher,
-            stateRoot: this.options.runtimePaths.stateRoot,
-        })
+        if (activeRuntime.activationState === 'pending') {
+            await acknowledgeActiveRuntime({
+                activeLeaseId: this.options.lease.leaseId,
+                generation: activeRuntime.generation,
+                launcher,
+                stateRoot: this.options.runtimePaths.stateRoot,
+            })
+        }
         this.unsubscribeState?.()
         this.unsubscribeState = null
     }
