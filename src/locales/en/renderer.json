@@ -1,4 +1,8 @@
 {
+    "browserDownload": {
+        "description": "PulseSync is only available in the desktop app. Download the client to continue.",
+        "action": "Download PulseSync"
+    },
     "common": {
         "ok": "Ok",
         "all": "All",
