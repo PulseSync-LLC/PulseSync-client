@@ -218,16 +218,41 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}`)
     }
 
-    const macosHostMatch = new RegExp(`^pulsesync-host-bundle-${escapedVersion}-(darwin-[a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
+    const hostFileMatch = /^pulsesync-host-file-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (hostFileMatch) {
+        const [, hostVersion, , dist] = hostFileMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}/files`)
+    }
+
+    const hostPatchMatch = /^pulsesync-host-patch-bsdiff-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (hostPatchMatch) {
+        const [, hostVersion, fromSha, , dist] = hostPatchMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}/patches/bsdiff/${fromSha}`)
+    }
+
+    const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (macosHostMatch) {
-        const dist = macosHostMatch[1]
-        return await immutablePublishPath(filePath, `hosts/${version}/${dist}`)
+        const [, bundleVersion, dist] = macosHostMatch
+        return await immutablePublishPath(filePath, `bundles/${bundleVersion}/${dist}`)
     }
 
     const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
     if (bootstrapperMatch) {
         const [, bootstrapperVersion, dist] = bootstrapperMatch
         return await immutablePublishPath(filePath, `components/bootstrapper/${bootstrapperVersion}/${dist}`)
+    }
+
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (componentFileMatch) {
+        const [, moduleName, componentVersion, , dist] = componentFileMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/files`)
+    }
+
+    const componentPatchMatch =
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (componentPatchMatch) {
+        const [, moduleName, componentVersion, fromSha, , dist] = componentPatchMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/patches/bsdiff/${fromSha}`)
     }
 
     const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
@@ -342,6 +367,18 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, dist, 'zip', 'host')
     }
 
+    const hostFileMatch = /^pulsesync-host-file-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (hostFileMatch) {
+        const [, version, , dist] = hostFileMatch
+        return structuredArtifactDescriptor(version, dist, 'bin', 'host-file')
+    }
+
+    const hostPatchMatch = /^pulsesync-host-patch-bsdiff-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (hostPatchMatch) {
+        const [, version, , , dist] = hostPatchMatch
+        return structuredArtifactDescriptor(version, dist, 'patch', 'host-patch')
+    }
+
     const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (macosHostMatch) {
         const [, version, dist] = macosHostMatch
@@ -352,6 +389,19 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
     if (bootstrapperMatch) {
         const [, version, dist] = bootstrapperMatch
         return structuredArtifactDescriptor(version, dist, path.extname(fileName).toLowerCase() === '.exe' ? 'exe' : 'binary', 'bootstrapper')
+    }
+
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (componentFileMatch) {
+        const [, componentName, version, , dist] = componentFileMatch
+        return structuredArtifactDescriptor(version, dist, 'bin', `component-file:${componentName.toLowerCase()}`)
+    }
+
+    const componentPatchMatch =
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (componentPatchMatch) {
+        const [, componentName, version, , , dist] = componentPatchMatch
+        return structuredArtifactDescriptor(version, dist, 'patch', `component-patch:${componentName.toLowerCase()}`)
     }
 
     const moduleMatch = /^pulsesync-module-([a-z0-9_-]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
@@ -392,17 +442,24 @@ function parseVersionedArtifactDescriptor(key: string): VersionedArtifactDescrip
     }
 }
 
-function collectArtifactFamilies(filePaths: string[]): Set<string> {
-    const families = new Set<string>()
+function collectCurrentArtifactVersions(filePaths: string[]): Map<string, Set<string>> {
+    const families = new Map<string, Set<string>>()
     for (const filePath of filePaths) {
         const descriptor = parseVersionedArtifactDescriptor(filePath)
         if (!descriptor) continue
-        families.add(descriptor.family)
+        const versions = families.get(descriptor.family) ?? new Set<string>()
+        versions.add(descriptor.version)
+        families.set(descriptor.family, versions)
     }
     return families
 }
 
 function compareVersionsDesc(left: string, right: string): number {
+    if (/^\d+$/u.test(left) && /^\d+$/u.test(right)) {
+        const leftNumber = BigInt(left)
+        const rightNumber = BigInt(right)
+        return leftNumber === rightNumber ? 0 : leftNumber > rightNumber ? -1 : 1
+    }
     const leftValid = semver.valid(left)
     const rightValid = semver.valid(right)
 
@@ -419,9 +476,8 @@ async function pruneOldArtifacts(
     bucket: string,
     prefix: string,
     branch: string,
-    currentVersion: string,
     keepRecentVersions: number,
-    artifactFamilies: Set<string>,
+    currentArtifactVersions: Map<string, Set<string>>,
 ): Promise<void> {
     const branchPrefix = `${prefix}/${branch}/`
     const familyToVersionedKeys = new Map<string, Map<string, string[]>>()
@@ -439,7 +495,7 @@ async function pruneOldArtifacts(
         for (const object of response.Contents ?? []) {
             if (!object.Key) continue
             const descriptor = parseVersionedArtifactDescriptor(object.Key)
-            if (!descriptor || !artifactFamilies.has(descriptor.family)) continue
+            if (!descriptor || !currentArtifactVersions.has(descriptor.family)) continue
 
             const versionToKeys = familyToVersionedKeys.get(descriptor.family) ?? new Map<string, string[]>()
             const keys = versionToKeys.get(descriptor.version) ?? []
@@ -459,13 +515,16 @@ async function pruneOldArtifacts(
     const keysToDelete: string[] = []
     const removedGroups: string[] = []
     for (const [family, versionToKeys] of familyToVersionedKeys.entries()) {
-        if (!versionToKeys.has(currentVersion)) {
-            versionToKeys.set(currentVersion, [])
+        const currentVersions = currentArtifactVersions.get(family) ?? new Set<string>()
+        for (const currentVersion of currentVersions) {
+            if (!versionToKeys.has(currentVersion)) {
+                versionToKeys.set(currentVersion, [])
+            }
         }
 
         const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
         const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
-        keptVersions.add(currentVersion)
+        for (const currentVersion of currentVersions) keptVersions.add(currentVersion)
 
         const familyKeysToDelete = Array.from(versionToKeys.entries())
             .filter(([version]) => !keptVersions.has(version))
@@ -480,7 +539,7 @@ async function pruneOldArtifacts(
     }
 
     if (!keysToDelete.length) {
-        const familyList = Array.from(artifactFamilies).sort().join(', ')
+        const familyList = Array.from(currentArtifactVersions.keys()).sort().join(', ')
         log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: nothing to delete for ${familyList}`)
         return
     }
@@ -639,7 +698,7 @@ export async function publishToS3(
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
         .filter(fp => !isLegacyUpdaterArtifact(fp))
         .filter(fp => (version ? isDesktopReleaseManifestFile(fp) || parseStructuredArtifactDescriptor(path.basename(fp)) !== null : true))
-    const artifactFamilies = collectArtifactFamilies(files)
+    const currentArtifactVersions = collectCurrentArtifactVersions(files)
 
     const zipFiles = fs
         .readdirSync(dir)
@@ -652,8 +711,8 @@ export async function publishToS3(
         ...files.filter(filePath => isDesktopReleaseManifestFile(filePath)),
     ]
 
-    if (version && keepRecentVersions && artifactFamilies.size) {
-        await pruneOldArtifacts(client, bucket, prefix, branch, version, keepRecentVersions, artifactFamilies)
+    if (version && keepRecentVersions && currentArtifactVersions.size) {
+        await pruneOldArtifacts(client, bucket, prefix, branch, keepRecentVersions, currentArtifactVersions)
     }
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)

@@ -116,9 +116,26 @@ function main(): void {
         const installedBootstrapperDir = requirePath(path.join(resourcesDir, 'bootstrapper'), 'directory')
         const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, 'pulsesync-bootstrapper'), 'file')
         const runtimeDescriptor = requirePath(path.join(resourcesDir, 'pulsesync-runtime.json'), 'file')
-        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as { schemaVersion?: unknown; coreVersion?: unknown }
-        if (runtime.schemaVersion !== 2 || typeof runtime.coreVersion !== 'string' || !runtime.coreVersion) {
-            throw new Error(`Expected packaged runtime schema v2: ${runtimeDescriptor}`)
+        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as {
+            schemaVersion?: unknown
+            desktopVersion?: unknown
+            hostVersion?: unknown
+            bundleVersion?: unknown
+            components?: Record<string, { version?: unknown; required?: unknown }>
+        }
+        const desktopCore = runtime.components?.desktopCore
+        if (
+            runtime.schemaVersion !== 3 ||
+            typeof runtime.desktopVersion !== 'string' ||
+            !runtime.desktopVersion ||
+            typeof runtime.hostVersion !== 'string' ||
+            !runtime.hostVersion ||
+            typeof runtime.bundleVersion !== 'string' ||
+            !runtime.bundleVersion ||
+            desktopCore?.version !== runtime.desktopVersion ||
+            desktopCore.required !== true
+        ) {
+            throw new Error(`Expected packaged runtime schema v3: ${runtimeDescriptor}`)
         }
         const modulesDir = requirePath(path.join(contentsDir, 'modules'), 'directory')
         const artifactWorkerFile = requireModuleFile(contentsDir, 'artifactWorker', 'artifactWorker.cjs')

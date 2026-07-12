@@ -92,6 +92,9 @@ jobs:
       - name: Verify atomic bundle update
         run: yarn bootstrapper:verify-macos-update
 
+      - name: Build release bootstrapper for recovery checks
+        run: cargo build --release --manifest-path packages/bootstrapper/Cargo.toml
+
       - name: Verify external recovery across helper crashes
         run: |
           yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange

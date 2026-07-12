@@ -27,25 +27,46 @@ type BootstrapperArtifact = {
 
 type VersionedArtifact = {
     version: string
+    required: boolean
+    contentSha256?: string
+    files?: VersionedFile[]
     requiresHost?: string
     electronAbi?: string
     artifact: BootstrapperArtifact
 }
 
+type VersionedFile = {
+    path: string
+    sha256: string
+    size: number
+    executable: boolean
+    artifact: BootstrapperArtifact
+    patches: DeltaArtifact[]
+}
+
+type DeltaArtifact = {
+    provider: 'bsdiff'
+    fromSha256: string
+    resultSha256: string
+    resultSize: number
+    artifact: BootstrapperArtifact
+}
+
 type BootstrapperUpdateManifest = {
     channel: string
-    releaseVersion: string
+    desktopVersion: string
+    bundleVersion: string
     metadataVersion: number
     desktopApi: string
     rendererManifestUrl: string
-    schemaVersion: 2
+    schemaVersion: 3
     targets: Record<
         string,
         {
             layout: 'versioned-components' | 'macos-bundle'
             host: VersionedArtifact
             components: Record<string, VersionedArtifact>
-            bootstrapper: VersionedArtifact
+            bootstrapper?: VersionedArtifact
         }
     >
 }
@@ -60,6 +81,7 @@ type EmitDesktopReleaseManifestOptions = {
     coreVersion: string
     hostVersion: string
     metadataVersion?: string | number
+    previousManifestUrl?: string
 }
 
 type ParsedDist = {
@@ -177,6 +199,90 @@ async function createVersionedArtifactDescriptor(filePath: string, baseUrl: stri
     }
 }
 
+function deltaToolPath(): string {
+    const executable = process.platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
+    const candidates = [
+        path.join(projectRoot, 'packages', 'bootstrapper', 'target', 'release', executable),
+        path.join(projectRoot, 'packages', 'bootstrapper', 'target', 'debug', executable),
+    ]
+    const found = candidates.find(candidate => fs.existsSync(candidate) && fs.statSync(candidate).isFile())
+    if (!found) throw new Error('A built Rust bootstrapper is required to generate desktop deltas')
+    return found
+}
+
+async function readPreviousManifest(url: string | undefined): Promise<BootstrapperUpdateManifest | null> {
+    if (!url) return null
+    const response = await fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    if (response.status === 403 || response.status === 404) return null
+    if (!response.ok) throw new Error(`Cannot read previous desktop manifest (${response.status}): ${url}`)
+    const payload: unknown = await response.json()
+    if (typeof payload !== 'object' || payload === null) throw new Error(`Previous desktop manifest is invalid: ${url}`)
+    if (!('schemaVersion' in payload) || payload.schemaVersion !== 3) return null
+    const manifest = payload as BootstrapperUpdateManifest
+    if (!Number.isSafeInteger(manifest.metadataVersion) || typeof manifest.targets !== 'object' || manifest.targets === null) {
+        throw new Error(`Previous desktop manifest is invalid: ${url}`)
+    }
+    return manifest
+}
+
+async function downloadDeltaSource(url: string, targetPath: string): Promise<void> {
+    const response = await fetch(url, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`Cannot download delta source (${response.status}): ${url}`)
+    const bytes = Buffer.from(await response.arrayBuffer())
+    fs.writeFileSync(targetPath, bytes)
+}
+
+function deltaRatioLimit(): number {
+    const parsed = Number(process.env.DESKTOP_DELTA_MAX_RATIO ?? '0.7')
+    if (!Number.isFinite(parsed) || parsed <= 0 || parsed >= 1) {
+        throw new Error('DESKTOP_DELTA_MAX_RATIO must be greater than 0 and lower than 1')
+    }
+    return parsed
+}
+
+async function createBsdiffPatch(
+    releaseDir: string,
+    baseUrl: string,
+    dist: string,
+    patchPrefix: string,
+    patchImmutablePath: string,
+    current: ModuleFile,
+    previous: VersionedFile | undefined,
+): Promise<DeltaArtifact[]> {
+    if (!previous || previous.sha256 === current.sha256 || !previous.artifact.url) return []
+    const sourcePath = path.join(releaseDir, `.delta-source-${previous.sha256.slice(0, 16)}-${process.pid}.tmp`)
+    const patchPath = path.join(releaseDir, `${patchPrefix}-${previous.sha256.slice(0, 16)}-${current.sha256.slice(0, 16)}-${dist}.patch`)
+    try {
+        await downloadDeltaSource(previous.artifact.url, sourcePath)
+        if ((await sha256File(sourcePath)) !== previous.sha256) throw new Error('Downloaded delta source hash does not match previous manifest')
+        execFileSync(
+            deltaToolPath(),
+            ['make-delta', '--provider', 'bsdiff', '--source', sourcePath, '--target', current.artifactPath, '--output', patchPath, '--json'],
+            { stdio: 'pipe' },
+        )
+        const patchSize = fs.statSync(patchPath).size
+        if (patchSize >= current.size * deltaRatioLimit()) {
+            fs.rmSync(patchPath, { force: true })
+            return []
+        }
+        return [
+            {
+                provider: 'bsdiff',
+                fromSha256: previous.sha256,
+                resultSha256: current.sha256,
+                resultSize: current.size,
+                artifact: await createVersionedArtifactDescriptor(
+                    patchPath,
+                    baseUrl,
+                    path.join(patchImmutablePath, 'patches', 'bsdiff', previous.sha256.slice(0, 16)),
+                ),
+            },
+        ]
+    } finally {
+        fs.rmSync(sourcePath, { force: true })
+    }
+}
+
 function createHostArchive(releaseDir: string, packagedAppRootDir: string, version: string, dist: string): string {
     const { platform } = parseDist(dist)
     const hostDir = path.join(packagedAppRootDir, 'host')
@@ -215,7 +321,69 @@ function assertModuleName(moduleName: string): void {
     }
 }
 
-type ModuleArchive = { archivePath: string; version: string }
+type ModuleFile = {
+    artifactPath: string
+    executable: boolean
+    relativePath: string
+    sha256: string
+    size: number
+}
+
+type ModuleArchive = { archivePath: string; contentSha256: string; files: ModuleFile[]; version: string }
+
+function createFileInventory(sourceDir: string, releaseDir: string, artifactPrefix: string, version: string, dist: string): ModuleFile[] {
+    const files: ModuleFile[] = []
+    const visit = (directory: string): void => {
+        for (const entry of fs.readdirSync(directory, { withFileTypes: true }).sort((left, right) => left.name.localeCompare(right.name))) {
+            const sourcePath = path.join(directory, entry.name)
+            if (entry.isDirectory()) {
+                visit(sourcePath)
+                continue
+            }
+            if (!entry.isFile()) throw new Error(`Component file inventory does not support links: ${sourcePath}`)
+            const relativePath = path.relative(sourceDir, sourcePath).replace(/\\/gu, '/')
+            const content = fs.readFileSync(sourcePath)
+            const sha256 = crypto.createHash('sha256').update(content).digest('hex')
+            const artifactPath = path.join(releaseDir, `${artifactPrefix}-${version}-${sha256.slice(0, 16)}-${dist}.bin`)
+            fs.copyFileSync(sourcePath, artifactPath)
+            const stat = fs.statSync(sourcePath)
+            files.push({
+                artifactPath,
+                executable: (stat.mode & 0o111) !== 0,
+                relativePath,
+                sha256,
+                size: stat.size,
+            })
+        }
+    }
+    visit(sourceDir)
+    return files
+}
+
+function hashDirectory(directory: string): string {
+    const hash = crypto.createHash('sha256')
+    const files: Array<{ nativeRelative: string; normalizedRelative: string; path: string }> = []
+    const visit = (current: string): void => {
+        for (const entry of fs.readdirSync(current, { withFileTypes: true })) {
+            const entryPath = path.join(current, entry.name)
+            if (entry.isDirectory()) {
+                visit(entryPath)
+                continue
+            }
+            const nativeRelative = path.relative(directory, entryPath)
+            files.push({ nativeRelative, normalizedRelative: nativeRelative.replace(/\\/gu, '/'), path: entryPath })
+        }
+    }
+    visit(directory)
+    files.sort((left, right) => (left.nativeRelative < right.nativeRelative ? -1 : left.nativeRelative > right.nativeRelative ? 1 : 0))
+    for (const file of files) {
+        hash.update(file.normalizedRelative)
+        hash.update('\0')
+        hash.update(fs.readFileSync(file.path))
+        hash.update('\0')
+    }
+    return hash.digest('hex')
+}
 
 function createModuleArchives(releaseDir: string, packagedAppRootDir: string, coreVersion: string, dist: string): Record<string, ModuleArchive> {
     const modulesDir = path.join(packagedAppRootDir, 'modules')
@@ -238,7 +406,12 @@ function createModuleArchives(releaseDir: string, packagedAppRootDir: string, co
         const sourceDir = path.join(modulesDir, entry.name, moduleName)
         const archivePath = path.join(releaseDir, `pulsesync-component-${moduleName}-${moduleVersion}-${dist}.zip`)
         writeDirectoryZip(sourceDir, archivePath, moduleName)
-        archives[moduleName] = { archivePath, version: moduleVersion }
+        archives[moduleName] = {
+            archivePath,
+            contentSha256: hashDirectory(sourceDir),
+            files: createFileInventory(sourceDir, releaseDir, `pulsesync-component-file-${moduleName}`, moduleVersion, dist),
+            version: moduleVersion,
+        }
     }
 
     if (!Object.keys(archives).length) {
@@ -308,12 +481,20 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
         throw new Error('metadataVersion must be an explicit positive integer')
     }
-    const targetHostVersion = macosBundle ? options.coreVersion : options.hostVersion
+    const bundleVersion = String(metadataVersion)
+    const previousManifest = await readPreviousManifest(options.previousManifestUrl)
+    if (previousManifest && metadataVersion <= previousManifest.metadataVersion) {
+        throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
+    }
+    const previousTarget = previousManifest?.targets[options.dist]
+    const targetHostVersion = options.hostVersion
     const hostArtifactPath = macosBundle
-        ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
+        ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, bundleVersion, options.dist)
         : createHostArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
     const bootstrapperVersion = readBootstrapperVersion()
-    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
+    const bootstrapperArtifactPath = macosBundle
+        ? null
+        : createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
     const moduleArchivePaths = macosBundle ? {} : createModuleArchives(releaseDir, packagedAppRootDir, options.coreVersion, options.dist)
     removeStaleBootstrapperArchive(releaseDir, bootstrapperVersion, options.dist)
     removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
@@ -322,13 +503,41 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const hostArtifact = await createVersionedArtifactDescriptor(
         hostArtifactPath,
         baseUrl,
-        path.join('hosts', targetHostVersion, options.dist),
+        macosBundle ? path.join('bundles', bundleVersion, options.dist) : path.join('hosts', targetHostVersion, options.dist),
     )
-    const bootstrapperArtifact = await createVersionedArtifactDescriptor(
-        bootstrapperArtifactPath,
-        baseUrl,
-        path.join('components', 'bootstrapper', bootstrapperVersion, options.dist),
-    )
+    const hostSourceDir = macosBundle ? null : path.join(packagedAppRootDir, 'host')
+    const hostInventory = hostSourceDir ? createFileInventory(hostSourceDir, releaseDir, 'pulsesync-host-file', targetHostVersion, options.dist) : []
+    const hostFiles: VersionedFile[] = []
+    for (const file of hostInventory) {
+        const previousFile = previousTarget?.host.files?.find(previous => previous.path === file.relativePath)
+        hostFiles.push({
+            path: file.relativePath,
+            sha256: file.sha256,
+            size: file.size,
+            executable: file.executable,
+            artifact: await createVersionedArtifactDescriptor(
+                file.artifactPath,
+                baseUrl,
+                path.join('hosts', targetHostVersion, options.dist, 'files'),
+            ),
+            patches: await createBsdiffPatch(
+                releaseDir,
+                baseUrl,
+                options.dist,
+                `pulsesync-host-patch-bsdiff-${targetHostVersion}`,
+                path.join('hosts', targetHostVersion, options.dist),
+                file,
+                previousFile,
+            ),
+        })
+    }
+    const bootstrapperArtifact = bootstrapperArtifactPath
+        ? await createVersionedArtifactDescriptor(
+              bootstrapperArtifactPath,
+              baseUrl,
+              path.join('components', 'bootstrapper', bootstrapperVersion, options.dist),
+          )
+        : null
     const electronAbi = fs.readFileSync(path.join(projectRoot, 'node_modules', 'electron', 'abi_version'), 'utf8').trim()
     if (!/^\d+$/u.test(electronAbi)) throw new Error(`Invalid Electron ABI: ${electronAbi}`)
     const components = Object.fromEntries(
@@ -339,10 +548,38 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                     baseUrl,
                     path.join('components', moduleName, moduleArchive.version, options.dist),
                 )
+                const previousFiles = previousTarget?.components[moduleName]?.files ?? []
+                const files: VersionedFile[] = []
+                for (const file of moduleArchive.files) {
+                    const previousFile = previousFiles.find(previous => previous.path === file.relativePath)
+                    files.push({
+                        path: file.relativePath,
+                        sha256: file.sha256,
+                        size: file.size,
+                        executable: file.executable,
+                        artifact: await createVersionedArtifactDescriptor(
+                            file.artifactPath,
+                            baseUrl,
+                            path.join('components', moduleName, moduleArchive.version, options.dist, 'files'),
+                        ),
+                        patches: await createBsdiffPatch(
+                            releaseDir,
+                            baseUrl,
+                            options.dist,
+                            `pulsesync-component-patch-bsdiff-${moduleName}-${moduleArchive.version}`,
+                            path.join('components', moduleName, moduleArchive.version, options.dist),
+                            file,
+                            previousFile,
+                        ),
+                    })
+                }
                 return [
                     moduleName,
                     {
                         version: moduleArchive.version,
+                        required: true,
+                        contentSha256: moduleArchive.contentSha256,
+                        files,
                         requiresHost: '>=1.0.0 <2.0.0',
                         ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
                         artifact,
@@ -355,18 +592,24 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         throw new Error('desktopCore component artifact is required')
     }
     const manifest: BootstrapperUpdateManifest = {
-        schemaVersion: 2,
+        schemaVersion: 3,
         metadataVersion,
         channel: options.channel,
-        releaseVersion: options.coreVersion,
+        desktopVersion: options.coreVersion,
+        bundleVersion,
         desktopApi: DESKTOP_API_VERSION,
         rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
         targets: {
             [options.dist]: {
                 layout: macosBundle ? 'macos-bundle' : 'versioned-components',
-                host: { version: targetHostVersion, ...(macosBundle ? {} : { electronAbi }), artifact: hostArtifact },
+                host: {
+                    version: targetHostVersion,
+                    required: true,
+                    ...(hostSourceDir ? { contentSha256: hashDirectory(hostSourceDir), files: hostFiles, electronAbi } : {}),
+                    artifact: hostArtifact,
+                },
                 components,
-                bootstrapper: { version: bootstrapperVersion, artifact: bootstrapperArtifact },
+                ...(bootstrapperArtifact ? { bootstrapper: { version: bootstrapperVersion, required: true, artifact: bootstrapperArtifact } } : {}),
             },
         },
     }
@@ -412,6 +655,7 @@ async function main(): Promise<void> {
         coreVersion,
         hostVersion,
         metadataVersion: readArgValue(args, '--metadata-version') || process.env.DESKTOP_METADATA_VERSION,
+        previousManifestUrl: readArgValue(args, '--previous-manifest-url') || process.env.DESKTOP_PREVIOUS_MANIFEST_URL,
     })
     console.log(`PulseSync desktop release manifest generated: ${manifestPath}`)
 }
