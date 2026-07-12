@@ -255,6 +255,15 @@ pub fn create_install_plan(
             .as_ref()
             .and_then(|artifacts| artifacts.host_files.as_ref())
             .map(|files| files.content_sha256.clone()),
+        host_artifact_sha256: decision
+            .artifacts
+            .as_ref()
+            .map(|artifacts| artifacts.host.sha256.clone()),
+        bootstrapper_artifact_sha256: decision
+            .artifacts
+            .as_ref()
+            .and_then(|artifacts| artifacts.bootstrapper.as_ref())
+            .map(|artifact| artifact.sha256.clone()),
         component_electron_abis: decision.component_electron_abis.clone(),
         component_content_sha256s: decision
             .artifacts
@@ -264,6 +273,17 @@ pub fn create_install_plan(
                     .module_files
                     .iter()
                     .map(|(name, files)| (name.clone(), files.content_sha256.clone()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        component_artifact_sha256s: decision
+            .artifacts
+            .as_ref()
+            .map(|artifacts| {
+                artifacts
+                    .modules
+                    .iter()
+                    .map(|(name, artifact)| (name.clone(), artifact.sha256.clone()))
                     .collect()
             })
             .unwrap_or_default(),

@@ -272,6 +272,9 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         .get("componentElectronAbis")
         .and_then(Value::as_object)
         .ok_or("componentElectronAbis is required")?;
+    let component_artifact_sha256s = transaction
+        .get("componentArtifactSha256s")
+        .and_then(Value::as_object);
     let omitted_values = transaction
         .get("omittedComponents")
         .and_then(Value::as_array)
@@ -301,7 +304,10 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                 .and_then(Value::as_str)
                 .ok_or("hostContentSha256 is required")?
                 .to_string();
-            next_snapshot.host.artifact_sha256 = Some(artifact.sha256.clone());
+            next_snapshot.host.artifact_sha256 = transaction
+                .get("hostArtifactSha256")
+                .and_then(Value::as_str)
+                .map(str::to_string);
             next_snapshot.host.electron_abi = transaction
                 .get("hostElectronAbi")
                 .and_then(Value::as_str)
@@ -318,7 +324,10 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                     path: relative_path,
                     sha256: sha256_file(&artifact.target_path)?,
                     required: artifact.required,
-                    artifact_sha256: Some(artifact.sha256.clone()),
+                    artifact_sha256: transaction
+                        .get("bootstrapperArtifactSha256")
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
                     electron_abi: None,
                 },
             );
@@ -336,7 +345,10 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                     path: relative_path,
                     sha256,
                     required: artifact.required,
-                    artifact_sha256: Some(artifact.sha256.clone()),
+                    artifact_sha256: component_artifact_sha256s
+                        .and_then(|values| values.get(name))
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
                     electron_abi: component_electron_abis
                         .get(name)
                         .and_then(Value::as_str)
