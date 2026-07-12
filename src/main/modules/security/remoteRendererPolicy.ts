@@ -60,9 +60,10 @@ export function getRemoteRendererUrlPattern(activeRemoteOrigin: string): string 
     return `${url.protocol}//${url.host}/*`
 }
 
-export function buildRemoteRendererContentSecurityPolicy(isDevMode: boolean): string {
+export function buildRemoteRendererContentSecurityPolicy(isDevMode: boolean, localAssetOrigin: string): string {
     const scriptSources = ["'self'", ...(isDevMode ? ["'unsafe-eval'", "'unsafe-inline'"] : [])]
-    const connectSources = ["'self'", ...PROD_CONNECT_SOURCES, ...(isDevMode ? DEV_CONNECT_SOURCES : [])]
+    const connectSources = ["'self'", ...PROD_CONNECT_SOURCES, localAssetOrigin, ...(isDevMode ? DEV_CONNECT_SOURCES : [])]
+    const imageSources = ["'self'", 'data:', 'blob:', 'https:', localAssetOrigin]
 
     return [
         "default-src 'self'",
@@ -73,7 +74,7 @@ export function buildRemoteRendererContentSecurityPolicy(isDevMode: boolean): st
         "form-action 'none'",
         `script-src ${scriptSources.join(' ')}`,
         "style-src 'self' 'unsafe-inline'",
-        "img-src 'self' data: blob: https:",
+        `img-src ${imageSources.join(' ')}`,
         "font-src 'self' data:",
         "media-src 'self' data: blob: https:",
         `connect-src ${connectSources.join(' ')}`,
