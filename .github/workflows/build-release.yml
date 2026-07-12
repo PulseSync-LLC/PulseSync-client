@@ -9,7 +9,12 @@ permissions:
   contents: write
 
 jobs:
+  tests:
+    name: Test Desktop
+    uses: ./.github/workflows/desktop-tests.yml
+
   build:
+    needs: tests
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
@@ -75,16 +80,6 @@ jobs:
 
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
-
-      - name: Verify macOS atomic bundle update
-        if: startsWith(matrix.os, 'macos-')
-        run: yarn bootstrapper:verify-macos-update
-
-      - name: Verify macOS external recovery across helper crashes
-        if: startsWith(matrix.os, 'macos-') && runner.arch == 'ARM64'
-        run: |
-          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-exchange
-          yarn bootstrapper:verify-macos-update --with-launch-agent --kill-helper-after-ack
 
       - name: Show release contents (debug)
         shell: bash
