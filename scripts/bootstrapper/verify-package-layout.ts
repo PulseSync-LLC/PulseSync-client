@@ -115,9 +115,16 @@ function main(): void {
         const hostExecutable = requirePath(path.join(contentsDir, 'MacOS', 'PulseSync'), 'file')
         const installedBootstrapperDir = requirePath(path.join(resourcesDir, 'bootstrapper'), 'directory')
         const installedNativeExecutable = requirePath(path.join(installedBootstrapperDir, 'pulsesync-bootstrapper'), 'file')
+        const runtimeDescriptor = requirePath(path.join(resourcesDir, 'pulsesync-runtime.json'), 'file')
+        const runtime = JSON.parse(fs.readFileSync(runtimeDescriptor, 'utf8')) as { schemaVersion?: unknown; coreVersion?: unknown }
+        if (runtime.schemaVersion !== 2 || typeof runtime.coreVersion !== 'string' || !runtime.coreVersion) {
+            throw new Error(`Expected packaged runtime schema v2: ${runtimeDescriptor}`)
+        }
         const modulesDir = requirePath(path.join(contentsDir, 'modules'), 'directory')
         const artifactWorkerFile = requireModuleFile(contentsDir, 'artifactWorker', 'artifactWorker.cjs')
         const nativeModuleFile = requireModuleFile(contentsDir, 'pulsesyncNative', 'pulsesyncNative.node')
+        const desktopCoreEntry = requireModuleFile(contentsDir, 'desktopCore', 'index.cjs')
+        const desktopCorePreload = requireModuleFile(contentsDir, 'desktopCore', 'mainWindowPreload.cjs')
         requireExecutableBit(hostExecutable)
         requireExecutableBit(installedNativeExecutable)
         rejectBootstrapperEntrypointScript(hostExecutable)
@@ -135,9 +142,12 @@ function main(): void {
                     installedBootstrapperDir,
                     hostExecutable,
                     installedNativeExecutable,
+                    runtimeDescriptor,
                     artifactWorkerFile,
                     modulesHasFiles: hasFiles(modulesDir),
                     nativeModuleFile,
+                    desktopCoreEntry,
+                    desktopCorePreload,
                 },
                 null,
                 4,

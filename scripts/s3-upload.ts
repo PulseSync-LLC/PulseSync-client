@@ -221,7 +221,7 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
     const macosHostMatch = new RegExp(`^pulsesync-host-bundle-${escapedVersion}-(darwin-[a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
     if (macosHostMatch) {
         const dist = macosHostMatch[1]
-        return await versionedPublishPath(filePath, version, dist, 'app')
+        return await immutablePublishPath(filePath, `hosts/${version}/${dist}`)
     }
 
     const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)

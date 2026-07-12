@@ -530,7 +530,46 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     return installRoot
 }
 
-async function installMacBootstrapperSeed(outDir: string): Promise<string> {
+function writeMacPackagedRuntime(outDir: string, coreVersion: string, hostVersion: string): string {
+    const contentsRoot = getPackagedAppRoot(outDir)
+    const modulesRoot = path.join(contentsRoot, 'modules')
+    const components: Record<string, { version: string; path: string; sha256: string; electronAbi?: string }> = {}
+    const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
+    for (const entry of fs.readdirSync(modulesRoot, { withFileTypes: true })) {
+        if (!entry.isDirectory()) continue
+        const match = /^([A-Za-z0-9_]+)-(.+)$/u.exec(entry.name)
+        if (!match) throw new Error(`Expected Discord-style module directory: ${entry.name}`)
+        const [, moduleName, version] = match
+        const relativePath = path.join('modules', entry.name, moduleName)
+        components[moduleName] = {
+            version,
+            path: relativePath.replace(/\\/gu, '/'),
+            sha256: hashDirectory(path.join(contentsRoot, relativePath)),
+            ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
+        }
+    }
+    if (components.desktopCore?.version !== coreVersion) {
+        throw new Error(`Expected packaged desktopCore ${coreVersion}`)
+    }
+    const bootstrapperRelativePath = path.join('Resources', 'bootstrapper', 'pulsesync-bootstrapper')
+    const bootstrapperPath = path.join(contentsRoot, bootstrapperRelativePath)
+    components.bootstrapper = {
+        version: readBootstrapperVersion(),
+        path: bootstrapperRelativePath.replace(/\\/gu, '/'),
+        sha256: crypto.createHash('sha256').update(fs.readFileSync(bootstrapperPath)).digest('hex'),
+    }
+    const descriptor = {
+        schemaVersion: 2,
+        hostVersion,
+        coreVersion,
+        components,
+    }
+    const descriptorPath = path.join(contentsRoot, 'Resources', 'pulsesync-runtime.json')
+    fs.writeFileSync(descriptorPath, `${JSON.stringify(descriptor, null, 4)}\n`, 'utf8')
+    return descriptorPath
+}
+
+async function installMacBootstrapperSeed(outDir: string, coreVersion: string, hostVersion: string): Promise<string> {
     if (os.platform() !== 'darwin') {
         throw new Error('installMacBootstrapperSeed is only valid on macOS')
     }
@@ -543,6 +582,11 @@ async function installMacBootstrapperSeed(outDir: string): Promise<string> {
     fs.mkdirSync(targetDir, { recursive: true })
     fs.copyFileSync(executable, targetExecutable)
     fs.chmodSync(targetExecutable, 0o755)
+    const infoPlist = path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents', 'Info.plist')
+    execFileSync('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${coreVersion}`, infoPlist], {
+        stdio: debug ? 'inherit' : 'pipe',
+    })
+    writeMacPackagedRuntime(outDir, coreVersion, hostVersion)
     const identity = process.env.PULSESYNC_MAC_SIGN_IDENTITY?.trim() || (publishBranch ? null : '-')
     if (!identity) {
         throw new Error('PULSESYNC_MAC_SIGN_IDENTITY is required for a published macOS build')
@@ -810,7 +854,9 @@ async function main(): Promise<void> {
         const setupDist = setBuildDist(os.platform(), targetArch)
         let setupRoot: string
         if (os.platform() === 'darwin') {
-            await installMacBootstrapperSeed(pdPath)
+            const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8'))
+                .version as string
+            await installMacBootstrapperSeed(pdPath, coreVersion, readPackageVersion())
             setupRoot = pdPath
         } else {
             await prepareBootstrapperInstallerRoot(pdPath)
@@ -869,7 +915,7 @@ async function main(): Promise<void> {
         let payloadRoot: string
         let setupRoot: string
         if (os.platform() === 'darwin') {
-            await installMacBootstrapperSeed(outDir)
+            await installMacBootstrapperSeed(outDir, version, hostVersion)
             payloadRoot = outDir
             setupRoot = outDir
         } else {
