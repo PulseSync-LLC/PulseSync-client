@@ -1,7 +1,6 @@
 import axios from 'axios'
 import * as semver from 'semver'
 import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
-import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import { isDevmark } from '@common/appConfig'
 import isAppDev from '../utils/isAppDev'
 import logger from './logger'
@@ -14,7 +13,6 @@ export interface RemoteRendererManifest {
     buildNumber: string
     url: string
     requiresDesktopApi: string
-    minClientVersion?: string
 }
 
 export type MainRendererSource = {
@@ -49,26 +47,16 @@ function isDesktopApiCompatible(requiredRange: string): boolean {
     return semver.satisfies(current, requiredRange, { includePrerelease: true })
 }
 
-function isClientVersionCompatible(minClientVersion: string | undefined): boolean {
-    if (!minClientVersion) return true
-    const current = semver.valid(DESKTOP_CORE_VERSION)
-    const minimum = semver.valid(minClientVersion)
-    if (!current || !minimum) return false
-    return semver.gte(current, minimum)
-}
-
 function parseManifest(value: unknown): RemoteRendererManifest | null {
     if (!value || typeof value !== 'object') return null
     const manifest = value as Partial<RemoteRendererManifest>
     if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) return null
     if (typeof manifest.url !== 'string') return null
     if (typeof manifest.requiresDesktopApi !== 'string') return null
-    if (manifest.minClientVersion !== undefined && typeof manifest.minClientVersion !== 'string') return null
     return {
         buildNumber: manifest.buildNumber,
         url: manifest.url,
         requiresDesktopApi: manifest.requiresDesktopApi,
-        minClientVersion: manifest.minClientVersion,
     }
 }
 
@@ -106,13 +94,6 @@ export async function resolveMainRendererSource(): Promise<MainRendererSource> {
             rejectRemoteRenderer('Remote renderer requires incompatible desktop API', {
                 currentApi: DESKTOP_API_VERSION,
                 requiredApi: manifest.requiresDesktopApi,
-            })
-        }
-
-        if (!isClientVersionCompatible(manifest.minClientVersion)) {
-            rejectRemoteRenderer('Remote renderer requires newer client', {
-                currentVersion: DESKTOP_CORE_VERSION,
-                minClientVersion: manifest.minClientVersion,
             })
         }
 
