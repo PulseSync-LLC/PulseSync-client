@@ -39,6 +39,7 @@ pub fn repair(args: &Args) -> Result<Value> {
                 .unwrap_or_else(|| DEFAULT_GITHUB_OWNER.to_string()),
             repo: arg_value(args, "--github-repo")
                 .unwrap_or_else(|| DEFAULT_GITHUB_REPO.to_string()),
+            hybrid: dist.starts_with("darwin-"),
         })?,
         "backend" => {
             let backend = required_arg(args, "--manifest-url")?;
@@ -55,6 +56,7 @@ pub fn repair(args: &Args) -> Result<Value> {
                         .unwrap_or_else(|| DEFAULT_GITHUB_OWNER.to_string()),
                     repo: arg_value(args, "--github-repo")
                         .unwrap_or_else(|| DEFAULT_GITHUB_REPO.to_string()),
+                    hybrid: dist.starts_with("darwin-"),
                 })?
             }
         }

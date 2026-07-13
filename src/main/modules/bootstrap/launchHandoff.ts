@@ -51,6 +51,7 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
             stateRoot: runtime.runtimePaths.stateRoot,
             hostBundle: runtime.runtimePaths.hostBundle,
             launcher,
+            passthrough: process.argv.slice(1),
             waitForPid: process.pid,
             onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
         })

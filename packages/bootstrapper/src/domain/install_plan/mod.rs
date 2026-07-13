@@ -37,6 +37,11 @@ fn artifact_plan_entry(
         .ok_or("staged artifact file name is invalid")?;
     let target_path = target_path(
         install_dir,
+        decision
+            .artifacts
+            .as_ref()
+            .map(|value| value.layout)
+            .unwrap_or_default(),
         &decision.host_version,
         &key,
         &decision.component_revisions,
@@ -157,6 +162,7 @@ pub fn create_install_plan(
     backup_dir: Option<PathBuf>,
     staged_artifacts: Vec<StagedArtifact>,
     retain_app_versions: usize,
+    host_bundle: Option<PathBuf>,
 ) -> Result<InstallPlan> {
     let install_dir = install_dir
         .canonicalize()
@@ -229,6 +235,11 @@ pub fn create_install_plan(
         .collect::<Vec<_>>();
 
     Ok(InstallPlan {
+        artifact_layout: decision
+            .artifacts
+            .as_ref()
+            .map(|value| value.layout)
+            .unwrap_or_default(),
         executable: preflight.iter().all(|entry| entry.status == "pass")
             && (!artifacts.is_empty() || !omitted_components.is_empty()),
         artifacts,
@@ -244,6 +255,8 @@ pub fn create_install_plan(
         bundle_version: decision.bundle_version.clone(),
         update_available: decision.update_available,
         host_version: decision.host_version.clone(),
+        host_bundle,
+        host_bundle_version: decision.host_bundle_version.clone(),
         bootstrapper_version: decision.bootstrapper_version.clone(),
         component_versions: decision.component_versions.clone(),
         component_revisions: decision.component_revisions.clone(),

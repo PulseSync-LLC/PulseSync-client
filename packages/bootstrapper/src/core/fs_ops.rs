@@ -5,6 +5,47 @@ use std::{
     io::{self, Read},
     path::Path,
 };
+
+pub fn copy_directory(source: &Path, target: &Path) -> Result<()> {
+    fn copy_tree(source: &Path, target: &Path, root: &Path) -> Result<()> {
+        fs::create_dir_all(target)?;
+        for entry in fs::read_dir(source)? {
+            let entry = entry?;
+            let source_path = entry.path();
+            let relative = source_path.strip_prefix(root)?;
+            let destination = target.join(entry.file_name());
+            let metadata = fs::symlink_metadata(&source_path)?;
+            if metadata.file_type().is_symlink() {
+                return Err(format!(
+                    "packaged component contains a symlink: {}",
+                    relative.display()
+                )
+                .into());
+            }
+            if metadata.is_dir() {
+                copy_tree(&source_path, &destination, root)?;
+            } else if metadata.is_file() {
+                fs::copy(&source_path, &destination)?;
+                fs::set_permissions(&destination, metadata.permissions())?;
+            } else {
+                return Err(format!(
+                    "packaged component contains an unsupported entry: {}",
+                    relative.display()
+                )
+                .into());
+            }
+        }
+        Ok(())
+    }
+
+    if !source.is_dir() {
+        return Err(format!("copy source is not a directory: {}", source.display()).into());
+    }
+    if target.exists() {
+        return Err(format!("copy target already exists: {}", target.display()).into());
+    }
+    copy_tree(source, target, source)
+}
 use zip::ZipArchive;
 
 #[cfg(unix)]

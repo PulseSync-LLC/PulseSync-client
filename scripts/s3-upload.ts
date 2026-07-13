@@ -242,20 +242,20 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await immutablePublishPath(filePath, `components/bootstrapper/${bootstrapperVersion}/${dist}`)
     }
 
-    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
     if (componentFileMatch) {
         const [, moduleName, componentVersion, , dist] = componentFileMatch
         return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/files`)
     }
 
     const componentPatchMatch =
-        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
     if (componentPatchMatch) {
         const [, moduleName, componentVersion, fromSha, , dist] = componentPatchMatch
         return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/patches/bsdiff/${fromSha}`)
     }
 
-    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (componentMatch) {
         const [, moduleName, componentVersion, dist] = componentMatch
         return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}`)
@@ -275,6 +275,12 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await immutablePublishPath(filePath, `setups/${version}/win32-${arch}`)
     }
 
+    const macSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.dmg$`, 'iu').exec(fileName)
+    if (macSetupMatch) {
+        const arch = macSetupMatch[1].toLowerCase()
+        return await immutablePublishPath(filePath, `setups/${version}/darwin-${arch}`)
+    }
+
     return fileName
 }
 
@@ -286,12 +292,18 @@ function resolveLatestAliasPublishPath(filePath: string, version?: string): stri
     const fileName = path.basename(filePath)
     const escapedVersion = escapeRegExp(version)
     const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe$`, 'iu').exec(fileName)
-    if (!setupMatch) {
-        return null
+    if (setupMatch) {
+        const arch = setupMatch[1].toLowerCase()
+        return `latest/win32-${arch}/PulseSyncSetup.exe`
     }
 
-    const arch = setupMatch[1].toLowerCase()
-    return `latest/win32-${arch}/PulseSyncSetup.exe`
+    const macSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.dmg$`, 'iu').exec(fileName)
+    if (macSetupMatch) {
+        const arch = macSetupMatch[1].toLowerCase()
+        return `latest/darwin-${arch}/PulseSync.dmg`
+    }
+
+    return null
 }
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
@@ -361,6 +373,12 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, `win32-${arch}`, 'exe', 'setup')
     }
 
+    const macSetupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.dmg$/iu.exec(fileName)
+    if (macSetupMatch) {
+        const [, version, arch] = macSetupMatch
+        return structuredArtifactDescriptor(version, `darwin-${arch}`, 'dmg', 'setup')
+    }
+
     const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (hostMatch) {
         const [, version, dist] = hostMatch
@@ -391,14 +409,14 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, dist, path.extname(fileName).toLowerCase() === '.exe' ? 'exe' : 'binary', 'bootstrapper')
     }
 
-    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
     if (componentFileMatch) {
         const [, componentName, version, , dist] = componentFileMatch
         return structuredArtifactDescriptor(version, dist, 'bin', `component-file:${componentName.toLowerCase()}`)
     }
 
     const componentPatchMatch =
-        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
     if (componentPatchMatch) {
         const [, componentName, version, , , dist] = componentPatchMatch
         return structuredArtifactDescriptor(version, dist, 'patch', `component-patch:${componentName.toLowerCase()}`)
@@ -410,7 +428,7 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, dist, 'zip', `module:${moduleName.toLowerCase()}`)
     }
 
-    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (componentMatch) {
         const [, componentName, version, dist] = componentMatch
         return structuredArtifactDescriptor(version, dist, 'zip', `component:${componentName.toLowerCase()}`)
@@ -694,7 +712,10 @@ export async function publishToS3(
     const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
     const client = createS3Client()
 
-    let files = walkFiles(dir)
+    let files = fs
+        .readdirSync(dir)
+        .map(name => path.join(dir, name))
+        .filter(filePath => fs.statSync(filePath).isFile())
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
         .filter(fp => !isLegacyUpdaterArtifact(fp))
         .filter(fp => (version ? isDesktopReleaseManifestFile(fp) || parseStructuredArtifactDescriptor(path.basename(fp)) !== null : true))

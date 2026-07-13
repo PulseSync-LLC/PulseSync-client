@@ -106,7 +106,15 @@ pub(super) fn current_install_is_safe(layout: &Layout, installed_version: Option
             .is_some_and(|bundle| bundle.join("Contents").join("Info.plist").is_file())
             && layout.app_executable.is_file();
     }
-    let Ok(state) = crate::core::install_state::read_install_state(&layout.install_root) else {
+    let state = if layout.layout_kind == LayoutKind::MacosHybrid {
+        crate::core::install_state::read_install_state_with_host(
+            &layout.install_root,
+            layout.host_bundle.as_deref(),
+        )
+    } else {
+        crate::core::install_state::read_install_state(&layout.install_root)
+    };
+    let Ok(state) = state else {
         return false;
     };
     let core_version = state
