@@ -6,8 +6,12 @@ use crate::{
             verified_live_lease,
         },
         error::Result,
-        install_state::recover_unowned_pending_runtime,
-        layout::{canonical_install_root, resolve_layout, resolve_macos_layout},
+        install_state::{
+            recover_unowned_pending_runtime, recover_unowned_pending_runtime_with_host,
+        },
+        layout::{
+            Layout, LayoutKind, canonical_install_root, resolve_layout, resolve_macos_layout,
+        },
         operation_lock::UpdateLock,
         self_update::{
             SelfUpdateMutationGate, read_self_update_reservation, reconcile_self_update_mutation,
@@ -71,6 +75,29 @@ fn ensure_app_executable(app_executable: &Path) -> Result<()> {
     Ok(())
 }
 
+fn current_macos_seed(layout: &Layout) -> Result<PathBuf> {
+    let current_helper = env::current_exe()
+        .map_err(|error| format!("current macOS bootstrapper cannot be resolved: {error}"))?;
+    let expected_seed = layout.bootstrapper_dir.join("pulsesync-bootstrapper");
+    let current_canonical = current_helper.canonicalize().map_err(|error| {
+        format!("current macOS bootstrapper path cannot be canonicalized: {error}")
+    })?;
+    let expected_canonical = expected_seed.canonicalize().map_err(|error| {
+        format!(
+            "macOS bundle seed cannot be canonicalized: {}: {error}",
+            expected_seed.display()
+        )
+    })?;
+    if current_canonical != expected_canonical {
+        return Err(format!(
+            "macOS update must be armed by the current bundle seed: {}",
+            expected_seed.display()
+        )
+        .into());
+    }
+    Ok(current_helper)
+}
+
 pub fn start(args: &Args) -> Result<Value> {
     if arg_value(args, "--transaction-root").is_some() {
         return Err(
@@ -90,9 +117,6 @@ pub fn start(args: &Args) -> Result<Value> {
     let app_executable_name = arg_value(args, "--app-executable-name");
     let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
     let explicit_app_executable = arg_value(args, "--app-executable").map(PathBuf::from);
-    if let Some(root) = install_root.as_deref() {
-        recover_unowned_pending_runtime(root)?;
-    }
     let layout = match (&install_root, &host_bundle, &explicit_app_executable) {
         (Some(state_root), Some(host_bundle), Some(app_executable)) => Some(resolve_macos_layout(
             state_root.clone(),
@@ -106,6 +130,21 @@ pub fn start(args: &Args) -> Result<Value> {
         (_, Some(_), None) => return Err("--host-bundle requires --app-executable".into()),
         _ => None,
     };
+    if let Some(layout) = layout.as_ref()
+        && matches!(
+            layout.layout_kind,
+            LayoutKind::VersionedComponents | LayoutKind::MacosHybrid
+        )
+    {
+        if layout.layout_kind == LayoutKind::MacosHybrid {
+            recover_unowned_pending_runtime_with_host(
+                &layout.state_root,
+                layout.host_bundle.as_deref(),
+            )?;
+        } else {
+            recover_unowned_pending_runtime(&layout.state_root)?;
+        }
+    }
     let transaction_root = layout
         .as_ref()
         .map(|value| value.transaction_root.clone())
@@ -210,16 +249,8 @@ pub fn start(args: &Args) -> Result<Value> {
                 {
                     let transaction_value = read_transaction_file(&selected.path)?;
                     if macos_bundle::is_macos_transaction(&transaction_value) {
-                        let current_helper = env::current_exe()?;
                         let layout = layout.as_ref().ok_or("macOS runtime layout is missing")?;
-                        let expected_seed = layout.bootstrapper_dir.join("pulsesync-bootstrapper");
-                        if current_helper.canonicalize()? != expected_seed.canonicalize()? {
-                            return Err(format!(
-                                "macOS update must be armed by the current bundle seed: {}",
-                                expected_seed.display()
-                            )
-                            .into());
-                        }
+                        let current_helper = current_macos_seed(layout)?;
                         let prepared_helper =
                             macos_bundle::arm_transaction(&selected.path, &current_helper)?;
                         let app_executable = explicit_app_executable
@@ -341,19 +372,8 @@ pub fn start(args: &Args) -> Result<Value> {
                             }
                         }));
                     }
-                    let current_helper = env::current_exe()?;
-                    let expected_seed = layout
-                        .as_ref()
-                        .ok_or("macOS runtime layout is missing")?
-                        .bootstrapper_dir
-                        .join("pulsesync-bootstrapper");
-                    if current_helper.canonicalize()? != expected_seed.canonicalize()? {
-                        return Err(format!(
-                            "macOS update must be armed by the current bundle seed: {}",
-                            expected_seed.display()
-                        )
-                        .into());
-                    }
+                    let layout = layout.as_ref().ok_or("macOS runtime layout is missing")?;
+                    let current_helper = current_macos_seed(layout)?;
                     let prepared_helper =
                         match macos_bundle::arm_transaction(&selected.path, &current_helper) {
                             Ok(helper) => helper,

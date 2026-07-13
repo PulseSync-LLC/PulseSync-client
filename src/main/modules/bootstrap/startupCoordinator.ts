@@ -169,6 +169,7 @@ export class StartupCoordinator {
             await acknowledgeActiveRuntime({
                 activeLeaseId: this.options.lease.leaseId,
                 generation: activeRuntime.generation,
+                hostBundle: this.options.runtimePaths.hostBundle,
                 launcher,
                 stateRoot: this.options.runtimePaths.stateRoot,
             })

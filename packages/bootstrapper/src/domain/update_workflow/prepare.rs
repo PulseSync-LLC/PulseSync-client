@@ -104,8 +104,10 @@ pub fn prepare_update(
     };
     let safe_to_continue = current_install_is_safe(&layout, Some(&options.installed_version));
 
-    if layout.layout_kind == LayoutKind::VersionedComponents
-        && layout.current_version.as_deref() != Some(options.installed_version.as_str())
+    if matches!(
+        layout.layout_kind,
+        LayoutKind::VersionedComponents | LayoutKind::MacosHybrid
+    ) && layout.current_version.as_deref() != Some(options.installed_version.as_str())
     {
         return Ok(PrepareUpdateResult::blocked(
             None,
@@ -268,18 +270,28 @@ pub fn prepare_update(
             safe_to_continue,
         )
     })?;
-    let mut decision = if layout.layout_kind == LayoutKind::VersionedComponents {
-        let installed = crate::core::install_state::read_install_state(&layout.state_root)
-            .map_err(|error| {
-                workflow_error(
-                    PREPARE_COMMAND,
-                    "install-state-invalid",
-                    "decide",
-                    error,
-                    false,
-                    safe_to_continue,
-                )
-            })?;
+    let mut decision = if matches!(
+        layout.layout_kind,
+        LayoutKind::VersionedComponents | LayoutKind::MacosHybrid
+    ) {
+        let installed = if layout.layout_kind == LayoutKind::MacosHybrid {
+            crate::core::install_state::read_install_state_with_host(
+                &layout.state_root,
+                layout.host_bundle.as_deref(),
+            )
+        } else {
+            crate::core::install_state::read_install_state(&layout.state_root)
+        }
+        .map_err(|error| {
+            workflow_error(
+                PREPARE_COMMAND,
+                "install-state-invalid",
+                "decide",
+                error,
+                false,
+                safe_to_continue,
+            )
+        })?;
         decide_component_update(&manifest, &installed, &options.dist)
     } else {
         let bundle_version = layout
@@ -318,6 +330,7 @@ pub fn prepare_update(
                 LayoutKind::VersionedComponents,
                 Some(ArtifactLayout::VersionedComponents)
             )
+            | (LayoutKind::MacosHybrid, Some(ArtifactLayout::MacosHybrid))
     );
     if decision.artifacts.is_some() && !layout_matches_manifest {
         return Ok(PrepareUpdateResult::blocked(
@@ -486,7 +499,10 @@ pub fn prepare_update(
     }
     public_decision = make_public_decision(&decision, &manifest);
 
-    if artifact_layout == Some(ArtifactLayout::MacosBundle) {
+    if artifact_layout == Some(ArtifactLayout::MacosBundle)
+        || (artifact_layout == Some(ArtifactLayout::MacosHybrid)
+            && decision.selected_artifacts.iter().any(|key| key == "host"))
+    {
         if !active_lease_matches(&layout, &options.active_lease_id).map_err(|error| {
             workflow_error(
                 PREPARE_COMMAND,
@@ -568,6 +584,7 @@ pub fn prepare_update(
         None,
         staging.artifacts.clone(),
         retain_app_versions,
+        layout.host_bundle.clone(),
     )
     .map_err(|error| {
         workflow_error(

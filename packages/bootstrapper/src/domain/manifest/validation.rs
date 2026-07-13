@@ -118,8 +118,8 @@ fn validate_component_files(component: &VersionedArtifact, label: &str) -> Resul
 }
 
 pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
-    if manifest.schema_version != 3 {
-        return Err("manifest schemaVersion must be 3".into());
+    if !matches!(manifest.schema_version, 3 | 4) {
+        return Err("manifest schemaVersion must be 3 or 4".into());
     }
     if manifest.metadata_version == 0 {
         return Err("manifest metadataVersion must be greater than 0".into());
@@ -130,8 +130,12 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
     if manifest.desktop_version.trim().is_empty() {
         return Err("manifest desktopVersion is required".into());
     }
-    if manifest.bundle_version != manifest.metadata_version.to_string() {
-        return Err("manifest bundleVersion must equal metadataVersion".into());
+    if manifest.schema_version == 3 {
+        if manifest.bundle_version != manifest.metadata_version.to_string() {
+            return Err("manifest bundleVersion must equal metadataVersion".into());
+        }
+    } else if !manifest.bundle_version.is_empty() {
+        return Err("schema-v4 manifest must omit top-level bundleVersion".into());
     }
     if manifest.targets.is_empty() {
         return Err("manifest targets must include at least one dist".into());
@@ -142,41 +146,100 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
         if !target.host.required {
             return Err(format!("targets.{dist}.host must be required").into());
         }
-        if target.layout == crate::domain::manifest::ArtifactLayout::MacosBundle {
-            if !dist.starts_with("darwin-") {
-                return Err("macos-bundle layout is only valid for darwin targets".into());
+        match target.layout {
+            crate::domain::manifest::ArtifactLayout::MacosBundle => {
+                if manifest.schema_version != 3 {
+                    return Err("macos-bundle layout requires schemaVersion 3".into());
+                }
+                if !dist.starts_with("darwin-") {
+                    return Err("macos-bundle layout is only valid for darwin targets".into());
+                }
+                if !target.components.is_empty() {
+                    return Err(format!(
+                        "targets.{dist}.components must be empty for macos-bundle"
+                    )
+                    .into());
+                }
+                if target.bootstrapper.is_some() {
+                    return Err(format!(
+                        "targets.{dist}.bootstrapper must be omitted for macos-bundle"
+                    )
+                    .into());
+                }
+                if target.host.bundle_version.is_some()
+                    || target.host.content_sha256.is_some()
+                    || !target.host.files.is_empty()
+                {
+                    return Err(format!(
+                        "targets.{dist}.host must not define hybrid or component fields"
+                    )
+                    .into());
+                }
+                continue;
             }
-            if !target.components.is_empty() {
-                return Err(
-                    format!("targets.{dist}.components must be empty for macos-bundle").into(),
-                );
+            crate::domain::manifest::ArtifactLayout::MacosHybrid => {
+                if manifest.schema_version != 4 {
+                    return Err("macos-hybrid layout requires schemaVersion 4".into());
+                }
+                if !dist.starts_with("darwin-") {
+                    return Err("macos-hybrid layout is only valid for darwin targets".into());
+                }
+                if target.bootstrapper.is_some() {
+                    return Err(format!(
+                        "targets.{dist}.bootstrapper must be omitted for macos-hybrid"
+                    )
+                    .into());
+                }
+                if target.host.content_sha256.is_some() || !target.host.files.is_empty() {
+                    return Err(format!(
+                        "targets.{dist}.host must not define component files for macos-hybrid"
+                    )
+                    .into());
+                }
+                let host_bundle_version = target
+                    .host
+                    .bundle_version
+                    .as_deref()
+                    .filter(|value| value.parse::<u64>().is_ok_and(|value| value > 0))
+                    .ok_or_else(|| {
+                        format!("targets.{dist}.host.bundleVersion must be a positive integer")
+                    })?;
+                let _ = host_bundle_version;
+                if target.components.len() != 1 || !target.components.contains_key("desktopCore") {
+                    return Err(format!(
+                        "targets.{dist}.components must contain only desktopCore for macos-hybrid"
+                    )
+                    .into());
+                }
             }
-            if target.bootstrapper.is_some() {
-                return Err(format!(
-                    "targets.{dist}.bootstrapper must be omitted for macos-bundle"
-                )
-                .into());
+            crate::domain::manifest::ArtifactLayout::VersionedComponents => {
+                if manifest.schema_version != 3 {
+                    return Err("versioned-components layout requires schemaVersion 3".into());
+                }
+                validate_component_files(&target.host, &format!("targets.{dist}.host"))?;
+                let bootstrapper = target.bootstrapper.as_ref().ok_or_else(|| {
+                    format!("targets.{dist}.bootstrapper is required for versioned-components")
+                })?;
+                validate_versioned_artifact(bootstrapper, &format!("targets.{dist}.bootstrapper"))?;
+                if !bootstrapper.required {
+                    return Err(format!("targets.{dist}.bootstrapper must be required").into());
+                }
+                if bootstrapper.content_sha256.is_some() || !bootstrapper.files.is_empty() {
+                    return Err(format!(
+                        "targets.{dist}.bootstrapper must not define component files"
+                    )
+                    .into());
+                }
+                if dist.starts_with("darwin-") {
+                    return Err("darwin targets must use a macOS layout".into());
+                }
+                if target.host.bundle_version.is_some() {
+                    return Err(format!(
+                        "targets.{dist}.host.bundleVersion is only valid for macos-hybrid"
+                    )
+                    .into());
+                }
             }
-            if target.host.content_sha256.is_some() || !target.host.files.is_empty() {
-                return Err(format!("targets.{dist}.host must not define component files").into());
-            }
-            continue;
-        }
-        validate_component_files(&target.host, &format!("targets.{dist}.host"))?;
-        let bootstrapper = target.bootstrapper.as_ref().ok_or_else(|| {
-            format!("targets.{dist}.bootstrapper is required for versioned-components")
-        })?;
-        validate_versioned_artifact(bootstrapper, &format!("targets.{dist}.bootstrapper"))?;
-        if !bootstrapper.required {
-            return Err(format!("targets.{dist}.bootstrapper must be required").into());
-        }
-        if bootstrapper.content_sha256.is_some() || !bootstrapper.files.is_empty() {
-            return Err(
-                format!("targets.{dist}.bootstrapper must not define component files").into(),
-            );
-        }
-        if dist.starts_with("darwin-") {
-            return Err("darwin targets must use macos-bundle layout".into());
         }
         let host_version = Version::parse(&target.host.version)
             .map_err(|_| format!("targets.{dist}.host.version is invalid"))?;
@@ -305,6 +368,53 @@ mod tests {
         })
     }
 
+    fn hybrid_component(version: &str, revision: u64) -> serde_json::Value {
+        serde_json::json!({
+            "version": version,
+            "revision": revision,
+            "diskName": "pulsesync_desktop_core",
+            "required": true,
+            "requiresHost": ">=2.0.0 <3.0.0",
+            "contentSha256": "bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb",
+            "files": [{
+                "path": "index.cjs",
+                "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                "size": 10,
+                "executable": false,
+                "artifact": {
+                    "url": "/tmp/index.cjs",
+                    "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                    "size": 10
+                }
+            }],
+            "artifact": artifact()
+        })
+    }
+
+    fn hybrid_manifest(components: serde_json::Value) -> BootstrapperUpdateManifest {
+        serde_json::from_value(serde_json::json!({
+            "schemaVersion": 4,
+            "metadataVersion": 2,
+            "channel": "dev",
+            "desktopVersion": "2.0.0",
+            "desktopApi": "1.0.0",
+            "targets": {
+                "darwin-arm64": {
+                    "layout": "macos-hybrid",
+                    "host": {
+                        "version": "2.0.0",
+                        "bundleVersion": "1",
+                        "electronAbi": "140",
+                        "required": true,
+                        "artifact": artifact()
+                    },
+                    "components": components
+                }
+            }
+        }))
+        .unwrap()
+    }
+
     #[test]
     fn macos_bundle_accepts_only_full_host_artifact() {
         let manifest = manifest(serde_json::json!({
@@ -329,6 +439,34 @@ mod tests {
                 }
             }
         }));
+        assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn macos_hybrid_accepts_only_desktop_core() {
+        let manifest = hybrid_manifest(serde_json::json!({
+            "desktopCore": hybrid_component("2.0.0", 2)
+        }));
+        assert!(validate_manifest(&manifest).is_ok());
+    }
+
+    #[test]
+    fn macos_hybrid_rejects_auxiliary_external_component() {
+        let manifest = hybrid_manifest(serde_json::json!({
+            "desktopCore": hybrid_component("2.0.0", 2),
+            "artifactWorker": hybrid_component("2.0.0", 2)
+        }));
+        assert!(validate_manifest(&manifest).is_err());
+    }
+
+    #[test]
+    fn schema_v4_rejects_top_level_bundle_version() {
+        let mut value = serde_json::to_value(hybrid_manifest(serde_json::json!({
+            "desktopCore": hybrid_component("2.0.0", 2)
+        })))
+        .unwrap();
+        value["bundleVersion"] = serde_json::json!("2");
+        let manifest: BootstrapperUpdateManifest = serde_json::from_value(value).unwrap();
         assert!(validate_manifest(&manifest).is_err());
     }
 }

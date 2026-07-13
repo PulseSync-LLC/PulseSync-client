@@ -1,6 +1,9 @@
 use crate::{
     core::{error::Result, path_segment::sanitize_path_segment},
-    domain::{artifacts::ArtifactKey, manifest::BootstrapperUpdateDecision},
+    domain::{
+        artifacts::ArtifactKey,
+        manifest::{ArtifactLayout, BootstrapperUpdateDecision},
+    },
 };
 use std::path::{Path, PathBuf};
 
@@ -35,6 +38,7 @@ fn bootstrapper_executable_name() -> &'static str {
 
 pub(crate) fn target_path(
     install_dir: &Path,
+    layout: ArtifactLayout,
     host_version: &str,
     key: &ArtifactKey,
     component_revisions: &std::collections::BTreeMap<String, u64>,
@@ -53,9 +57,14 @@ pub(crate) fn target_path(
                 .get(module_name)
                 .ok_or_else(|| format!("component disk name is missing: {module_name}"))?;
             let disk_name = sanitize_path_segment(disk_name)?;
-            Ok(install_dir
-                .join(format!("app-{}", sanitize_path_segment(host_version)?))
-                .join("modules")
+            let modules_root = if layout == ArtifactLayout::MacosHybrid {
+                install_dir.join("components")
+            } else {
+                install_dir
+                    .join(format!("app-{}", sanitize_path_segment(host_version)?))
+                    .join("modules")
+            };
+            Ok(modules_root
                 .join(format!("{}-{}", disk_name, revision))
                 .join(disk_name))
         }

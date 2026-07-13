@@ -17,7 +17,10 @@ export type ResolveDesktopUpdateManifestOptions = {
 }
 
 function getBackendManifestUrl(channel: UpdateChannel, dist: string): string {
-    return `${getUpdateFeedUrl(channel)}desktop-update-${dist}.json?_=${Date.now()}`
+    const asset = dist.startsWith('darwin-')
+        ? `desktop-update-hybrid-${dist}.json`
+        : `desktop-update-${dist}.json`
+    return `${getUpdateFeedUrl(channel)}${asset}?_=${Date.now()}`
 }
 
 function getServerHealthUrl(): string {
