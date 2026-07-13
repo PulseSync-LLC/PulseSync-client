@@ -3,7 +3,7 @@
     "compilerOptions": {
         "composite": true,
         "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.node.tsbuildinfo",
-        "lib": ["ES2024"],
+        "lib": ["ES2025"],
         "module": "NodeNext",
         "moduleResolution": "NodeNext",
         "types": ["node"],
