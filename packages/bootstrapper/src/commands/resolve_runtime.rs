@@ -3,8 +3,10 @@ use crate::{
     core::{
         active_app::verified_live_lease,
         error::Result,
-        install_state::{acknowledge_runtime, resolve_active_runtime},
-        packaged_runtime::resolve_packaged_runtime,
+        install_state::{
+            acknowledge_runtime_with_host, resolve_active_runtime, resolve_active_runtime_with_host,
+        },
+        packaged_runtime::ensure_macos_hybrid_state,
     },
 };
 use serde_json::{Value, json};
@@ -23,7 +25,9 @@ pub fn resolve_runtime(args: &Args) -> Result<Value> {
     let lease_id = required_arg(args, "--active-lease-id")?;
     require_active_lease(&state_root, &lease_id)?;
     let runtime = if let Some(host_bundle) = arg_value(args, "--host-bundle") {
-        resolve_packaged_runtime(&PathBuf::from(host_bundle))?
+        let host_bundle = PathBuf::from(host_bundle);
+        ensure_macos_hybrid_state(&state_root, &host_bundle)?;
+        resolve_active_runtime_with_host(&state_root, &lease_id, Some(&host_bundle))?
     } else {
         resolve_active_runtime(&state_root, &lease_id)?
     };
@@ -37,7 +41,12 @@ pub fn acknowledge_runtime_command(args: &Args) -> Result<Value> {
         .parse::<u64>()
         .map_err(|_| "--generation must be a positive integer")?;
     require_active_lease(&state_root, &lease_id)?;
-    let state = acknowledge_runtime(&state_root, &lease_id, generation)?;
+    let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
+    let state =
+        acknowledge_runtime_with_host(&state_root, &lease_id, generation, host_bundle.as_deref())?;
+    if host_bundle.is_some() {
+        let _ = crate::domain::macos_bundle::acknowledge_runtime_startup(&state_root)?;
+    }
     Ok(json!({
         "schemaVersion": 3,
         "state": "confirmed",

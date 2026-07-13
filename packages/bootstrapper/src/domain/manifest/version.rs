@@ -8,6 +8,14 @@ use crate::{
 };
 use std::cmp::Ordering;
 
+fn release_bundle_version(manifest: &BootstrapperUpdateManifest) -> String {
+    if manifest.schema_version >= 4 {
+        manifest.metadata_version.to_string()
+    } else {
+        manifest.bundle_version.clone()
+    }
+}
+
 #[derive(Clone, Debug)]
 struct ComparableVersion {
     major: u64,
@@ -181,7 +189,9 @@ fn target_plan(
             selected_artifacts,
         ));
     }
-    if let Some(installed) = installed {
+    if let Some(installed) = installed
+        && target.layout != ArtifactLayout::MacosHybrid
+    {
         plan.extend(
             installed
                 .latest
@@ -252,7 +262,8 @@ pub fn decide_update(
             dist: dist.to_string(),
             reason: "missing-dist-artifacts".to_string(),
             target_version: manifest.desktop_version.clone(),
-            bundle_version: manifest.bundle_version.clone(),
+            bundle_version: release_bundle_version(manifest),
+            host_bundle_version: None,
             update_available: false,
             host_version: String::new(),
             bootstrapper_version: None,
@@ -291,7 +302,8 @@ pub fn decide_update(
             dist: dist.to_string(),
             reason: "invalid-version".to_string(),
             target_version: manifest.desktop_version.clone(),
-            bundle_version: manifest.bundle_version.clone(),
+            bundle_version: release_bundle_version(manifest),
+            host_bundle_version: target.host.bundle_version.clone(),
             update_available: false,
             host_version: target.host.version.clone(),
             bootstrapper_version: target
@@ -351,7 +363,8 @@ pub fn decide_update(
             dist: dist.to_string(),
             reason: "invalid-version".to_string(),
             target_version: manifest.desktop_version.clone(),
-            bundle_version: manifest.bundle_version.clone(),
+            bundle_version: release_bundle_version(manifest),
+            host_bundle_version: target.host.bundle_version.clone(),
             update_available: false,
             host_version: target.host.version.clone(),
             bootstrapper_version: target
@@ -425,7 +438,8 @@ pub fn decide_update(
             "up-to-date".to_string()
         },
         target_version: manifest.desktop_version.clone(),
-        bundle_version: manifest.bundle_version.clone(),
+        bundle_version: release_bundle_version(manifest),
+        host_bundle_version: target.host.bundle_version.clone(),
         update_available,
         host_version: target.host.version.clone(),
         bootstrapper_version: target
@@ -497,7 +511,12 @@ pub fn decide_component_update(
         decision.plan = target_plan(target, &[], Some(installed));
         return decision;
     }
-    let host_immutable_mismatch = installed.latest.host.version == target.host.version
+    let same_host_identity = if target.layout == ArtifactLayout::MacosHybrid {
+        installed.latest.host.bundle_version.as_deref() == target.host.bundle_version.as_deref()
+    } else {
+        installed.latest.host.version == target.host.version
+    };
+    let host_immutable_mismatch = same_host_identity
         && (installed
             .latest
             .host
@@ -557,23 +576,39 @@ pub fn decide_component_update(
         return decision;
     }
     let mut selected_artifacts = Vec::new();
-    let host_changed = installed.latest.host.version != target.host.version
-        || target
-            .host
-            .electron_abi
-            .as_deref()
-            .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi));
+    let host_changed = if target.layout == ArtifactLayout::MacosHybrid {
+        installed.latest.host.bundle_version.as_deref() != target.host.bundle_version.as_deref()
+            || target
+                .host
+                .electron_abi
+                .as_deref()
+                .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi))
+    } else {
+        installed.latest.host.version != target.host.version
+            || target
+                .host
+                .electron_abi
+                .as_deref()
+                .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi))
+    };
     if host_changed {
         selected_artifacts.push("host".to_string());
     }
     for (name, component) in &target.components {
-        if host_changed
-            || installed
-                .latest
-                .components
-                .get(name)
-                .map(|value| value.version.as_str())
-                != Some(component.version.as_str())
+        if installed
+            .latest
+            .components
+            .get(name)
+            .map(|value| value.version.as_str())
+            != Some(component.version.as_str())
+            || component.revision.is_some_and(|revision| {
+                installed
+                    .latest
+                    .components
+                    .get(name)
+                    .and_then(|value| value.revision)
+                    != Some(revision)
+            })
             || installed
                 .latest
                 .components
@@ -639,16 +674,17 @@ pub fn decide_component_update(
     {
         selected_artifacts.push("bootstrapper".to_string());
     }
-    let removed_components = installed
-        .latest
-        .components
-        .keys()
-        .any(|name| name != "bootstrapper" && !target.components.contains_key(name));
+    let removed_components = target.layout != ArtifactLayout::MacosHybrid
+        && installed
+            .latest
+            .components
+            .keys()
+            .any(|name| name != "bootstrapper" && !target.components.contains_key(name));
     let update_available = !selected_artifacts.is_empty() || removed_components;
     let plan = target_plan(target, &selected_artifacts, Some(installed));
     BootstrapperUpdateDecision {
         artifacts: Some(BootstrapperDistArtifacts {
-            layout: ArtifactLayout::VersionedComponents,
+            layout: target.layout,
             host: target.host.artifact.clone(),
             host_files: target_host_files(target),
             bootstrapper: target
@@ -677,7 +713,8 @@ pub fn decide_component_update(
         }
         .to_string(),
         target_version: manifest.desktop_version.clone(),
-        bundle_version: manifest.bundle_version.clone(),
+        bundle_version: release_bundle_version(manifest),
+        host_bundle_version: target.host.bundle_version.clone(),
         update_available,
         host_version: target.host.version.clone(),
         bootstrapper_version: target
@@ -713,5 +750,111 @@ pub fn decide_component_update(
             .iter()
             .filter_map(|(name, value)| value.electron_abi.clone().map(|abi| (name.clone(), abi)))
             .collect(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn artifact(sha: &str) -> serde_json::Value {
+        serde_json::json!({
+            "url": "/tmp/artifact.zip",
+            "sha256": sha,
+            "size": 10
+        })
+    }
+
+    fn hybrid_manifest(core_version: &str, revision: u64) -> BootstrapperUpdateManifest {
+        serde_json::from_value(serde_json::json!({
+            "schemaVersion": 4,
+            "metadataVersion": 2,
+            "channel": "dev",
+            "desktopVersion": core_version,
+            "targets": {
+                "darwin-arm64": {
+                    "layout": "macos-hybrid",
+                    "host": {
+                        "version": "2.0.0",
+                        "bundleVersion": "1",
+                        "electronAbi": "140",
+                        "required": true,
+                        "artifact": artifact("aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa")
+                    },
+                    "components": {
+                        "desktopCore": {
+                            "version": core_version,
+                            "revision": revision,
+                            "diskName": "pulsesync_desktop_core",
+                            "required": true,
+                            "requiresHost": ">=2.0.0 <3.0.0",
+                            "contentSha256": "dddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddddd",
+                            "files": [],
+                            "artifact": artifact("eeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeeee")
+                        }
+                    }
+                }
+            }
+        }))
+        .unwrap()
+    }
+
+    fn installed_state() -> InstallStateV3 {
+        let snapshot: crate::core::install_state::RuntimeSnapshotV3 =
+            serde_json::from_value(serde_json::json!({
+                "bundleVersion": "1",
+                "metadataVersion": 1,
+                "host": {
+                    "version": "2.0.0",
+                    "location": "host-bundle",
+                    "bundleVersion": "1",
+                    "path": ".",
+                    "sha256": "ffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffffff",
+                    "artifactSha256": "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa",
+                    "electronAbi": "140"
+                },
+                "components": {
+                    "desktopCore": {
+                        "version": "2.0.0",
+                        "revision": 1,
+                        "diskName": "pulsesync_desktop_core",
+                        "path": "components/pulsesync_desktop_core-1/pulsesync_desktop_core",
+                        "sha256": "cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc",
+                        "required": true
+                    }
+                }
+            }))
+            .unwrap();
+        InstallStateV3 {
+            schema_version: 4,
+            generation: 1,
+            activation: crate::core::install_state::RuntimeActivationV3 {
+                state: crate::core::install_state::ActivationState::Confirmed,
+                generation: 1,
+                launch_owner: None,
+            },
+            latest: snapshot.clone(),
+            running: snapshot.clone(),
+            last_successful: snapshot.clone(),
+            known_good: snapshot,
+            pinned: None,
+        }
+    }
+
+    #[test]
+    fn hybrid_revision_update_selects_only_desktop_core() {
+        let decision = decide_component_update(
+            &hybrid_manifest("2.0.1", 2),
+            &installed_state(),
+            "darwin-arm64",
+        );
+        assert!(decision.update_available);
+        assert_eq!(decision.bundle_version, "2");
+        assert_eq!(decision.host_bundle_version.as_deref(), Some("1"));
+        assert_eq!(decision.selected_artifacts, vec!["module:desktopCore"]);
+        assert_eq!(
+            decision.artifacts.as_ref().map(|value| value.layout),
+            Some(ArtifactLayout::MacosHybrid)
+        );
     }
 }

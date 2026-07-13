@@ -7,6 +7,7 @@ pub enum ArtifactLayout {
     #[default]
     VersionedComponents,
     MacosBundle,
+    MacosHybrid,
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -73,6 +74,8 @@ pub struct ComponentFileSet {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct VersionedArtifact {
     pub version: String,
+    #[serde(rename = "bundleVersion", skip_serializing_if = "Option::is_none")]
+    pub bundle_version: Option<String>,
     pub revision: Option<u64>,
     #[serde(rename = "diskName")]
     pub disk_name: Option<String>,
@@ -102,7 +105,11 @@ pub struct BootstrapperUpdateManifest {
     pub channel: String,
     #[serde(rename = "desktopVersion")]
     pub desktop_version: String,
-    #[serde(rename = "bundleVersion")]
+    #[serde(
+        default,
+        rename = "bundleVersion",
+        skip_serializing_if = "String::is_empty"
+    )]
     pub bundle_version: String,
     #[serde(rename = "metadataVersion")]
     pub metadata_version: u64,
@@ -164,6 +171,8 @@ pub struct BootstrapperUpdateDecision {
     pub target_version: String,
     #[serde(rename = "bundleVersion")]
     pub bundle_version: String,
+    #[serde(rename = "hostBundleVersion", skip_serializing_if = "Option::is_none")]
+    pub host_bundle_version: Option<String>,
     #[serde(rename = "updateAvailable")]
     pub update_available: bool,
     #[serde(rename = "hostVersion")]

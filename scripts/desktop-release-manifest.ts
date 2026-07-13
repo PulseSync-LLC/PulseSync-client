@@ -28,6 +28,7 @@ type BootstrapperArtifact = {
 
 type VersionedArtifact = {
     version: string
+    bundleVersion?: string
     revision?: number
     diskName?: string
     required: boolean
@@ -58,15 +59,15 @@ type DeltaArtifact = {
 type BootstrapperUpdateManifest = {
     channel: string
     desktopVersion: string
-    bundleVersion: string
+    bundleVersion?: string
     metadataVersion: number
     desktopApi: string
     rendererManifestUrl: string
-    schemaVersion: 3
+    schemaVersion: 3 | 4
     targets: Record<
         string,
         {
-            layout: 'versioned-components' | 'macos-bundle'
+            layout: 'versioned-components' | 'macos-bundle' | 'macos-hybrid'
             host: VersionedArtifact
             components: Record<string, VersionedArtifact>
             bootstrapper?: VersionedArtifact
@@ -116,6 +117,10 @@ type ParsedDist = {
 
 export function getDesktopReleaseManifestName(dist: string): string {
     return `desktop-update-${dist}.json`
+}
+
+export function getDesktopHybridReleaseManifestName(dist: string): string {
+    return `desktop-update-hybrid-${dist}.json`
 }
 
 function resolveInsideProject(targetPath: string): string {
@@ -242,7 +247,7 @@ async function readPreviousManifest(url: string | undefined): Promise<Bootstrapp
     if (!response.ok) throw new Error(`Cannot read previous desktop manifest (${response.status}): ${url}`)
     const payload: unknown = await response.json()
     if (typeof payload !== 'object' || payload === null) throw new Error(`Previous desktop manifest is invalid: ${url}`)
-    if (!('schemaVersion' in payload) || payload.schemaVersion !== 3) return null
+    if (!('schemaVersion' in payload) || (payload.schemaVersion !== 3 && payload.schemaVersion !== 4)) return null
     const manifest = payload as BootstrapperUpdateManifest
     if (!Number.isSafeInteger(manifest.metadataVersion) || typeof manifest.targets !== 'object' || manifest.targets === null) {
         throw new Error(`Previous desktop manifest is invalid: ${url}`)
@@ -417,7 +422,13 @@ function hashDirectory(directory: string): string {
     return hash.digest('hex')
 }
 
-function createModuleArchives(releaseDir: string, packagedAppRootDir: string, coreVersion: string, dist: string): Record<string, ModuleArchive> {
+function createModuleArchives(
+    releaseDir: string,
+    packagedAppRootDir: string,
+    coreVersion: string,
+    dist: string,
+    allowlist?: ReadonlySet<string>,
+): Record<string, ModuleArchive> {
     const modulesDir = path.join(packagedAppRootDir, 'modules')
     if (!fs.existsSync(modulesDir) || !fs.statSync(modulesDir).isDirectory()) {
         throw new Error(`Cannot create module artifacts: ${modulesDir} is not a directory`)
@@ -429,6 +440,7 @@ function createModuleArchives(releaseDir: string, packagedAppRootDir: string, co
     }
     const archives: Record<string, ModuleArchive> = {}
     for (const component of Object.values(metadata).sort((left, right) => left.name.localeCompare(right.name))) {
+        if (allowlist && !allowlist.has(component.name)) continue
         const moduleName = component.name
         const moduleVersion = component.version
         assertModuleName(moduleName)
@@ -529,7 +541,13 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const bootstrapperArtifactPath = macosBundle
         ? null
         : createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
-    const moduleArchivePaths = macosBundle ? {} : createModuleArchives(releaseDir, packagedAppRootDir, options.coreVersion, options.dist)
+    const moduleArchivePaths = createModuleArchives(
+        releaseDir,
+        packagedAppRootDir,
+        options.coreVersion,
+        options.dist,
+        macosBundle ? new Set(['desktopCore']) : undefined,
+    )
     removeStaleBootstrapperArchive(releaseDir, bootstrapperVersion, options.dist)
     removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
     removeStaleInstallerAppArtifact(releaseDir, options.coreVersion)
@@ -655,7 +673,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                     ...(hostSourceDir ? { contentSha256: hashDirectory(hostSourceDir), files: hostFiles, electronAbi } : {}),
                     artifact: hostArtifact,
                 },
-                components,
+                components: macosBundle ? {} : components,
                 ...(bootstrapperArtifact ? { bootstrapper: { version: bootstrapperVersion, required: true, artifact: bootstrapperArtifact } } : {}),
             },
         },
@@ -663,6 +681,34 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
 
     const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
+    if (macosBundle) {
+        if (Object.keys(components).length !== 1 || !components.desktopCore) {
+            throw new Error('macos-hybrid manifest must externalize only desktopCore')
+        }
+        const hybridManifest: BootstrapperUpdateManifest = {
+            schemaVersion: 4,
+            metadataVersion,
+            channel: options.channel,
+            desktopVersion: options.coreVersion,
+            desktopApi: DESKTOP_API_VERSION,
+            rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
+            targets: {
+                [options.dist]: {
+                    layout: 'macos-hybrid',
+                    host: {
+                        version: targetHostVersion,
+                        bundleVersion,
+                        electronAbi,
+                        required: true,
+                        artifact: hostArtifact,
+                    },
+                    components: { desktopCore: components.desktopCore },
+                },
+            },
+        }
+        const hybridPath = path.join(releaseDir, getDesktopHybridReleaseManifestName(options.dist))
+        fs.writeFileSync(hybridPath, `${JSON.stringify(hybridManifest, null, 4)}\n`, 'utf8')
+    }
     return manifestPath
 }
 
@@ -671,8 +717,6 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     const coreModuleDir = resolveInsideProject(options.coreModuleDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
     const { platform } = parseDist(options.dist)
-    if (platform === 'darwin') throw new Error('Standalone desktop core updates are not supported for macOS bundles')
-
     const metadataVersion = Number(options.metadataVersion)
     if (!Number.isSafeInteger(metadataVersion) || metadataVersion <= 0) {
         throw new Error('metadataVersion must be an explicit positive integer')
@@ -688,8 +732,9 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     }
 
     const previousTarget = previousManifest.targets[options.dist]
-    if (!previousTarget || previousTarget.layout !== 'versioned-components') {
-        throw new Error(`Published manifest does not contain a versioned-components target for ${options.dist}`)
+    const expectedLayout = platform === 'darwin' ? 'macos-hybrid' : 'versioned-components'
+    if (!previousTarget || previousTarget.layout !== expectedLayout) {
+        throw new Error(`Published manifest does not contain a ${expectedLayout} target for ${options.dist}`)
     }
     const previousComponent = previousTarget.components.desktopCore
     if (!previousComponent) throw new Error(`Published manifest does not contain desktopCore for ${options.dist}`)
@@ -749,7 +794,7 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
         ...previousManifest,
         metadataVersion,
         desktopVersion: component.version,
-        bundleVersion: String(metadataVersion),
+        ...(platform === 'darwin' ? { bundleVersion: undefined } : { bundleVersion: String(metadataVersion) }),
         desktopApi: DESKTOP_API_VERSION,
         rendererManifestUrl: options.rendererManifestUrl?.trim() || previousManifest.rendererManifestUrl || defaultRendererManifestUrl,
         targets: {
@@ -773,7 +818,10 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
         },
     }
 
-    const manifestPath = path.join(releaseDir, getDesktopReleaseManifestName(options.dist))
+    const manifestPath = path.join(
+        releaseDir,
+        platform === 'darwin' ? getDesktopHybridReleaseManifestName(options.dist) : getDesktopReleaseManifestName(options.dist),
+    )
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
     return manifestPath
 }

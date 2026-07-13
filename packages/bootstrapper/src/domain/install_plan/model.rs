@@ -1,4 +1,7 @@
-use crate::domain::artifacts::{ArtifactKey, StagedFileOperation};
+use crate::domain::{
+    artifacts::{ArtifactKey, StagedFileOperation},
+    manifest::ArtifactLayout,
+};
 use serde::{Deserialize, Serialize};
 use std::{collections::BTreeMap, path::PathBuf};
 
@@ -29,6 +32,8 @@ pub struct InstallPlanCheck {
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
 pub struct InstallPlan {
+    #[serde(rename = "artifactLayout")]
+    pub artifact_layout: ArtifactLayout,
     pub artifacts: Vec<InstallPlanArtifact>,
     #[serde(rename = "backupDir")]
     pub backup_dir: PathBuf,
@@ -52,6 +57,10 @@ pub struct InstallPlan {
     pub update_available: bool,
     #[serde(rename = "hostVersion")]
     pub host_version: String,
+    #[serde(rename = "hostBundle", skip_serializing_if = "Option::is_none")]
+    pub host_bundle: Option<PathBuf>,
+    #[serde(rename = "hostBundleVersion", skip_serializing_if = "Option::is_none")]
+    pub host_bundle_version: Option<String>,
     #[serde(rename = "bootstrapperVersion")]
     pub bootstrapper_version: Option<String>,
     #[serde(rename = "componentVersions")]

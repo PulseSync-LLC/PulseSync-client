@@ -9,12 +9,12 @@ use crate::{
         error::Result,
         fs_ops::{ensure_executable, sha256_file},
         layout::{Layout, assert_inside, is_inside},
-        packaged_runtime::packaged_bundle_version,
+        packaged_runtime::{packaged_bundle_version, packaged_desktop_version},
         path_segment::sanitize_path_segment,
     },
     domain::{
         artifacts::{ArtifactKey, artifact_file_name},
-        manifest::BootstrapperUpdateDecision,
+        manifest::{ArtifactLayout, BootstrapperUpdateDecision},
         update_workflow::PreparedTransactionRef,
     },
 };
@@ -120,6 +120,9 @@ pub fn prepare_transaction(
         "currentVersion": decision.current_version,
         "targetVersion": decision.target_version,
         "bundleVersion": decision.bundle_version,
+        "hostBundleVersion": decision.host_bundle_version,
+        "artifactLayout": artifacts.layout,
+        "requiresRuntimeAcknowledgement": artifacts.layout == ArtifactLayout::MacosHybrid,
         "stateRoot": layout.state_root,
         "hostBundle": host_bundle,
         "appExecutableRelative": layout.app_executable_name,
@@ -280,10 +283,14 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
             .and_then(Value::as_str)
             .ok_or("macOS transaction id is missing")?
     ));
-    validate_archive_entries(&archive)?;
-    remove_path(&unpack_dir)?;
-    remove_path(&commit_slot)?;
-    fs::create_dir(&unpack_dir)?;
+    validate_archive_entries(&archive)
+        .map_err(|error| format!("macOS host archive preflight failed: {error}"))?;
+    remove_path(&unpack_dir)
+        .map_err(|error| format!("macOS unpack directory cleanup failed: {error}"))?;
+    remove_path(&commit_slot)
+        .map_err(|error| format!("macOS commit slot cleanup failed: {error}"))?;
+    fs::create_dir(&unpack_dir)
+        .map_err(|error| format!("macOS unpack directory creation failed: {error}"))?;
     let extraction = (|| -> Result<PathBuf> {
         run_checked(
             "/usr/bin/ditto",
@@ -295,15 +302,18 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
             ],
             "macOS host archive extraction",
         )?;
-        let bundles = fs::read_dir(&unpack_dir)?
+        let bundles = fs::read_dir(&unpack_dir)
+            .map_err(|error| format!("macOS unpack directory read failed: {error}"))?
             .filter_map(|entry| entry.ok().map(|entry| entry.path()))
             .filter(|path| path.extension().and_then(|value| value.to_str()) == Some("app"))
             .collect::<Vec<_>>();
         if bundles.len() != 1 {
             return Err("macOS host archive must contain exactly one top-level .app".into());
         }
-        validate_bundle(&bundles[0], &relative_executable)?;
-        fs::rename(&bundles[0], &commit_slot)?;
+        validate_bundle(&bundles[0], &relative_executable)
+            .map_err(|error| format!("extracted macOS bundle validation failed: {error}"))?;
+        fs::rename(&bundles[0], &commit_slot)
+            .map_err(|error| format!("macOS commit slot creation failed: {error}"))?;
         Ok(commit_slot.clone())
     })();
     let _ = remove_path(&unpack_dir);
@@ -316,18 +326,28 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
     }
     let new_fingerprint = bundle_fingerprint(&commit_slot, &relative_executable)?;
     let packaged_version = packaged_bundle_version(&commit_slot)?;
-    if new_fingerprint.bundle_version
-        != transaction
-            .get("bundleVersion")
-            .and_then(Value::as_str)
-            .ok_or("bundleVersion is missing")?
-    {
+    let packaged_desktop_version = packaged_desktop_version(&commit_slot)?;
+    let expected_host_bundle_version = transaction
+        .get("hostBundleVersion")
+        .and_then(Value::as_str)
+        .or_else(|| transaction.get("bundleVersion").and_then(Value::as_str))
+        .ok_or("host bundle version is missing")?;
+    if new_fingerprint.bundle_version != expected_host_bundle_version {
         remove_path(&commit_slot)?;
         return Err("staged macOS bundle version does not match bundleVersion".into());
     }
     if packaged_version != new_fingerprint.bundle_version {
         remove_path(&commit_slot)?;
         return Err("staged macOS runtime descriptor does not match CFBundleVersion".into());
+    }
+    if packaged_desktop_version
+        != transaction
+            .get("targetVersion")
+            .and_then(Value::as_str)
+            .ok_or("targetVersion is missing")?
+    {
+        remove_path(&commit_slot)?;
+        return Err("staged macOS runtime desktopVersion does not match targetVersion".into());
     }
     let helper_dir = transaction_dir.join("helper");
     fs::create_dir_all(&helper_dir)?;

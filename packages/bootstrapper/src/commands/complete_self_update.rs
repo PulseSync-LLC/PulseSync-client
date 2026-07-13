@@ -292,6 +292,10 @@ fn complete_self_update_inner(args: &Args) -> Result<Value> {
         Err(error) => return Err(error),
     };
     if is_macos_bundle {
+        {
+            let _session_lock = SessionLock::acquire(&install_root, Duration::from_secs(10))?;
+            macos_bundle::mark_successor_ready_for_claim(&transaction_file, pid)?;
+        }
         let started = Instant::now();
         while !macos_bundle::startup_acknowledged(&transaction_file)?
             && started.elapsed() < Duration::from_secs(30)

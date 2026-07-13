@@ -194,7 +194,11 @@ fn process_start_is_live_platform(pid: u32, process_start_id: &str) -> Result<bo
         )
     };
     if read != info_size {
-        return Err(std::io::Error::last_os_error().into());
+        let error = std::io::Error::last_os_error();
+        if error.raw_os_error() == Some(libc::ESRCH) {
+            return Ok(false);
+        }
+        return Err(error.into());
     }
     let info = unsafe { info.assume_init() };
     Ok(format!("{}.{}", info.pbi_start_tvsec, info.pbi_start_tvusec) == process_start_id)
@@ -315,7 +319,11 @@ fn inspect_process(pid: u32, expected_executable: &Path) -> Result<Option<Proces
         )
     };
     if path_length <= 0 {
-        return Err(std::io::Error::last_os_error().into());
+        let error = std::io::Error::last_os_error();
+        if error.raw_os_error() == Some(libc::ESRCH) {
+            return Ok(None);
+        }
+        return Err(error.into());
     }
     let executable = PathBuf::from(
         CStr::from_bytes_until_nul(&path_buffer)
@@ -339,7 +347,11 @@ fn inspect_process(pid: u32, expected_executable: &Path) -> Result<Option<Proces
         )
     };
     if read != info_size {
-        return Err(std::io::Error::last_os_error().into());
+        let error = std::io::Error::last_os_error();
+        if error.raw_os_error() == Some(libc::ESRCH) {
+            return Ok(None);
+        }
+        return Err(error.into());
     }
     let info = unsafe { info.assume_init() };
     Ok(Some(ProcessIdentity {

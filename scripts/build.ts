@@ -233,12 +233,11 @@ async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: str
 }
 
 async function buildDesktopCoreOnly(): Promise<void> {
-    if (os.platform() === 'darwin') throw new Error('Standalone desktop core publishing is not supported for macOS bundles')
-
     const dist = setBuildDist(os.platform(), os.arch())
     const baseS3Url = (process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')
     const channel = publishBranch ?? 'local'
-    const previousManifestUrl = `${baseS3Url}/builds/app/${channel}/desktop-update-${dist}.json?_=${Date.now()}`
+    const manifestName = os.platform() === 'darwin' ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
+    const previousManifestUrl = `${baseS3Url}/builds/app/${channel}/${manifestName}?_=${Date.now()}`
     if (publishBranch) {
         const revision = await advanceDesktopCoreRevision(previousManifestUrl, dist)
         log(LogLevel.SUCCESS, `Advanced desktopCore revision to ${revision}`)
@@ -529,14 +528,19 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
 }
 
 function applyApplicationSetupArtifactName(configObj: any, desktopVersion: string): void {
-    if (os.platform() !== 'win32') {
+    if (os.platform() === 'linux') {
         return
     }
 
     const artifactName = `pulsesync-app-${desktopVersion}-\${arch}.\${ext}`
     configObj.artifactName = artifactName
-    configObj.nsis = configObj.nsis || {}
-    configObj.nsis.artifactName = artifactName
+    if (os.platform() === 'win32') {
+        configObj.nsis = configObj.nsis || {}
+        configObj.nsis.artifactName = artifactName
+    } else {
+        configObj.dmg = configObj.dmg || {}
+        configObj.dmg.artifactName = artifactName
+    }
 }
 
 function readPackageVersion(): string {
@@ -646,7 +650,7 @@ function resolveBundleVersion(): string {
 function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
-    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {}
+    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; revision?: number; diskName?: string; electronAbi?: string }> = {}
     const componentMetadata = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
     for (const component of Object.values(componentMetadata)) {
@@ -656,6 +660,8 @@ function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVer
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(contentsRoot, relativePath)),
             required: true,
+            revision: component.revision,
+            diskName: component.diskName,
             ...(component.name === 'pulsesyncNative' ? { electronAbi } : {}),
         }
     }
@@ -675,6 +681,8 @@ function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVer
         hostVersion,
         desktopVersion,
         bundleVersion,
+        metadataVersion: Number(bundleVersion),
+        hostElectronAbi: electronAbi,
         components,
     }
     const descriptorPath = path.join(contentsRoot, 'Resources', 'pulsesync-runtime.json')

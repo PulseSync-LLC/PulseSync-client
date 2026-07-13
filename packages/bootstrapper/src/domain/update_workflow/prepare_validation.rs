@@ -38,6 +38,7 @@ pub(super) fn resolve_effective_source(
         dist: options.dist.clone(),
         owner: options.github_owner.clone(),
         repo: options.github_repo.clone(),
+        hybrid: options.host_bundle.is_some(),
     };
 
     match options.requested_source {
@@ -251,8 +252,10 @@ pub(super) fn transaction_matches(
         let Some(artifacts) = decision.artifacts.as_ref() else {
             return false;
         };
-        return artifacts.layout == ArtifactLayout::MacosBundle
-            && value.get("schemaVersion").and_then(Value::as_u64) == Some(1)
+        return matches!(
+            artifacts.layout,
+            ArtifactLayout::MacosBundle | ArtifactLayout::MacosHybrid
+        ) && value.get("schemaVersion").and_then(Value::as_u64) == Some(1)
             && record.candidate.state == "prepared"
             && Uuid::parse_str(transaction_id).is_ok()
             && value.get("channel").and_then(Value::as_str) == Some(decision.channel.as_str())
@@ -394,6 +397,14 @@ pub(super) fn transaction_matches(
                 .collect::<Option<Vec<_>>>()
         });
     if plan.bundle_version != decision.bundle_version
+        || plan.artifact_layout != decision_artifacts.layout
+        || plan.host_bundle_version != decision.host_bundle_version
+        || plan.host_bundle.as_ref().is_some_and(|path| {
+            layout
+                .host_bundle
+                .as_ref()
+                .is_none_or(|host| !paths_match(path, host))
+        })
         || plan.host_content_sha256 != expected_host_content
         || plan.component_content_sha256s != expected_component_content
         || plan.omitted_components != expected_omitted_components

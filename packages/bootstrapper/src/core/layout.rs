@@ -46,6 +46,7 @@ pub struct Layout {
 pub enum LayoutKind {
     VersionedComponents,
     MacosBundle,
+    MacosHybrid,
 }
 
 fn default_app_executable_name() -> &'static str {
@@ -242,14 +243,34 @@ pub fn resolve_macos_layout(
         .map_err(|_| "macOS app executable is outside the host bundle")?
         .to_string_lossy()
         .to_string();
+    let install_state_file = install_state_path(&state_root);
+    let install_state = if install_state_file.is_file() {
+        Some(read_install_state_metadata(&state_root)?)
+    } else {
+        None
+    };
+    let hybrid = install_state
+        .as_ref()
+        .is_some_and(|state| state.schema_version == 4);
+    let current_version = install_state.as_ref().and_then(|state| {
+        state
+            .latest
+            .components
+            .get("desktopCore")
+            .map(|component| component.version.clone())
+    });
     let updates_dir = state_root.join("updates");
     let layout = Layout {
-        layout_kind: LayoutKind::MacosBundle,
+        layout_kind: if hybrid {
+            LayoutKind::MacosHybrid
+        } else {
+            LayoutKind::MacosBundle
+        },
         install_root: state_root.clone(),
-        state_root,
+        state_root: state_root.clone(),
         host_bundle: Some(host_bundle.clone()),
-        install_state_file: PathBuf::new(),
-        current_version: None,
+        install_state_file,
+        current_version,
         app_executable_name,
         app_dir: host_bundle.clone(),
         app_executable,
@@ -257,7 +278,11 @@ pub fn resolve_macos_layout(
             .join("Contents")
             .join("Resources")
             .join("bootstrapper"),
-        modules_dir: host_bundle.join("Contents").join("modules"),
+        modules_dir: if hybrid {
+            state_root.join("components")
+        } else {
+            host_bundle.join("Contents").join("modules")
+        },
         transaction_root: updates_dir.join("transactions"),
         updates_dir,
     };
@@ -267,6 +292,14 @@ pub fn resolve_macos_layout(
         &layout.transaction_root,
         "transactionRoot",
     )?;
+    if hybrid {
+        assert_inside(
+            &layout.state_root,
+            &layout.install_state_file,
+            "installStateFile",
+        )?;
+        assert_inside(&layout.state_root, &layout.modules_dir, "modulesDir")?;
+    }
     assert_inside(
         layout.host_bundle.as_ref().expect("host bundle"),
         &layout.bootstrapper_dir,

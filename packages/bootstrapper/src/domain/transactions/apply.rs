@@ -3,8 +3,8 @@ use crate::{
         error::Result,
         fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
         install_state::{
-            ActivationState, RuntimeActivationV3, RuntimeComponentV3, read_install_state,
-            write_install_state,
+            ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation,
+            read_install_state, read_install_state_with_host, write_install_state,
         },
         layout::assert_inside,
         path_segment::sanitize_path_segment,
@@ -234,7 +234,15 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     // A bootstrapper self-update changes the file referenced by the current
     // snapshot, so reading the state after the replacement would incorrectly
     // reject the old snapshot because its recorded hash no longer matches.
-    let mut install_state = read_install_state(&install_dir)?;
+    let host_bundle = transaction
+        .get("hostBundle")
+        .and_then(Value::as_str)
+        .map(PathBuf::from);
+    let mut install_state = if host_bundle.is_some() {
+        read_install_state_with_host(&install_dir, host_bundle.as_deref())?
+    } else {
+        read_install_state(&install_dir)?
+    };
     let mut applied = Vec::new();
 
     for artifact in &artifacts {
@@ -272,6 +280,14 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         .get("componentElectronAbis")
         .and_then(Value::as_object)
         .ok_or("componentElectronAbis is required")?;
+    let component_revisions = transaction
+        .get("componentRevisions")
+        .and_then(Value::as_object)
+        .ok_or("componentRevisions is required")?;
+    let component_disk_names = transaction
+        .get("componentDiskNames")
+        .and_then(Value::as_object)
+        .ok_or("componentDiskNames is required")?;
     let component_artifact_sha256s = transaction
         .get("componentArtifactSha256s")
         .and_then(Value::as_object);
@@ -321,6 +337,9 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                         .and_then(Value::as_str)
                         .ok_or("bootstrapperVersion is required")?
                         .to_string(),
+                    location: RuntimeLocation::StateRoot,
+                    revision: None,
+                    disk_name: None,
                     path: relative_path,
                     sha256: sha256_file(&artifact.target_path)?,
                     required: artifact.required,
@@ -342,6 +361,12 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                 name.to_string(),
                 RuntimeComponentV3 {
                     version,
+                    location: RuntimeLocation::StateRoot,
+                    revision: component_revisions.get(name).and_then(Value::as_u64),
+                    disk_name: component_disk_names
+                        .get(name)
+                        .and_then(Value::as_str)
+                        .map(str::to_string),
                     path: relative_path,
                     sha256,
                     required: artifact.required,

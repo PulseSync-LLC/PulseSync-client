@@ -2,7 +2,8 @@ use crate::{
     core::{
         error::Result,
         install_state::{
-            ActivationState, RuntimeActivationV3, read_install_state, write_install_state,
+            ActivationState, RuntimeActivationV3, read_install_state, read_install_state_with_host,
+            write_install_state,
         },
     },
     domain::transactions::store::{transaction_artifacts, write_transaction},
@@ -32,9 +33,22 @@ fn restore_install_state(transaction: &mut Value) -> Result<()> {
             .and_then(Value::as_str)
             .ok_or("installDir is required to restore install state")?,
     );
-    let mut state = read_install_state(&install_dir)?;
+    let host_bundle = transaction
+        .get("hostBundle")
+        .and_then(Value::as_str)
+        .map(PathBuf::from);
+    let mut state = if host_bundle.is_some() {
+        read_install_state_with_host(&install_dir, host_bundle.as_deref())?
+    } else {
+        read_install_state(&install_dir)?
+    };
     if !matches!(state.activation.state, ActivationState::Pending) {
-        return Err("confirmed runtime cannot be rolled back by an update transaction".into());
+        transaction["installStateRestored"] = json!({
+            "state": "unchanged",
+            "generation": state.generation,
+            "path": crate::core::install_state::install_state_path(&install_dir)
+        });
+        return Ok(());
     }
     state.latest = state.known_good.clone();
     state.running = state.known_good.clone();

@@ -241,6 +241,32 @@ pub fn acknowledge_app_startup(state_root: &Path, handoff_id: &str) -> Result<bo
         if !is_macos_transaction(&record.value)
             || record.value.get("appHandoffId").and_then(Value::as_str) != Some(handoff_id)
             || record.value.get("state").and_then(Value::as_str) != Some("verified")
+            || record
+                .value
+                .get("requiresRuntimeAcknowledgement")
+                .and_then(Value::as_bool)
+                == Some(true)
+        {
+            continue;
+        }
+        let mut transaction = record.value;
+        transaction["startupAcknowledged"] = json!(true);
+        write_json_atomic(&record.candidate.path, &transaction)?;
+        return Ok(true);
+    }
+    Ok(false)
+}
+
+pub fn acknowledge_runtime_startup(state_root: &Path) -> Result<bool> {
+    let transaction_root = state_root.join("updates").join("transactions");
+    for record in transaction_records(&transaction_root)? {
+        if !is_macos_transaction(&record.value)
+            || record.value.get("state").and_then(Value::as_str) != Some("verified")
+            || record
+                .value
+                .get("requiresRuntimeAcknowledgement")
+                .and_then(Value::as_bool)
+                != Some(true)
         {
             continue;
         }
@@ -257,6 +283,20 @@ pub fn startup_acknowledged(transaction_file: &Path) -> Result<bool> {
         .get("startupAcknowledged")
         .and_then(Value::as_bool)
         == Some(true))
+}
+
+/// The caller must hold the state root `SessionLock` while updating this transaction.
+pub(crate) fn mark_successor_ready_for_claim(transaction_file: &Path, pid: u32) -> Result<()> {
+    let mut transaction = read_transaction(transaction_file)?;
+    if !is_macos_transaction(&transaction)
+        || transaction.get("state").and_then(Value::as_str) != Some("verified")
+        || pid == 0
+    {
+        return Err("macOS successor cannot be marked ready for claim".into());
+    }
+    transaction["successorPid"] = json!(pid);
+    transaction["successorReadyForClaim"] = json!(true);
+    write_json_atomic(transaction_file, &transaction)
 }
 
 pub fn app_handoff_bound(transaction_file: &Path) -> Result<bool> {
@@ -317,7 +357,7 @@ mod tests {
         fs::write(
             contents.join("Info.plist"),
             format!(
-                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict><key>CFBundleShortVersionString</key><string>{version}</string></dict></plist>\n"
+                "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<!DOCTYPE plist PUBLIC \"-//Apple//DTD PLIST 1.0//EN\" \"http://www.apple.com/DTDs/PropertyList-1.0.dtd\">\n<plist version=\"1.0\"><dict><key>CFBundleShortVersionString</key><string>{version}</string><key>CFBundleVersion</key><string>{version}</string></dict></plist>\n"
             ),
         )
         .unwrap();
@@ -402,6 +442,27 @@ mod tests {
             "old"
         );
         assert!(!root.join("state/backups/stale").exists());
+        fs::remove_dir_all(root).unwrap();
+    }
+
+    #[test]
+    fn successor_readiness_is_persisted_after_exchange() {
+        let root = temp_root("successor-ready");
+        let transaction = write_exchange_transaction(&root);
+        assert!(mark_successor_ready_for_claim(&transaction, 42).is_err());
+        exchange_transaction(&transaction).unwrap();
+        mark_successor_ready_for_claim(&transaction, 42).unwrap();
+        let persisted = read_transaction(&transaction).unwrap();
+        assert_eq!(
+            persisted.get("successorPid").and_then(Value::as_u64),
+            Some(42)
+        );
+        assert_eq!(
+            persisted
+                .get("successorReadyForClaim")
+                .and_then(Value::as_bool),
+            Some(true)
+        );
         fs::remove_dir_all(root).unwrap();
     }
 

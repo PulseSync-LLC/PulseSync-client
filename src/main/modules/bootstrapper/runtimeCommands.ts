@@ -195,13 +195,16 @@ export async function resolveActiveRuntime(options: {
 export async function acknowledgeActiveRuntime(options: {
     activeLeaseId: string
     generation: number
+    hostBundle?: string | null
     launcher: BootstrapperLauncher
     stateRoot: string
 }): Promise<RuntimeAcknowledgementV3> {
+    const args = ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--generation', String(options.generation)]
+    if (options.hostBundle) args.push('--host-bundle', options.hostBundle)
     return await runBootstrapperCommand({
         launcher: options.launcher,
         command: 'acknowledge-runtime',
-        args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--generation', String(options.generation)],
+        args,
         parseResult: parseRuntimeAcknowledgementV3,
     })
 }

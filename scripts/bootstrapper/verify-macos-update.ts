@@ -246,7 +246,29 @@ async function main(): Promise<void> {
             start.stdout.setEncoding('utf8')
             start.stdout.on('data', chunk => (stdout += String(chunk)))
             start.once('error', reject)
-            start.once('close', code => (code === 0 ? resolve(stdout) : reject(new Error(`start failed (${code}): ${stderr}\n${stdout}`))))
+            start.once('close', code => {
+                if (code === 0) {
+                    resolve(stdout)
+                    return
+                }
+                const helperErrorPath = path.join(stateRoot, 'updates', 'self-update-handoff-error.json')
+                const helperError = fs.existsSync(helperErrorPath) ? `\nhelper error:\n${fs.readFileSync(helperErrorPath, 'utf8')}` : ''
+                let transaction = ''
+                if (fs.existsSync(prepare.transaction.file)) {
+                    const raw = fs.readFileSync(prepare.transaction.file, 'utf8')
+                    const value = JSON.parse(raw) as { archivePath?: string; commitSlot?: string; hostBundle?: string }
+                    const paths = [
+                        value.archivePath,
+                        value.commitSlot,
+                        value.commitSlot && path.join(value.commitSlot, 'Contents', 'Info.plist'),
+                        value.commitSlot && path.join(value.commitSlot, 'Contents', 'Resources', 'pulsesync-runtime.json'),
+                        value.commitSlot && path.join(value.commitSlot, 'Contents', 'Resources', 'bootstrapper', 'pulsesync-bootstrapper'),
+                        value.hostBundle,
+                    ].filter((candidate): candidate is string => Boolean(candidate))
+                    transaction = `\ntransaction paths:\n${paths.map(candidate => `${fs.existsSync(candidate) ? 'exists' : 'missing'} ${candidate}`).join('\n')}\ntransaction:\n${raw}`
+                }
+                reject(new Error(`start failed (${code}): ${stderr}\n${stdout}${helperError}${transaction}`))
+            })
         })
         const startResult = JSON.parse(startOutput) as { state: string; handoffPid?: number }
         if (startResult.state !== 'reserved') throw new Error(`Handoff was not reserved: ${startOutput}`)
@@ -298,6 +320,11 @@ async function main(): Promise<void> {
                 () => fs.existsSync(processStartedPath) && fs.readFileSync(processStartedPath, 'utf8').trim() === '2.0.0',
                 20_000,
                 'version B process start before claim',
+            )
+            await waitFor(
+                () => JSON.parse(fs.readFileSync(prepare.transaction.file, 'utf8')).successorReadyForClaim === true,
+                20_000,
+                'version B successor readiness',
             )
             process.kill(startResult.handoffPid, 'SIGSTOP')
             await waitFor(

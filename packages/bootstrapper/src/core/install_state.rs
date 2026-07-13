@@ -20,10 +20,26 @@ pub enum ActivationState {
     Confirmed,
 }
 
+#[derive(Clone, Copy, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+#[serde(rename_all = "kebab-case")]
+pub enum RuntimeLocation {
+    #[default]
+    StateRoot,
+    HostBundle,
+}
+
+fn is_state_root_location(value: &RuntimeLocation) -> bool {
+    *value == RuntimeLocation::StateRoot
+}
+
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RuntimeHostV3 {
     pub version: String,
+    #[serde(default, skip_serializing_if = "is_state_root_location")]
+    pub location: RuntimeLocation,
+    #[serde(rename = "bundleVersion", skip_serializing_if = "Option::is_none")]
+    pub bundle_version: Option<String>,
     pub path: PathBuf,
     pub sha256: String,
     #[serde(rename = "artifactSha256", skip_serializing_if = "Option::is_none")]
@@ -36,6 +52,12 @@ pub struct RuntimeHostV3 {
 #[serde(deny_unknown_fields)]
 pub struct RuntimeComponentV3 {
     pub version: String,
+    #[serde(default, skip_serializing_if = "is_state_root_location")]
+    pub location: RuntimeLocation,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub revision: Option<u64>,
+    #[serde(rename = "diskName", skip_serializing_if = "Option::is_none")]
+    pub disk_name: Option<String>,
     pub path: PathBuf,
     pub sha256: String,
     pub required: bool,
@@ -165,10 +187,61 @@ fn resolve_relative(state_root: &Path, relative: &Path, label: &str) -> Result<P
     Ok(resolved)
 }
 
+fn resolve_host_path(host_bundle: Option<&Path>, host: &RuntimeHostV3) -> Result<PathBuf> {
+    match host.location {
+        RuntimeLocation::StateRoot => Err("state-root host requires the state root".into()),
+        RuntimeLocation::HostBundle => {
+            let host_bundle = host_bundle.ok_or("macOS host bundle context is required")?;
+            if host.path != Path::new(".") {
+                return Err("host-bundle runtime host path must be '.'".into());
+            }
+            let resolved = host_bundle
+                .canonicalize()
+                .map_err(|error| format!("macOS host bundle cannot be resolved: {error}"))?;
+            if resolved.extension().and_then(|value| value.to_str()) != Some("app") {
+                return Err("macOS host bundle context must be an .app".into());
+            }
+            Ok(resolved)
+        }
+    }
+}
+
+fn resolve_component_path(
+    state_root: &Path,
+    host_bundle: Option<&Path>,
+    name: &str,
+    component: &RuntimeComponentV3,
+) -> Result<PathBuf> {
+    match component.location {
+        RuntimeLocation::StateRoot => resolve_relative(
+            state_root,
+            &component.path,
+            &format!("{name} component path"),
+        ),
+        RuntimeLocation::HostBundle => {
+            let host_bundle = host_bundle.ok_or("macOS host bundle context is required")?;
+            let contents_root = host_bundle.join("Contents");
+            let path = resolve_relative(
+                &contents_root,
+                &component.path,
+                &format!("{name} host-bound component path"),
+            )?;
+            assert_inside(
+                &contents_root,
+                &path,
+                &format!("{name} host-bound component path"),
+            )?;
+            Ok(path)
+        }
+    }
+}
+
 fn validate_snapshot(
     state_root: &Path,
+    host_bundle: Option<&Path>,
     snapshot: &RuntimeSnapshotV3,
     skip_mutable_bootstrapper: bool,
+    skip_host_bound_components: bool,
 ) -> Result<()> {
     validate_snapshot_identity(snapshot)?;
     if snapshot.host.version.trim().is_empty()
@@ -181,7 +254,25 @@ fn validate_snapshot(
     {
         return Err("runtime host version or sha256 is invalid".into());
     }
-    let host_path = resolve_relative(state_root, &snapshot.host.path, "runtime host path")?;
+    let host_path = match snapshot.host.location {
+        RuntimeLocation::StateRoot => {
+            if snapshot.host.bundle_version.is_some() {
+                return Err("state-root runtime host must not define bundleVersion".into());
+            }
+            resolve_relative(state_root, &snapshot.host.path, "runtime host path")?
+        }
+        RuntimeLocation::HostBundle => {
+            let bundle_version = snapshot
+                .host
+                .bundle_version
+                .as_deref()
+                .ok_or("host-bundle runtime host requires bundleVersion")?;
+            if bundle_version.parse::<u64>().is_err() {
+                return Err("host-bundle runtime host bundleVersion must be an integer".into());
+            }
+            resolve_host_path(host_bundle, &snapshot.host)?
+        }
+    };
     if !host_path.is_dir() {
         return Err(format!(
             "runtime host path is not a directory: {}",
@@ -203,7 +294,10 @@ fn validate_snapshot(
         if skip_mutable_bootstrapper && name == "bootstrapper" {
             continue;
         }
-        if let Err(error) = validate_component(state_root, name, component)
+        if skip_host_bound_components && component.location == RuntimeLocation::HostBundle {
+            continue;
+        }
+        if let Err(error) = validate_component(state_root, host_bundle, name, component)
             && component.required
         {
             return Err(error);
@@ -214,6 +308,7 @@ fn validate_snapshot(
 
 fn validate_component(
     state_root: &Path,
+    host_bundle: Option<&Path>,
     name: &str,
     component: &RuntimeComponentV3,
 ) -> Result<PathBuf> {
@@ -226,11 +321,7 @@ fn validate_component(
     {
         return Err(format!("{name} version or sha256 is invalid").into());
     }
-    let component_path = resolve_relative(
-        state_root,
-        &component.path,
-        &format!("{name} component path"),
-    )?;
+    let component_path = resolve_component_path(state_root, host_bundle, name, component)?;
     if name == "desktopCore"
         && (!component_path.join("index.cjs").is_file()
             || !component_path.join("mainWindowPreload.cjs").is_file())
@@ -317,9 +408,9 @@ pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV3> 
     let state_root = canonical_install_root(state_root)?;
     let state_path = install_state_path(&state_root);
     let state: InstallStateV3 = serde_json::from_slice(&fs::read(&state_path)?)?;
-    if state.schema_version != 3 {
+    if !matches!(state.schema_version, 3 | 4) {
         return Err(format!(
-            "install-state schemaVersion must be 3: {}",
+            "install-state schemaVersion must be 3 or 4: {}",
             state_path.display()
         )
         .into());
@@ -332,29 +423,48 @@ pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV3> 
 }
 
 pub fn read_install_state(state_root: &Path) -> Result<InstallStateV3> {
+    read_install_state_with_host(state_root, None)
+}
+
+pub fn read_install_state_with_host(
+    state_root: &Path,
+    host_bundle: Option<&Path>,
+) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let state = read_install_state_metadata(&state_root)?;
-    validate_snapshot(&state_root, &state.latest, false)?;
+    if state.schema_version == 4 && host_bundle.is_none() {
+        return Err("install-state schemaVersion 4 requires macOS host bundle context".into());
+    }
+    validate_snapshot(&state_root, host_bundle, &state.latest, false, false)?;
+    let latest_host_bundle = state.latest.host.bundle_version.as_deref();
     validate_snapshot(
         &state_root,
+        host_bundle,
         &state.running,
         !same_snapshot(&state.running, &state.latest),
+        state.running.host.bundle_version.as_deref() != latest_host_bundle,
     )?;
     validate_snapshot(
         &state_root,
+        host_bundle,
         &state.last_successful,
         !same_snapshot(&state.last_successful, &state.latest),
+        state.last_successful.host.bundle_version.as_deref() != latest_host_bundle,
     )?;
     validate_snapshot(
         &state_root,
+        host_bundle,
         &state.known_good,
         !same_snapshot(&state.known_good, &state.latest),
+        state.known_good.host.bundle_version.as_deref() != latest_host_bundle,
     )?;
     if let Some(pinned) = &state.pinned {
         validate_snapshot(
             &state_root,
+            host_bundle,
             pinned,
             !same_snapshot(pinned, &state.latest),
+            pinned.host.bundle_version.as_deref() != latest_host_bundle,
         )?;
     }
     Ok(state)
@@ -369,6 +479,14 @@ pub fn write_install_state(state_root: &Path, state: &InstallStateV3) -> Result<
 }
 
 pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<ActiveRuntimeV3> {
+    resolve_active_runtime_with_host(state_root, lease_id, None)
+}
+
+pub fn resolve_active_runtime_with_host(
+    state_root: &Path,
+    lease_id: &str,
+    host_bundle: Option<&Path>,
+) -> Result<ActiveRuntimeV3> {
     let state_root = canonical_install_root(state_root)?;
     let mut state = read_install_state_metadata(&state_root)?;
     if matches!(state.activation.state, ActivationState::Pending) {
@@ -397,23 +515,29 @@ pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<Activ
             cleanup_inactive_runtime(&state_root, &state)?;
         }
     }
-    validate_snapshot(&state_root, &state.running, false)?;
+    validate_snapshot(&state_root, host_bundle, &state.running, false, false)?;
 
     let core = state
         .running
         .components
         .get("desktopCore")
         .ok_or("desktopCore component is required")?;
-    let host_path = node_runtime_path(resolve_relative(
+    let host_path = node_runtime_path(match state.running.host.location {
+        RuntimeLocation::StateRoot => {
+            resolve_relative(&state_root, &state.running.host.path, "runtime host path")?
+        }
+        RuntimeLocation::HostBundle => resolve_host_path(host_bundle, &state.running.host)?,
+    });
+    let core_path = node_runtime_path(validate_component(
         &state_root,
-        &state.running.host.path,
-        "runtime host path",
+        host_bundle,
+        "desktopCore",
+        core,
     )?);
-    let core_path = node_runtime_path(validate_component(&state_root, "desktopCore", core)?);
     let mut components = BTreeMap::new();
     let mut optional_failures = Vec::new();
     for (name, component) in &state.running.components {
-        match validate_component(&state_root, name, component) {
+        match validate_component(&state_root, host_bundle, name, component) {
             Ok(path) => {
                 components.insert(
                     name.clone(),
@@ -451,13 +575,14 @@ pub fn resolve_active_runtime(state_root: &Path, lease_id: &str) -> Result<Activ
     })
 }
 
-pub fn acknowledge_runtime(
+pub fn acknowledge_runtime_with_host(
     state_root: &Path,
     lease_id: &str,
     generation: u64,
+    host_bundle: Option<&Path>,
 ) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
-    let mut state = read_install_state(&state_root)?;
+    let mut state = read_install_state_with_host(&state_root, host_bundle)?;
     if state.generation != generation {
         return Err(format!(
             "runtime generation mismatch: expected {}, got {generation}",
@@ -510,9 +635,19 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
     }
 
     let mut keep_modules = Vec::new();
+    let mut keep_hybrid_components = Vec::new();
     for snapshot in &snapshots {
         for component in snapshot.components.values() {
+            if component.location == RuntimeLocation::HostBundle {
+                continue;
+            }
             let component_path = state_root.join(&component.path);
+            if component_path.starts_with(state_root.join("components")) {
+                if let Some(container) = component_path.parent() {
+                    keep_hybrid_components.push(container.to_path_buf());
+                }
+                continue;
+            }
             if component_path
                 .parent()
                 .and_then(Path::parent)
@@ -535,6 +670,22 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
                 && !keep_modules.iter().any(|candidate| candidate == &path)
             {
                 assert_inside(&modules_root, &path, "inactive component")?;
+                fs::remove_dir_all(&path)?;
+                removed.push(path);
+            }
+        }
+    }
+    let hybrid_components_root = state_root.join("components");
+    if hybrid_components_root.is_dir() {
+        for component in fs::read_dir(&hybrid_components_root)? {
+            let component = component?;
+            let path = component.path();
+            if component.file_type()?.is_dir()
+                && !keep_hybrid_components
+                    .iter()
+                    .any(|candidate| candidate == &path)
+            {
+                assert_inside(&hybrid_components_root, &path, "inactive hybrid component")?;
                 fs::remove_dir_all(&path)?;
                 removed.push(path);
             }
@@ -575,12 +726,22 @@ pub fn pin_runtime_snapshot(
 }
 
 pub fn recover_unowned_pending_runtime(state_root: &Path) -> Result<bool> {
+    recover_unowned_pending_runtime_with_host(state_root, None)
+}
+
+pub fn recover_unowned_pending_runtime_with_host(
+    state_root: &Path,
+    host_bundle: Option<&Path>,
+) -> Result<bool> {
     let state_root = canonical_install_root(state_root)?;
     let state = read_install_state_metadata(&state_root)?;
     if matches!(state.activation.state, ActivationState::Pending)
         && state.activation.launch_owner.is_none()
     {
-        validate_snapshot(&state_root, &state.latest, false)?;
+        if state.schema_version == 4 && host_bundle.is_none() {
+            return Err("recovering hybrid runtime requires macOS host bundle context".into());
+        }
+        validate_snapshot(&state_root, host_bundle, &state.latest, false, false)?;
     }
     Ok(false)
 }

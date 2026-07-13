@@ -140,9 +140,22 @@ async function startDevelopmentApplication(): Promise<void> {
     await handle.ready
 }
 
+async function acquirePackagedSingleInstanceLock(): Promise<boolean> {
+    if (allowSecondInstance || app.requestSingleInstanceLock()) return true
+    if (!process.env.PULSESYNC_HANDOFF_ID) return false
+
+    const deadline = Date.now() + 5_000
+    while (Date.now() < deadline) {
+        await new Promise(resolve => setTimeout(resolve, 50))
+        if (app.requestSingleInstanceLock()) return true
+    }
+    return false
+}
+
 async function startPackagedBootstrap(): Promise<void> {
-    const isFirstInstance = allowSecondInstance || app.requestSingleInstanceLock()
+    const isFirstInstance = await acquirePackagedSingleInstanceLock()
     if (!isFirstInstance) {
+        console.error('PulseSync successor could not acquire the single-instance lock')
         app.quit()
         return
     }
