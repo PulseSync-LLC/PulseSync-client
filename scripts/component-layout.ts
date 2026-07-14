@@ -15,15 +15,33 @@ type DesktopCorePackage = {
     componentDiskNames?: Record<string, string>
 }
 
+function readRevisionOverrides(): Record<string, number> | null {
+    const raw = process.env.PULSESYNC_COMPONENT_REVISIONS?.trim()
+    if (!raw) return null
+
+    const value = JSON.parse(raw) as unknown
+    if (!value || typeof value !== 'object' || Array.isArray(value)) {
+        throw new Error('PULSESYNC_COMPONENT_REVISIONS must be a JSON object')
+    }
+
+    return value as Record<string, number>
+}
+
 export function readRuntimeComponentMetadata(projectRoot: string): Record<string, RuntimeComponentMetadata> {
     const packagePath = path.join(projectRoot, 'packages', 'desktop-core', 'package.json')
     const packageJson = JSON.parse(fs.readFileSync(packagePath, 'utf8')) as DesktopCorePackage
     const names = ['desktopCore', ...Object.keys(packageJson.componentVersions ?? {})]
+    const revisionOverrides = readRevisionOverrides()
+    if (revisionOverrides) {
+        for (const name of Object.keys(revisionOverrides)) {
+            if (!names.includes(name)) throw new Error(`Unknown component revision override: ${name}`)
+        }
+    }
     const components: Record<string, RuntimeComponentMetadata> = {}
 
     for (const name of names) {
         const version = name === 'desktopCore' ? packageJson.version : packageJson.componentVersions?.[name]
-        const revision = packageJson.componentRevisions?.[name]
+        const revision = revisionOverrides?.[name] ?? packageJson.componentRevisions?.[name]
         const diskName = packageJson.componentDiskNames?.[name]
         if (!version || !/^[0-9A-Za-z][0-9A-Za-z._-]*$/u.test(version)) {
             throw new Error(`Missing valid component version for ${name}`)

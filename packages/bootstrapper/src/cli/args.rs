@@ -72,6 +72,11 @@ pub fn parse_args() -> Result<Args> {
             index += 1;
             continue;
         }
+        if command == "start" && arg == "--updated" {
+            passthrough.push(arg);
+            index += 1;
+            continue;
+        }
         if !arg.starts_with("--") {
             if command == "start" || command == "complete-self-update" {
                 passthrough.push(arg);
