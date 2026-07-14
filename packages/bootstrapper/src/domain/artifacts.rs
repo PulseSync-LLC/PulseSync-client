@@ -646,6 +646,10 @@ fn stage_file_set(
                 });
             }
         }
+        reporter.emit(InstallWorkflowEvent::stage(
+            "preparing",
+            format!("Preparing {} snapshot", key.as_str()),
+        ));
         let content_sha = sha256_directory(&snapshot_dir)?;
         if !content_sha.eq_ignore_ascii_case(&file_set.content_sha256) {
             return Err(format!(
@@ -708,11 +712,13 @@ struct AggregateArtifactProgressReporter<'a> {
 
 impl InstallProgressReporter for AggregateArtifactProgressReporter<'_> {
     fn emit(&self, mut event: InstallWorkflowEvent) {
-        if event.event == "artifact-progress" {
+        if event.event == "artifact-progress"
+            && let Some(bytes_total) = self.bytes_total
+        {
             event.bytes_read = event
                 .bytes_read
                 .map(|bytes| self.bytes_offset.saturating_add(bytes));
-            event.bytes_total = self.bytes_total;
+            event.bytes_total = Some(bytes_total);
         }
         self.inner.emit(event);
     }
@@ -749,19 +755,13 @@ pub fn stage_artifacts(
                 })
             })
             .collect::<Vec<_>>();
-        let bytes_total = selected
-            .iter()
-            .try_fold(0_u64, |total, (_, artifact, file_set)| {
-                let size = file_set
-                    .map(|set| {
-                        let file_bytes = set.files.iter().map(|file| file.size).sum::<u64>();
-                        artifact
-                            .size
-                            .map_or(file_bytes, |archive_bytes| file_bytes.min(archive_bytes))
-                    })
-                    .or(artifact.size);
-                size.and_then(|size| total.checked_add(size))
-            });
+        let bytes_total = if selected.iter().all(|(_, _, file_set)| file_set.is_none()) {
+            selected.iter().try_fold(0_u64, |total, (_, artifact, _)| {
+                artifact.size.and_then(|size| total.checked_add(size))
+            })
+        } else {
+            None
+        };
         let artifact_count = selected.len();
         let mut bytes_completed = 0_u64;
         for (index, (key, artifact, file_set)) in selected.into_iter().enumerate() {
