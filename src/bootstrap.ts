@@ -1,4 +1,5 @@
 import path from 'node:path'
+import fs from 'node:fs'
 import { app } from 'electron'
 import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
 import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
@@ -24,7 +25,6 @@ declare const __non_vite_require__: (moduleId: string) => {
 }
 
 registerSchemes()
-initMainErrorTracking()
 handleUncaughtException()
 
 const launchQueue = new LaunchQueue()
@@ -70,6 +70,18 @@ function loadApplicationMain(
 ): Promise<ApplicationStartupHandle> {
     const coreEntry = app.isPackaged ? activeRuntime?.corePath : path.join(__dirname, 'desktopCore.cjs')
     if (!coreEntry) throw new Error('Resolved desktop core path is missing')
+    let coreCommit = PULSESYNC_BRANCH || 'unknown'
+    if (app.isPackaged) {
+        try {
+            const corePackage = JSON.parse(fs.readFileSync(path.join(coreEntry, 'package.json'), 'utf8')) as {
+                buildInfo?: { BRANCH?: string }
+            }
+            coreCommit = corePackage.buildInfo?.BRANCH?.trim() || coreCommit
+        } catch (error) {
+            console.warn('Failed to read desktop core build identity', error)
+        }
+    }
+    initMainErrorTracking({ version: activeRuntime?.coreVersion || PULSESYNC_CORE_VERSION, commit: coreCommit })
     if (activeRuntime) process.env.PULSESYNC_ACTIVE_COMPONENTS_JSON = JSON.stringify(activeRuntime.components)
     console.info('Loading PulseSync desktop core', { coreEntry, activeRuntime })
     const desktopCore = __non_vite_require__(coreEntry)

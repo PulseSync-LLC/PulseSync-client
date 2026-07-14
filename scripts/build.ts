@@ -14,7 +14,7 @@ import { fileURLToPath } from 'node:url'
 import { build as viteBuild } from 'vite'
 import { publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
-import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
+import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
@@ -154,7 +154,7 @@ function signBuildIdentity(identity: { origin: string; version: string; commit: 
     return crypto.sign(null, createBuildIdentityPayload(identity), privateKey).toString('base64')
 }
 
-function generateBuildInfo(): { coreVersion: string; hostVersion: string } {
+function generateBuildInfo(): { coreVersion: string; hostVersion: string; coreCommit: string } {
     const hostPackagePath = path.resolve(__dirname, '../package.json')
     const corePackagePath = path.resolve(__dirname, '../packages/desktop-core/package.json')
     log(LogLevel.INFO, `Reading desktop core package from ${corePackagePath}`)
@@ -209,7 +209,7 @@ function generateBuildInfo(): { coreVersion: string; hostVersion: string } {
         LogLevel.SUCCESS,
         `Updated desktop core package → version=${newVersion}, hostVersion=${hostPackage.version}, buildInfo.BRANCH=${branchHash}, buildIdentity=${signature ? 'signed' : 'unsigned'}`,
     )
-    return { coreVersion: newVersion, hostVersion: hostPackage.version }
+    return { coreVersion: newVersion, hostVersion: hostPackage.version, coreCommit: branchHash }
 }
 
 async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: string): Promise<number> {
@@ -243,7 +243,7 @@ async function buildDesktopCoreOnly(): Promise<void> {
         log(LogLevel.SUCCESS, `Advanced desktopCore revision to ${revision}`)
     }
 
-    const { coreVersion } = generateBuildInfo()
+    const { coreVersion, coreCommit } = generateBuildInfo()
     const outputRoot = path.resolve(__dirname, '../out/desktop-core')
     const viteOutputDir = path.join(outputRoot, 'vite')
     const component = readRuntimeComponentMetadata(path.resolve(__dirname, '..')).desktopCore
@@ -283,11 +283,14 @@ async function buildDesktopCoreOnly(): Promise<void> {
         },
     })
 
+    prepareDesktopCoreGlitchTipSourceMaps(viteOutputDir, dist)
+
     fs.mkdirSync(moduleDir, { recursive: true })
     fs.copyFileSync(path.join(viteOutputDir, 'desktopCore.cjs'), path.join(moduleDir, 'index.cjs'))
     fs.copyFileSync(path.join(viteOutputDir, 'mainWindowPreload.cjs'), path.join(moduleDir, 'mainWindowPreload.cjs'))
     fs.copyFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), path.join(moduleDir, 'package.json'))
     log(LogLevel.SUCCESS, `Built desktopCore ${coreVersion} revision ${component.revision} without Electron packaging`)
+    await uploadGlitchTipSourceMaps(coreVersion, coreCommit)
 
     if (!publishBranch) return
     const artifactBaseUrl = `${baseS3Url}/builds/app/${publishBranch}`
@@ -1060,7 +1063,7 @@ async function main(): Promise<void> {
         return
     }
     ensureNodeHeapForMac()
-    if (buildApplication) {
+    if (buildApplication || buildDesktopCore) {
         assertGlitchTipSourceMapConfig()
     }
 
@@ -1176,7 +1179,7 @@ async function main(): Promise<void> {
         const outDir = path.join(baseOutDir, `PulseSync-${os.platform()}-${targetArch}`)
         const releaseDir = path.join('.', 'release')
         cleanManagedReleaseArtifacts(releaseDir)
-        const { coreVersion: version, hostVersion } = generateBuildInfo()
+        const { coreVersion: version, hostVersion, coreCommit } = generateBuildInfo()
 
         const buildDist = os.platform() === 'darwin' ? setBuildDist('darwin', targetArch) : setBuildDist(os.platform(), os.arch())
 
@@ -1277,7 +1280,7 @@ async function main(): Promise<void> {
         fs.unlinkSync(tmpPath)
 
         await verifyBootstrapperBuildLayout()
-        await uploadGlitchTipSourceMaps(version)
+        await uploadGlitchTipSourceMaps(version, coreCommit)
 
         if (publishBranch) {
             const baseS3Url = process.env.S3_URL?.trim()
