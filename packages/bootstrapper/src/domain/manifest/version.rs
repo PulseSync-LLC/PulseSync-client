@@ -535,7 +535,11 @@ pub fn decide_component_update(
                 .components
                 .get(name)
                 .is_some_and(|installed_component| {
-                    installed_component.version == component.version
+                    let same_identity = installed_component.version == component.version
+                        && component
+                            .revision
+                            .is_none_or(|revision| installed_component.revision == Some(revision));
+                    same_identity
                         && (installed_component
                             .artifact_sha256
                             .as_deref()
