@@ -17,6 +17,7 @@
         "vite.renderer.config.ts",
         "forge.config.ts",
         "src/common/desktopApi/version.ts",
+        "src/common/errorTrackingRelease.ts",
         "scripts/**/*.ts"
     ],
     "exclude": [

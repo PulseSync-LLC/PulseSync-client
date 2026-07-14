@@ -11,8 +11,6 @@ const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.
     version: string
     buildInfo?: { BRANCH?: string }
 }
-const buildDist = process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
-
 const rendererHtmlEntries: Record<string, string> = {
     main_window: 'src/renderer/index.html',
     settings_window: 'src/renderer/settings.html',
@@ -21,6 +19,7 @@ const rendererHtmlEntries: Record<string, string> = {
 
 export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isRemoteRendererBuild = process.env.PULSESYNC_REMOTE_RENDERER_BUILD === '1'
+    const buildDist = isRemoteRendererBuild ? 'remote' : process.env.PULSESYNC_BUILD_DIST || `${process.platform}-${process.arch}`
     const name = isRemoteRendererBuild ? 'main_window' : (forgeConfigSelf?.name ?? 'main_window')
     const htmlEntry = rendererHtmlEntries[name]
     if (!htmlEntry) {
@@ -28,7 +27,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     }
 
     const isDevMode = mode === 'development'
-    const sourceMapMode = isDevMode ? true : !isRemoteRendererBuild && process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
+    const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const remoteRendererOutDir = process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR
     const remoteRendererStaticAssetsDir = process.env.PULSESYNC_REMOTE_RENDERER_STATIC_ASSETS_DIR
     const remoteRendererBase = process.env.PULSESYNC_REMOTE_RENDERER_BASE || '/app/'

@@ -3,6 +3,11 @@ import path from 'path'
 import { fileURLToPath } from 'node:url'
 import { build as viteBuild } from 'vite'
 import { DESKTOP_API_VERSION } from '../../src/common/desktopApi/version.js'
+import {
+    assertGlitchTipSourceMapConfig,
+    prepareRemoteRendererGlitchTipSourceMaps,
+    uploadRemoteRendererGlitchTipSourceMaps,
+} from '../glitchtip-sourcemaps.js'
 import { publishDirectoryToS3 } from '../s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -102,6 +107,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
         mode: 'production',
     })
     normalizeRendererHtmlOutput(buildOutDir)
+    prepareRemoteRendererGlitchTipSourceMaps(buildOutDir)
 
     fs.writeFileSync(
         manifestPath,
@@ -139,11 +145,13 @@ async function cli(): Promise<void> {
     }
 
     if (command === 'publish') {
+        assertGlitchTipSourceMapConfig()
         if (!hasFlag('--no-build')) {
             await buildRemoteRenderer(options)
         }
 
         const prefix = argValue('--prefix') || process.env.PULSESYNC_REMOTE_RENDERER_S3_PREFIX || DEFAULT_S3_PREFIX
+        await uploadRemoteRendererGlitchTipSourceMaps(options.buildNumber, joinUrl(options.cdnBaseUrl, 'versions', options.buildNumber))
         await publishDirectoryToS3(options.outRoot, { prefix })
         return
     }

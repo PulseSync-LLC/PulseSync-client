@@ -9,6 +9,7 @@ import {
     ERROR_TRACKING_ENVIRONMENT,
     sanitizeErrorTrackingEvent,
 } from '@common/errorTracking'
+import { getRendererErrorTrackingRelease } from '@common/errorTrackingRelease'
 
 let initialized = false
 
@@ -17,7 +18,7 @@ export const initRendererErrorTracking = (): void => {
 
     try {
         Sentry.init({
-            release: `pulsesync-renderer@${PULSESYNC_RENDERER_BUILD_NUMBER}`,
+            release: getRendererErrorTrackingRelease(PULSESYNC_RENDERER_BUILD_NUMBER),
             dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
             dataCollection: {
