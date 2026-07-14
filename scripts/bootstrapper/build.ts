@@ -19,6 +19,12 @@ type CopyOptions = {
     installRoot: string
 }
 
+type BuildOptions = {
+    target?: string
+}
+
+const MAC_UNIVERSAL_TARGETS = ['x86_64-apple-darwin', 'aarch64-apple-darwin'] as const
+
 function resolveInsideProject(targetPath: string): string {
     const resolvedPath = path.resolve(projectRoot, targetPath)
     const relativePath = path.relative(projectRoot, resolvedPath)
@@ -28,8 +34,10 @@ function resolveInsideProject(targetPath: string): string {
     return resolvedPath
 }
 
-async function runCargoBuild(): Promise<void> {
-    await execFileAsync('cargo', ['build', '--manifest-path', path.join(bootstrapperRoot, 'Cargo.toml'), '--release'], {
+async function runCargoBuild(options: BuildOptions = {}): Promise<void> {
+    const args = ['build', '--manifest-path', path.join(bootstrapperRoot, 'Cargo.toml'), '--release']
+    if (options.target) args.push('--target', options.target)
+    await execFileAsync('cargo', args, {
         cwd: projectRoot,
         windowsHide: true,
     })
@@ -39,8 +47,8 @@ function bootstrapperExecutableName(): string {
     return process.platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
 }
 
-function resolveBootstrapperExecutable(): string {
-    const executablePath = path.join(bootstrapperRoot, 'target', 'release', bootstrapperExecutableName())
+function resolveBootstrapperExecutable(options: BuildOptions = {}): string {
+    const executablePath = path.join(bootstrapperRoot, 'target', ...(options.target ? [options.target] : []), 'release', bootstrapperExecutableName())
     if (!fs.existsSync(executablePath) || !fs.statSync(executablePath).isFile()) {
         throw new Error(`Bootstrapper executable was not found: ${executablePath}`)
     }
@@ -48,9 +56,26 @@ function resolveBootstrapperExecutable(): string {
     return executablePath
 }
 
-export async function buildBootstrapperExecutable(): Promise<string> {
-    await runCargoBuild()
-    return resolveBootstrapperExecutable()
+export async function buildBootstrapperExecutable(options: BuildOptions = {}): Promise<string> {
+    await runCargoBuild(options)
+    return resolveBootstrapperExecutable(options)
+}
+
+export async function buildUniversalMacBootstrapperExecutable(): Promise<string> {
+    if (process.platform !== 'darwin') {
+        throw new Error('Universal bootstrapper builds are only supported on macOS')
+    }
+    const slices: string[] = []
+    for (const target of MAC_UNIVERSAL_TARGETS) {
+        slices.push(await buildBootstrapperExecutable({ target }))
+    }
+    const outputDir = path.join(bootstrapperRoot, 'target', 'universal', 'release')
+    const outputPath = path.join(outputDir, bootstrapperExecutableName())
+    fs.mkdirSync(outputDir, { recursive: true })
+    fs.rmSync(outputPath, { force: true })
+    await execFileAsync('/usr/bin/lipo', ['-create', ...slices, '-output', outputPath], { cwd: projectRoot })
+    await execFileAsync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', outputPath], { cwd: projectRoot })
+    return outputPath
 }
 
 export async function copyBootstrapperToInstallRoot(installRoot: string, options: { build?: boolean } = {}): Promise<string> {

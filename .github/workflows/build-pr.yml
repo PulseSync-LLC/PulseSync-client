@@ -19,7 +19,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
+        os: [ubuntu-latest, windows-latest, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -35,6 +35,7 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
       - uses: actions/cache@v5
         with:
@@ -61,10 +62,10 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+        run: yarn build:package --nativeModules
 
       - name: Verify bootstrapper layout
-        run: yarn bootstrapper:verify-build-layout ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+        run: yarn bootstrapper:verify-build-layout
 
       - name: Show release contents (debug)
         shell: bash

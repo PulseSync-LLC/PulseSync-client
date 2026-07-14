@@ -3,15 +3,12 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { componentContainerName, readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
 
 type TargetPlatform = 'darwin' | 'linux' | 'win32'
-
-function hasFlag(args: string[], name: string): boolean {
-    return args.includes(name)
-}
 
 function readArgValue(args: string[], name: string): string | null {
     const index = args.indexOf(name)
@@ -29,15 +26,19 @@ function getTargetPlatform(args: string[]): TargetPlatform {
 }
 
 function getTargetArch(args: string[], platform: TargetPlatform): string {
+    if (platform === 'darwin') {
+        return 'universal'
+    }
     const explicitArch = readArgValue(args, '--arch')
     if (explicitArch) {
         return explicitArch
     }
-    if (platform === 'darwin' && hasFlag(args, '--mac-x64')) {
-        return 'x64'
-    }
 
     return os.arch()
+}
+
+function verifyMacUniversalBinary(binaryPath: string): void {
+    execFileSync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', binaryPath], { stdio: 'pipe' })
 }
 
 function getProductName(): string {
@@ -69,6 +70,19 @@ function main(): void {
         const bundleRoot = path.join(outDir, `${productName}.app`)
         runTsxScript('scripts/bootstrapper/verify-package-layout.ts', ['--install-root', bundleRoot, '--platform', platform])
         runTsxScript('scripts/bootstrapper/verify-setup-layout.ts', ['--install-root', bundleRoot, '--platform', platform, '--arch', arch])
+        const contentsDir = path.join(bundleRoot, 'Contents')
+        const componentMetadata = readRuntimeComponentMetadata(projectRoot)
+        verifyMacUniversalBinary(path.join(contentsDir, 'MacOS', productName))
+        verifyMacUniversalBinary(path.join(contentsDir, 'Resources', 'bootstrapper', 'pulsesync-bootstrapper'))
+        verifyMacUniversalBinary(
+            path.join(
+                contentsDir,
+                'modules',
+                componentContainerName(componentMetadata.pulsesyncNative),
+                componentMetadata.pulsesyncNative.diskName,
+                'pulsesyncNative.node',
+            ),
+        )
         return
     }
 
