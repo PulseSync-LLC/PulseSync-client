@@ -48,7 +48,7 @@ if (process.argv.includes('--universal')) {
     if (lipo.status !== 0) {
         process.exit(lipo.status ?? 1)
     }
-    const verify = spawnSync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', destination], {
+    const verify = spawnSync('/usr/bin/lipo', [destination, '-verify_arch', 'x86_64', 'arm64'], {
         cwd: moduleRoot,
         stdio: 'inherit',
     })
