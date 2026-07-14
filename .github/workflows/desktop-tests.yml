@@ -8,6 +8,11 @@ on:
         required: false
         type: string
         default: ""
+      build_os:
+        description: "Selected build OS scope"
+        required: false
+        type: string
+        default: "all"
 
 permissions:
   contents: read
@@ -59,6 +64,7 @@ jobs:
 
   macos-updater:
     name: macOS updater checks
+    if: ${{ inputs.build_os == 'all' || inputs.build_os == 'macos-26' || inputs.build_os == 'windows+macos' }}
     runs-on: macos-26
 
     steps:
