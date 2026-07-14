@@ -17,9 +17,7 @@ export type ResolveDesktopUpdateManifestOptions = {
 }
 
 function getBackendManifestUrl(channel: UpdateChannel, dist: string): string {
-    const asset = dist.startsWith('darwin-')
-        ? `desktop-update-hybrid-${dist}.json`
-        : `desktop-update-${dist}.json`
+    const asset = dist.startsWith('darwin-') ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
     return `${getUpdateFeedUrl(channel)}${asset}?_=${Date.now()}`
 }
 
@@ -28,7 +26,7 @@ function getServerHealthUrl(): string {
 }
 
 function getCurrentDist(): string {
-    return `${process.platform}-${process.arch}`
+    return process.platform === 'darwin' ? 'darwin-universal' : `${process.platform}-${process.arch}`
 }
 
 export function getDesktopUpdateManifestRequest(options: ResolveDesktopUpdateManifestOptions = {}): DesktopUpdateManifestRequest {

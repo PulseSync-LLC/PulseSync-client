@@ -15,7 +15,7 @@ import { build as viteBuild } from 'vite'
 import { publishToS3 } from './s3-upload.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
-import { buildBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
+import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 
@@ -43,8 +43,6 @@ function readBootstrapperVersion(): string {
     if (!version) throw new Error('Bootstrapper package version is missing')
     return version
 }
-
-const macX64Build = process.argv.includes('--mac-x64') || process.argv.includes('--mac-amd64') || process.argv.includes('-mx64')
 
 const publishIndex = process.argv.findIndex(arg => arg === '--publish')
 let publishBranch: string | null = null
@@ -233,7 +231,7 @@ async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: str
 }
 
 async function buildDesktopCoreOnly(): Promise<void> {
-    const dist = setBuildDist(os.platform(), os.arch())
+    const dist = setBuildDist(os.platform(), getBuildTargetArch())
     const baseS3Url = (process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')
     const channel = publishBranch ?? 'local'
     const manifestName = os.platform() === 'darwin' ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
@@ -342,8 +340,7 @@ async function runCommandStep(name: string, command: string): Promise<void> {
 
 async function verifyBootstrapperBuildLayout(): Promise<void> {
     const tsxCli = path.join('node_modules', 'tsx', 'dist', 'cli.mjs')
-    const args = os.platform() === 'darwin' && macX64Build ? ' --mac-x64' : ''
-    await runCommandStep('Verify bootstrapper layout', `node "${tsxCli}" scripts/bootstrapper/verify-build-layout.ts${args}`)
+    await runCommandStep('Verify bootstrapper layout', `node "${tsxCli}" scripts/bootstrapper/verify-build-layout.ts`)
 }
 
 function setBuildDist(platform: NodeJS.Platform, arch: string): string {
@@ -439,7 +436,14 @@ function shouldCreateLinuxAurTarball(publishBranch: string | null): boolean {
 }
 
 function getBuildTargetArch(): string {
-    return os.platform() === 'darwin' && macX64Build ? 'x64' : os.arch()
+    return os.platform() === 'darwin' ? 'universal' : os.arch()
+}
+
+function assertMacUniversalBinary(binaryPath: string): void {
+    if (os.platform() !== 'darwin') return
+    execFileSync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', binaryPath], {
+        stdio: debug ? 'inherit' : 'pipe',
+    })
 }
 
 function getPackagedAppRoot(outDir: string): string {
@@ -650,7 +654,10 @@ function resolveBundleVersion(): string {
 function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
-    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; revision?: number; diskName?: string; electronAbi?: string }> = {}
+    const components: Record<
+        string,
+        { version: string; path: string; sha256: string; required: boolean; revision?: number; diskName?: string; electronAbi?: string }
+    > = {}
     const componentMetadata = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
     for (const component of Object.values(componentMetadata)) {
@@ -694,7 +701,7 @@ async function installMacBootstrapperSeed(outDir: string, desktopVersion: string
     if (os.platform() !== 'darwin') {
         throw new Error('installMacBootstrapperSeed is only valid on macOS')
     }
-    const executable = await buildBootstrapperExecutable()
+    const executable = await buildUniversalMacBootstrapperExecutable()
     fs.rmSync(getBootstrapperInstallerRoot(outDir), { force: true, recursive: true })
     fs.rmSync(path.join(path.dirname(outDir), `${path.basename(outDir)}-bootstrapper-setup`), { force: true, recursive: true })
     const targetDir = path.join(getPackagedResourcesDir(outDir), 'bootstrapper')
@@ -703,6 +710,7 @@ async function installMacBootstrapperSeed(outDir: string, desktopVersion: string
     fs.mkdirSync(targetDir, { recursive: true })
     fs.copyFileSync(executable, targetExecutable)
     fs.chmodSync(targetExecutable, 0o755)
+    assertMacUniversalBinary(targetExecutable)
     const infoPlist = path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents', 'Info.plist')
     execFileSync('/usr/libexec/PlistBuddy', ['-c', `Set :CFBundleShortVersionString ${desktopVersion}`, infoPlist], {
         stdio: debug ? 'inherit' : 'pipe',
@@ -867,6 +875,7 @@ function copyRuntimeNativeModules(outDir: string): void {
         fs.rmSync(path.join(modulesDir, mod), { force: true, recursive: true })
         for (const artifact of compiledArtifacts) {
             const sourcePath = path.join(releasePath, artifact.name)
+            assertMacUniversalBinary(sourcePath)
             const dest = path.join(modulesDir, mod, artifact.name)
             fs.mkdirSync(path.dirname(dest), { recursive: true })
             fs.copyFileSync(sourcePath, dest)
@@ -993,6 +1002,10 @@ async function main(): Promise<void> {
                 log(LogLevel.WARN, `Skipping native module "${mod}" (package.json not found)`)
                 continue
             }
+            if (os.platform() === 'darwin') {
+                await runCommandStep(`nativeModules:${mod}:universal`, `cd "${fullPath}" && yarn build --universal`)
+                continue
+            }
             if (hasNativeModuleDependencies(fullPath) && hasCompiledNativeArtifact(fullPath)) {
                 log(LogLevel.SUCCESS, `Skipping native module "${mod}" (cached build artifacts found)`)
                 continue
@@ -1009,7 +1022,7 @@ async function main(): Promise<void> {
         cleanManagedReleaseArtifacts(releaseDir)
         const pdPath =
             os.platform() === 'darwin'
-                ? path.join('.', 'out', macX64Build ? 'PulseSync-darwin-x64' : 'PulseSync-darwin-arm64')
+                ? path.join('.', 'out', 'PulseSync-darwin-universal')
                 : path.join('.', 'out', `PulseSync-${os.platform()}-${os.arch()}`)
         pruneElectronLocales(pdPath)
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
@@ -1072,11 +1085,14 @@ async function main(): Promise<void> {
         const buildDist = os.platform() === 'darwin' ? setBuildDist('darwin', targetArch) : setBuildDist(os.platform(), os.arch())
 
         if (os.platform() === 'darwin') {
-            await runCommandStep(`Package (electron-forge:${targetArch})`, `electron-forge package --arch ${targetArch}`)
+            await runCommandStep('Package (electron-forge:universal)', 'electron-forge package --arch universal')
         } else {
             await runCommandStep('Package (electron-forge)', 'electron-forge package')
         }
         pruneElectronLocales(outDir)
+        if (os.platform() === 'darwin') {
+            assertMacUniversalBinary(path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents', 'MacOS', getProductNameFromConfig()))
+        }
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
@@ -1096,9 +1112,6 @@ async function main(): Promise<void> {
         } else if (os.platform() === 'linux') {
             log(LogLevel.INFO, 'Skipping Linux AUR tarball for dev publish branch')
         }
-
-        const outDirX64 = path.join(baseOutDir, `PulseSync-${os.platform()}-x64`)
-        const outDirARM64 = path.join(baseOutDir, `PulseSync-${os.platform()}-arm64`)
 
         const builderBase = path.resolve(__dirname, '../electron-builder.yml')
         const baseYml = fs.readFileSync(builderBase, 'utf-8')
@@ -1133,17 +1146,10 @@ async function main(): Promise<void> {
         fs.writeFileSync(tmpPath, yaml.dump(configObj), 'utf-8')
 
         if (os.platform() === 'darwin') {
-            if (macX64Build) {
-                await runCommandStep(
-                    'Build (electron-builder:x64)',
-                    `electron-builder --mac --x64 --pd "${outDirX64}" --config "${tmpPath}" --publish never`,
-                )
-            } else {
-                await runCommandStep(
-                    'Build (electron-builder:arm64)',
-                    `electron-builder --mac --arm64 --pd "${outDirARM64}" --config "${tmpPath}" --publish never`,
-                )
-            }
+            await runCommandStep(
+                'Build (electron-builder:universal)',
+                `electron-builder --mac --universal --pd "${outDir}" --config "${tmpPath}" --publish never`,
+            )
         } else {
             await runCommandStep('Build (electron-builder)', `electron-builder --pd "${setupRoot}" --config "${tmpPath}" --publish never`)
         }
