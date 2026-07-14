@@ -49,7 +49,20 @@ export class StartupCoordinator {
             runtimePaths: BootstrapperRuntimePaths
         },
     ) {
-        this.unsubscribeState = updateCoordinator.subscribe(state => options.bootstrapWindow.publish(state))
+        this.unsubscribeState = updateCoordinator.subscribe(state => {
+            const canStartApplication = state.actions.includes('continue')
+            if ((state.phase === 'error' || state.phase === 'blocked') && canStartApplication) {
+                options.bootstrapWindow.publish({
+                    schemaVersion: 1,
+                    phase: 'launching',
+                    statusKey: 'launching-client',
+                    progress: { kind: 'indeterminate' },
+                    actions: [],
+                })
+                return
+            }
+            options.bootstrapWindow.publish(state)
+        })
         options.bootstrapWindow.setActionHandlers({
             retry: async () => {
                 if (this.gatePromise || this.applicationHandle) return false
