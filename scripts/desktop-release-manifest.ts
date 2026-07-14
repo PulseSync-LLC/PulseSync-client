@@ -542,9 +542,10 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const bootstrapperArtifactPath = macosBundle
         ? null
         : createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
+    const componentRootDir = macosBundle ? path.join(packagedAppRootDir, 'PulseSync.app', 'Contents') : packagedAppRootDir
     const moduleArchivePaths = createModuleArchives(
         releaseDir,
-        packagedAppRootDir,
+        componentRootDir,
         options.coreVersion,
         options.dist,
         macosBundle ? new Set(['desktopCore']) : undefined,
