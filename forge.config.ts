@@ -115,6 +115,7 @@ const forgeConfig: ForgeConfig = {
         }),
         new FusesPlugin({
             version: FuseVersion.V1,
+            resetAdHocDarwinSignature: false,
             [FuseV1Options.RunAsNode]: true,
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
             [FuseV1Options.EnableCookieEncryption]: true,
