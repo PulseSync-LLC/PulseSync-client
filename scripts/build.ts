@@ -18,6 +18,7 @@ import { assertGlitchTipSourceMapConfig, uploadGlitchTipSourceMaps } from './gli
 import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
+import { emitLegacyUpdateBridge } from './legacy-update-bridge.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -36,6 +37,7 @@ const BOOTSTRAPPER_CONFIG_FILE_NAME = 'bootstrapper.json'
 const BOOTSTRAPPER_RETAIN_APP_VERSIONS = 2
 const DEFAULT_S3_URL = 'https://s3.pulsesync.dev'
 const DEFAULT_SERVER_HEALTH_URL = 'https://ru-node-1.pulsesync.dev/api/v2/health'
+const LEGACY_UPDATE_BRIDGE_RELEASE = '2.18.0-beta'
 
 function readBootstrapperVersion(): string {
     const cargoToml = fs.readFileSync(path.resolve(__dirname, '../packages/bootstrapper/Cargo.toml'), 'utf8')
@@ -651,6 +653,14 @@ function resolveBundleVersion(): string {
     return String(value)
 }
 
+function isLegacyUpdateBridgeEnabled(version: string): boolean {
+    const tagVersion = publishBranchTagSource
+        ?.trim()
+        .replace(/^refs\/tags\//u, '')
+        .replace(/^v(?=\d)/u, '')
+    return publishBranch === 'beta' && version === LEGACY_UPDATE_BRIDGE_RELEASE && tagVersion === LEGACY_UPDATE_BRIDGE_RELEASE
+}
+
 function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
@@ -922,6 +932,96 @@ function hashDirectory(directory: string): string {
     return hash.digest('hex')
 }
 
+type PublishedComponentRevision = {
+    contentSha256?: string
+    diskName?: string
+    revision?: number
+    version?: string
+}
+
+type PublishedRevisionManifest = {
+    targets?: Record<
+        string,
+        {
+            host?: { version?: string }
+            components?: Record<string, PublishedComponentRevision>
+        }
+    >
+}
+
+function findPackagedComponentModule(
+    modulesDir: string,
+    component: ReturnType<typeof readRuntimeComponentMetadata>[string],
+): { container: string; module: string } {
+    const expectedContainer = path.join(modulesDir, componentContainerName(component))
+    const expectedModule = path.join(expectedContainer, component.diskName)
+    if (fs.existsSync(expectedModule) && fs.statSync(expectedModule).isDirectory()) {
+        return { container: expectedContainer, module: expectedModule }
+    }
+
+    const sourceEntry = fs
+        .readdirSync(modulesDir, { withFileTypes: true })
+        .find(
+            entry =>
+                entry.isDirectory() &&
+                (entry.name === component.name || entry.name.startsWith(`${component.name}-`) || entry.name.startsWith(`${component.diskName}-`)),
+        )
+    if (!sourceEntry) throw new Error(`Packaged component is missing: ${component.name}`)
+
+    const container = path.join(modulesDir, sourceEntry.name)
+    const nestedModule = [path.join(container, component.diskName), path.join(container, component.name)].find(
+        candidate => fs.existsSync(candidate) && fs.statSync(candidate).isDirectory(),
+    )
+    return { container, module: nestedModule ?? container }
+}
+
+async function readPublishedRevisionManifest(url: string): Promise<PublishedRevisionManifest | null> {
+    const separator = url.includes('?') ? '&' : '?'
+    const response = await fetch(`${url}${separator}_=${Date.now()}`, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+    })
+    if (response.status === 404) return null
+    if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
+    return (await response.json()) as PublishedRevisionManifest
+}
+
+async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: string, dist: string, hostVersion: string): Promise<void> {
+    if (process.env.PULSESYNC_AUTO_COMPONENT_REVISIONS?.trim() !== '1') return
+
+    const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
+    const components = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
+    const previousManifest = await readPublishedRevisionManifest(manifestUrl)
+    const previousTarget = previousManifest?.targets?.[dist]
+    const hostChanged = previousTarget?.host?.version !== hostVersion
+    const revisions: Record<string, number> = {}
+
+    for (const component of Object.values(components)) {
+        const source = findPackagedComponentModule(modulesDir, component)
+        const contentSha256 = hashDirectory(source.module)
+        const previous = previousTarget?.components?.[component.name]
+
+        if (hostChanged || !previous) {
+            revisions[component.name] = 1
+        } else {
+            const previousRevision = previous.revision
+            if (!Number.isSafeInteger(previousRevision) || previousRevision === undefined || previousRevision <= 0) {
+                throw new Error(`Published component revision is invalid for ${component.name} in ${dist}`)
+            }
+            const contentChanged =
+                previous.version !== component.version || previous.diskName !== component.diskName || previous.contentSha256 !== contentSha256
+            revisions[component.name] = contentChanged ? previousRevision + 1 : previousRevision
+        }
+
+        log(
+            LogLevel.INFO,
+            `Resolved ${component.name} revision ${revisions[component.name]} (${hostChanged ? `new host ${hostVersion}` : 'current host'})`,
+        )
+    }
+
+    process.env.PULSESYNC_COMPONENT_REVISIONS = JSON.stringify(revisions)
+}
+
 function normalizeVersionedRuntimeModules(outDir: string): void {
     const modulesDir = path.join(getPackagedAppRoot(outDir), 'modules')
     if (!fs.existsSync(modulesDir)) return
@@ -931,13 +1031,9 @@ function normalizeVersionedRuntimeModules(outDir: string): void {
         const targetModule = path.join(targetContainer, component.diskName)
         if (fs.existsSync(targetModule)) continue
 
-        const sourceEntry = fs
-            .readdirSync(modulesDir, { withFileTypes: true })
-            .find(entry => entry.isDirectory() && (entry.name === component.name || entry.name.startsWith(`${component.name}-`)))
-        if (!sourceEntry) throw new Error(`Packaged component is missing: ${component.name}`)
-        const sourceContainer = path.join(modulesDir, sourceEntry.name)
-        const nestedSource = path.join(sourceContainer, component.name)
-        const sourceModule = fs.existsSync(nestedSource) ? nestedSource : sourceContainer
+        const source = findPackagedComponentModule(modulesDir, component)
+        const sourceContainer = source.container
+        const sourceModule = source.module
         fs.mkdirSync(targetContainer, { recursive: true })
         if (sourceModule === sourceContainer) {
             const temporaryModule = path.join(modulesDir, `.${component.diskName}-staging`)
@@ -1096,6 +1192,17 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
+        if (publishBranch) {
+            const baseS3Url = process.env.S3_URL?.trim()
+            if (!baseS3Url) throw new Error('S3_URL is required to resolve published component revisions')
+            const manifestName = os.platform() === 'darwin' ? `desktop-update-hybrid-${buildDist}.json` : `desktop-update-${buildDist}.json`
+            await resolvePublishedComponentRevisions(
+                outDir,
+                `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}/${manifestName}`,
+                buildDist,
+                hostVersion,
+            )
+        }
         normalizeVersionedRuntimeModules(outDir)
         let payloadRoot: string
         let setupRoot: string
@@ -1155,6 +1262,18 @@ async function main(): Promise<void> {
         }
         removeUnpublishedReleaseArtifacts(releaseDir)
 
+        if (isLegacyUpdateBridgeEnabled(version)) {
+            const baseS3Url = process.env.S3_URL?.trim()
+            if (!baseS3Url || !publishBranch) throw new Error('S3_URL and publish branch are required for the legacy update bridge')
+            const metadataPath = await emitLegacyUpdateBridge({
+                baseUrl: `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}`,
+                platform: os.platform(),
+                releaseDir,
+                version,
+            })
+            if (metadataPath) log(LogLevel.SUCCESS, `Generated legacy update bridge: ${metadataPath}`)
+        }
+
         fs.unlinkSync(tmpPath)
 
         await verifyBootstrapperBuildLayout()
@@ -1179,7 +1298,7 @@ async function main(): Promise<void> {
                 metadataVersion: process.env.DESKTOP_METADATA_VERSION,
                 previousManifestUrl: `${desktopArtifactBaseUrl}/desktop-update-${buildDist}.json`,
             })
-            await publishToS3(publishBranch, releaseDir, version)
+            await publishToS3(publishBranch, releaseDir, version, { legacyUpdateBridge: isLegacyUpdateBridgeEnabled(version) })
             if (publishChangelogFlag) {
                 await publishChangelogToApi(version)
             }

@@ -190,6 +190,7 @@ jobs:
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
+          PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
           PULSESYNC_MAC_SIGN_IDENTITY: "-"
           S3_KEEP_RECENT_VERSIONS: 3
           GLITCHTIP_SOURCEMAPS: "1"

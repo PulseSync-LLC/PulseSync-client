@@ -58,6 +58,7 @@ const CONTENT_TYPES_BY_EXTENSION: Record<string, string> = {
     '.webp': 'image/webp',
     '.woff': 'font/woff',
     '.woff2': 'font/woff2',
+    '.yml': 'text/yaml; charset=utf-8',
 }
 
 function log(level: LogLevel, message: string): void {
@@ -128,6 +129,11 @@ function isLegacyUpdaterArtifact(filePath: string): boolean {
     return fileName === 'download.json' || fileName.startsWith('latest') || fileName.endsWith('.blockmap')
 }
 
+function isLegacyUpdateBridgeMetadata(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase()
+    return fileName === 'download.json' || fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+}
+
 async function hashFileSha256(filePath: string): Promise<string> {
     return await new Promise<string>((resolve, reject) => {
         const hash = crypto.createHash('sha256')
@@ -170,12 +176,12 @@ function getRemoteRendererPointerUploadHeaders(filePath: string): UploadHeaders 
 }
 
 function getDesktopUpdateUploadHeaders(filePath: string): UploadHeaders | undefined {
-    if (!isDesktopReleaseManifestFile(filePath)) {
+    if (!isDesktopReleaseManifestFile(filePath) && !isLegacyUpdateBridgeMetadata(filePath)) {
         return undefined
     }
 
     return {
-        ContentType: 'application/json; charset=utf-8',
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
         CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
     }
 }
@@ -701,7 +707,7 @@ export async function publishToS3(
     branch: string,
     dir: string,
     version?: string,
-    opts?: { prefix?: string; keepRecentVersions?: number | null },
+    opts?: { prefix?: string; keepRecentVersions?: number | null; legacyUpdateBridge?: boolean },
 ): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
@@ -710,6 +716,7 @@ export async function publishToS3(
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
     const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
+    const legacyUpdateBridge = opts?.legacyUpdateBridge === true
     const client = createS3Client()
 
     let files = fs
@@ -717,8 +724,14 @@ export async function publishToS3(
         .map(name => path.join(dir, name))
         .filter(filePath => fs.statSync(filePath).isFile())
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
-        .filter(fp => !isLegacyUpdaterArtifact(fp))
-        .filter(fp => (version ? isDesktopReleaseManifestFile(fp) || parseStructuredArtifactDescriptor(path.basename(fp)) !== null : true))
+        .filter(fp => !isLegacyUpdaterArtifact(fp) || (legacyUpdateBridge && isLegacyUpdateBridgeMetadata(fp)))
+        .filter(fp =>
+            version
+                ? isDesktopReleaseManifestFile(fp) ||
+                  (legacyUpdateBridge && isLegacyUpdateBridgeMetadata(fp)) ||
+                  parseStructuredArtifactDescriptor(path.basename(fp)) !== null
+                : true,
+        )
     const currentArtifactVersions = collectCurrentArtifactVersions(files)
 
     const zipFiles = fs
@@ -727,10 +740,8 @@ export async function publishToS3(
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
-    files = [
-        ...files.filter(filePath => !isDesktopReleaseManifestFile(filePath)),
-        ...files.filter(filePath => isDesktopReleaseManifestFile(filePath)),
-    ]
+    const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
+    files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
 
     if (version && keepRecentVersions && currentArtifactVersions.size) {
         await pruneOldArtifacts(client, bucket, prefix, branch, keepRecentVersions, currentArtifactVersions)
@@ -744,6 +755,14 @@ export async function publishToS3(
         const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
         if (latestAliasPath) {
             await uploadFileToS3(client, bucket, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
+        }
+        if (legacyUpdateBridge && version) {
+            const escapedVersion = escapeRegExp(version)
+            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.exe$`, 'iu').test(path.basename(filePath))) {
+                await uploadFileToS3(client, bucket, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
+                    CacheControl: 'public, max-age=31536000, immutable',
+                })
+            }
         }
     }
 

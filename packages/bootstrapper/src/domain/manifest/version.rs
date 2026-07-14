@@ -528,8 +528,8 @@ pub fn decide_component_update(
                 .content_sha256
                 .as_deref()
                 .is_some_and(|sha| !sha.eq_ignore_ascii_case(&installed.latest.host.sha256)));
-    let immutable_mismatch = host_immutable_mismatch
-        || target.components.iter().any(|(name, component)| {
+    let component_immutable_mismatch = same_host_identity
+        && target.components.iter().any(|(name, component)| {
             installed
                 .latest
                 .components
@@ -550,7 +550,9 @@ pub fn decide_component_update(
                                 !sha.eq_ignore_ascii_case(&installed_component.sha256)
                             }))
                 })
-        })
+        });
+    let immutable_mismatch = host_immutable_mismatch
+        || component_immutable_mismatch
         || target.bootstrapper.as_ref().is_some_and(|bootstrapper| {
             installed
                 .latest

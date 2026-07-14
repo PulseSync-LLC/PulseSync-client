@@ -134,6 +134,9 @@ jobs:
             base_name="$(basename "$file")"
             artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
             target_name="$base_name"
+            if [[ "$base_name" == pulsesync-app-*-universal.dmg ]]; then
+              target_name="${base_name%-universal.dmg}-x64-arm64.dmg"
+            fi
             name_count="${NAME_COUNT[$base_name]:-0}"
 
             if (( name_count > 0 )); then
