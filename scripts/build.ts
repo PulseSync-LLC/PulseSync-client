@@ -762,11 +762,16 @@ async function prepareBootstrapperSetupRoot(
         throw new Error(`Desktop core entry is missing from setup layout: ${coreEntryPath}`)
     }
     const electronAbi = fs.readFileSync(path.resolve(__dirname, '../node_modules/electron/abi_version'), 'utf8').trim()
-    const components: Record<string, { version: string; path: string; sha256: string; required: boolean; electronAbi?: string }> = {}
+    const components: Record<
+        string,
+        { version: string; path: string; sha256: string; required: boolean; revision?: number; diskName?: string; electronAbi?: string }
+    > = {}
     for (const component of Object.values(componentMetadata)) {
         const relativePath = path.join(`app-${hostVersion}`, 'modules', componentContainerName(component), component.diskName)
         components[component.name] = {
             version: component.version,
+            revision: component.revision,
+            diskName: component.diskName,
             path: relativePath.replace(/\\/gu, '/'),
             sha256: hashDirectory(path.join(setupRoot, relativePath)),
             required: true,
