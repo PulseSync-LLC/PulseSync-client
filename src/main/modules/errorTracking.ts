@@ -8,9 +8,9 @@ import {
     ERROR_TRACKING_DSN,
     ERROR_TRACKING_ENABLED,
     ERROR_TRACKING_ENVIRONMENT,
-    ERROR_TRACKING_RELEASE,
     sanitizeErrorTrackingEvent,
 } from '@common/errorTracking'
+import { getDesktopErrorTrackingRelease } from '@common/errorTrackingRelease'
 import logger from './logger'
 
 const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
@@ -18,13 +18,13 @@ const errorTrackingRuntime = globalThis as typeof globalThis & { [INITIALIZED_KE
 
 const isInitialized = (): boolean => errorTrackingRuntime[INITIALIZED_KEY] === true
 
-export const initMainErrorTracking = (): void => {
+export const initMainErrorTracking = (identity: { version: string; commit: string }): void => {
     if (!ERROR_TRACKING_ENABLED || isInitialized()) return
 
     try {
         Sentry.init({
             dsn: ERROR_TRACKING_DSN,
-            release: ERROR_TRACKING_RELEASE,
+            release: getDesktopErrorTrackingRelease(identity.version, identity.commit),
             dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
             dataCollection: {
@@ -46,6 +46,8 @@ export const initMainErrorTracking = (): void => {
         })
         Sentry.setTags({
             ...ERROR_TRACKING_BUILD_TAGS,
+            'desktop.commit': identity.commit,
+            'desktop.version': identity.version,
             process: 'main',
             platform: process.platform,
             architecture: process.arch,

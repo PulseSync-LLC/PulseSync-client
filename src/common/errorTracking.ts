@@ -1,11 +1,13 @@
+import { branch } from './appConfig'
+
 export const ERROR_TRACKING_DSN = 'https://f8abbc9ce46c42989b72758349a3a245@ru-node-1.pulsesync.dev/events/1'
 export const ERROR_TRACKING_ENABLED = import.meta.env.PROD
-export const ERROR_TRACKING_ENVIRONMENT = import.meta.env.PROD ? 'production' : 'development'
-export const ERROR_TRACKING_RELEASE = `pulsesync-client@${PULSESYNC_VERSION}`
+export const ERROR_TRACKING_ENVIRONMENT = import.meta.env.PROD ? branch : 'development'
 export const ERROR_TRACKING_DIST = PULSESYNC_DIST
 
 export const ERROR_TRACKING_BUILD_TAGS = {
-    branch: PULSESYNC_BRANCH || 'unknown',
+    channel: ERROR_TRACKING_ENVIRONMENT,
+    commit: PULSESYNC_BRANCH || 'unknown',
     dist: ERROR_TRACKING_DIST || 'unknown',
 }
 

@@ -2,9 +2,12 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+import { getDesktopErrorTrackingRelease, getRendererErrorTrackingRelease } from '../src/common/errorTrackingRelease.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const stagingRoot = path.resolve(__dirname, '..', '.glitchtip-sourcemaps')
+const desktopStagingRoot = path.join(stagingRoot, 'desktop')
+const rendererStagingRoot = path.join(stagingRoot, 'renderer')
 const bundledSentryCliPath = path.resolve(__dirname, '..', 'node_modules', '@sentry', 'cli', 'bin', 'sentry-cli')
 const sourceMapExtensions = new Set(['.js', '.cjs', '.mjs', '.map'])
 
@@ -26,7 +29,12 @@ function runSentryCli(args: string[]): void {
     }
 }
 
-function copySourceMapArtifacts(sourceDir: string, destinationDir: string): { files: number; maps: number } {
+function copySourceMapArtifacts(
+    sourceDir: string,
+    destinationDir: string,
+    include: (relativePath: string) => boolean = () => true,
+    relativeRoot = '',
+): { files: number; maps: number } {
     let files = 0
     let maps = 0
     const entries = fs.readdirSync(sourceDir, { withFileTypes: true })
@@ -39,9 +47,10 @@ function copySourceMapArtifacts(sourceDir: string, destinationDir: string): { fi
     for (const entry of entries) {
         const sourcePath = path.join(sourceDir, entry.name)
         const destinationPath = path.join(destinationDir, entry.name)
+        const relativePath = path.join(relativeRoot, entry.name).replace(/\\/gu, '/')
 
         if (entry.isDirectory()) {
-            const copied = copySourceMapArtifacts(sourcePath, destinationPath)
+            const copied = copySourceMapArtifacts(sourcePath, destinationPath, include, relativePath)
             files += copied.files
             maps += copied.maps
             continue
@@ -50,6 +59,7 @@ function copySourceMapArtifacts(sourceDir: string, destinationDir: string): { fi
         const extension = path.extname(entry.name).toLowerCase()
         if (!entry.isFile() || !sourceMapExtensions.has(extension)) continue
         if (extension !== '.map' && !mappedSourceFiles.has(entry.name)) continue
+        if (!include(relativePath)) continue
 
         fs.mkdirSync(destinationDir, { recursive: true })
         fs.copyFileSync(sourcePath, destinationPath)
@@ -71,37 +81,15 @@ function removeSourceMaps(directory: string): void {
     }
 }
 
-function findSourceMapDirectories(directory: string): string[] {
-    const directories = new Set<string>()
-
+function countSourceMaps(directory: string): number {
+    if (!fs.existsSync(directory)) return 0
+    let maps = 0
     for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
         const entryPath = path.join(directory, entry.name)
-        if (entry.isDirectory()) {
-            for (const child of findSourceMapDirectories(entryPath)) directories.add(child)
-        } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.map') {
-            directories.add(directory)
-        }
+        if (entry.isDirectory()) maps += countSourceMaps(entryPath)
+        else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.map') maps += 1
     }
-
-    return [...directories].sort()
-}
-
-function getViteUrlPrefix(stagedDirectory: string): string {
-    const relativeParts = path.relative(stagingRoot, stagedDirectory).split(path.sep).filter(Boolean)
-    if (relativeParts.length < 2) {
-        throw new Error(`Unexpected GlitchTip source-map staging directory: ${stagedDirectory}`)
-    }
-
-    return `app:///.vite/${relativeParts.slice(1).join('/')}`
-}
-
-function getViteDist(stagedDirectory: string): string {
-    const [dist] = path.relative(stagingRoot, stagedDirectory).split(path.sep).filter(Boolean)
-    if (!dist) {
-        throw new Error(`Unexpected GlitchTip source-map staging directory: ${stagedDirectory}`)
-    }
-
-    return dist
+    return maps
 }
 
 async function ensureGlitchTipRelease(release: string): Promise<void> {
@@ -157,6 +145,24 @@ export function assertGlitchTipSourceMapConfig(): void {
     }
 }
 
+function prepareSourceMaps(
+    sourceDirectory: string,
+    targets: Array<{ destinationDirectory: string; include?: (relativePath: string) => boolean; name: string; required?: boolean }>,
+): void {
+    runSentryCli(['sourcemaps', 'inject', sourceDirectory])
+
+    for (const target of targets) {
+        const copied = copySourceMapArtifacts(sourceDirectory, target.destinationDirectory, target.include)
+        if (copied.maps === 0) {
+            if (target.required) throw new Error(`No ${target.name} source maps found after GlitchTip injection in ${sourceDirectory}`)
+            continue
+        }
+        console.log(`Prepared ${copied.maps} ${target.name} GlitchTip source maps (${copied.files} files)`)
+    }
+
+    removeSourceMaps(sourceDirectory)
+}
+
 export function prepareGlitchTipSourceMaps(buildPath: string, platform: string, arch: string): void {
     if (!sourceMapsEnabled()) return
 
@@ -166,39 +172,69 @@ export function prepareGlitchTipSourceMaps(buildPath: string, platform: string, 
     }
 
     fs.rmSync(stagingRoot, { force: true, recursive: true })
-    runSentryCli(['sourcemaps', 'inject', viteDirectory])
-
-    const destinationDirectory = path.join(stagingRoot, `${platform}-${arch}`)
-    const copied = copySourceMapArtifacts(viteDirectory, destinationDirectory)
-    if (copied.maps === 0) {
-        throw new Error(`No source maps found after GlitchTip injection in ${viteDirectory}`)
-    }
-
-    removeSourceMaps(viteDirectory)
-    console.log(`Prepared ${copied.maps} GlitchTip source maps (${copied.files} files) for ${platform}-${arch}`)
+    const dist = process.env.PULSESYNC_BUILD_DIST?.trim() || `${platform}-${arch}`
+    const isBundledRendererArtifact = (relativePath: string): boolean => relativePath.startsWith('renderer/main_window/')
+    prepareSourceMaps(viteDirectory, [
+        {
+            destinationDirectory: path.join(desktopStagingRoot, dist),
+            include: relativePath => !isBundledRendererArtifact(relativePath),
+            name: `desktop ${dist}`,
+            required: true,
+        },
+        {
+            destinationDirectory: path.join(rendererStagingRoot, dist),
+            include: isBundledRendererArtifact,
+            name: `renderer ${dist}`,
+        },
+    ])
 }
 
-export async function uploadGlitchTipSourceMaps(version: string): Promise<void> {
-    if (!uploadEnabled()) return
-    assertGlitchTipSourceMapConfig()
-
-    if (!fs.existsSync(stagingRoot)) {
-        throw new Error(`GlitchTip source-map staging directory not found: ${stagingRoot}`)
+export function prepareDesktopCoreGlitchTipSourceMaps(viteOutputDirectory: string, dist: string): void {
+    if (!sourceMapsEnabled()) return
+    if (!fs.existsSync(viteOutputDirectory)) {
+        throw new Error(`Vite output not found for GlitchTip source maps: ${viteOutputDirectory}`)
     }
 
-    const release = `pulsesync-client@${version}`
+    fs.rmSync(stagingRoot, { force: true, recursive: true })
+    prepareSourceMaps(viteOutputDirectory, [
+        {
+            destinationDirectory: path.join(desktopStagingRoot, dist, 'main'),
+            name: `desktop core ${dist}`,
+            required: true,
+        },
+    ])
+}
+
+export function prepareRemoteRendererGlitchTipSourceMaps(buildOutputDirectory: string): void {
+    if (!sourceMapsEnabled()) return
+    if (!fs.existsSync(buildOutputDirectory)) {
+        throw new Error(`Remote renderer output not found for GlitchTip source maps: ${buildOutputDirectory}`)
+    }
+
+    fs.rmSync(stagingRoot, { force: true, recursive: true })
+    prepareSourceMaps(buildOutputDirectory, [
+        {
+            destinationDirectory: path.join(rendererStagingRoot, 'remote'),
+            name: 'remote renderer',
+            required: true,
+        },
+    ])
+}
+
+async function uploadStagedSourceMaps(stagedComponentRoot: string, release: string, getUrlPrefix: (dist: string) => string): Promise<number> {
+    if (!fs.existsSync(stagedComponentRoot)) return 0
+    const distDirectories = fs.readdirSync(stagedComponentRoot, { withFileTypes: true }).filter(entry => entry.isDirectory())
+    const uploadTargets = distDirectories
+        .map(entry => ({ dist: entry.name, directory: path.join(stagedComponentRoot, entry.name) }))
+        .filter(target => countSourceMaps(target.directory) > 0)
+    if (uploadTargets.length === 0) return 0
+
     await ensureGlitchTipRelease(release)
-
-    const sourceMapDirectories = findSourceMapDirectories(stagingRoot)
-    if (sourceMapDirectories.length === 0) {
-        throw new Error(`No GlitchTip source maps found in ${stagingRoot}`)
-    }
-
-    for (const sourceMapDirectory of sourceMapDirectories) {
+    for (const target of uploadTargets) {
         runSentryCli([
             'sourcemaps',
             'upload',
-            sourceMapDirectory,
+            target.directory,
             '--release',
             release,
             '--org',
@@ -206,13 +242,45 @@ export async function uploadGlitchTipSourceMaps(version: string): Promise<void> 
             '--project',
             process.env.SENTRY_PROJECT!.trim(),
             '--dist',
-            getViteDist(sourceMapDirectory),
+            target.dist,
             '--url-prefix',
-            getViteUrlPrefix(sourceMapDirectory),
+            getUrlPrefix(target.dist),
             '--validate',
         ])
     }
 
+    console.log(`Uploaded GlitchTip source maps for ${release}: ${uploadTargets.map(target => target.dist).join(', ')}`)
+    return uploadTargets.length
+}
+
+export async function uploadGlitchTipSourceMaps(version: string, commit: string): Promise<void> {
+    if (!uploadEnabled()) return
+    assertGlitchTipSourceMapConfig()
+
+    const desktopUploads = await uploadStagedSourceMaps(desktopStagingRoot, getDesktopErrorTrackingRelease(version, commit), () => 'app:///.vite')
+    if (desktopUploads === 0) throw new Error(`No desktop GlitchTip source maps found in ${desktopStagingRoot}`)
+
+    const rendererBuildNumber = process.env.PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER?.trim()
+    const rendererMaps = countSourceMaps(rendererStagingRoot)
+    if (rendererMaps > 0 && !rendererBuildNumber) {
+        throw new Error('PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER is required for bundled renderer source maps')
+    }
+    if (rendererBuildNumber) {
+        await uploadStagedSourceMaps(rendererStagingRoot, getRendererErrorTrackingRelease(rendererBuildNumber), () => 'app:///.vite')
+    }
+
     fs.rmSync(stagingRoot, { force: true, recursive: true })
-    console.log(`Uploaded GlitchTip source maps for ${release}`)
+}
+
+export async function uploadRemoteRendererGlitchTipSourceMaps(buildNumber: string, rendererBaseUrl: string): Promise<void> {
+    if (!uploadEnabled()) return
+    assertGlitchTipSourceMapConfig()
+
+    const uploads = await uploadStagedSourceMaps(rendererStagingRoot, getRendererErrorTrackingRelease(buildNumber), dist => {
+        if (dist !== 'remote') throw new Error(`Unexpected remote renderer GlitchTip dist: ${dist}`)
+        return rendererBaseUrl.replace(/\/+$/u, '')
+    })
+    if (uploads === 0) throw new Error(`No remote renderer GlitchTip source maps found in ${rendererStagingRoot}`)
+
+    fs.rmSync(stagingRoot, { force: true, recursive: true })
 }

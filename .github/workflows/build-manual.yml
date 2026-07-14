@@ -114,11 +114,21 @@ jobs:
       - name: Install deps
         run: yarn install --frozen-lockfile
 
+      - name: Check Sentry CLI
+        if: ${{ inputs.upload_to_s3 == true }}
+        run: yarn -s sentry-cli --version
+
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_MAC_SIGN_IDENTITY: "-"
+          GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_s3 && '1' || '0' }}
+          GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_s3 && '1' || '0' }}
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout
@@ -188,7 +198,16 @@ jobs:
       - name: Install deps
         run: yarn install --frozen-lockfile
 
+      - name: Check Sentry CLI
+        run: yarn -s sentry-cli --version
+
       - name: Publish remote renderer
         run: yarn renderer:publish
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
+          GLITCHTIP_SOURCEMAPS: "1"
+          GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
