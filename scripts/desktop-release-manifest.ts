@@ -534,6 +534,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     }
     const previousTarget = previousManifest?.targets[options.dist]
     const targetHostVersion = options.hostVersion
+    const sameHostVersion = previousTarget?.host.version === targetHostVersion
     const hostArtifactPath = macosBundle
         ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, bundleVersion, options.dist)
         : createHostArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
@@ -596,7 +597,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         await Promise.all(
             Object.entries(moduleArchivePaths).map(async ([moduleName, moduleArchive]) => {
                 const previousComponent = previousTarget?.components[moduleName]
-                if (previousComponent?.revision !== undefined && previousComponent.version === moduleArchive.version) {
+                if (sameHostVersion && previousComponent?.revision !== undefined) {
                     const contentChanged =
                         previousComponent.version !== moduleArchive.version || previousComponent.contentSha256 !== moduleArchive.contentSha256
                     if (moduleArchive.revision < previousComponent.revision) {
@@ -752,13 +753,11 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     writeDirectoryZip(coreModuleDir, archivePath, component.diskName)
     const contentSha256 = hashDirectory(coreModuleDir)
     const contentChanged = previousComponent.version !== component.version || previousComponent.contentSha256 !== contentSha256
-    if (previousComponent.version === component.version) {
-        if (component.revision < (previousComponent.revision ?? 0)) {
-            throw new Error('Desktop core revision regressed')
-        }
-        if (contentChanged && component.revision <= (previousComponent.revision ?? 0)) {
-            throw new Error('Desktop core revision must advance when content changes')
-        }
+    if (component.revision < (previousComponent.revision ?? 0)) {
+        throw new Error('Desktop core revision regressed')
+    }
+    if (contentChanged && component.revision <= (previousComponent.revision ?? 0)) {
+        throw new Error('Desktop core revision must advance when content changes')
     }
 
     const artifact = await createVersionedArtifactDescriptor(
