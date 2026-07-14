@@ -38,7 +38,7 @@ function getTargetArch(args: string[], platform: TargetPlatform): string {
 }
 
 function verifyMacUniversalBinary(binaryPath: string): void {
-    execFileSync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', binaryPath], { stdio: 'pipe' })
+    execFileSync('/usr/bin/lipo', [binaryPath, '-verify_arch', 'x86_64', 'arm64'], { stdio: 'pipe' })
 }
 
 function getProductName(): string {

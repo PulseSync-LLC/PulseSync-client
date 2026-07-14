@@ -446,7 +446,7 @@ function getBuildTargetArch(): string {
 
 function assertMacUniversalBinary(binaryPath: string): void {
     if (os.platform() !== 'darwin') return
-    execFileSync('/usr/bin/lipo', ['-verify_arch', 'x86_64', 'arm64', binaryPath], {
+    execFileSync('/usr/bin/lipo', [binaryPath, '-verify_arch', 'x86_64', 'arm64'], {
         stdio: debug ? 'inherit' : 'pipe',
     })
 }
