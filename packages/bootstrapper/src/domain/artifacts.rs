@@ -14,6 +14,7 @@ use crate::{
 };
 use serde::{Deserialize, Deserializer, Serialize, Serializer, de};
 use std::{
+    cell::Cell,
     collections::{BTreeMap, BTreeSet},
     fs,
     io::{Read, Write},
@@ -496,6 +497,16 @@ fn stage_file_set(
     artifact_count: usize,
     reporter: &dyn InstallProgressReporter,
 ) -> Result<StagedArtifact> {
+    let progress_total = file_set
+        .files
+        .iter()
+        .fold(0_u64, |total, file| total.saturating_add(file.size));
+    let component_reporter = WeightedArtifactProgressReporter {
+        inner: reporter,
+        bytes_offset: 0,
+        bytes_weight: progress_total,
+        bytes_total: progress_total,
+    };
     let source_root = source_root.filter(|path| path.is_dir());
     let source_hashes = source_root
         .as_ref()
@@ -540,7 +551,7 @@ fn stage_file_set(
             staging_dir,
             artifact_index,
             artifact_count,
-            reporter,
+            &component_reporter,
         );
     }
     let safe_key = sanitize_path_segment(&key.as_str().replace(':', "-"))?;
@@ -558,7 +569,14 @@ fn stage_file_set(
             .collect::<BTreeSet<_>>();
         let mut operations = Vec::new();
         let mut downloaded_bytes = 0_u64;
+        let mut progress_completed = 0_u64;
         for (file_index, file) in file_set.files.iter().enumerate() {
+            let file_reporter = WeightedArtifactProgressReporter {
+                inner: reporter,
+                bytes_offset: progress_completed,
+                bytes_weight: file.size,
+                bytes_total: progress_total,
+            };
             let relative = safe_relative_path(&file.path)?;
             let destination = snapshot_dir.join(&relative);
             if let Some(parent) = destination.parent() {
@@ -595,7 +613,7 @@ fn stage_file_set(
                             &patch_path,
                             file_index + 1,
                             file_set.files.len(),
-                            reporter,
+                            &file_reporter,
                         )?;
                         verify_artifact_file(&patch_path, &delta.artifact, &key)?;
                         apply_delta(source, &patch_path, &destination, delta)
@@ -614,7 +632,7 @@ fn stage_file_set(
                         &destination,
                         file_index + 1,
                         file_set.files.len(),
-                        reporter,
+                        &file_reporter,
                     )?;
                     verify_artifact_file(&destination, &file.artifact, &key)?;
                     downloaded_bytes = downloaded_bytes.saturating_add(file.size);
@@ -631,6 +649,7 @@ fn stage_file_set(
                 download_bytes: operation_download_bytes,
                 result_sha256: file.sha256.clone(),
             });
+            progress_completed = progress_completed.saturating_add(file.size);
         }
         if let Some(source_root) = source_root.as_ref() {
             for deleted in collect_relative_files(source_root)?
@@ -674,8 +693,8 @@ fn stage_file_set(
             key.as_str(),
             artifact_index,
             artifact_count,
-            downloaded_bytes,
-            Some(downloaded_bytes),
+            progress_total,
+            Some(progress_total),
             Some(target_path.clone()),
         ));
         Ok(StagedArtifact {
@@ -699,7 +718,7 @@ fn stage_file_set(
             staging_dir,
             artifact_index,
             artifact_count,
-            reporter,
+            &component_reporter,
         ),
     }
 }
@@ -708,6 +727,7 @@ struct AggregateArtifactProgressReporter<'a> {
     inner: &'a dyn InstallProgressReporter,
     bytes_offset: u64,
     bytes_total: Option<u64>,
+    last_bytes_read: &'a Cell<u64>,
 }
 
 impl InstallProgressReporter for AggregateArtifactProgressReporter<'_> {
@@ -715,13 +735,52 @@ impl InstallProgressReporter for AggregateArtifactProgressReporter<'_> {
         if event.event == "artifact-progress"
             && let Some(bytes_total) = self.bytes_total
         {
-            event.bytes_read = event
+            let bytes_read = event
                 .bytes_read
-                .map(|bytes| self.bytes_offset.saturating_add(bytes));
+                .map(|bytes| self.bytes_offset.saturating_add(bytes).min(bytes_total))
+                .unwrap_or(self.bytes_offset.min(bytes_total));
+            let bytes_read = bytes_read.max(self.last_bytes_read.get());
+            self.last_bytes_read.set(bytes_read);
+            event.bytes_read = Some(bytes_read);
             event.bytes_total = Some(bytes_total);
         }
         self.inner.emit(event);
     }
+}
+
+struct WeightedArtifactProgressReporter<'a> {
+    inner: &'a dyn InstallProgressReporter,
+    bytes_offset: u64,
+    bytes_weight: u64,
+    bytes_total: u64,
+}
+
+impl InstallProgressReporter for WeightedArtifactProgressReporter<'_> {
+    fn emit(&self, mut event: InstallWorkflowEvent) {
+        if event.event == "artifact-progress"
+            && let (Some(bytes_read), Some(bytes_total)) = (event.bytes_read, event.bytes_total)
+            && bytes_total > 0
+        {
+            let scaled = ((bytes_read.min(bytes_total) as u128 * self.bytes_weight as u128)
+                / bytes_total as u128) as u64;
+            event.bytes_read = Some(self.bytes_offset.saturating_add(scaled));
+            event.bytes_total = Some(self.bytes_total);
+        }
+        self.inner.emit(event);
+    }
+}
+
+fn artifact_progress_weight(
+    artifact: &BootstrapperArtifact,
+    file_set: Option<&ComponentFileSet>,
+) -> Option<u64> {
+    file_set.map_or(artifact.size, |set| {
+        Some(
+            set.files
+                .iter()
+                .fold(0_u64, |total, file| total.saturating_add(file.size)),
+        )
+    })
 }
 
 pub fn stage_artifacts(
@@ -755,20 +814,22 @@ pub fn stage_artifacts(
                 })
             })
             .collect::<Vec<_>>();
-        let bytes_total = if selected.iter().all(|(_, _, file_set)| file_set.is_none()) {
-            selected.iter().try_fold(0_u64, |total, (_, artifact, _)| {
-                artifact.size.and_then(|size| total.checked_add(size))
-            })
-        } else {
-            None
-        };
+        let bytes_total = selected
+            .iter()
+            .try_fold(0_u64, |total, (_, artifact, file_set)| {
+                artifact_progress_weight(artifact, *file_set)
+                    .and_then(|size| total.checked_add(size))
+            });
         let artifact_count = selected.len();
         let mut bytes_completed = 0_u64;
+        let last_bytes_read = Cell::new(0_u64);
         for (index, (key, artifact, file_set)) in selected.into_iter().enumerate() {
+            let progress_weight = artifact_progress_weight(artifact, file_set).unwrap_or(0);
             let aggregate_reporter = AggregateArtifactProgressReporter {
                 inner: reporter,
                 bytes_offset: bytes_completed,
                 bytes_total,
+                last_bytes_read: &last_bytes_read,
             };
             let required = decision
                 .plan
@@ -828,7 +889,7 @@ pub fn stage_artifacts(
             };
             match staged {
                 Ok(staged) => {
-                    bytes_completed = bytes_completed.saturating_add(staged.downloaded_bytes);
+                    bytes_completed = bytes_completed.saturating_add(progress_weight);
                     artifacts.push(staged);
                 }
                 Err(error) if !required => {
@@ -841,7 +902,8 @@ pub fn stage_artifacts(
                         })
                         .or(artifact.size)
                         .unwrap_or(0);
-                    bytes_completed = bytes_completed.saturating_add(failed_bytes);
+                    bytes_completed =
+                        bytes_completed.saturating_add(progress_weight.max(failed_bytes));
                     failures.push(StagingFailure {
                         key,
                         required,
