@@ -16,9 +16,13 @@ const projectRoot = path.resolve(__dirname, '../..')
 const DEFAULT_CDN_BASE_URL = 'https://pulsesync.dev/app'
 const DEFAULT_OUT_ROOT = path.resolve(projectRoot, 'out/remote-renderer')
 const DEFAULT_S3_PREFIX = 'app'
+const RENDERER_CHANNELS = ['dev', 'beta'] as const
+
+type RendererChannel = (typeof RENDERER_CHANNELS)[number]
 
 type RemoteRendererBuildOptions = {
     buildNumber: string
+    channel: RendererChannel
     cdnBaseUrl: string
     outRoot: string
 }
@@ -39,6 +43,14 @@ function normalizeCdnBaseUrl(value: string): string {
     url.search = ''
     url.pathname = url.pathname.replace(/\/+$/u, '')
     return url.toString().replace(/\/+$/u, '')
+}
+
+function normalizeRendererChannel(value: string): RendererChannel {
+    const normalized = value.trim().toLowerCase()
+    if (!RENDERER_CHANNELS.includes(normalized as RendererChannel)) {
+        throw new Error(`Renderer channel must be dev or beta, got: ${value}`)
+    }
+    return normalized as RendererChannel
 }
 
 function joinUrl(baseUrl: string, ...segments: string[]): string {
@@ -128,9 +140,13 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
 }
 
 function readBuildOptions(): RemoteRendererBuildOptions {
+    const channel = normalizeRendererChannel(argValue('--channel') || process.env.PULSESYNC_REMOTE_RENDERER_CHANNEL || 'dev')
     return {
         buildNumber: resolveBuildNumber(),
-        cdnBaseUrl: normalizeCdnBaseUrl(argValue('--cdn-url') || process.env.PULSESYNC_REMOTE_RENDERER_CDN_URL || DEFAULT_CDN_BASE_URL),
+        channel,
+        cdnBaseUrl: normalizeCdnBaseUrl(
+            argValue('--cdn-url') || process.env.PULSESYNC_REMOTE_RENDERER_CDN_URL || joinUrl(DEFAULT_CDN_BASE_URL, channel),
+        ),
         outRoot: path.resolve(projectRoot, argValue('--out-dir') || process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR_ROOT || DEFAULT_OUT_ROOT),
     }
 }
@@ -150,7 +166,7 @@ async function cli(): Promise<void> {
             await buildRemoteRenderer(options)
         }
 
-        const prefix = argValue('--prefix') || process.env.PULSESYNC_REMOTE_RENDERER_S3_PREFIX || DEFAULT_S3_PREFIX
+        const prefix = argValue('--prefix') || process.env.PULSESYNC_REMOTE_RENDERER_S3_PREFIX || `${DEFAULT_S3_PREFIX}/${options.channel}`
         await uploadRemoteRendererGlitchTipSourceMaps(options.buildNumber, joinUrl(options.cdnBaseUrl, 'versions', options.buildNumber))
         await publishDirectoryToS3(options.outRoot, { prefix })
         return
@@ -160,10 +176,11 @@ async function cli(): Promise<void> {
         [
             'Usage: tsx scripts/renderer/remote-renderer.ts <build|publish>',
             'Options:',
-            '  --cdn-url <url>             Default: https://pulsesync.dev/app',
+            '  --channel <dev|beta>         Default: dev',
+            '  --cdn-url <url>              Default: https://pulsesync.dev/app/<channel>',
             '  --out-dir <dir>             Default: out/remote-renderer',
             '  --build-number <integer>    Independent renderer build number',
-            '  --prefix <s3-prefix>        Publish only, default: app',
+            '  --prefix <s3-prefix>         Publish only, default: app/<channel>',
             '  --min-client-version <ver>  Optional manifest guard',
             '  --no-build                  Publish existing out dir',
         ].join('\n'),

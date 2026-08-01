@@ -1,7 +1,11 @@
 import fs from 'node:fs'
 import path from 'node:path'
 
-const DEFAULT_PAGES_BASE_URL = 'https://pulsesync-llc.github.io/PulseSync-renderer/app'
+const DEFAULT_PAGES_BASE_URL = 'https://static.pulsesync.dev/app'
+const PAGES_CUSTOM_DOMAIN = 'static.pulsesync.dev'
+const RENDERER_CHANNELS = ['dev', 'beta'] as const
+
+type RendererChannel = (typeof RENDERER_CHANNELS)[number]
 
 type RendererManifest = {
     buildNumber: string
@@ -42,6 +46,15 @@ function parseRetainVersions(): number {
         throw new Error(`Invalid --retain-versions value: ${rawValue}`)
     }
     return value
+}
+
+function parseRendererChannel(): RendererChannel {
+    const rawValue = argValue('--channel') || ''
+    const channel = rawValue.trim().toLowerCase()
+    if (!RENDERER_CHANNELS.includes(channel as RendererChannel)) {
+        throw new Error(`Invalid --channel value: ${rawValue}; expected dev or beta`)
+    }
+    return channel as RendererChannel
 }
 
 function mirrorAppEntries(sourceApp: string, targetApp: string): void {
@@ -96,20 +109,21 @@ function pruneRendererVersions(targetApp: string, currentBuildNumber: string, re
 function main(): void {
     const sourceRoot = path.resolve(argValue('--source') || '')
     const targetRoot = path.resolve(argValue('--target') || '')
-    const pagesBaseUrl = (argValue('--base-url') || DEFAULT_PAGES_BASE_URL).replace(/\/+$/u, '')
+    const channel = parseRendererChannel()
+    const pagesBaseUrl = (argValue('--base-url') || `${DEFAULT_PAGES_BASE_URL}/${channel}`).replace(/\/+$/u, '')
     const retainVersions = parseRetainVersions()
 
     if (!argValue('--source') || !argValue('--target')) {
         throw new Error(
-            'Usage: tsx scripts/renderer/stage-pages-repository.ts --source <build-root> --target <repository-root> [--retain-versions <count>]',
+            'Usage: tsx scripts/renderer/stage-pages-repository.ts --source <build-root> --target <repository-root> --channel <dev|beta> [--retain-versions <count>]',
         )
     }
     if (sourceRoot === targetRoot) {
         throw new Error('Pages build source and repository target must be different directories')
     }
 
-    const sourceApp = path.join(sourceRoot, 'app')
-    const targetApp = path.join(targetRoot, 'app')
+    const sourceApp = path.join(sourceRoot, 'app', channel)
+    const targetApp = path.join(targetRoot, 'app', channel)
     requireDirectory(sourceApp, 'Pages renderer source')
     requireDirectory(path.join(targetRoot, '.git'), 'Pages renderer Git repository')
 
@@ -128,8 +142,9 @@ function main(): void {
     mirrorAppEntries(sourceApp, targetApp)
     const removedVersions = pruneRendererVersions(targetApp, manifest.buildNumber, retainVersions)
     fs.writeFileSync(path.join(targetRoot, '.nojekyll'), '')
+    fs.writeFileSync(path.join(targetRoot, 'CNAME'), `${PAGES_CUSTOM_DOMAIN}\n`, 'utf8')
 
-    console.log(`Staged GitHub Pages renderer ${manifest.buildNumber}: ${targetApp}`)
+    console.log(`Staged GitHub Pages renderer ${channel}/${manifest.buildNumber}: ${targetApp}`)
     console.log(`GitHub Pages renderer URL: ${manifest.url}`)
     console.log(`Renderer retention: kept up to ${retainVersions}, removed ${removedVersions.length}`)
 }

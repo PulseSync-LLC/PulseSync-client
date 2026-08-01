@@ -94,7 +94,7 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build remote renderer
-        run: yarn renderer:build --build-number "${{ github.run_id }}" --out-dir out/remote-renderer-pr
+        run: yarn renderer:build --channel dev --build-number "${{ github.run_id }}" --out-dir out/remote-renderer-pr
 
       - name: Verify remote renderer contract
         shell: bash

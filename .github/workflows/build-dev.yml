@@ -256,7 +256,7 @@ jobs:
         run: yarn -s sentry-cli --version
 
       - name: Publish remote renderer
-        run: yarn renderer:publish
+        run: yarn renderer:publish --channel dev
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
           GLITCHTIP_SOURCEMAPS: "1"
@@ -267,7 +267,7 @@ jobs:
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
       - name: Build GitHub Pages renderer
-        run: yarn renderer:build --cdn-url https://pulsesync-llc.github.io/PulseSync-renderer/app --out-dir out/github-pages-build/app
+        run: yarn renderer:build --channel dev --cdn-url https://static.pulsesync.dev/app/dev --out-dir out/github-pages-build/app/dev
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
           GLITCHTIP_SOURCEMAPS: "0"
@@ -282,7 +282,7 @@ jobs:
           path: out/github-pages-repository
 
       - name: Stage GitHub Pages renderer
-        run: yarn renderer:stage-pages --source out/github-pages-build --target out/github-pages-repository
+        run: yarn renderer:stage-pages --channel dev --source out/github-pages-build --target out/github-pages-repository
 
       - name: Publish GitHub Pages renderer
         shell: bash
