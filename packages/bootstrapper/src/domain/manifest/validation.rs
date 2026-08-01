@@ -49,7 +49,7 @@ fn validate_component_files(component: &VersionedArtifact, label: &str) -> Resul
         return Err(format!("manifest {label}.contentSha256 is invalid").into());
     }
     if component.files.is_empty() {
-        return Err(format!("manifest {label}.files must not be empty").into());
+        return Ok(());
     }
     let mut paths = BTreeSet::new();
     for file in &component.files {
