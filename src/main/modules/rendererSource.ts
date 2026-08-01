@@ -5,9 +5,17 @@ import { isDevmark } from '@common/appConfig'
 import isAppDev from '../utils/isAppDev'
 import logger from './logger'
 import { readBootstrapSettings } from './bootstrap/bootstrapSettings'
-import { getUrlOrigin, isAllowedRemoteRendererUrl, shouldAllowDevRemoteRenderer } from './security/remoteRendererPolicy'
+import {
+    BACKEND_REMOTE_RENDERER_BASE_URL,
+    GITHUB_REMOTE_RENDERER_BASE_URL,
+    getUrlOrigin,
+    isAllowedRemoteRendererUrl,
+    shouldAllowDevRemoteRenderer,
+} from './security/remoteRendererPolicy'
+import { getUpdateSource, type UpdateSource } from './updater/updateSource'
 
-export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = 'https://pulsesync.dev/app/desktop/manifest.json'
+export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = `${BACKEND_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
+export const GITHUB_REMOTE_RENDERER_MANIFEST_URL = `${GITHUB_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
 
 export interface RemoteRendererManifest {
     buildNumber: string
@@ -31,14 +39,23 @@ function rejectRemoteRenderer(message: string, details?: Record<string, unknown>
     throw new Error(message)
 }
 
+export function getDefaultRemoteRendererManifestUrl(updateSource: UpdateSource): string {
+    return updateSource === 'github' ? GITHUB_REMOTE_RENDERER_MANIFEST_URL : DEFAULT_REMOTE_RENDERER_MANIFEST_URL
+}
+
 function getRemoteManifestUrl(): string {
     const envManifestUrl = process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL?.trim()
     if (envManifestUrl) {
         return envManifestUrl
     }
 
+    const updateSource = getUpdateSource()
+    if (updateSource === 'github') {
+        return getDefaultRemoteRendererManifestUrl(updateSource)
+    }
+
     const stored = readBootstrapSettings().remoteRendererManifestUrl
-    return stored || DEFAULT_REMOTE_RENDERER_MANIFEST_URL
+    return stored || getDefaultRemoteRendererManifestUrl(updateSource)
 }
 
 function isDesktopApiCompatible(requiredRange: string): boolean {
@@ -61,7 +78,9 @@ function parseManifest(value: unknown): RemoteRendererManifest | null {
 }
 
 async function fetchRemoteManifest(manifestUrl: string): Promise<RemoteRendererManifest | null> {
-    const response = await axios.get(manifestUrl, {
+    const requestUrl = new URL(manifestUrl)
+    requestUrl.searchParams.set('_', String(Date.now()))
+    const response = await axios.get(requestUrl.toString(), {
         timeout: 10000,
         responseType: 'json',
         validateStatus: status => status >= 200 && status < 300,
