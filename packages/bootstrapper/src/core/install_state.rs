@@ -6,7 +6,7 @@ use crate::core::{
 };
 use serde::{Deserialize, Serialize};
 use std::{
-    collections::BTreeMap,
+    collections::{BTreeMap, BTreeSet},
     fs,
     path::{Component, Path, PathBuf},
 };
@@ -512,7 +512,7 @@ pub fn resolve_active_runtime_with_host(
         }
         write_install_state(&state_root, &state)?;
         if matches!(state.activation.state, ActivationState::Confirmed) {
-            cleanup_inactive_runtime(&state_root, &state)?;
+            cleanup_inactive_runtime_after_activation(&state_root, &state);
         }
     }
     validate_snapshot(&state_root, host_bundle, &state.running, false, false)?;
@@ -600,9 +600,32 @@ pub fn acknowledge_runtime_with_host(
         state.known_good = state.running.clone();
         state.latest = state.running.clone();
         write_install_state(&state_root, &state)?;
-        cleanup_inactive_runtime(&state_root, &state)?;
+        cleanup_inactive_runtime_after_activation(&state_root, &state);
     }
     Ok(state)
+}
+
+fn cleanup_inactive_runtime_after_activation(state_root: &Path, state: &InstallStateV3) {
+    if let Err(error) = cleanup_inactive_runtime(state_root, state) {
+        eprintln!("runtime cleanup deferred after activation: {error}");
+    }
+}
+
+fn state_root_app_path(
+    state_root: &Path,
+    location: RuntimeLocation,
+    runtime_path: &Path,
+) -> Option<PathBuf> {
+    if location != RuntimeLocation::StateRoot {
+        return None;
+    }
+    let Component::Normal(app_name) = runtime_path.components().next()? else {
+        return None;
+    };
+    if !app_name.to_string_lossy().starts_with("app-") {
+        return None;
+    }
+    Some(state_root.join(app_name))
 }
 
 fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result<Vec<PathBuf>> {
@@ -616,18 +639,25 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
     if let Some(pinned) = state.pinned.as_ref() {
         snapshots.push(pinned);
     }
-    let keep_hosts = snapshots
-        .iter()
-        .map(|snapshot| snapshot.host.path.clone())
-        .collect::<Vec<_>>();
+    let mut keep_apps = BTreeSet::new();
+    for snapshot in &snapshots {
+        if let Some(path) =
+            state_root_app_path(state_root, snapshot.host.location, &snapshot.host.path)
+        {
+            keep_apps.insert(path);
+        }
+        for component in snapshot.components.values() {
+            if let Some(path) = state_root_app_path(state_root, component.location, &component.path)
+            {
+                keep_apps.insert(path);
+            }
+        }
+    }
     for entry in fs::read_dir(state_root)? {
         let entry = entry?;
         let path = entry.path();
         let name = entry.file_name().to_string_lossy().to_string();
-        if entry.file_type()?.is_dir()
-            && name.starts_with("app-")
-            && !keep_hosts.iter().any(|keep| state_root.join(keep) == path)
-        {
+        if entry.file_type()?.is_dir() && name.starts_with("app-") && !keep_apps.contains(&path) {
             assert_inside(state_root, &path, "inactive app")?;
             fs::remove_dir_all(&path)?;
             removed.push(path);
@@ -658,8 +688,8 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
             }
         }
     }
-    for host in keep_hosts {
-        let modules_root = state_root.join(host).join("modules");
+    for app in keep_apps {
+        let modules_root = app.join("modules");
         if !modules_root.is_dir() {
             continue;
         }

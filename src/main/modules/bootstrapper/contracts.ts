@@ -522,11 +522,12 @@ export const parseClaimRequestsResult = (value: unknown): ClaimLaunchRequestsRes
 export const parseAckResult = (value: unknown): AckLaunchRequestResultV1 | UpdateErrorV1 =>
     requireContract(value, isAckResult, 'ack-launch-request result')
 export const parseStartResult = (value: unknown): StartResultV1 | UpdateErrorV1 => requireContract(value, isStartResult, 'start result')
-export const parseActiveRuntimeV3 = (value: unknown): ActiveRuntimeV3 => requireContract(value, isActiveRuntimeV3, 'active runtime v3')
-export const parseRuntimeAcknowledgementV3 = (value: unknown): RuntimeAcknowledgementV3 =>
-    requireContract(value, isRuntimeAcknowledgementV3, 'runtime acknowledgement v3')
-export const parseRepairRuntimeResultV3 = (value: unknown): RepairRuntimeResultV3 =>
-    requireContract(value, isRepairRuntimeResultV3, 'repair runtime result v3')
+export const parseActiveRuntimeV3 = (value: unknown): ActiveRuntimeV3 | UpdateErrorV1 =>
+    requireContract(value, candidate => isUpdateErrorV1(candidate) || isActiveRuntimeV3(candidate), 'active runtime v3')
+export const parseRuntimeAcknowledgementV3 = (value: unknown): RuntimeAcknowledgementV3 | UpdateErrorV1 =>
+    requireContract(value, candidate => isUpdateErrorV1(candidate) || isRuntimeAcknowledgementV3(candidate), 'runtime acknowledgement v3')
+export const parseRepairRuntimeResultV3 = (value: unknown): RepairRuntimeResultV3 | UpdateErrorV1 =>
+    requireContract(value, candidate => isUpdateErrorV1(candidate) || isRepairRuntimeResultV3(candidate), 'repair runtime result v3')
 
 export function unwrapSemanticResult<TResult>(result: TResult | UpdateErrorV1): TResult {
     if (isUpdateErrorV1(result)) {
