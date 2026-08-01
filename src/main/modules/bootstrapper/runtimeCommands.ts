@@ -184,12 +184,14 @@ export async function resolveActiveRuntime(options: {
 }): Promise<ActiveRuntimeV3> {
     const args = ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId]
     if (options.hostBundle) args.push('--host-bundle', options.hostBundle)
-    return await runBootstrapperCommand({
-        launcher: options.launcher,
-        command: 'resolve-runtime',
-        args,
-        parseResult: parseActiveRuntimeV3,
-    })
+    return unwrapSemanticResult(
+        await runBootstrapperCommand({
+            launcher: options.launcher,
+            command: 'resolve-runtime',
+            args,
+            parseResult: parseActiveRuntimeV3,
+        }),
+    )
 }
 
 export async function acknowledgeActiveRuntime(options: {
@@ -201,12 +203,14 @@ export async function acknowledgeActiveRuntime(options: {
 }): Promise<RuntimeAcknowledgementV3> {
     const args = ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--generation', String(options.generation)]
     if (options.hostBundle) args.push('--host-bundle', options.hostBundle)
-    return await runBootstrapperCommand({
-        launcher: options.launcher,
-        command: 'acknowledge-runtime',
-        args,
-        parseResult: parseRuntimeAcknowledgementV3,
-    })
+    return unwrapSemanticResult(
+        await runBootstrapperCommand({
+            launcher: options.launcher,
+            command: 'acknowledge-runtime',
+            args,
+            parseResult: parseRuntimeAcknowledgementV3,
+        }),
+    )
 }
 
 export async function repairActiveRuntime(options: {
@@ -230,12 +234,14 @@ export async function repairActiveRuntime(options: {
     ]
     pushArg(args, '--manifest-url', options.manifestUrl)
     pushArg(args, '--server-health-url', options.serverHealthUrl)
-    return await runBootstrapperCommand({
-        launcher: options.launcher,
-        command: 'repair',
-        args,
-        parseResult: parseRepairRuntimeResultV3,
-    })
+    return unwrapSemanticResult(
+        await runBootstrapperCommand({
+            launcher: options.launcher,
+            command: 'repair',
+            args,
+            parseResult: parseRepairRuntimeResultV3,
+        }),
+    )
 }
 
 export type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1, RustHandoffArmedEventV1, StartResultV1 } from './contracts'
