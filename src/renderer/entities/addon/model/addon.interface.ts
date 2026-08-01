@@ -1,3 +1,5 @@
+import type { HandleConfig } from '@common/addons/handleEvents'
+
 export default interface Addon {
     id: string
     name: string
@@ -18,7 +20,7 @@ export default interface Addon {
     lastModifiedAt?: number
     size: string
 
-    type: 'theme' | 'script'
+    type: 'theme' | 'script' | 'web-addon'
     tags: string[]
 
     enabled: boolean
@@ -32,4 +34,5 @@ export default interface Addon {
 
     supportedVersions?: string[]
     rootFiles?: string[]
+    settings?: HandleConfig
 }

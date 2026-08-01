@@ -108,7 +108,7 @@ export function filterAndSortAddons({
     let result = addons.filter(addon => addon.name !== 'Default')
 
     if (type !== 'all') {
-        result = result.filter(addon => addon.type === type)
+        result = result.filter(addon => (type === 'script' ? addon.type !== 'theme' : addon.type === type))
     }
 
     if (selectedTags.size > 0) {
