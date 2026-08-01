@@ -35,4 +35,10 @@ pub struct TransactionArtifact {
     pub source_path: PathBuf,
     #[serde(rename = "targetPath")]
     pub target_path: PathBuf,
+    #[serde(
+        default,
+        rename = "targetExisted",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub target_existed: Option<bool>,
 }
