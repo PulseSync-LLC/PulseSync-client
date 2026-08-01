@@ -70,8 +70,6 @@ jobs:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_MAC_SIGN_IDENTITY: "-"
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
-          PULSESYNC_BUNDLE_RENDERER: "1"
-          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
