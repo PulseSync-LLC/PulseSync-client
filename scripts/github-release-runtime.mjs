@@ -11,10 +11,6 @@ function argValue(args, flag) {
     return index === -1 ? null : args[index + 1] || null
 }
 
-function hasFlag(args, flag) {
-    return args.includes(flag)
-}
-
 function requiredArg(args, flag) {
     const value = argValue(args, flag)
     if (!value) throw new Error(`${flag} is required`)
@@ -263,83 +259,13 @@ function prepareRelease(args) {
     console.log(`Prepared release directory: ${targetRoot}`)
 }
 
-function prereleaseChannel(tag) {
-    const normalized = tag.trim().replace(/^v/u, '')
-    const separator = normalized.indexOf('-')
-    if (separator === -1) return null
-    return (
-        normalized
-            .slice(separator + 1)
-            .split(/[.+]/u)[0]
-            .toLowerCase() || null
-    )
-}
-
-async function githubRequest(repository, route, options = {}) {
-    const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
-    if (!token) throw new Error('GITHUB_TOKEN or GH_TOKEN is required')
-    const response = await fetch(`https://api.github.com/repos/${repository}${route}`, {
-        method: options.method || 'GET',
-        headers: {
-            Accept: 'application/vnd.github+json',
-            Authorization: `Bearer ${token}`,
-            'User-Agent': 'PulseSyncReleaseRetention',
-            'X-GitHub-Api-Version': '2022-11-28',
-        },
-    })
-    if (!response.ok) {
-        throw new Error(`GitHub API ${options.method || 'GET'} ${route} failed (${response.status}): ${await response.text()}`)
-    }
-    return response.status === 204 ? null : await response.json()
-}
-
-async function listReleases(repository) {
-    const releases = []
-    for (let page = 1; page <= 10; page += 1) {
-        const values = await githubRequest(repository, `/releases?per_page=100&page=${page}`)
-        if (!Array.isArray(values)) throw new Error('GitHub releases response is invalid')
-        releases.push(...values)
-        if (values.length < 100) return releases
-    }
-    throw new Error('GitHub release retention exceeded the 1000-release safety limit')
-}
-
-async function pruneDevReleases(args) {
-    const repository = requireRepository(requiredArg(args, '--repository'))
-    const currentTag = requiredArg(args, '--current-tag')
-    const keep = Number(argValue(args, '--keep') || '5')
-    const dryRun = hasFlag(args, '--dry-run')
-    if (!Number.isSafeInteger(keep) || keep < 1 || keep > 50) throw new Error(`Invalid --keep value: ${keep}`)
-
-    const releases = (await listReleases(repository))
-        .filter(release => release && release.draft === false && release.prerelease === true && prereleaseChannel(release.tag_name || '') === 'dev')
-        .sort((left, right) => {
-            const dateOrder = String(right.published_at || right.created_at).localeCompare(String(left.published_at || left.created_at))
-            return dateOrder || Number(right.id) - Number(left.id)
-        })
-    const protectedIds = new Set(releases.slice(0, keep).map(release => release.id))
-    const current = releases.find(release => release.tag_name === currentTag)
-    if (current) protectedIds.add(current.id)
-    const removals = releases.filter(release => !protectedIds.has(release.id))
-
-    for (const release of removals) {
-        console.log(`${dryRun ? 'Would delete' : 'Deleting'} dev prerelease ${release.tag_name} (${release.id})`)
-        if (!dryRun) await githubRequest(repository, `/releases/${release.id}`, { method: 'DELETE' })
-    }
-    console.log(`Dev prerelease retention: kept ${releases.length - removals.length}, removed ${removals.length}`)
-}
-
 async function main() {
     const [command, ...args] = process.argv.slice(2)
     if (command === 'prepare') {
         prepareRelease(args)
         return
     }
-    if (command === 'prune-dev') {
-        await pruneDevReleases(args)
-        return
-    }
-    throw new Error('Usage: node scripts/github-release-runtime.mjs <prepare|prune-dev> [options]')
+    throw new Error('Usage: node scripts/github-release-runtime.mjs prepare [options]')
 }
 
 main().catch(error => {
