@@ -68,7 +68,6 @@ jobs:
         env:
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
-          PULSESYNC_MAC_SIGN_IDENTITY: "-"
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"

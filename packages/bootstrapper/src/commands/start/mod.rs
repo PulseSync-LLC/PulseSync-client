@@ -78,20 +78,27 @@ fn ensure_app_executable(app_executable: &Path) -> Result<()> {
 fn current_macos_seed(layout: &Layout) -> Result<PathBuf> {
     let current_helper = env::current_exe()
         .map_err(|error| format!("current macOS bootstrapper cannot be resolved: {error}"))?;
-    let expected_seed = layout.bootstrapper_dir.join("pulsesync-bootstrapper");
     let current_canonical = current_helper.canonicalize().map_err(|error| {
         format!("current macOS bootstrapper path cannot be canonicalized: {error}")
     })?;
-    let expected_canonical = expected_seed.canonicalize().map_err(|error| {
-        format!(
-            "macOS bundle seed cannot be canonicalized: {}: {error}",
-            expected_seed.display()
-        )
-    })?;
-    if current_canonical != expected_canonical {
+    let managed_helper = layout.bootstrapper_dir.join("pulsesync-bootstrapper");
+    let bundle_helper = layout
+        .host_bundle
+        .as_ref()
+        .ok_or("macOS host bundle is missing")?
+        .join("Contents")
+        .join("Resources")
+        .join("bootstrapper")
+        .join("pulsesync-bootstrapper");
+    let matches_known_helper = [&managed_helper, &bundle_helper].iter().any(|candidate| {
+        candidate
+            .canonicalize()
+            .is_ok_and(|canonical| canonical == current_canonical)
+    });
+    if !matches_known_helper {
         return Err(format!(
-            "macOS update must be armed by the current bundle seed: {}",
-            expected_seed.display()
+            "macOS update must be armed by the managed helper or bundle seed: {}",
+            current_helper.display()
         )
         .into());
     }
@@ -416,7 +423,7 @@ pub fn start(args: &Args) -> Result<Value> {
                         &prepared_bootstrapper,
                         &selected.path,
                         install_root,
-                        None,
+                        host_bundle.as_deref(),
                         app_executable_name.as_deref(),
                         &app_executable,
                         &passthrough_args,
@@ -424,6 +431,7 @@ pub fn start(args: &Args) -> Result<Value> {
                         None,
                     )?;
                     reserved["appExecutable"] = json!(app_executable);
+                    reserved["hostBundle"] = json!(host_bundle);
                     reserved["transactionRoot"] = json!(transaction_root);
                     reserved["transactionAction"] = json!("self-update-handoff");
                     reserved["selectedTransactionFile"] = json!(selected.path);

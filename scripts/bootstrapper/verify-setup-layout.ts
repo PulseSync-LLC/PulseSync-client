@@ -234,7 +234,6 @@ function main(): void {
         if (executableHead === '#!') {
             throw new Error(`Expected native Electron executable, got script: ${appExecutable}`)
         }
-        execFileSync('/usr/bin/codesign', ['--verify', '--deep', '--strict', installRoot], { stdio: 'pipe' })
         console.log(
             JSON.stringify(
                 {

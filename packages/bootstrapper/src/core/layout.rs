@@ -274,10 +274,7 @@ pub fn resolve_macos_layout(
         app_executable_name,
         app_dir: host_bundle.clone(),
         app_executable,
-        bootstrapper_dir: host_bundle
-            .join("Contents")
-            .join("Resources")
-            .join("bootstrapper"),
+        bootstrapper_dir: state_root.join("bootstrapper"),
         modules_dir: if hybrid {
             state_root.join("components")
         } else {
@@ -301,7 +298,7 @@ pub fn resolve_macos_layout(
         assert_inside(&layout.state_root, &layout.modules_dir, "modulesDir")?;
     }
     assert_inside(
-        layout.host_bundle.as_ref().expect("host bundle"),
+        &layout.state_root,
         &layout.bootstrapper_dir,
         "bootstrapperDir",
     )?;

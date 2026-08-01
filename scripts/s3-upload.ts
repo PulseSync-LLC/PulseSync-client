@@ -242,20 +242,24 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await immutablePublishPath(filePath, `bundles/${bundleVersion}/${dist}`)
     }
 
-    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
+    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
     if (bootstrapperMatch) {
         const [, bootstrapperVersion, dist] = bootstrapperMatch
         return await immutablePublishPath(filePath, `components/bootstrapper/${bootstrapperVersion}/${dist}`)
     }
 
-    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(
+        fileName,
+    )
     if (componentFileMatch) {
         const [, moduleName, componentVersion, , dist] = componentFileMatch
         return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/files`)
     }
 
     const componentPatchMatch =
-        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(
+            fileName,
+        )
     if (componentPatchMatch) {
         const [, moduleName, componentVersion, fromSha, , dist] = componentPatchMatch
         return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/patches/bsdiff/${fromSha}`)
@@ -415,14 +419,18 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, dist, path.extname(fileName).toLowerCase() === '.exe' ? 'exe' : 'binary', 'bootstrapper')
     }
 
-    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(
+        fileName,
+    )
     if (componentFileMatch) {
         const [, componentName, version, , dist] = componentFileMatch
         return structuredArtifactDescriptor(version, dist, 'bin', `component-file:${componentName.toLowerCase()}`)
     }
 
     const componentPatchMatch =
-        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(
+            fileName,
+        )
     if (componentPatchMatch) {
         const [, componentName, version, , , dist] = componentPatchMatch
         return structuredArtifactDescriptor(version, dist, 'patch', `component-patch:${componentName.toLowerCase()}`)

@@ -128,7 +128,6 @@ jobs:
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
-          PULSESYNC_MAC_SIGN_IDENTITY: "-"
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           SENTRY_URL: https://issues.pulsesync.dev

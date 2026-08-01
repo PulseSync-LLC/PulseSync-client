@@ -118,8 +118,8 @@ fn validate_component_files(component: &VersionedArtifact, label: &str) -> Resul
 }
 
 pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
-    if !matches!(manifest.schema_version, 3 | 4) {
-        return Err("manifest schemaVersion must be 3 or 4".into());
+    if !matches!(manifest.schema_version, 3 | 4 | 5) {
+        return Err("manifest schemaVersion must be 3, 4, or 5".into());
     }
     if manifest.metadata_version == 0 {
         return Err("manifest metadataVersion must be greater than 0".into());
@@ -135,7 +135,7 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
             return Err("manifest bundleVersion must equal metadataVersion".into());
         }
     } else if !manifest.bundle_version.is_empty() {
-        return Err("schema-v4 manifest must omit top-level bundleVersion".into());
+        return Err("schema-v4+ manifest must omit top-level bundleVersion".into());
     }
     if manifest.targets.is_empty() {
         return Err("manifest targets must include at least one dist".into());
@@ -178,17 +178,11 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
                 continue;
             }
             crate::domain::manifest::ArtifactLayout::MacosHybrid => {
-                if manifest.schema_version != 4 {
-                    return Err("macos-hybrid layout requires schemaVersion 4".into());
+                if !matches!(manifest.schema_version, 4 | 5) {
+                    return Err("macos-hybrid layout requires schemaVersion 4 or 5".into());
                 }
                 if !dist.starts_with("darwin-") {
                     return Err("macos-hybrid layout is only valid for darwin targets".into());
-                }
-                if target.bootstrapper.is_some() {
-                    return Err(format!(
-                        "targets.{dist}.bootstrapper must be omitted for macos-hybrid"
-                    )
-                    .into());
                 }
                 if target.host.content_sha256.is_some() || !target.host.files.is_empty() {
                     return Err(format!(
@@ -205,11 +199,40 @@ pub fn validate_manifest(manifest: &BootstrapperUpdateManifest) -> Result<()> {
                         format!("targets.{dist}.host.bundleVersion must be a positive integer")
                     })?;
                 let _ = host_bundle_version;
-                if target.components.len() != 1 || !target.components.contains_key("desktopCore") {
-                    return Err(format!(
-                        "targets.{dist}.components must contain only desktopCore for macos-hybrid"
-                    )
-                    .into());
+                if manifest.schema_version == 4 {
+                    if target.bootstrapper.is_some() {
+                        return Err(format!(
+                            "targets.{dist}.bootstrapper must be omitted for schema-v4 macos-hybrid"
+                        )
+                        .into());
+                    }
+                    if target.components.len() != 1
+                        || !target.components.contains_key("desktopCore")
+                    {
+                        return Err(format!(
+                            "targets.{dist}.components must contain only desktopCore for schema-v4 macos-hybrid"
+                        )
+                        .into());
+                    }
+                } else {
+                    let bootstrapper = target.bootstrapper.as_ref().ok_or_else(|| {
+                        format!(
+                            "targets.{dist}.bootstrapper is required for schema-v5 macos-hybrid"
+                        )
+                    })?;
+                    validate_versioned_artifact(
+                        bootstrapper,
+                        &format!("targets.{dist}.bootstrapper"),
+                    )?;
+                    if !bootstrapper.required {
+                        return Err(format!("targets.{dist}.bootstrapper must be required").into());
+                    }
+                    if bootstrapper.content_sha256.is_some() || !bootstrapper.files.is_empty() {
+                        return Err(format!(
+                            "targets.{dist}.bootstrapper must not define component files"
+                        )
+                        .into());
+                    }
                 }
             }
             crate::domain::manifest::ArtifactLayout::VersionedComponents => {

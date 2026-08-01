@@ -1,6 +1,6 @@
 use crate::core::{
     error::Result,
-    fs_ops::{copy_directory, sha256_directory, sha256_file},
+    fs_ops::{copy_directory, ensure_executable, sha256_directory, sha256_file},
     host_contract::{read_runtime_host_contract, runtime_host_contract_matches},
     install_state::{
         ActivationState, InstallStateV3, RuntimeActivationV3, RuntimeComponentV3, RuntimeHostV3,
@@ -49,6 +49,8 @@ struct PackagedRuntimeV3 {
     metadata_version: Option<u64>,
     #[serde(rename = "hostElectronAbi")]
     host_electron_abi: Option<String>,
+    #[serde(default, rename = "externalComponents")]
+    external_components: bool,
     components: BTreeMap<String, PackagedComponentV3>,
 }
 
@@ -106,6 +108,14 @@ fn managed_component_path(
         .join(disk_name))
 }
 
+fn managed_bootstrapper_path(state_root: &Path) -> PathBuf {
+    state_root.join("bootstrapper").join(if cfg!(windows) {
+        "pulsesync-bootstrapper.exe"
+    } else {
+        "pulsesync-bootstrapper"
+    })
+}
+
 fn relative_to(root: &Path, path: &Path, label: &str) -> Result<PathBuf> {
     path.strip_prefix(root)
         .map(Path::to_path_buf)
@@ -117,6 +127,7 @@ fn seed_component(
     host_bundle: &Path,
     name: &str,
     component: &PackagedComponentV3,
+    externalize_all: bool,
 ) -> Result<RuntimeComponentV3> {
     let source = packaged_component_path(host_bundle, component)?;
     let actual = if source.is_dir() {
@@ -127,14 +138,79 @@ fn seed_component(
     if !actual.eq_ignore_ascii_case(&component.sha256) {
         return Err(format!("packaged component hash mismatch: {name}").into());
     }
-    if name == "desktopCore" {
-        if !source.is_dir() {
-            return Err("packaged desktopCore must be a directory".into());
+    if !externalize_all && name != "desktopCore" {
+        return Ok(RuntimeComponentV3 {
+            version: component.version.clone(),
+            location: RuntimeLocation::HostBundle,
+            revision: component.revision,
+            disk_name: component.disk_name.clone(),
+            path: component.path.clone(),
+            sha256: component.sha256.clone(),
+            required: component.required,
+            artifact_sha256: None,
+            electron_abi: component._electron_abi.clone(),
+        });
+    }
+    if name == "bootstrapper" {
+        if !source.is_file() {
+            return Err("packaged bootstrapper must be a file".into());
         }
+        let target = managed_bootstrapper_path(state_root);
+        let needs_copy =
+            !target.is_file() || !sha256_file(&target)?.eq_ignore_ascii_case(&component.sha256);
+        if needs_copy {
+            let parent = target
+                .parent()
+                .ok_or("managed bootstrapper path has no parent")?;
+            fs::create_dir_all(parent)?;
+            let temporary = parent.join(format!(".seed-bootstrapper-{}", std::process::id()));
+            if temporary.exists() {
+                fs::remove_file(&temporary)?;
+            }
+            fs::copy(&source, &temporary)?;
+            ensure_executable(&temporary)?;
+            if sha256_file(&temporary)? != component.sha256.to_ascii_lowercase() {
+                fs::remove_file(&temporary)?;
+                return Err("copied packaged bootstrapper seed hash mismatch".into());
+            }
+            if target.exists() {
+                let backup = parent.join(format!(".seed-bootstrapper-old-{}", std::process::id()));
+                if backup.exists() {
+                    fs::remove_file(&backup)?;
+                }
+                fs::rename(&target, &backup)?;
+                if let Err(error) = fs::rename(&temporary, &target) {
+                    let _ = fs::rename(&backup, &target);
+                    return Err(error.into());
+                }
+                fs::remove_file(backup)?;
+            } else {
+                fs::rename(&temporary, &target)?;
+            }
+        }
+        ensure_executable(&target)?;
+        return Ok(RuntimeComponentV3 {
+            version: component.version.clone(),
+            location: RuntimeLocation::StateRoot,
+            revision: None,
+            disk_name: None,
+            path: relative_to(state_root, &target, "managed bootstrapper")?,
+            sha256: component.sha256.clone(),
+            required: component.required,
+            artifact_sha256: None,
+            electron_abi: None,
+        });
+    }
+    if !source.is_dir() {
+        return Err(format!("packaged component must be a directory: {name}").into());
+    }
+    {
         let target = managed_component_path(state_root, component, name)?;
         if target.exists() {
             if sha256_directory(&target)? != component.sha256.to_ascii_lowercase() {
-                return Err("existing packaged desktopCore seed hash mismatch".into());
+                return Err(
+                    format!("existing packaged component seed hash mismatch: {name}").into(),
+                );
             }
         } else {
             let parent = target
@@ -148,7 +224,7 @@ fn seed_component(
             copy_directory(&source, &temporary)?;
             if sha256_directory(&temporary)? != component.sha256.to_ascii_lowercase() {
                 fs::remove_dir_all(&temporary)?;
-                return Err("copied packaged desktopCore seed hash mismatch".into());
+                return Err(format!("copied packaged component seed hash mismatch: {name}").into());
             }
             fs::rename(&temporary, &target)?;
         }
@@ -157,24 +233,13 @@ fn seed_component(
             location: RuntimeLocation::StateRoot,
             revision: Some(component.revision.unwrap_or(1)),
             disk_name: component.disk_name.clone(),
-            path: relative_to(state_root, &target, "managed desktopCore")?,
+            path: relative_to(state_root, &target, "managed component")?,
             sha256: component.sha256.clone(),
             required: component.required,
             artifact_sha256: None,
             electron_abi: component._electron_abi.clone(),
         });
     }
-    Ok(RuntimeComponentV3 {
-        version: component.version.clone(),
-        location: RuntimeLocation::HostBundle,
-        revision: component.revision,
-        disk_name: component.disk_name.clone(),
-        path: component.path.clone(),
-        sha256: component.sha256.clone(),
-        required: component.required,
-        artifact_sha256: None,
-        electron_abi: component._electron_abi.clone(),
-    })
 }
 
 pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Result<InstallStateV3> {
@@ -221,7 +286,7 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
         existing_state = Some(state);
     }
     let descriptor = read_packaged_descriptor(&host_bundle)?;
-    if descriptor.schema_version != 3 && descriptor.schema_version != 4 {
+    if !matches!(descriptor.schema_version, 3 | 4) {
         return Err("packaged runtime descriptor schemaVersion must be 3 or 4".into());
     }
     let metadata_version = descriptor.metadata_version.unwrap_or(
@@ -234,7 +299,13 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
     for (name, component) in &descriptor.components {
         components.insert(
             name.clone(),
-            seed_component(&state_root, &host_bundle, name, component)?,
+            seed_component(
+                &state_root,
+                &host_bundle,
+                name,
+                component,
+                descriptor.external_components,
+            )?,
         );
     }
     let core = components

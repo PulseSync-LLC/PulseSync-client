@@ -95,7 +95,6 @@ async function buildArtifactWorker(moduleDir: string): Promise<void> {
 }
 
 function buildPulsesyncNative(moduleDir: string): void {
-    if (process.platform === 'darwin') throw new Error('macos-hybrid does not support standalone pulsesyncNative updates')
     const nativeRoot = path.join(projectRoot, 'nativeModules', 'pulsesyncNative')
     const yarnCommand = process.platform === 'win32' ? 'yarn.cmd' : 'yarn'
     run(yarnCommand, ['build'], { cwd: nativeRoot })
@@ -120,7 +119,6 @@ function buildDesktopCore(channel: string, metadataVersion: string): string {
 }
 
 function buildBootstrapper(channel: string, dist: string, metadataVersion: string): string {
-    if (process.platform === 'darwin') throw new Error('macos-hybrid does not support standalone bootstrapper updates')
     run(process.execPath, tsxArgs('scripts/bootstrapper/build.ts', ['publish', '--channel', channel, '--dist', dist]), {
         env: { DESKTOP_METADATA_VERSION: metadataVersion },
     })
@@ -138,7 +136,6 @@ async function buildAuxiliaryComponent(
     const previousManifest = await readManifest(publishedManifestUrl)
     const previousTarget = previousManifest.targets[dist]
     if (!previousTarget) throw new Error(`Published manifest has no target: ${dist}`)
-    if (previousTarget.layout === 'macos-hybrid') throw new Error(`macos-hybrid does not support standalone ${componentName} updates`)
     const previousComponent = previousTarget.components?.[componentName]
     const previousRevision = previousComponent?.revision
     if (!Number.isSafeInteger(previousRevision) || previousRevision <= 0) {
@@ -223,10 +220,6 @@ async function main(): Promise<void> {
     if (!/^\d+$/u.test(metadataVersion) || !Number.isSafeInteger(parsedMetadataVersion) || parsedMetadataVersion <= 0) {
         throw new Error(`Invalid metadata version: ${metadataVersion}`)
     }
-    if (process.platform === 'darwin' && component !== 'desktopCore') {
-        throw new Error(`macos-hybrid supports component-only updates only for desktopCore, got ${component}`)
-    }
-
     const packageVersion = JSON.parse(fs.readFileSync(path.join(projectRoot, 'packages', 'desktop-core', 'package.json'), 'utf8')).version as string
     const baseVersion = packageVersion.split('-')[0]
     const tag = argValue(args, '--github-tag') || `v${baseVersion}-${channel}.components.${metadataVersion}`

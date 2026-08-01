@@ -154,7 +154,7 @@ function rewriteVersionedArtifact(descriptor, label, context) {
 
 function transformManifest(sourceFile, context) {
     const manifest = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
-    if (!manifest || typeof manifest !== 'object' || ![3, 4].includes(manifest.schemaVersion)) {
+    if (!manifest || typeof manifest !== 'object' || ![3, 4, 5].includes(manifest.schemaVersion)) {
         throw new Error(`Unsupported desktop manifest schema: ${sourceFile}`)
     }
     if (!manifest.targets || typeof manifest.targets !== 'object') {
@@ -180,7 +180,7 @@ function transformManifest(sourceFile, context) {
 }
 
 function requireManifest(value, label) {
-    if (!value || typeof value !== 'object' || ![3, 4].includes(value.schemaVersion) || !value.targets || typeof value.targets !== 'object') {
+    if (!value || typeof value !== 'object' || ![3, 4, 5].includes(value.schemaVersion) || !value.targets || typeof value.targets !== 'object') {
         throw new Error(`${label} is not a supported desktop manifest`)
     }
     return value
