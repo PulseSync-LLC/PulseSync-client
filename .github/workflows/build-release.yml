@@ -116,6 +116,8 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
@@ -123,29 +125,12 @@ jobs:
           path: github-release-artifacts
 
       - name: Prepare GitHub Release assets
-        shell: bash
-        run: |
-          mkdir -p github-release-assets
-          declare -A NAME_COUNT=()
-
-          while IFS= read -r -d '' file; do
-            base_name="$(basename "$file")"
-            artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
-            target_name="$base_name"
-            if [[ "$base_name" == pulsesync-app-*-universal.dmg ]]; then
-              target_name="${base_name%-universal.dmg}-x64-arm64.dmg"
-            fi
-            name_count="${NAME_COUNT[$base_name]:-0}"
-
-            if (( name_count > 0 )); then
-              target_name="${artifact_dir}-${name_count}-${base_name}"
-            fi
-
-            NAME_COUNT["$base_name"]=$((name_count + 1))
-            cp "$file" "github-release-assets/$target_name"
-          done < <(find github-release-artifacts -type f -print0 | sort -z)
-
-          find github-release-assets -maxdepth 1 -type f | sort
+        run: >-
+          node scripts/github-release-runtime.mjs prepare
+          --source github-release-artifacts
+          --target github-release-assets
+          --repository ${{ github.repository }}
+          --tag ${{ github.ref_name }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.6.1

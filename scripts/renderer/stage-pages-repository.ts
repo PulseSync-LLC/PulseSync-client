@@ -35,13 +35,74 @@ function readManifest(manifestPath: string): RendererManifest {
     return value as RendererManifest
 }
 
+function parseRetainVersions(): number {
+    const rawValue = argValue('--retain-versions') || '5'
+    const value = Number(rawValue)
+    if (!Number.isSafeInteger(value) || value < 1 || value > 50) {
+        throw new Error(`Invalid --retain-versions value: ${rawValue}`)
+    }
+    return value
+}
+
+function mirrorAppEntries(sourceApp: string, targetApp: string): void {
+    fs.mkdirSync(targetApp, { recursive: true })
+    for (const entry of fs.readdirSync(targetApp, { withFileTypes: true })) {
+        if (entry.name === 'versions' && entry.isDirectory()) continue
+        fs.rmSync(path.join(targetApp, entry.name), { force: true, recursive: true })
+    }
+    for (const entry of fs.readdirSync(sourceApp, { withFileTypes: true })) {
+        const sourceEntry = path.join(sourceApp, entry.name)
+        const targetEntry = path.join(targetApp, entry.name)
+        if (entry.name === 'versions' && entry.isDirectory()) {
+            fs.mkdirSync(targetEntry, { recursive: true })
+            for (const versionEntry of fs.readdirSync(sourceEntry, { withFileTypes: true })) {
+                const targetVersion = path.join(targetEntry, versionEntry.name)
+                fs.rmSync(targetVersion, { force: true, recursive: true })
+                fs.cpSync(path.join(sourceEntry, versionEntry.name), targetVersion, { recursive: true, force: true })
+            }
+            continue
+        }
+        fs.rmSync(targetEntry, { force: true, recursive: true })
+        fs.cpSync(sourceEntry, targetEntry, { recursive: true, force: true })
+    }
+}
+
+function pruneRendererVersions(targetApp: string, currentBuildNumber: string, retainVersions: number): string[] {
+    const versionsRoot = path.join(targetApp, 'versions')
+    requireDirectory(versionsRoot, 'Pages renderer versions')
+    const versions = fs
+        .readdirSync(versionsRoot, { withFileTypes: true })
+        .filter(entry => entry.isDirectory())
+        .map(entry => entry.name)
+    const invalidVersion = versions.find(version => !/^(?:0|[1-9]\d*)$/u.test(version))
+    if (invalidVersion) throw new Error(`Unexpected renderer version directory: ${invalidVersion}`)
+
+    versions.sort((left, right) => (BigInt(left) > BigInt(right) ? -1 : BigInt(left) < BigInt(right) ? 1 : 0))
+    const retained = new Set<string>([currentBuildNumber])
+    for (const version of versions) {
+        if (retained.size >= retainVersions) break
+        retained.add(version)
+    }
+
+    const removed: string[] = []
+    for (const version of versions) {
+        if (retained.has(version)) continue
+        fs.rmSync(path.join(versionsRoot, version), { force: true, recursive: true })
+        removed.push(version)
+    }
+    return removed
+}
+
 function main(): void {
     const sourceRoot = path.resolve(argValue('--source') || '')
     const targetRoot = path.resolve(argValue('--target') || '')
     const pagesBaseUrl = (argValue('--base-url') || DEFAULT_PAGES_BASE_URL).replace(/\/+$/u, '')
+    const retainVersions = parseRetainVersions()
 
     if (!argValue('--source') || !argValue('--target')) {
-        throw new Error('Usage: tsx scripts/renderer/stage-pages-repository.ts --source <build-root> --target <repository-root>')
+        throw new Error(
+            'Usage: tsx scripts/renderer/stage-pages-repository.ts --source <build-root> --target <repository-root> [--retain-versions <count>]',
+        )
     }
     if (sourceRoot === targetRoot) {
         throw new Error('Pages build source and repository target must be different directories')
@@ -64,12 +125,13 @@ function main(): void {
         throw new Error(`Renderer version entry does not exist: ${versionEntry}`)
     }
 
-    fs.mkdirSync(targetApp, { recursive: true })
-    fs.cpSync(sourceApp, targetApp, { recursive: true, force: true })
+    mirrorAppEntries(sourceApp, targetApp)
+    const removedVersions = pruneRendererVersions(targetApp, manifest.buildNumber, retainVersions)
     fs.writeFileSync(path.join(targetRoot, '.nojekyll'), '')
 
     console.log(`Staged GitHub Pages renderer ${manifest.buildNumber}: ${targetApp}`)
     console.log(`GitHub Pages renderer URL: ${manifest.url}`)
+    console.log(`Renderer retention: kept up to ${retainVersions}, removed ${removedVersions.length}`)
 }
 
 try {
