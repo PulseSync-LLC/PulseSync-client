@@ -122,16 +122,18 @@ function main(): void {
         throw new Error('Pages build source and repository target must be different directories')
     }
 
-    const sourceApp = path.join(sourceRoot, 'app', channel)
+    const sourceApp = sourceRoot
     const targetApp = path.join(targetRoot, 'app', channel)
     requireDirectory(sourceApp, 'Pages renderer source')
     requireDirectory(path.join(targetRoot, '.git'), 'Pages renderer Git repository')
 
     const manifestPath = path.join(sourceApp, 'desktop', 'manifest.json')
     const manifest = readManifest(manifestPath)
-    const expectedRendererUrl = `${pagesBaseUrl}/versions/${manifest.buildNumber}/index.html`
-    if (manifest.url !== expectedRendererUrl) {
-        throw new Error(`Renderer manifest URL mismatch: expected ${expectedRendererUrl}, got ${manifest.url}`)
+    const pagesRendererUrl = `${pagesBaseUrl}/versions/${manifest.buildNumber}/index.html`
+    const pagesRendererPath = new URL(pagesRendererUrl).pathname
+    const sourceRendererUrl = new URL(manifest.url)
+    if (sourceRendererUrl.protocol !== 'https:' || sourceRendererUrl.pathname !== pagesRendererPath) {
+        throw new Error(`Renderer manifest path mismatch: expected ${pagesRendererPath}, got ${manifest.url}`)
     }
 
     const versionEntry = path.join(sourceApp, 'versions', manifest.buildNumber, 'index.html')
@@ -140,12 +142,13 @@ function main(): void {
     }
 
     mirrorAppEntries(sourceApp, targetApp)
+    fs.writeFileSync(path.join(targetApp, 'desktop', 'manifest.json'), `${JSON.stringify({ ...manifest, url: pagesRendererUrl }, null, 4)}\n`, 'utf8')
     const removedVersions = pruneRendererVersions(targetApp, manifest.buildNumber, retainVersions)
     fs.writeFileSync(path.join(targetRoot, '.nojekyll'), '')
     fs.writeFileSync(path.join(targetRoot, 'CNAME'), `${PAGES_CUSTOM_DOMAIN}\n`, 'utf8')
 
     console.log(`Staged GitHub Pages renderer ${channel}/${manifest.buildNumber}: ${targetApp}`)
-    console.log(`GitHub Pages renderer URL: ${manifest.url}`)
+    console.log(`GitHub Pages renderer URL: ${pagesRendererUrl}`)
     console.log(`Renderer retention: kept up to ${retainVersions}, removed ${removedVersions.length}`)
 }
 

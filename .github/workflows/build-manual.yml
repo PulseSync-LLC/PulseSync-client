@@ -229,13 +229,6 @@ jobs:
           SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
-      - name: Build GitHub Pages renderer
-        run: yarn renderer:build --channel ${{ inputs.renderer_channel }} --cdn-url https://static.pulsesync.dev/app/${{ inputs.renderer_channel }} --out-dir out/github-pages-build/app/${{ inputs.renderer_channel }}
-        env:
-          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
-          GLITCHTIP_SOURCEMAPS: "0"
-          GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
-
       - name: Checkout renderer Pages repository
         uses: actions/checkout@v6
         with:
@@ -245,7 +238,7 @@ jobs:
           path: out/github-pages-repository
 
       - name: Stage GitHub Pages renderer
-        run: yarn renderer:stage-pages --channel ${{ inputs.renderer_channel }} --source out/github-pages-build --target out/github-pages-repository
+        run: yarn renderer:stage-pages --channel ${{ inputs.renderer_channel }} --source out/remote-renderer --target out/github-pages-repository
 
       - name: Publish GitHub Pages renderer
         shell: bash
