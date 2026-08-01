@@ -79,6 +79,14 @@ export const resolveAddonDisplayName = (ref: unknown): string => {
     return readText(metadata?.name) || directory
 }
 
+export const resolveAddonId = (ref: unknown): string => {
+    const directory = resolveAddonDirectory(ref)
+    if (!directory) return ''
+
+    const metadata = listAddonMetadata().find(item => item.directoryName === directory)
+    return readText(metadata?.id) || directory
+}
+
 export const findAddonByStoreAddonId = (storeAddonId: unknown): AddonMetadataRecord | null => {
     const normalizedStoreAddonId = readText(storeAddonId).toLowerCase()
     if (!normalizedStoreAddonId) return null

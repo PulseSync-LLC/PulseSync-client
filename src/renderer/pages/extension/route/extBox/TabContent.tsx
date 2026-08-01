@@ -281,6 +281,8 @@ const TabContent: React.FC<Props> = ({
     const isConfigEmpty = !activeConfig || !Array.isArray(activeConfig.sections) || activeConfig.sections.length === 0
 
     if (active === 'Settings') {
+        if (addon.type === 'web-addon' && isConfigEmpty) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
+
         if (isConfigEmpty && !creating)
             return (
                 <div className={styles.alertContent}>
