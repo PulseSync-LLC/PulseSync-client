@@ -533,6 +533,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
     }
     const previousTarget = previousManifest?.targets[options.dist]
+    const includeFileInventories = previousTarget !== undefined && process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
     const targetHostVersion = options.hostVersion
     const sameHostVersion = previousTarget?.host.version === targetHostVersion
     const hostArtifactPath = macosBundle
@@ -560,7 +561,10 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         macosBundle ? path.join('bundles', bundleVersion, options.dist) : path.join('hosts', targetHostVersion, options.dist),
     )
     const hostSourceDir = macosBundle ? null : path.join(packagedAppRootDir, 'host')
-    const hostInventory = hostSourceDir ? createFileInventory(hostSourceDir, releaseDir, 'pulsesync-host-file', targetHostVersion, options.dist) : []
+    const hostInventory =
+        hostSourceDir && includeFileInventories
+            ? createFileInventory(hostSourceDir, releaseDir, 'pulsesync-host-file', targetHostVersion, options.dist)
+            : []
     const hostFiles: VersionedFile[] = []
     for (const file of hostInventory) {
         const previousFile = previousTarget?.host.files?.find(previous => previous.path === file.relativePath)
@@ -646,7 +650,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                         diskName: moduleArchive.diskName,
                         required: true,
                         contentSha256: moduleArchive.contentSha256,
-                        files,
+                        ...(includeFileInventories ? { files } : {}),
                         requiresHost: '>=1.0.0 <2.0.0',
                         ...(moduleName === 'pulsesyncNative' ? { electronAbi } : {}),
                         artifact,
@@ -672,7 +676,13 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                 host: {
                     version: targetHostVersion,
                     required: true,
-                    ...(hostSourceDir ? { contentSha256: hashDirectory(hostSourceDir), files: hostFiles, electronAbi } : {}),
+                    ...(hostSourceDir
+                        ? {
+                              contentSha256: hashDirectory(hostSourceDir),
+                              ...(includeFileInventories ? { files: hostFiles } : {}),
+                              electronAbi,
+                          }
+                        : {}),
                     artifact: hostArtifact,
                 },
                 components: macosBundle ? {} : components,
@@ -862,11 +872,7 @@ export async function emitBootstrapperUpdateManifest(options: EmitBootstrapperUp
     const extension = platform === 'win32' ? '.exe' : ''
     const artifactPath = path.join(releaseDir, `pulsesync-bootstrapper-${version}-${options.dist}${extension}`)
     fs.copyFileSync(executable, artifactPath)
-    const artifact = await createVersionedArtifactDescriptor(
-        artifactPath,
-        baseUrl,
-        path.join('components', 'bootstrapper', version, options.dist),
-    )
+    const artifact = await createVersionedArtifactDescriptor(artifactPath, baseUrl, path.join('components', 'bootstrapper', version, options.dist))
 
     const manifest: BootstrapperUpdateManifest = {
         ...previousManifest,
