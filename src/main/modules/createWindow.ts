@@ -11,7 +11,7 @@ import logger from './logger'
 import { getState } from './state'
 import { fileURLToPath } from 'node:url'
 import { importPextFile, isPextFilePath } from './pextImporter'
-import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
+import { resolveMainRendererSources, type MainRendererSource } from './rendererSource'
 import config from '@common/appConfig'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
@@ -220,20 +220,37 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
 }
 
 const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: MainRendererSource): Promise<MainRendererSource> => {
-    const source = resolvedSource ?? (await resolveMainRendererSource())
+    const sources = resolvedSource ? [resolvedSource] : resolveMainRendererSources()
+    let lastError: unknown
+    let sourceIndex = 0
 
-    try {
-        if (isAppDev) {
-            await window.webContents.session.clearCache()
+    for await (const source of sources) {
+        try {
+            if (isAppDev) {
+                await window.webContents.session.clearCache()
+            }
+            registerRemoteRendererResponseHeaders(window, source.origin)
+            await window.loadURL(source.url)
+            await assertRemotePreloadSurface(window)
+            if (sourceIndex > 0) {
+                logger.main.warn('Remote renderer fallback selected', {
+                    buildNumber: source.manifest.buildNumber,
+                    url: source.url,
+                })
+            }
+            return source
+        } catch (error) {
+            lastError = error
+            logger.main.warn('Failed to load remote renderer candidate', {
+                url: source.url,
+                message: error instanceof Error ? error.message : String(error),
+            })
+            sourceIndex += 1
         }
-        registerRemoteRendererResponseHeaders(window, source.origin)
-        await window.loadURL(source.url)
-        await assertRemotePreloadSurface(window)
-        return source
-    } catch (error) {
-        logger.main.error('Failed to load remote renderer', error)
-        throw error
     }
+
+    logger.main.error('Failed to load all remote renderer candidates', lastError)
+    throw lastError instanceof Error ? lastError : new Error('Failed to load all remote renderer candidates')
 }
 
 export type MainWindowStartupHandle = {

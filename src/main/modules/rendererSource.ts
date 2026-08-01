@@ -43,19 +43,19 @@ export function getDefaultRemoteRendererManifestUrl(updateSource: UpdateSource):
     return updateSource === 'github' ? GITHUB_REMOTE_RENDERER_MANIFEST_URL : DEFAULT_REMOTE_RENDERER_MANIFEST_URL
 }
 
-function getRemoteManifestUrl(): string {
+function getRemoteManifestUrls(): string[] {
     const envManifestUrl = process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL?.trim()
     if (envManifestUrl) {
-        return envManifestUrl
+        return [envManifestUrl]
     }
 
     const updateSource = getUpdateSource()
-    if (updateSource === 'github') {
-        return getDefaultRemoteRendererManifestUrl(updateSource)
-    }
-
-    const stored = readBootstrapSettings().remoteRendererManifestUrl
-    return stored || getDefaultRemoteRendererManifestUrl(updateSource)
+    const backendManifestUrl = readBootstrapSettings().remoteRendererManifestUrl || DEFAULT_REMOTE_RENDERER_MANIFEST_URL
+    const orderedManifestUrls =
+        updateSource === 'github'
+            ? [GITHUB_REMOTE_RENDERER_MANIFEST_URL, backendManifestUrl]
+            : [backendManifestUrl, GITHUB_REMOTE_RENDERER_MANIFEST_URL]
+    return Array.from(new Set(orderedManifestUrls))
 }
 
 function isDesktopApiCompatible(requiredRange: string): boolean {
@@ -88,9 +88,7 @@ async function fetchRemoteManifest(manifestUrl: string): Promise<RemoteRendererM
     return parseManifest(response.data)
 }
 
-export async function resolveMainRendererSource(): Promise<MainRendererSource> {
-    const manifestUrl = getRemoteManifestUrl()
-    const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
+async function resolveRendererSourceFromManifest(manifestUrl: string, allowDevRemoteRenderer: boolean): Promise<MainRendererSource> {
     if (!isAllowedRemoteRendererUrl(manifestUrl, allowDevRemoteRenderer)) {
         rejectRemoteRenderer('Remote renderer manifest URL is not allowlisted', { manifestUrl })
     }
@@ -99,48 +97,77 @@ export async function resolveMainRendererSource(): Promise<MainRendererSource> {
         rejectRemoteRenderer('Remote renderer manifest origin is invalid', { manifestUrl })
     }
 
-    try {
-        const manifest = await fetchRemoteManifest(manifestUrl)
-        if (!manifest) {
-            rejectRemoteRenderer('Remote renderer manifest is invalid', { manifestUrl })
-        }
+    const manifest = await fetchRemoteManifest(manifestUrl)
+    if (!manifest) {
+        rejectRemoteRenderer('Remote renderer manifest is invalid', { manifestUrl })
+    }
 
-        if (!isAllowedRemoteRendererUrl(manifest.url, allowDevRemoteRenderer)) {
-            rejectRemoteRenderer('Remote renderer URL is not allowlisted', { url: manifest.url })
-        }
+    if (!isAllowedRemoteRendererUrl(manifest.url, allowDevRemoteRenderer)) {
+        rejectRemoteRenderer('Remote renderer URL is not allowlisted', { url: manifest.url })
+    }
 
-        if (!isDesktopApiCompatible(manifest.requiresDesktopApi)) {
-            rejectRemoteRenderer('Remote renderer requires incompatible desktop API', {
-                currentApi: DESKTOP_API_VERSION,
-                requiredApi: manifest.requiresDesktopApi,
-            })
-        }
-
-        const origin = getUrlOrigin(manifest.url)
-        if (!origin) {
-            rejectRemoteRenderer('Remote renderer origin is invalid', { url: manifest.url })
-        }
-        if (origin !== manifestOrigin) {
-            rejectRemoteRenderer('Remote renderer URL origin must match manifest origin', {
-                manifestOrigin,
-                rendererOrigin: origin,
-            })
-        }
-
-        logger.main.info('Remote renderer selected', {
-            buildNumber: manifest.buildNumber,
-            url: manifest.url,
+    if (!isDesktopApiCompatible(manifest.requiresDesktopApi)) {
+        rejectRemoteRenderer('Remote renderer requires incompatible desktop API', {
+            currentApi: DESKTOP_API_VERSION,
             requiredApi: manifest.requiresDesktopApi,
         })
-
-        return {
-            kind: 'remote',
-            url: manifest.url,
-            origin,
-            manifest,
-        }
-    } catch (error) {
-        logger.main.error('Failed to resolve remote renderer', error)
-        throw error
     }
+
+    const origin = getUrlOrigin(manifest.url)
+    if (!origin) {
+        rejectRemoteRenderer('Remote renderer origin is invalid', { url: manifest.url })
+    }
+    if (origin !== manifestOrigin) {
+        rejectRemoteRenderer('Remote renderer URL origin must match manifest origin', {
+            manifestOrigin,
+            rendererOrigin: origin,
+        })
+    }
+
+    return {
+        kind: 'remote',
+        url: manifest.url,
+        origin,
+        manifest,
+    }
+}
+
+export async function* resolveMainRendererSources(): AsyncGenerator<MainRendererSource, void, void> {
+    const manifestUrls = getRemoteManifestUrls()
+    const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
+    let sourceResolved = false
+    let lastError: unknown
+
+    for (const [index, manifestUrl] of manifestUrls.entries()) {
+        try {
+            const source = await resolveRendererSourceFromManifest(manifestUrl, allowDevRemoteRenderer)
+            sourceResolved = true
+            yield source
+        } catch (error) {
+            lastError = error
+            logger.main.warn('Remote renderer source unavailable', {
+                fallbackAvailable: index < manifestUrls.length - 1,
+                manifestUrl,
+                message: error instanceof Error ? error.message : String(error),
+            })
+        }
+    }
+
+    if (sourceResolved) return
+
+    logger.main.error('Failed to resolve all remote renderer sources', lastError)
+    throw lastError instanceof Error ? lastError : new Error('Failed to resolve all remote renderer sources')
+}
+
+export async function resolveMainRendererSource(): Promise<MainRendererSource> {
+    for await (const source of resolveMainRendererSources()) {
+        logger.main.info('Remote renderer selected', {
+            buildNumber: source.manifest.buildNumber,
+            url: source.url,
+            requiredApi: source.manifest.requiresDesktopApi,
+        })
+        return source
+    }
+
+    throw new Error('Failed to resolve all remote renderer sources')
 }
