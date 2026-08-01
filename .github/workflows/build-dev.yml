@@ -296,8 +296,11 @@ jobs:
             echo "GitHub Pages renderer is already current."
             exit 0
           fi
+          expected_head="$(git rev-parse HEAD)"
+          git checkout --orphan pages-publish
+          git add --all
           git commit -m "chore: publish renderer $GITHUB_RUN_ID"
-          git push origin HEAD:gh-pages
+          git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
 
   github_prerelease:
     name: Create GitHub Prerelease
@@ -306,6 +309,10 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
@@ -313,26 +320,12 @@ jobs:
           path: github-release-artifacts
 
       - name: Prepare GitHub release assets
-        shell: bash
-        run: |
-          mkdir -p github-release-assets
-          declare -A NAME_COUNT=()
-
-          while IFS= read -r -d '' file; do
-            base_name="$(basename "$file")"
-            artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
-            target_name="$base_name"
-            name_count="${NAME_COUNT[$base_name]:-0}"
-
-            if (( name_count > 0 )); then
-              target_name="${artifact_dir}-${name_count}-${base_name}"
-            fi
-
-            NAME_COUNT["$base_name"]=$((name_count + 1))
-            cp "$file" "github-release-assets/$target_name"
-          done < <(find github-release-artifacts -type f -print0 | sort -z)
-
-          find github-release-assets -maxdepth 1 -type f | sort
+        run: >-
+          node scripts/github-release-runtime.mjs prepare
+          --source github-release-artifacts
+          --target github-release-assets
+          --repository ${{ github.repository }}
+          --tag ${{ needs.version.outputs.build_version }}
 
       - name: Create GitHub prerelease
         uses: softprops/action-gh-release@v2.6.1
@@ -346,6 +339,15 @@ jobs:
           fail_on_unmatched_files: true
           files: |
             github-release-assets/*
+
+      - name: Prune old dev prereleases
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+        run: >-
+          node scripts/github-release-runtime.mjs prune-dev
+          --repository ${{ github.repository }}
+          --current-tag ${{ needs.version.outputs.build_version }}
+          --keep 5
 
   skip-build:
     needs: changes

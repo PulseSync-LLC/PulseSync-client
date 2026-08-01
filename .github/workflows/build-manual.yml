@@ -251,5 +251,8 @@ jobs:
             echo "GitHub Pages renderer is already current."
             exit 0
           fi
+          expected_head="$(git rev-parse HEAD)"
+          git checkout --orphan pages-publish
+          git add --all
           git commit -m "chore: publish renderer $GITHUB_RUN_ID"
-          git push origin HEAD:gh-pages
+          git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
