@@ -340,15 +340,6 @@ jobs:
           files: |
             github-release-assets/*
 
-      - name: Prune old dev prereleases
-        env:
-          GITHUB_TOKEN: ${{ github.token }}
-        run: >-
-          node scripts/github-release-runtime.mjs prune-dev
-          --repository ${{ github.repository }}
-          --current-tag ${{ needs.version.outputs.build_version }}
-          --keep 5
-
   skip-build:
     needs: changes
     if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' }}
