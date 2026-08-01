@@ -189,9 +189,7 @@ fn target_plan(
             selected_artifacts,
         ));
     }
-    if let Some(installed) = installed
-        && target.layout != ArtifactLayout::MacosHybrid
-    {
+    if let Some(installed) = installed {
         plan.extend(
             installed
                 .latest
@@ -600,63 +598,69 @@ pub fn decide_component_update(
     if host_changed {
         selected_artifacts.push("host".to_string());
     }
-    for (name, component) in &target.components {
-        if installed
-            .latest
-            .components
-            .get(name)
-            .map(|value| value.version.as_str())
-            != Some(component.version.as_str())
-            || component.revision.is_some_and(|revision| {
-                installed
-                    .latest
-                    .components
-                    .get(name)
-                    .and_then(|value| value.revision)
-                    != Some(revision)
-            })
-            || installed
+    let bundle_replaces_runtime = host_changed && target.layout == ArtifactLayout::MacosHybrid;
+    if !bundle_replaces_runtime {
+        for (name, component) in &target.components {
+            if installed
                 .latest
                 .components
                 .get(name)
-                .is_some_and(|value| value.required != component.required)
-            || component.electron_abi.as_deref().is_some_and(|abi| {
-                installed
+                .map(|value| value.version.as_str())
+                != Some(component.version.as_str())
+                || component.revision.is_some_and(|revision| {
+                    installed
+                        .latest
+                        .components
+                        .get(name)
+                        .and_then(|value| value.revision)
+                        != Some(revision)
+                })
+                || installed
                     .latest
                     .components
                     .get(name)
-                    .and_then(|value| value.electron_abi.as_deref())
-                    != Some(abi)
-            })
-        {
-            selected_artifacts.push(format!("module:{name}"));
+                    .is_some_and(|value| value.required != component.required)
+                || component.electron_abi.as_deref().is_some_and(|abi| {
+                    installed
+                        .latest
+                        .components
+                        .get(name)
+                        .and_then(|value| value.electron_abi.as_deref())
+                        != Some(abi)
+                })
+            {
+                selected_artifacts.push(format!("module:{name}"));
+            }
         }
     }
-    let revision_collision =
-        !host_changed
-            && target.components.iter().any(|(name, component)| {
-                selected_artifacts.contains(&format!("module:{name}"))
-                    && component
-                        .revision
-                        .zip(component.disk_name.as_deref())
-                        .is_some_and(|(revision, disk_name)| {
-                            installed.latest.components.get(name).is_some_and(
-                                |installed_component| {
-                                    let expected = std::path::PathBuf::from(format!(
-                                        "app-{}",
-                                        target.host.version
-                                    ))
-                                    .join("modules")
+    let revision_collision = !host_changed
+        && target.components.iter().any(|(name, component)| {
+            selected_artifacts.contains(&format!("module:{name}"))
+                && component
+                    .revision
+                    .zip(component.disk_name.as_deref())
+                    .is_some_and(|(revision, disk_name)| {
+                        installed
+                            .latest
+                            .components
+                            .get(name)
+                            .is_some_and(|installed_component| {
+                                let modules_root = if target.layout == ArtifactLayout::MacosHybrid {
+                                    std::path::PathBuf::from("components")
+                                } else {
+                                    std::path::PathBuf::from(format!("app-{}", target.host.version))
+                                        .join("modules")
+                                };
+                                let expected = modules_root
                                     .join(format!("{disk_name}-{revision}"))
                                     .join(disk_name);
-                                    installed_component
-                                        .path
-                                        .components()
-                                        .eq(expected.components())
-                                },
-                            )
-                        })
-            });
+                                installed_component
+                                    .path
+                                    .components()
+                                    .eq(expected.components())
+                            })
+                    })
+        });
     if revision_collision {
         let mut decision = decide_update(
             manifest,
@@ -670,7 +674,8 @@ pub fn decide_component_update(
         decision.plan = target_plan(target, &[], Some(installed));
         return decision;
     }
-    if let Some(bootstrapper) = target.bootstrapper.as_ref()
+    if !bundle_replaces_runtime
+        && let Some(bootstrapper) = target.bootstrapper.as_ref()
         && installed
             .latest
             .components
@@ -680,12 +685,11 @@ pub fn decide_component_update(
     {
         selected_artifacts.push("bootstrapper".to_string());
     }
-    let removed_components = target.layout != ArtifactLayout::MacosHybrid
-        && installed
-            .latest
-            .components
-            .keys()
-            .any(|name| name != "bootstrapper" && !target.components.contains_key(name));
+    let removed_components = installed
+        .latest
+        .components
+        .keys()
+        .any(|name| name != "bootstrapper" && !target.components.contains_key(name));
     let update_available = !selected_artifacts.is_empty() || removed_components;
     let plan = target_plan(target, &selected_artifacts, Some(installed));
     BootstrapperUpdateDecision {

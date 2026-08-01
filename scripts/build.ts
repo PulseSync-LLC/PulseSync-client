@@ -698,6 +698,7 @@ function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVer
     }
     const descriptor = {
         schemaVersion: 3,
+        externalComponents: true,
         hostVersion,
         desktopVersion,
         bundleVersion,
@@ -732,18 +733,6 @@ async function installMacBootstrapperSeed(outDir: string, desktopVersion: string
         stdio: debug ? 'inherit' : 'pipe',
     })
     writeMacPackagedRuntime(outDir, desktopVersion, hostVersion, bundleVersion)
-    const identity = process.env.PULSESYNC_MAC_SIGN_IDENTITY?.trim() || (publishBranch ? null : '-')
-    if (!identity) {
-        throw new Error('PULSESYNC_MAC_SIGN_IDENTITY is required for a published macOS build')
-    }
-    const signingArgs = ['--force', '--deep', '--sign', identity]
-    if (identity === '-') {
-        signingArgs.push('--timestamp=none')
-    } else {
-        signingArgs.push('--options', 'runtime', '--timestamp')
-    }
-    signingArgs.push(path.join(outDir, `${getProductNameFromConfig()}.app`))
-    execFileSync('/usr/bin/codesign', signingArgs, { stdio: debug ? 'inherit' : 'pipe' })
     return targetDir
 }
 

@@ -61,17 +61,8 @@ jobs:
         name: Resolve release matrix and tag
         shell: bash
         run: |
-          if [[ "${{ inputs.build_os }}" == "macos-26" && "${{ inputs.component }}" != "desktopCore" ]]; then
-            echo "macos-hybrid supports component-only updates only for desktopCore" >&2
-            exit 1
-          fi
-
           if [[ "${{ inputs.build_os }}" == "all" ]]; then
-            if [[ "${{ inputs.component }}" == "desktopCore" ]]; then
-              matrix='["ubuntu-latest","windows-latest","macos-26"]'
-            else
-              matrix='["ubuntu-latest","windows-latest"]'
-            fi
+            matrix='["ubuntu-latest","windows-latest","macos-26"]'
           else
             matrix='["${{ inputs.build_os }}"]'
           fi
@@ -109,6 +100,7 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
       - uses: actions/cache@v5
         with:

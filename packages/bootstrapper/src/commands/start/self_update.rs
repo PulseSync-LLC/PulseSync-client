@@ -66,6 +66,8 @@ pub(super) fn launch_self_update_handoff(
     context: Option<&mut HandoffContext>,
     parent_override: Option<&ProcessIdentity>,
 ) -> Result<Value> {
+    let transaction_value: Value = serde_json::from_slice(&fs::read(transaction_file)?)?;
+    let is_macos_bundle_transaction = macos_bundle::is_macos_transaction(&transaction_value);
     let _session_lock = SessionLock::acquire(install_root, Duration::from_secs(10))?;
     let (app_handoff_id, active_lease_id, inbox_id, inbox_generation, transfer_state) =
         if let Some(context) = context {
@@ -153,7 +155,8 @@ pub(super) fn launch_self_update_handoff(
         transfer_state,
     )?;
     write_self_update_reservation(install_root, &reservation)?;
-    if host_bundle.is_some()
+    if is_macos_bundle_transaction
+        && host_bundle.is_some()
         && let Err(error) = (|| -> Result<()> {
             macos_bundle::bind_app_handoff(transaction_file, app_handoff_id.as_deref())?;
             macos_bundle::register_recovery_agent(
