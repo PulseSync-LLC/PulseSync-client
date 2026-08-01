@@ -115,9 +115,10 @@ async function publishBootstrapper(args: string[]): Promise<void> {
 
     const releaseDir = path.join(projectRoot, 'release', 'bootstrapper')
     fs.rmSync(releaseDir, { force: true, recursive: true })
-    const executable = await buildBootstrapperExecutable()
+    const executable = process.platform === 'darwin' ? await buildUniversalMacBootstrapperExecutable() : await buildBootstrapperExecutable()
     const baseUrl = `${s3Url.replace(/\/+$/u, '')}/builds/app/${channel}`
-    const previousManifestUrl = `${baseUrl}/desktop-update-${dist}.json?_=${Date.now()}`
+    const manifestName = process.platform === 'darwin' ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
+    const previousManifestUrl = `${baseUrl}/${manifestName}?_=${Date.now()}`
     const metadataVersion = process.env.DESKTOP_METADATA_VERSION?.trim() || String(Date.now())
     const manifestPath = await emitBootstrapperUpdateManifest({
         baseUrl,

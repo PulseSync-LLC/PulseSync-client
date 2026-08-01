@@ -132,10 +132,12 @@ function resolveLauncherFromDir(bootstrapperDir: string): BootstrapperLauncher |
 
 function resolveInstalledLauncher(): BootstrapperLauncher | null {
     const layout = getRuntimeLayout()
+    const managedLauncher = resolveLauncherFromDir(layout.bootstrapperDir)
+    if (managedLauncher) return managedLauncher
     if (process.platform === 'darwin' && layout.hostBundle) {
         return resolveLauncherFromDir(path.join(layout.hostBundle, 'Contents', 'Resources', BOOTSTRAPPER_DIR_NAME))
     }
-    return resolveLauncherFromDir(layout.bootstrapperDir)
+    return null
 }
 
 export function getBootstrapperRuntimePaths(): BootstrapperRuntimePaths {
