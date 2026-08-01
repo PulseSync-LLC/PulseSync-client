@@ -1,7 +1,7 @@
 {
     "name": "@pulsesync/desktop-core",
     "private": true,
-    "version": "2.18.0",
+    "version": "2.18.1-alpha",
     "main": "index.cjs",
     "componentVersions": {
         "artifactWorker": "1",
