@@ -536,16 +536,12 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
 }
 
 function applyApplicationSetupArtifactName(configObj: any, desktopVersion: string): void {
-    if (os.platform() === 'linux') {
-        return
-    }
-
     const artifactName = `pulsesync-app-${desktopVersion}-\${arch}.\${ext}`
     configObj.artifactName = artifactName
     if (os.platform() === 'win32') {
         configObj.nsis = configObj.nsis || {}
         configObj.nsis.artifactName = artifactName
-    } else {
+    } else if (os.platform() === 'darwin') {
         configObj.dmg = configObj.dmg || {}
         configObj.dmg.artifactName = artifactName
     }
