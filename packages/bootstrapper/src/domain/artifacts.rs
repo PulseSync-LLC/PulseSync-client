@@ -497,6 +497,17 @@ fn stage_file_set(
     artifact_count: usize,
     reporter: &dyn InstallProgressReporter,
 ) -> Result<StagedArtifact> {
+    if file_set.files.is_empty() {
+        return stage_full_fallback(
+            fallback,
+            key,
+            &file_set.content_sha256,
+            staging_dir,
+            artifact_index,
+            artifact_count,
+            reporter,
+        );
+    }
     let progress_total = file_set
         .files
         .iter()
@@ -775,6 +786,9 @@ fn artifact_progress_weight(
     file_set: Option<&ComponentFileSet>,
 ) -> Option<u64> {
     file_set.map_or(artifact.size, |set| {
+        if set.files.is_empty() {
+            return artifact.size;
+        }
         Some(
             set.files
                 .iter()
