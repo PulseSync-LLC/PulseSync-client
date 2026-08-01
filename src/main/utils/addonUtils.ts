@@ -627,8 +627,24 @@ export function sanitizeScript(js: string): string {
             return typeof evalStaticString(node) === 'string'
         }
 
+        function isScriptElementCreation(node: any): boolean {
+            if (!node || node.type !== 'CallExpression') return false
+
+            const callee = resolveCallee(node.callee)
+            if (!callee || callee.type !== 'MemberExpression') return false
+
+            const path = getMemberPath(callee)
+            const tagName = node.arguments[0] ? evalStaticString(node.arguments[0]) : undefined
+            return path[path.length - 1] === 'createElement' && tagName?.toLowerCase() === 'script'
+        }
+
         function inspectCall(node: any): void {
             const callee = resolveCallee(node.callee)
+
+            if (isScriptElementCreation(node)) {
+                found = true
+                return
+            }
 
             if (isIdentifierNamed(callee, 'eval') || (callee && callee.type === 'MemberExpression' && getMemberPath(callee).includes('eval'))) {
                 found = true
