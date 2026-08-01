@@ -964,7 +964,7 @@ async function readPublishedRevisionManifest(url: string): Promise<PublishedRevi
         cache: 'no-store',
         headers: { 'Cache-Control': 'no-cache' },
     })
-    if (response.status === 404) return null
+    if (response.status === 403 || response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
     return (await response.json()) as PublishedRevisionManifest
 }
