@@ -2,7 +2,13 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import yaml from 'js-yaml'
+import semver from 'semver'
 import { resolveStructuredPublishPath } from './s3-upload.js'
+
+const LEGACY_UPDATE_BRIDGE_BASE_VERSIONS: Readonly<Record<'beta' | 'dev', ReadonlySet<string>>> = {
+    beta: new Set(['2.18.0', '2.18.1', '2.18.2', '2.18.3', '2.18.4']),
+    dev: new Set(['2.18.1', '2.18.2', '2.18.3', '2.18.4']),
+}
 
 export type EmitLegacyUpdateBridgeOptions = {
     baseUrl: string
@@ -16,6 +22,16 @@ type ArtifactDigest = {
     sha512Base64: string
     sha512Hex: string
     size: number
+}
+
+export function isLegacyUpdateBridgeEnabled(channel: string | null, version: string): boolean {
+    if (channel !== 'dev' && channel !== 'beta') return false
+    const parsedVersion = semver.parse(version)
+    if (!parsedVersion) return false
+    const prereleaseChannel = parsedVersion.prerelease[0]
+    if (typeof prereleaseChannel !== 'string' || prereleaseChannel.toLowerCase() !== channel) return false
+    const baseVersion = `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}`
+    return LEGACY_UPDATE_BRIDGE_BASE_VERSIONS[channel].has(baseVersion)
 }
 
 function escapeRegExp(value: string): string {

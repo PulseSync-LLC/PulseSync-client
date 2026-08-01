@@ -18,7 +18,7 @@ import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, 
 import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
-import { emitLegacyUpdateBridge } from './legacy-update-bridge.js'
+import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -37,7 +37,6 @@ const BOOTSTRAPPER_CONFIG_FILE_NAME = 'bootstrapper.json'
 const BOOTSTRAPPER_RETAIN_APP_VERSIONS = 2
 const DEFAULT_S3_URL = 'https://s3.pulsesync.dev'
 const DEFAULT_SERVER_HEALTH_URL = 'https://ru-node-1.pulsesync.dev/api/v2/health'
-const LEGACY_UPDATE_BRIDGE_RELEASE = '2.18.0-beta'
 
 function readBootstrapperVersion(): string {
     const cargoToml = fs.readFileSync(path.resolve(__dirname, '../packages/bootstrapper/Cargo.toml'), 'utf8')
@@ -656,14 +655,6 @@ function resolveBundleVersion(): string {
     return String(value)
 }
 
-function isLegacyUpdateBridgeEnabled(version: string): boolean {
-    const tagVersion = publishBranchTagSource
-        ?.trim()
-        .replace(/^refs\/tags\//u, '')
-        .replace(/^v(?=\d)/u, '')
-    return publishBranch === 'beta' && version === LEGACY_UPDATE_BRIDGE_RELEASE && tagVersion === LEGACY_UPDATE_BRIDGE_RELEASE
-}
-
 function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
     const modulesRoot = path.join(contentsRoot, 'modules')
@@ -1254,7 +1245,7 @@ async function main(): Promise<void> {
         }
         removeUnpublishedReleaseArtifacts(releaseDir)
 
-        if (isLegacyUpdateBridgeEnabled(version)) {
+        if (isLegacyUpdateBridgeEnabled(publishBranch, version)) {
             const baseS3Url = process.env.S3_URL?.trim()
             if (!baseS3Url || !publishBranch) throw new Error('S3_URL and publish branch are required for the legacy update bridge')
             const metadataPath = await emitLegacyUpdateBridge({
@@ -1290,7 +1281,7 @@ async function main(): Promise<void> {
                 metadataVersion: process.env.DESKTOP_METADATA_VERSION,
                 previousManifestUrl: `${desktopArtifactBaseUrl}/desktop-update-${buildDist}.json`,
             })
-            await publishToS3(publishBranch, releaseDir, version, { legacyUpdateBridge: isLegacyUpdateBridgeEnabled(version) })
+            await publishToS3(publishBranch, releaseDir, version, { legacyUpdateBridge: isLegacyUpdateBridgeEnabled(publishBranch, version) })
             if (publishChangelogFlag) {
                 await publishChangelogToApi(version)
             }
