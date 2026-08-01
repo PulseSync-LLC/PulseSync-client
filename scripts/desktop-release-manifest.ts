@@ -100,6 +100,19 @@ export type EmitDesktopCoreUpdateManifestOptions = {
     rendererManifestUrl?: string
 }
 
+export type EmitRuntimeComponentUpdateManifestOptions = {
+    baseUrl: string
+    channel: string
+    componentModuleDir: string
+    componentName: string
+    dist: string
+    expectedVersion?: string
+    metadataVersion: string | number
+    previousManifestUrl: string
+    releaseDir: string
+    rendererManifestUrl?: string
+}
+
 export type EmitBootstrapperUpdateManifestOptions = {
     baseUrl: string
     bootstrapperExecutable: string
@@ -724,9 +737,9 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     return manifestPath
 }
 
-export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpdateManifestOptions): Promise<string> {
+export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeComponentUpdateManifestOptions): Promise<string> {
     const releaseDir = resolveInsideProject(options.releaseDir)
-    const coreModuleDir = resolveInsideProject(options.coreModuleDir)
+    const componentModuleDir = resolveInsideProject(options.componentModuleDir)
     const baseUrl = normalizeBaseUrl(options.baseUrl)
     const { platform } = parseDist(options.dist)
     const metadataVersion = Number(options.metadataVersion)
@@ -748,35 +761,57 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     if (!previousTarget || previousTarget.layout !== expectedLayout) {
         throw new Error(`Published manifest does not contain a ${expectedLayout} target for ${options.dist}`)
     }
-    const previousComponent = previousTarget.components.desktopCore
-    if (!previousComponent) throw new Error(`Published manifest does not contain desktopCore for ${options.dist}`)
-
-    const component = readRuntimeComponentMetadata(projectRoot).desktopCore
-    if (component.version !== options.coreVersion) {
-        throw new Error(`Expected desktop core ${options.coreVersion}, got ${component.version}`)
+    if (previousTarget.layout === 'macos-hybrid' && options.componentName !== 'desktopCore') {
+        throw new Error(`macos-hybrid supports component-only updates only for desktopCore, got ${options.componentName}`)
     }
-    if (!fs.existsSync(coreModuleDir) || !fs.statSync(coreModuleDir).isDirectory()) {
-        throw new Error(`Desktop core module directory does not exist: ${coreModuleDir}`)
+    const previousComponent = previousTarget.components[options.componentName]
+    if (!previousComponent) throw new Error(`Published manifest does not contain ${options.componentName} for ${options.dist}`)
+
+    const component = readRuntimeComponentMetadata(projectRoot)[options.componentName]
+    if (!component) throw new Error(`Unknown runtime component: ${options.componentName}`)
+    const electronAbi =
+        component.name === 'pulsesyncNative'
+            ? fs.readFileSync(path.join(projectRoot, 'node_modules', 'electron', 'abi_version'), 'utf8').trim()
+            : null
+    if (electronAbi && electronAbi !== previousTarget.host.electronAbi) {
+        throw new Error(
+            `pulsesyncNative Electron ABI ${electronAbi} does not match published host ABI ${previousTarget.host.electronAbi ?? 'missing'}`,
+        )
+    }
+    if (options.expectedVersion && component.version !== options.expectedVersion) {
+        throw new Error(`Expected ${options.componentName} ${options.expectedVersion}, got ${component.version}`)
+    }
+    if (!fs.existsSync(componentModuleDir) || !fs.statSync(componentModuleDir).isDirectory()) {
+        throw new Error(`Runtime component module directory does not exist: ${componentModuleDir}`)
     }
 
     fs.mkdirSync(releaseDir, { recursive: true })
-    const archivePath = path.join(releaseDir, `pulsesync-component-desktopCore-${component.version}-${options.dist}.zip`)
-    writeDirectoryZip(coreModuleDir, archivePath, component.diskName)
-    const contentSha256 = hashDirectory(coreModuleDir)
-    const contentChanged = previousComponent.version !== component.version || previousComponent.contentSha256 !== contentSha256
+    const archivePath = path.join(releaseDir, `pulsesync-component-${component.name}-${component.version}-${options.dist}.zip`)
+    writeDirectoryZip(componentModuleDir, archivePath, component.diskName)
+    const contentSha256 = hashDirectory(componentModuleDir)
+    const contentChanged =
+        previousComponent.version !== component.version ||
+        previousComponent.diskName !== component.diskName ||
+        previousComponent.contentSha256 !== contentSha256
     if (component.revision < (previousComponent.revision ?? 0)) {
-        throw new Error('Desktop core revision regressed')
+        throw new Error(`${component.name} revision regressed`)
     }
     if (contentChanged && component.revision <= (previousComponent.revision ?? 0)) {
-        throw new Error('Desktop core revision must advance when content changes')
+        throw new Error(`${component.name} revision must advance when content changes`)
     }
 
     const artifact = await createVersionedArtifactDescriptor(
         archivePath,
         baseUrl,
-        path.join('components', 'desktopCore', component.version, options.dist),
+        path.join('components', component.name, component.version, options.dist),
     )
-    const inventory = createFileInventory(coreModuleDir, releaseDir, 'pulsesync-component-file-desktopCore', component.version, options.dist)
+    const inventory = createFileInventory(
+        componentModuleDir,
+        releaseDir,
+        `pulsesync-component-file-${component.name}`,
+        component.version,
+        options.dist,
+    )
     const files: VersionedFile[] = []
     for (const file of inventory) {
         const previousFile = previousComponent.files?.find(candidate => candidate.path === file.relativePath)
@@ -788,14 +823,14 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
             artifact: await createVersionedArtifactDescriptor(
                 file.artifactPath,
                 baseUrl,
-                path.join('components', 'desktopCore', component.version, options.dist, 'files'),
+                path.join('components', component.name, component.version, options.dist, 'files'),
             ),
             patches: await createBsdiffPatch(
                 releaseDir,
                 baseUrl,
                 options.dist,
-                `pulsesync-component-patch-bsdiff-desktopCore-${component.version}`,
-                path.join('components', 'desktopCore', component.version, options.dist),
+                `pulsesync-component-patch-bsdiff-${component.name}-${component.version}`,
+                path.join('components', component.name, component.version, options.dist),
                 file,
                 previousFile,
             ),
@@ -805,9 +840,9 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     const manifest: BootstrapperUpdateManifest = {
         ...previousManifest,
         metadataVersion,
-        desktopVersion: component.version,
+        desktopVersion: component.name === 'desktopCore' ? component.version : previousManifest.desktopVersion,
         ...(platform === 'darwin' ? { bundleVersion: undefined } : { bundleVersion: String(metadataVersion) }),
-        desktopApi: DESKTOP_API_VERSION,
+        desktopApi: component.name === 'desktopCore' ? DESKTOP_API_VERSION : previousManifest.desktopApi,
         rendererManifestUrl: options.rendererManifestUrl?.trim() || previousManifest.rendererManifestUrl || defaultRendererManifestUrl,
         targets: {
             ...previousManifest.targets,
@@ -815,7 +850,8 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
                 ...previousTarget,
                 components: {
                     ...previousTarget.components,
-                    desktopCore: {
+                    [component.name]: {
+                        ...previousComponent,
                         version: component.version,
                         revision: component.revision,
                         diskName: component.diskName,
@@ -823,6 +859,7 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
                         contentSha256,
                         files,
                         requiresHost: previousComponent.requiresHost || '>=1.0.0 <2.0.0',
+                        ...(electronAbi ? { electronAbi } : {}),
                         artifact,
                     },
                 },
@@ -836,6 +873,21 @@ export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpda
     )
     fs.writeFileSync(manifestPath, `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
     return manifestPath
+}
+
+export async function emitDesktopCoreUpdateManifest(options: EmitDesktopCoreUpdateManifestOptions): Promise<string> {
+    return emitRuntimeComponentUpdateManifest({
+        baseUrl: options.baseUrl,
+        channel: options.channel,
+        componentModuleDir: options.coreModuleDir,
+        componentName: 'desktopCore',
+        dist: options.dist,
+        expectedVersion: options.coreVersion,
+        metadataVersion: options.metadataVersion,
+        previousManifestUrl: options.previousManifestUrl,
+        releaseDir: options.releaseDir,
+        rendererManifestUrl: options.rendererManifestUrl,
+    })
 }
 
 export async function emitBootstrapperUpdateManifest(options: EmitBootstrapperUpdateManifestOptions): Promise<string> {

@@ -1,0 +1,183 @@
+name: Publish Runtime Component
+
+on:
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit to publish"
+        required: true
+        default: "dev"
+      channel:
+        description: "Update channel"
+        required: true
+        type: choice
+        options:
+          - dev
+          - alpha
+          - beta
+        default: dev
+      component:
+        description: "Runtime component"
+        required: true
+        type: choice
+        options:
+          - desktopCore
+          - artifactWorker
+          - pulsesyncNative
+          - bootstrapper
+        default: desktopCore
+      build_os:
+        description: "Platforms to publish"
+        required: true
+        type: choice
+        options:
+          - all
+          - windows-latest
+          - ubuntu-latest
+          - macos-26
+        default: all
+
+permissions:
+  contents: write
+
+concurrency:
+  group: runtime-component-publish-${{ inputs.channel }}
+  cancel-in-progress: false
+
+jobs:
+  prepare:
+    name: Prepare component release
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.release.outputs.matrix }}
+      prerelease: ${{ steps.release.outputs.prerelease }}
+      tag: ${{ steps.release.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - id: release
+        name: Resolve release matrix and tag
+        shell: bash
+        run: |
+          if [[ "${{ inputs.build_os }}" == "macos-26" && "${{ inputs.component }}" != "desktopCore" ]]; then
+            echo "macos-hybrid supports component-only updates only for desktopCore" >&2
+            exit 1
+          fi
+
+          if [[ "${{ inputs.build_os }}" == "all" ]]; then
+            if [[ "${{ inputs.component }}" == "desktopCore" ]]; then
+              matrix='["ubuntu-latest","windows-latest","macos-26"]'
+            else
+              matrix='["ubuntu-latest","windows-latest"]'
+            fi
+          else
+            matrix='["${{ inputs.build_os }}"]'
+          fi
+
+          base_version="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
+          tag="v${base_version}-${{ inputs.channel }}.components.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
+          echo "tag=$tag" >> "$GITHUB_OUTPUT"
+          echo "prerelease=${{ inputs.channel != 'beta' }}" >> "$GITHUB_OUTPUT"
+          echo "Publishing ${{ inputs.component }} as $tag on $matrix"
+
+  build:
+    name: Build ${{ inputs.component }} (${{ matrix.os }})
+    needs: prepare
+    runs-on: ${{ matrix.os }}
+    environment: BUILD_PRODUCTION
+    strategy:
+      fail-fast: false
+      matrix:
+        os: ${{ fromJSON(needs.prepare.outputs.matrix) }}
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: "**/yarn.lock"
+
+      - name: Set up Rust
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 --profile minimal --no-self-update
+          rustup default 1.88.0
+
+      - uses: actions/cache@v5
+        with:
+          path: |
+            nativeModules/**/node_modules
+            nativeModules/**/build
+            nativeModules/**/target
+            packages/bootstrapper/target
+            ~/.cargo/registry
+            ~/.cargo/git
+          key: component-${{ inputs.component }}-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+
+      - name: Create environment
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
+
+      - name: Typecheck
+        run: yarn typecheck
+
+      - name: Publish component and prepare GitHub assets
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
+          GLITCHTIP_SOURCEMAPS: "0"
+          GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
+        run: >-
+          yarn component:publish
+          --component ${{ inputs.component }}
+          --channel ${{ inputs.channel }}
+          --repository ${{ github.repository }}
+          --github-tag ${{ needs.prepare.outputs.tag }}
+
+      - name: Upload prepared GitHub assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: component-release-${{ runner.os }}-${{ runner.arch }}
+          path: out/component-github-release/**/*
+          if-no-files-found: error
+
+  release:
+    name: Create component release
+    needs: [prepare, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download prepared assets
+        uses: actions/download-artifact@v8
+        with:
+          pattern: component-release-*
+          path: component-release-assets
+          merge-multiple: true
+
+      - name: Show release assets
+        shell: bash
+        run: find component-release-assets -type f | sort
+
+      - name: Create GitHub component release
+        uses: softprops/action-gh-release@v2.6.1
+        with:
+          tag_name: ${{ needs.prepare.outputs.tag }}
+          target_commitish: ${{ inputs.ref }}
+          name: Runtime components ${{ needs.prepare.outputs.tag }}
+          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
+          make_latest: false
+          fail_on_unmatched_files: true
+          files: component-release-assets/**/*
