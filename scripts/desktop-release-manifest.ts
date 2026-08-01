@@ -9,7 +9,12 @@ import { componentContainerName, readRuntimeComponentMetadata } from './componen
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
-const defaultRendererManifestUrl = 'https://pulsesync.dev/app/desktop/manifest.json'
+const DEFAULT_RENDERER_BASE_URL = 'https://pulsesync.dev/app'
+
+function defaultRendererManifestUrl(channel: string): string {
+    const rendererChannel = channel.trim().toLowerCase() === 'beta' ? 'beta' : 'dev'
+    return `${DEFAULT_RENDERER_BASE_URL}/${rendererChannel}/desktop/manifest.json`
+}
 
 function readBootstrapperVersion(): string {
     const cargoToml = fs.readFileSync(path.join(projectRoot, 'packages', 'bootstrapper', 'Cargo.toml'), 'utf8')
@@ -674,7 +679,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         desktopVersion: options.coreVersion,
         bundleVersion,
         desktopApi: DESKTOP_API_VERSION,
-        rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
+        rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl(options.channel),
         targets: {
             [options.dist]: {
                 layout: macosBundle ? 'macos-bundle' : 'versioned-components',
@@ -708,7 +713,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
             channel: options.channel,
             desktopVersion: options.coreVersion,
             desktopApi: DESKTOP_API_VERSION,
-            rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl,
+            rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl(options.channel),
             targets: {
                 [options.dist]: {
                     layout: 'macos-hybrid',
@@ -837,7 +842,7 @@ export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeCom
         desktopVersion: component.name === 'desktopCore' ? component.version : previousManifest.desktopVersion,
         ...(platform === 'darwin' ? { bundleVersion: undefined } : { bundleVersion: String(metadataVersion) }),
         desktopApi: component.name === 'desktopCore' ? DESKTOP_API_VERSION : previousManifest.desktopApi,
-        rendererManifestUrl: options.rendererManifestUrl?.trim() || previousManifest.rendererManifestUrl || defaultRendererManifestUrl,
+        rendererManifestUrl: options.rendererManifestUrl?.trim() || defaultRendererManifestUrl(options.channel),
         targets: {
             ...previousManifest.targets,
             [options.dist]: {
@@ -923,6 +928,7 @@ export async function emitBootstrapperUpdateManifest(options: EmitBootstrapperUp
         ...previousManifest,
         metadataVersion,
         ...(platform === 'darwin' ? { bundleVersion: undefined } : { bundleVersion: String(metadataVersion) }),
+        rendererManifestUrl: defaultRendererManifestUrl(options.channel),
         targets: {
             ...previousManifest.targets,
             [options.dist]: {

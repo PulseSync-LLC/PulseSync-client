@@ -1,8 +1,9 @@
 export const BACKEND_REMOTE_RENDERER_BASE_URL = 'https://pulsesync.dev/app'
-export const GITHUB_REMOTE_RENDERER_BASE_URL = 'https://pulsesync-llc.github.io/PulseSync-renderer/app'
+export const GITHUB_REMOTE_RENDERER_BASE_URL = 'https://static.pulsesync.dev/app'
 
 const PROD_REMOTE_RENDERER_RULES = [
     { origin: 'https://pulsesync.dev', pathPrefix: '/app/' },
+    { origin: 'https://static.pulsesync.dev', pathPrefix: '/app/' },
     { origin: 'https://pulsesync-llc.github.io', pathPrefix: '/PulseSync-renderer/app/' },
 ] as const
 const DEV_REMOTE_RENDERER_ORIGINS = new Set(['http://localhost:3100', 'http://127.0.0.1:3100'])

@@ -33,10 +33,18 @@ on:
         required: true
         default: "tests"
       publish_renderer:
-        description: "Publish the remote renderer globally"
+        description: "Publish the remote renderer"
         required: true
         type: boolean
         default: false
+      renderer_channel:
+        description: "Renderer channel to publish"
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+        default: dev
       publish_changelog:
         description: "Publish changelog (API/Discord)"
         required: true
@@ -211,7 +219,7 @@ jobs:
         run: yarn -s sentry-cli --version
 
       - name: Publish remote renderer
-        run: yarn renderer:publish
+        run: yarn renderer:publish --channel ${{ inputs.renderer_channel }}
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
@@ -222,7 +230,7 @@ jobs:
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
       - name: Build GitHub Pages renderer
-        run: yarn renderer:build --cdn-url https://pulsesync-llc.github.io/PulseSync-renderer/app --out-dir out/github-pages-build/app
+        run: yarn renderer:build --channel ${{ inputs.renderer_channel }} --cdn-url https://static.pulsesync.dev/app/${{ inputs.renderer_channel }} --out-dir out/github-pages-build/app/${{ inputs.renderer_channel }}
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
           GLITCHTIP_SOURCEMAPS: "0"
@@ -237,7 +245,7 @@ jobs:
           path: out/github-pages-repository
 
       - name: Stage GitHub Pages renderer
-        run: yarn renderer:stage-pages --source out/github-pages-build --target out/github-pages-repository
+        run: yarn renderer:stage-pages --channel ${{ inputs.renderer_channel }} --source out/github-pages-build --target out/github-pages-repository
 
       - name: Publish GitHub Pages renderer
         shell: bash

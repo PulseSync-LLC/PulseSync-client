@@ -2,9 +2,14 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-const DEFAULT_RENDERER_MANIFEST_URL = 'https://pulsesync-llc.github.io/PulseSync-renderer/app/desktop/manifest.json'
+const GITHUB_RENDERER_BASE_URL = 'https://static.pulsesync.dev/app'
 const DESKTOP_MANIFEST_PATTERN = /^desktop-update(?:-hybrid)?-[a-z0-9_-]+\.json$/iu
 const RUNTIME_ARTIFACT_PATTERN = /^pulsesync-(?:host|component|bootstrapper)-/iu
+
+function rendererManifestUrlForChannel(channel) {
+    const rendererChannel = channel?.trim().toLowerCase() === 'beta' ? 'beta' : 'dev'
+    return `${GITHUB_RENDERER_BASE_URL}/${rendererChannel}/desktop/manifest.json`
+}
 
 function argValue(args, flag) {
     const index = args.indexOf(flag)
@@ -175,7 +180,7 @@ function transformManifest(sourceFile, context) {
         }
     }
 
-    manifest.rendererManifestUrl = context.rendererManifestUrl
+    manifest.rendererManifestUrl = context.rendererManifestUrl || rendererManifestUrlForChannel(manifest.channel)
     return manifest
 }
 
@@ -271,7 +276,7 @@ function verifyComponentManifest(manifest, targetRoot, repository, tag, dist, co
     if (!fs.existsSync(assetPath) || sha256File(assetPath) !== selected.artifact.sha256.toLowerCase()) {
         throw new Error(`Selected component asset is missing or changed: ${assetName}`)
     }
-    if (manifest.rendererManifestUrl !== DEFAULT_RENDERER_MANIFEST_URL) {
+    if (manifest.rendererManifestUrl !== rendererManifestUrlForChannel(manifest.channel)) {
         throw new Error(`Component manifest renderer must use GitHub Pages: ${manifest.rendererManifestUrl}`)
     }
 }
@@ -323,7 +328,7 @@ async function prepareComponentRelease(args) {
     const context = {
         fileIndex: buildFileIndex([sourceAssetFile]),
         referencedAssets: new Map(),
-        rendererManifestUrl: DEFAULT_RENDERER_MANIFEST_URL,
+        rendererManifestUrl: rendererManifestUrlForChannel(channel),
         repository,
         tag,
     }
@@ -331,7 +336,7 @@ async function prepareComponentRelease(args) {
 
     const manifest = structuredClone(previous.manifest)
     copyManifestTopLevel(sourceManifest, manifest)
-    manifest.rendererManifestUrl = DEFAULT_RENDERER_MANIFEST_URL
+    manifest.rendererManifestUrl = rendererManifestUrlForChannel(channel)
     const mergedTarget = structuredClone(previousTarget)
     if (component === 'bootstrapper') mergedTarget.bootstrapper = selected
     else mergedTarget.components[component] = selected
@@ -408,7 +413,7 @@ function prepareRelease(args) {
     const targetRoot = resolveInsideWorkspace(requiredArg(args, '--target'), 'Target')
     const repository = requireRepository(requiredArg(args, '--repository'))
     const tag = requiredArg(args, '--tag')
-    const rendererManifestUrl = argValue(args, '--renderer-manifest-url') || DEFAULT_RENDERER_MANIFEST_URL
+    const rendererManifestUrl = argValue(args, '--renderer-manifest-url')
     requireDirectory(sourceRoot, 'Downloaded release artifacts')
     if (targetRoot.startsWith(`${sourceRoot}${path.sep}`) || sourceRoot.startsWith(`${targetRoot}${path.sep}`)) {
         throw new Error('Source and target release directories must not contain each other')

@@ -12,10 +12,13 @@ import {
     isAllowedRemoteRendererUrl,
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
+import { getEffectiveUpdateChannel } from './updater/updateChannel'
 import { getUpdateSource, type UpdateSource } from './updater/updateSource'
 
-export const DEFAULT_REMOTE_RENDERER_MANIFEST_URL = `${BACKEND_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
-export const GITHUB_REMOTE_RENDERER_MANIFEST_URL = `${GITHUB_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
+const LEGACY_BACKEND_REMOTE_RENDERER_MANIFEST_URL = `${BACKEND_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
+const LEGACY_GITHUB_REMOTE_RENDERER_MANIFEST_URL = `${GITHUB_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
+
+type PublicRendererChannel = 'dev' | 'beta'
 
 export interface RemoteRendererManifest {
     buildNumber: string
@@ -30,6 +33,18 @@ export type MainRendererSource = {
     manifest: RemoteRendererManifest
 }
 
+function getPublicRendererChannel(): PublicRendererChannel {
+    return getEffectiveUpdateChannel() === 'beta' ? 'beta' : 'dev'
+}
+
+function getBackendRendererManifestUrl(channel: PublicRendererChannel): string {
+    return `${BACKEND_REMOTE_RENDERER_BASE_URL}/${channel}/desktop/manifest.json`
+}
+
+function getGithubRendererManifestUrl(channel: PublicRendererChannel): string {
+    return `${GITHUB_REMOTE_RENDERER_BASE_URL}/${channel}/desktop/manifest.json`
+}
+
 function rejectRemoteRenderer(message: string, details?: Record<string, unknown>): never {
     if (details) {
         logger.main.warn(message, details)
@@ -40,7 +55,8 @@ function rejectRemoteRenderer(message: string, details?: Record<string, unknown>
 }
 
 export function getDefaultRemoteRendererManifestUrl(updateSource: UpdateSource): string {
-    return updateSource === 'github' ? GITHUB_REMOTE_RENDERER_MANIFEST_URL : DEFAULT_REMOTE_RENDERER_MANIFEST_URL
+    const channel = getPublicRendererChannel()
+    return updateSource === 'github' ? getGithubRendererManifestUrl(channel) : getBackendRendererManifestUrl(channel)
 }
 
 function getRemoteManifestUrls(): string[] {
@@ -50,11 +66,13 @@ function getRemoteManifestUrls(): string[] {
     }
 
     const updateSource = getUpdateSource()
-    const backendManifestUrl = readBootstrapSettings().remoteRendererManifestUrl || DEFAULT_REMOTE_RENDERER_MANIFEST_URL
-    const orderedManifestUrls =
-        updateSource === 'github'
-            ? [GITHUB_REMOTE_RENDERER_MANIFEST_URL, backendManifestUrl]
-            : [backendManifestUrl, GITHUB_REMOTE_RENDERER_MANIFEST_URL]
+    const channel = getPublicRendererChannel()
+    const backendManifestUrl = readBootstrapSettings().remoteRendererManifestUrl || getBackendRendererManifestUrl(channel)
+    const githubManifestUrl = getGithubRendererManifestUrl(channel)
+    const orderedManifestUrls = updateSource === 'github' ? [githubManifestUrl, backendManifestUrl] : [backendManifestUrl, githubManifestUrl]
+    if (channel === 'beta') {
+        orderedManifestUrls.push(LEGACY_BACKEND_REMOTE_RENDERER_MANIFEST_URL, LEGACY_GITHUB_REMOTE_RENDERER_MANIFEST_URL)
+    }
     return Array.from(new Set(orderedManifestUrls))
 }
 
