@@ -11,6 +11,7 @@ interface Props {
     hasPublicationChangelog?: boolean
     hasRelations?: boolean
     showMetadataTab?: boolean
+    showSettingsTab?: boolean
     stickyTop?: number
 }
 
@@ -21,6 +22,7 @@ const TabNavigation: React.FC<Props> = ({
     hasPublicationChangelog = false,
     hasRelations = false,
     showMetadataTab = true,
+    showSettingsTab = true,
     stickyTop,
 }) => {
     const { t } = useTranslation()
@@ -37,7 +39,7 @@ const TabNavigation: React.FC<Props> = ({
             ? [{ title: t('extensions.tabs.changelog'), value: PUBLICATION_CHANGELOG_TAB, icon: <MdStickyNote2 size={22} /> }]
             : []),
         ...(hasRelations ? [{ title: t('extensions.tabs.relations'), value: RELATIONS_TAB, icon: <MdFactCheck size={22} /> }] : []),
-        { title: t('extensions.tabs.settings'), value: 'Settings', icon: <MdSettings size={22} /> },
+        ...(showSettingsTab ? [{ title: t('extensions.tabs.settings'), value: 'Settings', icon: <MdSettings size={22} /> }] : []),
         ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata', icon: <MdConstruction size={22} /> }] : []),
     ]
 

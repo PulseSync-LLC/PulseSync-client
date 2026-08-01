@@ -380,7 +380,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
     }
 
     selectedScripts = finalAddons
-        .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName!))
+        .filter(addon => addon.type !== 'theme' && selectedScripts.includes(addon.directoryName!))
         .map(addon => addon.directoryName!)
 
     const addonByDirectory = new Map(finalAddons.map(addon => [addon.directoryName, addon]))
@@ -520,7 +520,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
 
         if (addon.type === 'theme' && addon.directoryName === selectedTheme) {
             addon.enabled = true
-        } else if (addon.type === 'script' && enabledScriptsSet.has(addon.directoryName!)) {
+        } else if (addon.type !== 'theme' && enabledScriptsSet.has(addon.directoryName!)) {
             addon.enabled = true
         }
     })

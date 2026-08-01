@@ -9,6 +9,7 @@ import {
 } from '@common/addons/handleEvents'
 
 import { AddonConfig, normalizeAddonConfig } from '@features/configurationSettings/types'
+import Addon from '@entities/addon/model/addon.interface'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
 type UseConfigResult = {
@@ -30,19 +31,25 @@ const safeParse = <T>(txt: string | null | undefined): T | null => {
     }
 }
 
-export function useConfig(addonPath: string): UseConfigResult {
+export function useConfig(addon: Addon): UseConfigResult {
     const [configExists, setExists] = useState<boolean | null>(null)
     const [config, setConfig] = useState<AddonConfig | null>(null)
     const [editConfig, setEditConfig] = useState<AddonConfig | null>(null)
 
-    const schemaFilePath = path.join(addonPath, HANDLE_EVENTS_FILENAME)
-    const settingsFilePath = path.join(addonPath, HANDLE_EVENTS_SETTINGS_FILENAME)
+    const schemaFilePath = path.join(addon.path, HANDLE_EVENTS_FILENAME)
+    const settingsFilePath = path.join(addon.path, HANDLE_EVENTS_SETTINGS_FILENAME)
+    const metadataSchema = addon.type === 'web-addon' && Array.isArray(addon.settings?.sections) ? addon.settings : null
 
     const reload = useCallback(async () => {
         try {
-            const rawSchema = await desktopApi.addons.files.readText(schemaFilePath, 'utf8')
-            const parsedSchema = safeParse<AddonConfig>(rawSchema)
-            const normalizedSchema = parsedSchema ? normalizeAddonConfig(parsedSchema) : null
+            let normalizedSchema: AddonConfig | null = null
+            if (metadataSchema) {
+                normalizedSchema = normalizeAddonConfig(metadataSchema as AddonConfig)
+            } else {
+                const rawSchema = await desktopApi.addons.files.readText(schemaFilePath, 'utf8')
+                const parsedSchema = safeParse<AddonConfig>(rawSchema)
+                normalizedSchema = parsedSchema ? normalizeAddonConfig(parsedSchema) : null
+            }
 
             if (!normalizedSchema) {
                 setExists(false)
@@ -58,14 +65,14 @@ export function useConfig(addonPath: string): UseConfigResult {
             } catch {}
 
             setExists(true)
-            setEditConfig(normalizedSchema)
+            setEditConfig(metadataSchema ? null : normalizedSchema)
             setConfig(applyAddonSettingsValuesToConfig(normalizedSchema, storedValues))
         } catch {
             setExists(false)
             setConfig(null)
             setEditConfig(null)
         }
-    }, [schemaFilePath, settingsFilePath])
+    }, [metadataSchema, schemaFilePath, settingsFilePath])
 
     const save = useCallback(
         async (cfg: AddonConfig) => {
@@ -80,13 +87,14 @@ export function useConfig(addonPath: string): UseConfigResult {
 
     const saveSchema = useCallback(
         async (cfg: AddonConfig) => {
+            if (metadataSchema) return
             const normalized = normalizeAddonConfig(cfg)
             await desktopApi.addons.files.writeText(schemaFilePath, JSON.stringify(normalized, null, 4))
             setEditConfig(normalized)
             setExists(true)
             await reload()
         },
-        [reload, schemaFilePath],
+        [metadataSchema, reload, schemaFilePath],
     )
 
     useEffect(() => {

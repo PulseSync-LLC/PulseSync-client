@@ -41,7 +41,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     const { t } = useTranslation()
     const { user } = useContext(UserContext)
     const { docs } = useAddonFiles(addon)
-    const { configExists, config, editConfig, configApi } = useConfig(addon.path)
+    const { configExists, config, editConfig, configApi } = useConfig(addon)
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
@@ -108,7 +108,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     return (
         <div className={s.container}>
             <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner}>
-                {activeTab === 'Settings' && configExists && (
+                {activeTab === 'Settings' && configExists && addon.type !== 'web-addon' && (
                     <button
                         className={cn(s.edit, editMode && s.activeEdit)}
                         onClick={() => setEditMode(e => !e)}
@@ -149,6 +149,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                         hasPublicationChangelog={publicationReleases.length > 0}
                         hasRelations={hasRelations}
                         showMetadataTab={canEditMetadata}
+                        showSettingsTab={addon.type !== 'web-addon' || Boolean(addon.settings?.sections?.length)}
                         stickyTop={tabStickyTop}
                     />
                     <TabContent

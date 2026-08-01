@@ -6,7 +6,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { sanitizeScript } from '../../utils/addonUtils'
 import { Server as IOServer, Socket } from 'socket.io'
 import { readAddonSettings } from './addonSettings'
-import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
+import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
 import { getAddonsRoot } from '../../utils/addonPaths'
 
 interface StateLike {
@@ -31,6 +31,7 @@ interface DataToMusicOptions {
     targetSocket?: Socket
     currentAddonStateHashVersion?: number
     currentAddonStateHash?: string
+    webHostAddonProtocolVersion?: number
 }
 
 type ThemePayload = {
@@ -46,6 +47,20 @@ type RefreshedAddonPayload = {
     id?: string
     css: string | null
     script: string | null
+}
+
+type WebHostAddonPayload = {
+    id: string
+    name: string
+    directoryName: string
+    version?: string
+    css: string
+    code: string
+}
+
+type WebHostAddonsSnapshot = {
+    hash: string
+    addons: WebHostAddonPayload[]
 }
 
 type AddonStateSnapshot = {
@@ -81,6 +96,19 @@ const canonicalizeAddonState = ({ theme, extensions }: AddonStateSnapshot) => ({
 const hashAddonState = (snapshot: AddonStateSnapshot): string =>
     createHash('sha256')
         .update(JSON.stringify(canonicalizeAddonState(snapshot)))
+        .digest('hex')
+
+const hashWebHostAddons = (addons: WebHostAddonPayload[]): string =>
+    createHash('sha256')
+        .update(
+            JSON.stringify(
+                [...addons].sort((left, right) => {
+                    const leftKey = JSON.stringify(left)
+                    const rightKey = JSON.stringify(right)
+                    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
+                }),
+            ),
+        )
         .digest('hex')
 
 export const createAddonService = ({ state, logger, getIo, getAuthorized, getSelectedAddon }: CreateAddonServiceOptions) => {
@@ -267,6 +295,58 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             .filter((addon): addon is RefreshedAddonPayload => addon !== null)
     }
 
+    const readWebHostAddonPayloads = (): WebHostAddonPayload[] => {
+        const scripts = getSelectedScriptDirectories()
+        const addonsFolder = getAddonsRoot()
+        let dirs: string[] = []
+        try {
+            dirs = fs.readdirSync(addonsFolder)
+        } catch {
+            return []
+        }
+
+        return dirs
+            .map<WebHostAddonPayload | null>(folderName => {
+                const metadataPath = path.join(addonsFolder, folderName, 'metadata.json')
+                if (!fs.existsSync(metadataPath)) return null
+
+                try {
+                    const meta = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+                    if (meta.type !== 'web-addon') return null
+
+                    const metaName = typeof meta.name === 'string' ? meta.name.trim() : ''
+                    const addonName = metaName || folderName
+                    if (!scripts.includes(folderName) && !(metaName.length > 0 && scripts.includes(metaName))) return null
+
+                    const id = typeof meta.id === 'string' && meta.id.trim() ? meta.id.trim() : folderName
+                    const cssFile = meta.css ? path.join(addonsFolder, folderName, meta.css) : null
+                    const scriptFile = meta.script ? path.join(addonsFolder, folderName, meta.script) : null
+                    const css = cssFile && fs.existsSync(cssFile) && fs.statSync(cssFile).isFile() ? fs.readFileSync(cssFile, 'utf8') : ''
+                    const code =
+                        scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile()
+                            ? sanitizeScript(fs.readFileSync(scriptFile, 'utf8'))
+                            : ''
+
+                    return {
+                        id,
+                        name: addonName,
+                        directoryName: folderName,
+                        version: typeof meta.version === 'string' ? meta.version : undefined,
+                        css,
+                        code,
+                    }
+                } catch {
+                    return null
+                }
+            })
+            .filter((addon): addon is WebHostAddonPayload => addon !== null)
+    }
+
+    const readWebHostAddonsSnapshot = (): WebHostAddonsSnapshot => {
+        const addons = readWebHostAddonPayloads()
+        return { hash: hashWebHostAddons(addons), addons }
+    }
+
     const readAddonStateSnapshot = (): AddonStateSnapshot => ({
         theme: readThemePayload() || readThemePayload(true),
         extensions: readExtensionPayloads(),
@@ -277,6 +357,13 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         socket.emit(MainEvents.REFRESH_EXTENSIONS, { addons: snapshot.extensions })
         socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
     }
+
+    const emitWebHostAddonsSnapshot = (socket: Socket, snapshot: WebHostAddonsSnapshot): void => {
+        socket.emit(MainEvents.WEBHOST_ADDONS_SNAPSHOT, snapshot)
+    }
+
+    const supportsWebHostAddons = (socket: Socket, protocolVersion?: number): boolean =>
+        Number(protocolVersion ?? (socket as any).webHostAddonProtocolVersion) >= 1
 
     const setAddon = (_theme: string) => {
         const io = getIo()
@@ -348,11 +435,13 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const io = getIo()
         if (!io) return
         const found = readExtensionPayloads()
+        const webHostSnapshot = readWebHostAddonsSnapshot()
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
                 sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: found })
+                if (supportsWebHostAddons(sock)) emitWebHostAddonsSnapshot(sock, webHostSnapshot)
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
         })
@@ -369,16 +458,20 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const settings = readAddonSettings(addonDirectory)
         const serialized = JSON.stringify(settings)
         const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
-        if (!force && lastAddonSettings.get(addonDisplayName) === serialized) {
+        const addonId = resolveAddonId(addonDirectory) || addonDirectory
+        const addonKeys = Array.from(new Set([addonDisplayName, addonId]))
+        if (!force && addonKeys.every(addonKey => lastAddonSettings.get(addonKey) === serialized)) {
             return
         }
 
-        lastAddonSettings.set(addonDisplayName, serialized)
+        addonKeys.forEach(addonKey => lastAddonSettings.set(addonKey, serialized))
 
         for (const sock of getMusicRecipients(targetSocket)) {
-            sock.emit('ADDON_SETTINGS_UPDATE', {
-                addon: addonDisplayName,
-                settings,
+            addonKeys.forEach(addonKey => {
+                sock.emit('ADDON_SETTINGS_UPDATE', {
+                    addon: addonKey,
+                    settings,
+                })
             })
         }
     }
@@ -395,7 +488,10 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                 const addonDirectory = resolveAddonDirectory(addonName)
                 if (!addonDirectory) return acc
                 const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
-                acc[addonDisplayName] = readAddonSettings(addonDirectory)
+                const addonId = resolveAddonId(addonDirectory) || addonDirectory
+                const settings = readAddonSettings(addonDirectory)
+                acc[addonDisplayName] = settings
+                acc[addonId] = settings
                 return acc
             },
             {} as Record<string, ReturnType<typeof readAddonSettings>>,
@@ -414,11 +510,17 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
     }
 
-    const sendDataToMusic = ({ targetSocket, currentAddonStateHashVersion, currentAddonStateHash }: DataToMusicOptions = {}) => {
+    const sendDataToMusic = ({
+        targetSocket,
+        currentAddonStateHashVersion,
+        currentAddonStateHash,
+        webHostAddonProtocolVersion,
+    }: DataToMusicOptions = {}) => {
         const io = getIo()
         if (!io) return
         const syncKey = targetSocket?.id || '__all__'
         const snapshot = readAddonStateSnapshot()
+        const webHostSnapshot = readWebHostAddonsSnapshot()
         const desiredAddonStateHash = hashAddonState(snapshot)
         const stateMatches =
             currentAddonStateHashVersion === 1 &&
@@ -429,6 +531,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         for (const socket of getMusicRecipients(targetSocket)) {
             if (!stateMatches) emitAddonStateSnapshot(socket, snapshot)
             else socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
+            if (supportsWebHostAddons(socket, webHostAddonProtocolVersion)) emitWebHostAddonsSnapshot(socket, webHostSnapshot)
         }
         logger.http.log(stateMatches ? 'Addon state unchanged after READY' : 'Current addon state sent after READY')
 
@@ -437,13 +540,8 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             clearTimeout(existingTimer)
         }
 
-        const timer = setTimeout(async () => {
+        const timer = setTimeout(() => {
             pendingDataSyncTimers.delete(syncKey)
-            if (!stateMatches) {
-                for (const socket of getMusicRecipients(targetSocket)) {
-                    emitAddonStateSnapshot(socket, snapshot)
-                }
-            }
             sendAllAddonSettings({ targetSocket, force: true })
         }, 1000)
         pendingDataSyncTimers.set(syncKey, timer)
