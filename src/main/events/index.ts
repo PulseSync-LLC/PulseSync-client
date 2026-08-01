@@ -413,6 +413,9 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         }
 
         updater.reloadFeed()
+        if (previousSource !== nextSource) {
+            await checkRendererUpdate()
+        }
 
         return {
             source: nextSource,

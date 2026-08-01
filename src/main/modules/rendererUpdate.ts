@@ -11,6 +11,10 @@ type RendererUpdateControllerOptions = {
     window: BrowserWindow
 }
 
+function isSameRendererSource(left: MainRendererSource | null, right: MainRendererSource): boolean {
+    return Boolean(left && left.manifest.buildNumber === right.manifest.buildNumber && left.url === right.url)
+}
+
 class RendererUpdateController {
     private options: RendererUpdateControllerOptions | null = null
     private pendingSource: MainRendererSource | null = null
@@ -39,7 +43,7 @@ class RendererUpdateController {
         try {
             const activeSource = options.getActiveSource()
             const nextSource = await resolveMainRendererSource()
-            if (!activeSource || nextSource.manifest.buildNumber === activeSource.manifest.buildNumber) {
+            if (!activeSource || isSameRendererSource(activeSource, nextSource)) {
                 this.pendingSource = null
                 return false
             }
@@ -65,7 +69,7 @@ class RendererUpdateController {
 
         try {
             const latestSource = await resolveMainRendererSource()
-            if (latestSource.manifest.buildNumber === options.getActiveSource()?.manifest.buildNumber) {
+            if (isSameRendererSource(options.getActiveSource(), latestSource)) {
                 this.pendingSource = null
                 options.window.flashFrame(false)
                 return false

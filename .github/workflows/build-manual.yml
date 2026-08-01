@@ -180,6 +180,9 @@ jobs:
     if: ${{ inputs.publish_renderer == true }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
+    concurrency:
+      group: remote-renderer-publish
+      cancel-in-progress: false
 
     steps:
       - uses: actions/checkout@v6
@@ -218,3 +221,35 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Build GitHub Pages renderer
+        run: yarn renderer:build --cdn-url https://pulsesync-llc.github.io/PulseSync-renderer/app --out-dir out/github-pages-build/app
+        env:
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
+          GLITCHTIP_SOURCEMAPS: "0"
+          GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
+
+      - name: Checkout renderer Pages repository
+        uses: actions/checkout@v6
+        with:
+          repository: PulseSync-LLC/PulseSync-renderer
+          token: ${{ secrets.RENDERER_REPO_TOKEN }}
+          ref: gh-pages
+          path: out/github-pages-repository
+
+      - name: Stage GitHub Pages renderer
+        run: yarn renderer:stage-pages --source out/github-pages-build --target out/github-pages-repository
+
+      - name: Publish GitHub Pages renderer
+        shell: bash
+        working-directory: out/github-pages-repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "GitHub Pages renderer is already current."
+            exit 0
+          fi
+          git commit -m "chore: publish renderer $GITHUB_RUN_ID"
+          git push origin HEAD:gh-pages

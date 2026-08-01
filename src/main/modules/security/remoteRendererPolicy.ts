@@ -1,5 +1,10 @@
-const PROD_REMOTE_RENDERER_ORIGIN = 'https://pulsesync.dev'
-const PROD_REMOTE_RENDERER_PATH_PREFIX = '/app/'
+export const BACKEND_REMOTE_RENDERER_BASE_URL = 'https://pulsesync.dev/app'
+export const GITHUB_REMOTE_RENDERER_BASE_URL = 'https://pulsesync-llc.github.io/PulseSync-renderer/app'
+
+const PROD_REMOTE_RENDERER_RULES = [
+    { origin: 'https://pulsesync.dev', pathPrefix: '/app/' },
+    { origin: 'https://pulsesync-llc.github.io', pathPrefix: '/PulseSync-renderer/app/' },
+] as const
 const DEV_REMOTE_RENDERER_ORIGINS = new Set(['http://localhost:3100', 'http://127.0.0.1:3100'])
 const SAFE_EXTERNAL_PROTOCOLS = new Set(['http:', 'https:', 'yandexmusic:'])
 
@@ -11,7 +16,7 @@ export function shouldAllowDevRemoteRenderer(isDevMode: boolean, isDevMarkedBuil
 }
 
 export function getRemoteRendererAllowedOrigins(isDevMode: boolean): Set<string> {
-    return new Set([PROD_REMOTE_RENDERER_ORIGIN, ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
+    return new Set([...PROD_REMOTE_RENDERER_RULES.map(rule => rule.origin), ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
 }
 
 export function getUrlOrigin(rawUrl: string): string | null {
@@ -25,8 +30,9 @@ export function getUrlOrigin(rawUrl: string): string | null {
 export function isAllowedRemoteRendererUrl(rawUrl: string, isDevMode: boolean): boolean {
     try {
         const url = new URL(rawUrl)
-        if (url.origin === PROD_REMOTE_RENDERER_ORIGIN) {
-            return url.protocol === 'https:' && url.pathname.startsWith(PROD_REMOTE_RENDERER_PATH_PREFIX)
+        const productionRule = PROD_REMOTE_RENDERER_RULES.find(rule => rule.origin === url.origin)
+        if (productionRule) {
+            return url.protocol === 'https:' && url.pathname.startsWith(productionRule.pathPrefix)
         }
         return isDevMode && url.protocol === 'http:' && DEV_REMOTE_RENDERER_ORIGINS.has(url.origin)
     } catch {

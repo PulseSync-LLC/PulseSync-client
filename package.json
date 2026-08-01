@@ -13,6 +13,7 @@
         "dev:native": "electron-forge start",
         "renderer:build": "tsx scripts/renderer/remote-renderer.ts build",
         "renderer:publish": "tsx scripts/renderer/remote-renderer.ts publish",
+        "renderer:stage-pages": "tsx scripts/renderer/stage-pages-repository.ts",
         "core:build": "tsx scripts/build.ts --core --debug",
         "core:publish": "tsx scripts/build.ts --core --publish alpha --debug",
         "bootstrapper:build": "tsx scripts/bootstrapper/build.ts build",
