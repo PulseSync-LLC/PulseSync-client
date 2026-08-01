@@ -477,7 +477,7 @@ pub fn start(args: &Args) -> Result<Value> {
                     "reason": "Prepared transaction applied before launch"
                 }));
             }
-            "failed" => {
+            "failed" | "applying" => {
                 let rolled_back = rollback_transaction_file(&selected.path)?;
                 if rolled_back.get("state").and_then(Value::as_str) != Some("rolled-back") {
                     let transfer =

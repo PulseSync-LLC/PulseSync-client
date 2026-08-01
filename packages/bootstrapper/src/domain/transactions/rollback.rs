@@ -77,7 +77,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     if state == "rolled-back" {
         return Ok(transaction);
     }
-    if state != "applied" && state != "failed" {
+    if state != "applied" && state != "failed" && state != "applying" {
         return Err(format!("transaction cannot be rolled back from state: {state}").into());
     }
 
@@ -92,6 +92,8 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
             }
             fs::rename(&artifact.backup_path, &artifact.target_path)?;
             "restored"
+        } else if artifact.target_existed == Some(true) {
+            "preserved"
         } else if remove_target(&artifact.target_path)? {
             "removed"
         } else {

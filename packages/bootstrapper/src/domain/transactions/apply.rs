@@ -66,6 +66,17 @@ fn backup_target(artifact: &TransactionArtifact) -> Result<&'static str> {
     Ok("created")
 }
 
+fn ensure_backup_path_available(artifact: &TransactionArtifact) -> Result<()> {
+    if artifact.backup_path.exists() {
+        return Err(format!(
+            "backup path already exists: {}",
+            artifact.backup_path.display()
+        )
+        .into());
+    }
+    Ok(())
+}
+
 fn find_extracted_directory(temp_dir: &Path, target_path: &Path) -> Result<PathBuf> {
     let target_name = target_path
         .file_name()
@@ -98,7 +109,7 @@ fn find_extracted_directory(temp_dir: &Path, target_path: &Path) -> Result<PathB
     Ok(temp_dir.to_path_buf())
 }
 
-fn apply_file_artifact(artifact: &TransactionArtifact) -> Result<Value> {
+fn apply_file_artifact(artifact: &TransactionArtifact, target_existed: bool) -> Result<Value> {
     let backup_status = backup_target(artifact)?;
     if let Some(parent) = artifact.target_path.parent() {
         fs::create_dir_all(parent)?;
@@ -107,25 +118,19 @@ fn apply_file_artifact(artifact: &TransactionArtifact) -> Result<Value> {
     if artifact.key == "bootstrapper" {
         ensure_executable(&artifact.target_path)?;
     }
-    Ok(json!({
-        "key": artifact.key,
-        "action": artifact.action,
-        "preparedKind": artifact.prepared_kind,
-        "preparedPath": artifact.prepared_path,
-        "backupPath": artifact.backup_path,
-        "targetPath": artifact.target_path,
-        "sourcePath": artifact.source_path,
-        "sha256": artifact.sha256,
-        "size": artifact.size,
-        "backupStatus": backup_status,
-        "status": "applied",
-        "message": "File artifact applied"
-    }))
+    artifact_journal_entry(
+        artifact,
+        target_existed,
+        backup_status,
+        "applied",
+        "File artifact applied",
+    )
 }
 
 fn apply_directory_archive_artifact(
     artifact: &TransactionArtifact,
     transaction_dir: &Path,
+    target_existed: bool,
 ) -> Result<Value> {
     if artifact.prepared_kind != "archive" {
         return Err("directory archive artifact must have preparedKind=archive".into());
@@ -149,33 +154,55 @@ fn apply_directory_archive_artifact(
             fs::create_dir_all(parent)?;
         }
         fs::rename(extracted, &artifact.target_path)?;
-        Ok(json!({
-            "key": artifact.key,
-            "action": artifact.action,
-            "preparedKind": artifact.prepared_kind,
-            "preparedPath": artifact.prepared_path,
-            "backupPath": artifact.backup_path,
-            "targetPath": artifact.target_path,
-            "sourcePath": artifact.source_path,
-            "sha256": artifact.sha256,
-            "size": artifact.size,
-            "backupStatus": backup_status,
-            "status": "applied",
-            "message": "Directory archive extracted and moved to transaction-recorded target path"
-        }))
+        artifact_journal_entry(
+            artifact,
+            target_existed,
+            backup_status,
+            "applied",
+            "Directory archive extracted and moved to transaction-recorded target path",
+        )
     })();
     let _ = fs::remove_dir_all(&temp_dir);
     apply_result
 }
 
-fn apply_artifact(artifact: &TransactionArtifact, transaction_dir: &Path) -> Result<Value> {
-    verify_artifact(artifact)?;
-
+fn apply_artifact(
+    artifact: &TransactionArtifact,
+    transaction_dir: &Path,
+    target_existed: bool,
+) -> Result<Value> {
     match artifact.action.as_str() {
-        "replace-file" => apply_file_artifact(artifact),
-        "replace-directory-archive" => apply_directory_archive_artifact(artifact, transaction_dir),
+        "replace-file" => apply_file_artifact(artifact, target_existed),
+        "replace-directory-archive" => {
+            apply_directory_archive_artifact(artifact, transaction_dir, target_existed)
+        }
         _ => Err(format!("unsupported artifact action: {}", artifact.action).into()),
     }
+}
+
+fn artifact_journal_entry(
+    artifact: &TransactionArtifact,
+    target_existed: bool,
+    backup_status: &str,
+    status: &str,
+    message: &str,
+) -> Result<Value> {
+    let mut value = serde_json::to_value(artifact)?;
+    value["targetExisted"] = json!(target_existed);
+    value["backupStatus"] = json!(backup_status);
+    value["status"] = json!(status);
+    value["message"] = json!(message);
+    Ok(value)
+}
+
+fn applying_artifact(artifact: &TransactionArtifact, target_existed: bool) -> Result<Value> {
+    artifact_journal_entry(
+        artifact,
+        target_existed,
+        "pending",
+        "applying",
+        "Artifact journaled before target mutation",
+    )
 }
 
 fn verify_result_content(transaction: &Value, artifact: &TransactionArtifact) -> Result<()> {
@@ -253,11 +280,31 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         )?;
         assert_inside(&install_dir, &artifact.target_path, "target artifact")?;
         assert_inside(&backup_dir, &artifact.backup_path, "backup artifact")?;
-        match apply_artifact(artifact, &transaction_dir)
+        verify_artifact(artifact)?;
+        ensure_backup_path_available(artifact)?;
+
+        let target_existed = artifact.target_path.exists();
+        applied.push(applying_artifact(artifact, target_existed)?);
+        transaction["state"] = json!("applying");
+        transaction["applied"] = json!(false);
+        transaction["artifacts"] = Value::Array(applied.clone());
+        write_transaction(transaction_file, &transaction)?;
+
+        match apply_artifact(artifact, &transaction_dir, target_existed)
             .and_then(|value| verify_result_content(&transaction, artifact).map(|_| value))
         {
-            Ok(value) => applied.push(value),
+            Ok(value) => {
+                *applied
+                    .last_mut()
+                    .ok_or("applying artifact journal is missing")? = value;
+                transaction["artifacts"] = Value::Array(applied.clone());
+                write_transaction(transaction_file, &transaction)?;
+            }
             Err(error) => {
+                if let Some(value) = applied.last_mut() {
+                    value["status"] = json!("failed");
+                    value["message"] = json!(error.to_string());
+                }
                 transaction["state"] = json!("failed");
                 transaction["applied"] = json!(false);
                 transaction["error"] = json!(error.to_string());
