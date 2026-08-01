@@ -16,6 +16,7 @@
         "renderer:stage-pages": "tsx scripts/renderer/stage-pages-repository.ts",
         "core:build": "tsx scripts/build.ts --core --debug",
         "core:publish": "tsx scripts/build.ts --core --publish alpha --debug",
+        "component:publish": "tsx scripts/publish-runtime-component.ts",
         "bootstrapper:build": "tsx scripts/bootstrapper/build.ts build",
         "bootstrapper:copy": "tsx scripts/bootstrapper/build.ts copy",
         "bootstrapper:publish": "tsx scripts/bootstrapper/build.ts publish --channel alpha --dist win32-x64",
