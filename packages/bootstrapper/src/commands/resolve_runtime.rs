@@ -4,7 +4,8 @@ use crate::{
         active_app::verified_live_lease,
         error::Result,
         install_state::{
-            acknowledge_runtime_with_host, resolve_active_runtime, resolve_active_runtime_with_host,
+            acknowledge_runtime_with_host, resolve_active_runtime,
+            resolve_active_runtime_with_host, rollback_active_runtime_with_host,
         },
         packaged_runtime::ensure_macos_hybrid_state,
     },
@@ -52,4 +53,16 @@ pub fn acknowledge_runtime_command(args: &Args) -> Result<Value> {
         "state": "confirmed",
         "generation": state.generation,
     }))
+}
+
+pub fn rollback_runtime_command(args: &Args) -> Result<Value> {
+    let state_root = PathBuf::from(required_state_root(args)?);
+    let lease_id = required_arg(args, "--active-lease-id")?;
+    require_active_lease(&state_root, &lease_id)?;
+    let host_bundle = arg_value(args, "--host-bundle").map(PathBuf::from);
+    Ok(serde_json::to_value(rollback_active_runtime_with_host(
+        &state_root,
+        &lease_id,
+        host_bundle.as_deref(),
+    )?)?)
 }

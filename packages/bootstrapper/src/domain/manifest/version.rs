@@ -628,6 +628,16 @@ pub fn decide_component_update(
                         .and_then(|value| value.electron_abi.as_deref())
                         != Some(abi)
                 })
+                || installed.latest.components.get(name).is_some_and(|value| {
+                    value
+                        .artifact_sha256
+                        .as_deref()
+                        .is_some_and(|sha| !sha.eq_ignore_ascii_case(&component.artifact.sha256))
+                        || component
+                            .content_sha256
+                            .as_deref()
+                            .is_some_and(|sha| !sha.eq_ignore_ascii_case(&value.sha256))
+                })
             {
                 selected_artifacts.push(format!("module:{name}"));
             }

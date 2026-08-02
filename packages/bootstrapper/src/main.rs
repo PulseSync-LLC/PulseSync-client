@@ -20,7 +20,7 @@ use crate::{
         maintenance::{collect_garbage, pin_runtime, repair},
         prepare_update::prepare_update_command,
         recover_update::recover_update,
-        resolve_runtime::{acknowledge_runtime_command, resolve_runtime},
+        resolve_runtime::{acknowledge_runtime_command, resolve_runtime, rollback_runtime_command},
         start::start,
     },
     core::{
@@ -173,6 +173,7 @@ fn run(args: &Args) -> Result<Value> {
             let root = install_root_from_updates_path(&transaction_file)?;
             run_guarded_mutation(root, || rollback_transaction_file(&transaction_file))
         }
+        "rollback-runtime" => rollback_runtime_command(args),
         "resolve-runtime" => resolve_runtime(args),
         "acknowledge-runtime" => acknowledge_runtime_command(args),
         _ => Err(format!("unknown command: {}", args.command).into()),

@@ -980,7 +980,7 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
         const contentSha256 = hashDirectory(source.module)
         const previous = previousTarget?.components?.[component.name]
 
-        if (hostChanged || !previous) {
+        if (!previous) {
             revisions[component.name] = 1
         } else {
             const previousRevision = previous.revision
@@ -989,7 +989,7 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
             }
             const contentChanged =
                 previous.version !== component.version || previous.diskName !== component.diskName || previous.contentSha256 !== contentSha256
-            revisions[component.name] = contentChanged ? previousRevision + 1 : previousRevision
+            revisions[component.name] = hostChanged || contentChanged ? previousRevision + 1 : previousRevision
         }
 
         log(

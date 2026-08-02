@@ -30,6 +30,7 @@ fn is_command(value: &str) -> bool {
             | "start"
             | "apply-install"
             | "rollback-install"
+            | "rollback-runtime"
             | "resolve-runtime"
             | "acknowledge-runtime"
     )

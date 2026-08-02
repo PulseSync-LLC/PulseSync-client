@@ -20,7 +20,7 @@ use crate::{
             LaunchRequestInput, LaunchRequestKind, bind_inbox_to_lease, enqueue_request,
             launch_request_result_value,
         },
-        launcher::{launch_app, launch_app_with_env, launch_app_with_env_and_log},
+        launcher::{launch_app, launch_app_with_env_and_log},
     },
 };
 use serde_json::{Value, json};
@@ -188,7 +188,8 @@ pub(crate) fn launch_handoff_successor(
             OsString::from(&reservation.id),
         ),
     ];
-    let pid = match launch_app_with_env(app_executable, args, &env) {
+    let successor_log = install_root.join("logs/bootstrap-successor.log");
+    let pid = match launch_app_with_env_and_log(app_executable, args, &env, &successor_log) {
         Ok(pid) => pid,
         Err(error) => {
             context.transfer = mark_handoff_launch_failed(install_root, &context.transfer)?;
