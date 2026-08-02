@@ -64,3 +64,15 @@ export function readRuntimeComponentMetadata(projectRoot: string): Record<string
 export function componentContainerName(component: RuntimeComponentMetadata): string {
     return `${component.diskName}-${component.revision}`
 }
+
+export function findVersionedComponentContainer(modulesDir: string, component: RuntimeComponentMetadata): string {
+    const prefix = `${component.diskName}-`
+    const matches = fs
+        .readdirSync(modulesDir, { withFileTypes: true })
+        .filter(entry => entry.isDirectory() && entry.name.startsWith(prefix) && /^[1-9]\d*$/u.test(entry.name.slice(prefix.length)))
+        .map(entry => path.join(modulesDir, entry.name))
+    if (matches.length !== 1) {
+        throw new Error(`Expected exactly one versioned container for ${component.name} in ${modulesDir}, found ${matches.length}`)
+    }
+    return matches[0]
+}

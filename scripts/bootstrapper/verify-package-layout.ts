@@ -1,7 +1,7 @@
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { componentContainerName, readRuntimeComponentMetadata } from '../component-layout.js'
+import { findVersionedComponentContainer, readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -64,7 +64,8 @@ function requireModuleFile(installRoot: string, moduleName: string, fileName: st
     const component = readRuntimeComponentMetadata(projectRoot)[moduleName]
     if (!component) throw new Error(`Unknown runtime component: ${moduleName}`)
     const modulesDir = requirePath(path.join(installRoot, 'modules'), 'directory')
-    return requirePath(path.join(modulesDir, componentContainerName(component), component.diskName, fileName), 'file')
+    const container = findVersionedComponentContainer(modulesDir, component)
+    return requirePath(path.join(container, component.diskName, fileName), 'file')
 }
 
 function requireExecutableBit(targetPath: string): void {
