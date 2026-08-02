@@ -8,6 +8,7 @@ const RENDERER_CHANNELS = ['dev', 'beta'] as const
 type RendererChannel = (typeof RENDERER_CHANNELS)[number]
 
 type RendererManifest = {
+    artifactSha256: string
     buildNumber: string
     requiresDesktopApi: string
     url: string
@@ -35,6 +36,9 @@ function readManifest(manifestPath: string): RendererManifest {
     }
     if (typeof value.url !== 'string') {
         throw new Error(`Renderer manifest has an invalid URL: ${manifestPath}`)
+    }
+    if (typeof value.artifactSha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(value.artifactSha256)) {
+        throw new Error(`Renderer manifest has an invalid artifactSha256: ${manifestPath}`)
     }
     return value as RendererManifest
 }

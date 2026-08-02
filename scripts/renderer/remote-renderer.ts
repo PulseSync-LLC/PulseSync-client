@@ -1,5 +1,6 @@
 import fs from 'fs'
 import path from 'path'
+import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
 import { build as viteBuild } from 'vite'
 import { DESKTOP_API_VERSION } from '../../src/common/desktopApi/version.js'
@@ -16,6 +17,7 @@ const projectRoot = path.resolve(__dirname, '../..')
 const DEFAULT_CDN_BASE_URL = 'https://pulsesync.dev/app'
 const DEFAULT_OUT_ROOT = path.resolve(projectRoot, 'out/remote-renderer')
 const DEFAULT_S3_PREFIX = 'app'
+const FINGERPRINT_BUILD_NUMBER = '0'
 const RENDERER_CHANNELS = ['dev', 'beta'] as const
 
 type RendererChannel = (typeof RENDERER_CHANNELS)[number]
@@ -25,6 +27,17 @@ type RemoteRendererBuildOptions = {
     channel: RendererChannel
     cdnBaseUrl: string
     outRoot: string
+}
+
+type RendererManifest = {
+    artifactSha256?: string
+    buildNumber: string
+    requiresDesktopApi: string
+    url: string
+}
+
+type RemoteRendererBuildResult = {
+    artifactSha256: string
 }
 
 function argValue(flag: string): string | null {
@@ -84,6 +97,57 @@ function normalizeRendererHtmlOutput(buildOutDir: string): void {
     fs.rmSync(path.join(buildOutDir, 'src'), { force: true, recursive: true })
 }
 
+function walkFiles(directory: string): string[] {
+    return fs.readdirSync(directory).flatMap(entry => {
+        const entryPath = path.join(directory, entry)
+        return fs.statSync(entryPath).isDirectory() ? walkFiles(entryPath) : [entryPath]
+    })
+}
+
+function hashRendererArtifact(outRoot: string, manifestPath: string): string {
+    const hash = crypto.createHash('sha256')
+    const files = walkFiles(outRoot)
+        .filter(filePath => filePath !== manifestPath)
+        .sort((left, right) => left.localeCompare(right))
+
+    for (const filePath of files) {
+        hash.update(path.relative(outRoot, filePath).replace(/\\/gu, '/'))
+        hash.update('\0')
+        hash.update(fs.readFileSync(filePath))
+        hash.update('\0')
+    }
+    hash.update(`requiresDesktopApi=^${DESKTOP_API_VERSION}`)
+    return hash.digest('hex')
+}
+
+async function readPublishedManifest(options: RemoteRendererBuildOptions): Promise<RendererManifest | null> {
+    const manifestUrl = `${joinUrl(options.cdnBaseUrl, 'desktop', 'manifest.json')}?_=${Date.now()}`
+    const response = await fetch(manifestUrl, {
+        cache: 'no-store',
+        headers: { 'Cache-Control': 'no-cache' },
+    })
+    if (response.status === 403 || response.status === 404) return null
+    if (!response.ok) throw new Error(`Cannot read published renderer manifest (${response.status}): ${manifestUrl}`)
+
+    const manifest = (await response.json()) as Partial<RendererManifest>
+    if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) {
+        throw new Error(`Published renderer manifest has an invalid buildNumber: ${String(manifest.buildNumber)}`)
+    }
+    if (typeof manifest.requiresDesktopApi !== 'string' || typeof manifest.url !== 'string') {
+        throw new Error(`Published renderer manifest is invalid: ${manifestUrl}`)
+    }
+    if (manifest.artifactSha256 !== undefined && !/^[a-f0-9]{64}$/u.test(manifest.artifactSha256)) {
+        throw new Error(`Published renderer manifest has an invalid artifactSha256: ${manifestUrl}`)
+    }
+    return manifest as RendererManifest
+}
+
+function writePublishOutputs(changed: boolean, buildNumber: string, artifactSha256: string): void {
+    const outputPath = process.env.GITHUB_OUTPUT?.trim()
+    if (!outputPath) return
+    fs.appendFileSync(outputPath, `changed=${changed}\nbuild_number=${buildNumber}\nartifact_sha256=${artifactSha256}\n`, 'utf8')
+}
+
 function resolveBuildNumber(): string {
     const cliBuildNumber = argValue('--build-number')
     if (cliBuildNumber) {
@@ -98,7 +162,7 @@ function resolveBuildNumber(): string {
     return String(Date.now())
 }
 
-async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise<void> {
+async function buildRemoteRenderer(options: RemoteRendererBuildOptions, artifactSha256Override?: string): Promise<RemoteRendererBuildResult> {
     const buildOutDir = path.join(options.outRoot, 'versions', options.buildNumber)
     const manifestDir = path.join(options.outRoot, 'desktop')
     const manifestPath = path.join(manifestDir, 'manifest.json')
@@ -120,6 +184,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
     })
     normalizeRendererHtmlOutput(buildOutDir)
     prepareRemoteRendererGlitchTipSourceMaps(buildOutDir)
+    const artifactSha256 = artifactSha256Override ?? hashRendererArtifact(options.outRoot, manifestPath)
 
     fs.writeFileSync(
         manifestPath,
@@ -128,6 +193,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
                 buildNumber: options.buildNumber,
                 url: rendererUrl,
                 requiresDesktopApi: `^${DESKTOP_API_VERSION}`,
+                artifactSha256,
             },
             null,
             4,
@@ -137,6 +203,8 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions): Promise
     console.log(`Remote renderer build ${options.buildNumber}: ${buildOutDir}`)
     console.log(`Remote renderer URL: ${rendererUrl}`)
     console.log(`Remote renderer manifest: ${manifestUrl}`)
+    console.log(`Remote renderer artifact SHA-256: ${artifactSha256}`)
+    return { artifactSha256 }
 }
 
 function readBuildOptions(): RemoteRendererBuildOptions {
@@ -163,12 +231,24 @@ async function cli(): Promise<void> {
     if (command === 'publish') {
         assertGlitchTipSourceMapConfig()
         if (!hasFlag('--no-build')) {
-            await buildRemoteRenderer(options)
+            const fingerprintOptions = { ...options, buildNumber: FINGERPRINT_BUILD_NUMBER }
+            const fingerprintBuild = await buildRemoteRenderer(fingerprintOptions)
+            const publishedManifest = await readPublishedManifest(options)
+            if (publishedManifest?.artifactSha256 === fingerprintBuild.artifactSha256) {
+                console.log(
+                    `Remote renderer artifact is unchanged; keeping published build ${publishedManifest.buildNumber} (${fingerprintBuild.artifactSha256})`,
+                )
+                writePublishOutputs(false, publishedManifest.buildNumber, fingerprintBuild.artifactSha256)
+                return
+            }
+
+            await buildRemoteRenderer(options, fingerprintBuild.artifactSha256)
         }
 
         const prefix = argValue('--prefix') || process.env.PULSESYNC_REMOTE_RENDERER_S3_PREFIX || `${DEFAULT_S3_PREFIX}/${options.channel}`
         await uploadRemoteRendererGlitchTipSourceMaps(options.buildNumber, joinUrl(options.cdnBaseUrl, 'versions', options.buildNumber))
-        await publishDirectoryToS3(options.outRoot, { prefix })
+        const publishPlan = await publishDirectoryToS3(options.outRoot, { prefix })
+        writePublishOutputs(true, publishPlan.buildNumber, publishPlan.artifactSha256)
         return
     }
 
