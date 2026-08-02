@@ -8,6 +8,7 @@ import {
     CompleteMultipartUploadCommand,
     CreateMultipartUploadCommand,
     DeleteObjectsCommand,
+    GetObjectCommand,
     HeadObjectCommand,
     ListObjectsV2Command,
     PutObjectCommand,
@@ -759,6 +760,45 @@ async function uploadFileToS3(
     log(LogLevel.INFO, `Uploaded ${key} (${finishedParts} parts, multipart)`)
 }
 
+async function archiveStoredDesktopManifest(client: S3Client, bucket: string, currentKey: string, archiveRoot: string): Promise<void> {
+    let body: string
+    try {
+        body = await readStoredText(client, bucket, currentKey)
+    } catch (error) {
+        if (isMissingS3Object(error)) return
+        throw error
+    }
+
+    const manifest = JSON.parse(body) as { metadataVersion?: unknown }
+    if (!Number.isSafeInteger(manifest.metadataVersion) || Number(manifest.metadataVersion) <= 0) {
+        throw new Error(`Published desktop manifest has an invalid metadataVersion: ${currentKey}`)
+    }
+
+    const archiveKey = `${archiveRoot}/${String(manifest.metadataVersion)}/${path.basename(currentKey)}`
+    const size = Buffer.byteLength(body)
+    const sha256 = crypto.createHash('sha256').update(body).digest('hex')
+    const headers: UploadHeaders = {
+        CacheControl: 'public, max-age=31536000, immutable',
+        ContentType: 'application/json; charset=utf-8',
+    }
+    if (await hasMatchingS3Object(client, bucket, archiveKey, size, sha256, headers)) {
+        log(LogLevel.INFO, `Skipped unchanged ${archiveKey}`)
+        return
+    }
+
+    await client.send(
+        new PutObjectCommand({
+            Bucket: bucket,
+            Key: archiveKey,
+            Body: body,
+            ACL: 'public-read',
+            ...headers,
+            Metadata: { sha256 },
+        }),
+    )
+    log(LogLevel.INFO, `Archived current manifest as ${archiveKey}`)
+}
+
 export async function publishToS3(
     branch: string,
     dir: string,
@@ -771,7 +811,10 @@ export async function publishToS3(
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
+    const hasExplicitRetention = opts !== undefined && Object.prototype.hasOwnProperty.call(opts, 'keepRecentVersions')
+    const keepRecentVersions = hasExplicitRetention
+        ? (opts?.keepRecentVersions ?? null)
+        : (parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS) ?? (branch === 'dev' ? 2 : null))
     const legacyUpdateBridge = opts?.legacyUpdateBridge === true
     const client = createS3Client()
 
@@ -799,15 +842,38 @@ export async function publishToS3(
     const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
     files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
 
-    if (version && keepRecentVersions && currentArtifactVersions.size) {
+    if (version && keepRecentVersions && currentArtifactVersions.size && branch !== 'dev') {
         await pruneOldArtifacts(client, bucket, prefix, branch, keepRecentVersions, currentArtifactVersions)
+    } else if (version && keepRecentVersions && currentArtifactVersions.size && branch === 'dev') {
+        log(LogLevel.INFO, 'Dev retention deferred until the post-build manifest cleanup')
     }
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
     for (const filePath of files) {
         const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
-        await uploadFileToS3(client, bucket, key, filePath, getDesktopUpdateUploadHeaders(filePath))
+        if (isDesktopReleaseManifestFile(filePath)) {
+            await archiveStoredDesktopManifest(client, bucket, key, `${prefix}/${branch}/manifests`)
+            const manifest = JSON.parse(fs.readFileSync(filePath, 'utf8')) as { metadataVersion?: unknown }
+            if (!Number.isSafeInteger(manifest.metadataVersion) || Number(manifest.metadataVersion) <= 0) {
+                throw new Error(`Desktop manifest has an invalid metadataVersion: ${filePath}`)
+            }
+            const archiveKey = `${prefix}/${branch}/manifests/${String(manifest.metadataVersion)}/${path.basename(filePath)}`
+            await uploadFileToS3(
+                client,
+                bucket,
+                archiveKey,
+                filePath,
+                {
+                    CacheControl: 'public, max-age=31536000, immutable',
+                    ContentType: 'application/json; charset=utf-8',
+                },
+                { skipIfUnchanged: true },
+            )
+        }
+        await uploadFileToS3(client, bucket, key, filePath, getDesktopUpdateUploadHeaders(filePath), {
+            skipIfUnchanged: !isMutableUpdatePointer(filePath),
+        })
         const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
         if (latestAliasPath) {
             await uploadFileToS3(client, bucket, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
@@ -823,6 +889,185 @@ export async function publishToS3(
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
+}
+
+type StoredS3Object = {
+    key: string
+    lastModified: Date | null
+    size: number
+}
+
+export type DesktopPruneSummary = {
+    apply: boolean
+    branch: string
+    deleteBytes: number
+    deleteCount: number
+    keptManifestReleases: string[]
+    scannedCount: number
+}
+
+async function listStoredObjects(client: S3Client, bucket: string, prefix: string): Promise<StoredS3Object[]> {
+    const objects: StoredS3Object[] = []
+    let continuationToken: string | undefined
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: prefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+        for (const object of response.Contents ?? []) {
+            if (!object.Key) continue
+            objects.push({
+                key: object.Key,
+                lastModified: object.LastModified ?? null,
+                size: object.Size ?? 0,
+            })
+        }
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+    return objects
+}
+
+async function readStoredText(client: S3Client, bucket: string, key: string): Promise<string> {
+    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    if (!response.Body) throw new Error(`S3 object has no body: ${key}`)
+    return await response.Body.transformToString('utf8')
+}
+
+function collectReferencedArtifactKeys(text: string, branchPrefix: string, target: Set<string>): void {
+    for (const match of text.matchAll(/https?:\/\/[^"'\\\s]+/gu)) {
+        try {
+            const key = decodeURIComponent(new URL(match[0]).pathname.replace(/^\/+/, ''))
+            if (key.startsWith(branchPrefix)) target.add(key)
+        } catch {
+            // Ignore unrelated malformed URLs in optional legacy metadata.
+        }
+    }
+}
+
+function compareIntegerStringsDesc(left: string, right: string): number {
+    const leftNumber = BigInt(left)
+    const rightNumber = BigInt(right)
+    return leftNumber === rightNumber ? 0 : leftNumber > rightNumber ? -1 : 1
+}
+
+function setupRetentionFamily(branchPrefix: string, key: string): string | null {
+    const relative = key.slice(branchPrefix.length)
+    const parts = relative.split('/')
+    if (parts.length < 5 || parts[0] !== 'setups') return null
+    const fileName = parts.at(-1) ?? ''
+    return `${parts[2]}:${path.extname(fileName).toLowerCase()}`
+}
+
+export async function pruneUnreferencedDesktopArtifacts(
+    branch: string,
+    options?: { apply?: boolean; graceHours?: number; keepReleases?: number; prefix?: string },
+): Promise<DesktopPruneSummary> {
+    if (branch !== 'dev') throw new Error('Manifest-based S3 cleanup is currently restricted to the dev branch')
+    const bucket = process.env.S3_BUCKET
+    if (!bucket) throw new Error('S3_BUCKET is not set in env')
+    const prefix = (options?.prefix || 'builds/app').replace(/^\/+|\/+$/gu, '')
+    const keepReleases = options?.keepReleases ?? 2
+    const graceHours = options?.graceHours ?? 24
+    if (!Number.isSafeInteger(keepReleases) || keepReleases < 1 || keepReleases > 10) {
+        throw new Error('keepReleases must be an integer from 1 to 10')
+    }
+    if (!Number.isFinite(graceHours) || graceHours < 1 || graceHours > 24 * 30) {
+        throw new Error('graceHours must be from 1 to 720')
+    }
+
+    const client = createS3Client()
+    const branchPrefix = `${prefix}/${branch}/`
+    const objects = await listStoredObjects(client, bucket, branchPrefix)
+    const archivePattern = new RegExp(
+        `^${escapeRegExp(branchPrefix)}manifests/([1-9]\\d*)/(desktop-update-[a-z0-9_-]+\\.json)$`,
+        'iu',
+    )
+    const archiveReleases = new Map<string, StoredS3Object[]>()
+    for (const object of objects) {
+        const match = archivePattern.exec(object.key)
+        if (!match) continue
+        const releaseObjects = archiveReleases.get(match[1]) ?? []
+        releaseObjects.push(object)
+        archiveReleases.set(match[1], releaseObjects)
+    }
+    const keptManifestReleases = Array.from(archiveReleases.keys()).sort(compareIntegerStringsDesc).slice(0, keepReleases)
+    const keepKeys = new Set<string>()
+    const metadataKeys = objects
+        .filter(object => {
+            const relative = object.key.slice(branchPrefix.length)
+            return /^desktop-update-[a-z0-9_-]+\.json$/iu.test(relative) || relative === 'download.json' || /^latest[^/]*\.ya?ml$/iu.test(relative)
+        })
+        .map(object => object.key)
+    for (const release of keptManifestReleases) {
+        for (const object of archiveReleases.get(release) ?? []) {
+            metadataKeys.push(object.key)
+            keepKeys.add(object.key)
+        }
+    }
+    const currentManifestCount = metadataKeys.filter(key => /^desktop-update-[a-z0-9_-]+\.json$/iu.test(key.slice(branchPrefix.length))).length
+    if (currentManifestCount === 0) throw new Error(`No current desktop manifests found under ${branchPrefix}`)
+
+    for (const key of new Set(metadataKeys)) {
+        const text = await readStoredText(client, bucket, key)
+        collectReferencedArtifactKeys(text, branchPrefix, keepKeys)
+    }
+    if (![...keepKeys].some(key => key.startsWith(`${branchPrefix}hosts/`) || key.startsWith(`${branchPrefix}bundles/`))) {
+        throw new Error('Desktop manifests did not reference any host artifacts; cleanup aborted')
+    }
+
+    const setupFamilies = new Map<string, StoredS3Object[]>()
+    for (const object of objects) {
+        const family = setupRetentionFamily(branchPrefix, object.key)
+        if (!family) continue
+        const familyObjects = setupFamilies.get(family) ?? []
+        familyObjects.push(object)
+        setupFamilies.set(family, familyObjects)
+    }
+    for (const familyObjects of setupFamilies.values()) {
+        familyObjects.sort((left, right) => (right.lastModified?.getTime() ?? 0) - (left.lastModified?.getTime() ?? 0))
+        for (const object of familyObjects.slice(0, keepReleases)) keepKeys.add(object.key)
+    }
+
+    const managedRoots = new Set(['bundles', 'components', 'hosts', 'manifests', 'setups', 'versions'])
+    const cutoff = Date.now() - graceHours * 60 * 60 * 1000
+    const deleteObjects = objects.filter(object => {
+        const root = object.key.slice(branchPrefix.length).split('/')[0]
+        if (!managedRoots.has(root) || keepKeys.has(object.key)) return false
+        return object.lastModified !== null && object.lastModified.getTime() < cutoff
+    })
+    const deleteBytes = deleteObjects.reduce((total, object) => total + object.size, 0)
+
+    if (options?.apply) {
+        for (let index = 0; index < deleteObjects.length; index += 1000) {
+            const chunk = deleteObjects.slice(index, index + 1000)
+            await client.send(
+                new DeleteObjectsCommand({
+                    Bucket: bucket,
+                    Delete: {
+                        Objects: chunk.map(object => ({ Key: object.key })),
+                        Quiet: true,
+                    },
+                }),
+            )
+        }
+    }
+
+    const summary: DesktopPruneSummary = {
+        apply: options?.apply === true,
+        branch,
+        deleteBytes,
+        deleteCount: deleteObjects.length,
+        keptManifestReleases,
+        scannedCount: objects.length,
+    }
+    log(
+        options?.apply ? LogLevel.SUCCESS : LogLevel.INFO,
+        `${options?.apply ? 'Removed' : 'Would remove'} ${summary.deleteCount} unreferenced ${branch} objects (${(deleteBytes / 1024 / 1024).toFixed(1)} MiB); kept manifest releases: ${keptManifestReleases.join(', ') || 'current pointers only'}`,
+    )
+    return summary
 }
 
 export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPublishPlan {
@@ -945,7 +1190,10 @@ async function cli(): Promise<void> {
     log(LogLevel.INFO, `Prefix: ${prefix}`)
     log(LogLevel.INFO, `Retention keep recent versions: ${keepRecentVersions ?? 'OFF'}`)
 
-    await publishToS3(branch, dir, version, { prefix, keepRecentVersions })
+    await publishToS3(branch, dir, version, {
+        prefix,
+        ...(keepRecentVersions === null ? {} : { keepRecentVersions }),
+    })
 }
 
 const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url

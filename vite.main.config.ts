@@ -20,6 +20,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const entry = forgeConfigSelf?.entry ?? 'src/index.ts'
     const bundleVersion = entry === 'src/bootstrap.ts' ? packageJson.version : desktopCorePackageJson.version
+    const embeddedCoreVersion = entry === 'src/bootstrap.ts' && !isDevMode ? 'external' : desktopCorePackageJson.version
 
     return {
         build: {
@@ -44,7 +45,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
         define: {
             PULSESYNC_VERSION: JSON.stringify(bundleVersion),
             PULSESYNC_HOST_VERSION: JSON.stringify(packageJson.version),
-            PULSESYNC_CORE_VERSION: JSON.stringify(desktopCorePackageJson.version),
+            PULSESYNC_CORE_VERSION: JSON.stringify(embeddedCoreVersion),
             PULSESYNC_BRANCH: JSON.stringify(packageJson.buildInfo?.BRANCH ?? 'unknown'),
             PULSESYNC_DIST: JSON.stringify(buildDist),
             'process.env.BRANCH': JSON.stringify((packageJson as any).buildInfo?.BRANCH),
