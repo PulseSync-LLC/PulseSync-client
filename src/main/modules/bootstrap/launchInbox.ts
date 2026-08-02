@@ -12,6 +12,7 @@ export class LaunchInbox {
     private reconcilePromise: Promise<void> | null = null
     private watcher: fs.FSWatcher | null = null
     private pollTimer: NodeJS.Timeout | null = null
+    private pollPromise: Promise<void> | null = null
 
     public constructor(
         private readonly options: {
@@ -95,8 +96,28 @@ export class LaunchInbox {
         } catch {
             this.watcher = null
         }
-        this.pollTimer = setInterval(() => void this.reconcile(), 1_000)
+        this.pollTimer = setInterval(() => void this.poll(inboxDir), 1_000)
         this.pollTimer.unref()
+    }
+
+    private poll(inboxDir: string): Promise<void> {
+        if (!this.delivery || this.frozen) return Promise.resolve()
+        if (this.pollPromise) return this.pollPromise
+        this.pollPromise = this.reconcileIfPending(inboxDir).finally(() => {
+            this.pollPromise = null
+        })
+        return this.pollPromise
+    }
+
+    private async reconcileIfPending(inboxDir: string): Promise<void> {
+        try {
+            const entries = await fs.promises.readdir(inboxDir, { withFileTypes: true })
+            const hasPendingRequest = entries.some(entry => entry.isFile() && entry.name !== 'state.json' && entry.name.endsWith('.json'))
+            if (!hasPendingRequest) return
+        } catch {
+            // Let the authoritative bootstrapper validate or recreate the inbox when the cheap local check fails.
+        }
+        await this.reconcile()
     }
 
     private closeWatcher(): void {
