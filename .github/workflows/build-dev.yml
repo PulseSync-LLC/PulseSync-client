@@ -191,7 +191,8 @@ jobs:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
-          S3_KEEP_RECENT_VERSIONS: 3
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "1"
+          S3_KEEP_RECENT_VERSIONS: 2
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
@@ -218,6 +219,38 @@ jobs:
           name: release-${{ matrix.os }}
           path: release/**/*
           if-no-files-found: error
+
+  cleanup_dev_s3:
+    name: Cleanup Dev S3
+    needs: build
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Remove unreferenced dev artifacts
+        run: yarn s3:prune --branch dev --keep-releases 2 --grace-hours 24 --apply
 
   publish_renderer:
     name: Publish Remote Renderer

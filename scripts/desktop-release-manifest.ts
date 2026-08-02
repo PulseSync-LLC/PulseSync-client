@@ -554,6 +554,17 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const includeFileInventories = previousTarget !== undefined && process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
     const targetHostVersion = options.hostVersion
     const sameHostVersion = previousTarget?.host.version === targetHostVersion
+    const hostSourceDir = macosBundle ? null : path.join(packagedAppRootDir, 'host')
+    const hostContentSha256 = hostSourceDir ? hashDirectory(hostSourceDir) : null
+    if (sameHostVersion && hostContentSha256) {
+        const previousHostContentSha256 = previousTarget?.host.contentSha256
+        if (!previousHostContentSha256) {
+            throw new Error(`Published host ${targetHostVersion} is missing contentSha256; bump the host version before publishing`)
+        }
+        if (previousHostContentSha256 !== hostContentSha256) {
+            throw new Error(`Host content changed without a host version bump: ${targetHostVersion}`)
+        }
+    }
     const hostArtifactPath = macosBundle
         ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, bundleVersion, options.dist)
         : createHostArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
@@ -570,7 +581,6 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         baseUrl,
         macosBundle ? path.join('bundles', bundleVersion, options.dist) : path.join('hosts', targetHostVersion, options.dist),
     )
-    const hostSourceDir = macosBundle ? null : path.join(packagedAppRootDir, 'host')
     const hostInventory =
         hostSourceDir && includeFileInventories
             ? createFileInventory(hostSourceDir, releaseDir, 'pulsesync-host-file', targetHostVersion, options.dist)
@@ -688,7 +698,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                     required: true,
                     ...(hostSourceDir
                         ? {
-                              contentSha256: hashDirectory(hostSourceDir),
+                              contentSha256: hostContentSha256!,
                               ...(includeFileInventories ? { files: hostFiles } : {}),
                               electronAbi,
                           }
@@ -804,13 +814,16 @@ export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeCom
         baseUrl,
         path.join('components', component.name, component.version, options.dist),
     )
-    const inventory = createFileInventory(
-        componentModuleDir,
-        releaseDir,
-        `pulsesync-component-file-${component.name}`,
-        component.version,
-        options.dist,
-    )
+    const includeFileInventories = process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
+    const inventory = includeFileInventories
+        ? createFileInventory(
+              componentModuleDir,
+              releaseDir,
+              `pulsesync-component-file-${component.name}`,
+              component.version,
+              options.dist,
+          )
+        : []
     const files: VersionedFile[] = []
     for (const file of inventory) {
         const previousFile = previousComponent.files?.find(candidate => candidate.path === file.relativePath)
@@ -856,7 +869,7 @@ export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeCom
                         diskName: component.diskName,
                         required: true,
                         contentSha256,
-                        files,
+                        ...(includeFileInventories ? { files } : {}),
                         requiresHost: previousComponent.requiresHost || '>=1.0.0 <2.0.0',
                         ...(electronAbi ? { electronAbi } : {}),
                         artifact,
