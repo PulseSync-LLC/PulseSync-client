@@ -8,6 +8,7 @@ import {
     CompleteMultipartUploadCommand,
     CreateMultipartUploadCommand,
     DeleteObjectsCommand,
+    HeadObjectCommand,
     ListObjectsV2Command,
     PutObjectCommand,
     S3Client,
@@ -34,7 +35,12 @@ type UploadHeaders = {
     ContentType?: string
 }
 
+type UploadFileOptions = {
+    skipIfUnchanged?: boolean
+}
+
 export type RemoteRendererPublishPlan = {
+    artifactSha256: string
     buildNumber: string
     filesBeforePointers: string[]
     manifestPath: string
@@ -592,7 +598,41 @@ async function pruneOldArtifacts(
     log(LogLevel.SUCCESS, `Retention removed ${keysToDelete.length} artifacts from ${branchPrefix} (${removedGroups.join(' | ')})`)
 }
 
-async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string, headers?: UploadHeaders): Promise<void> {
+function isMissingS3Object(error: unknown): boolean {
+    const value = error as { $metadata?: { httpStatusCode?: number }; name?: string }
+    return value.$metadata?.httpStatusCode === 404 || value.name === 'NotFound' || value.name === 'NoSuchKey'
+}
+
+async function hasMatchingS3Object(
+    client: S3Client,
+    bucket: string,
+    key: string,
+    size: number,
+    sha256: string,
+    headers: UploadHeaders,
+): Promise<boolean> {
+    try {
+        const object = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+        return (
+            object.ContentLength === size &&
+            object.Metadata?.sha256?.toLowerCase() === sha256 &&
+            (headers.CacheControl === undefined || object.CacheControl === headers.CacheControl) &&
+            (headers.ContentType === undefined || object.ContentType === headers.ContentType)
+        )
+    } catch (error) {
+        if (isMissingS3Object(error)) return false
+        throw error
+    }
+}
+
+async function uploadFileToS3(
+    client: S3Client,
+    bucket: string,
+    key: string,
+    filePath: string,
+    headers?: UploadHeaders,
+    options?: UploadFileOptions,
+): Promise<void> {
     const { size } = await fs.promises.stat(filePath)
     const { threshold, partSize, concurrency } = getMultipartUploadConfig()
     const defaultUploadHeaders = isDesktopReleaseManifestFile(filePath)
@@ -609,6 +649,12 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
         ...defaultUploadHeaders,
         ...headers,
     }
+    const sha256 = options?.skipIfUnchanged ? await hashFileSha256(filePath) : null
+    if (sha256 && (await hasMatchingS3Object(client, bucket, key, size, sha256, uploadHeaders))) {
+        log(LogLevel.INFO, `Skipped unchanged ${key}`)
+        return
+    }
+    const metadata = sha256 ? { Metadata: { sha256 } } : {}
 
     if (size < threshold) {
         await client.send(
@@ -618,6 +664,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 Body: fs.createReadStream(filePath),
                 ACL: 'public-read',
                 ...uploadHeaders,
+                ...metadata,
             }),
         )
         log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
@@ -630,6 +677,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
             Key: key,
             ACL: 'public-read',
             ...uploadHeaders,
+            ...metadata,
         }),
     )
 
@@ -788,12 +836,15 @@ export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPubl
         throw new Error(`Remote renderer manifest does not exist: ${manifestPath}`)
     }
 
-    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { buildNumber?: unknown; url?: unknown }
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { artifactSha256?: unknown; buildNumber?: unknown; url?: unknown }
     if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) {
         throw new Error(`Remote renderer manifest has an invalid buildNumber: ${String(manifest.buildNumber)}`)
     }
     if (typeof manifest.url !== 'string') {
         throw new Error('Remote renderer manifest has an invalid URL')
+    }
+    if (typeof manifest.artifactSha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(manifest.artifactSha256)) {
+        throw new Error(`Remote renderer manifest has an invalid artifactSha256: ${String(manifest.artifactSha256)}`)
     }
 
     const rendererUrl = new URL(manifest.url)
@@ -813,6 +864,7 @@ export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPubl
         .sort((left, right) => left.localeCompare(right))
 
     return {
+        artifactSha256: manifest.artifactSha256,
         buildNumber: manifest.buildNumber,
         filesBeforePointers,
         manifestPath,
@@ -820,7 +872,7 @@ export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPubl
     }
 }
 
-export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<void> {
+export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<RemoteRendererPublishPlan> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
@@ -841,7 +893,7 @@ export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string
     for (const filePath of plan.filesBeforePointers) {
         const relativePath = path.relative(rootDir, filePath).replace(/\\/g, '/')
         const key = `${prefix}/${relativePath}`
-        await uploadFileToS3(client, bucket, key, filePath, getRemoteRendererUploadHeaders(relativePath, filePath))
+        await uploadFileToS3(client, bucket, key, filePath, getRemoteRendererUploadHeaders(relativePath, filePath), { skipIfUnchanged: true })
     }
 
     await uploadFileToS3(
@@ -860,6 +912,7 @@ export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string
     )
 
     log(LogLevel.SUCCESS, 'Publish directory to S3 completed')
+    return plan
 }
 
 function readPkgVersion(): string {

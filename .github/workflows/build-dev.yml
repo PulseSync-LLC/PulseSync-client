@@ -256,6 +256,7 @@ jobs:
         run: yarn -s sentry-cli --version
 
       - name: Publish remote renderer
+        id: renderer_publish
         run: yarn renderer:publish --channel dev
         env:
           PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
@@ -267,6 +268,7 @@ jobs:
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
 
       - name: Checkout renderer Pages repository
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
         uses: actions/checkout@v6
         with:
           repository: PulseSync-LLC/PulseSync-renderer
@@ -275,9 +277,11 @@ jobs:
           path: out/github-pages-repository
 
       - name: Stage GitHub Pages renderer
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
         run: yarn renderer:stage-pages --channel dev --source out/remote-renderer --target out/github-pages-repository
 
       - name: Publish GitHub Pages renderer
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
         shell: bash
         working-directory: out/github-pages-repository
         run: |
