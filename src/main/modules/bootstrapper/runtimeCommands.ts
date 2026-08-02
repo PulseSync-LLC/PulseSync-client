@@ -213,6 +213,23 @@ export async function acknowledgeActiveRuntime(options: {
     )
 }
 
+export async function rollbackActiveRuntime(options: {
+    activeLeaseId: string
+    hostBundle?: string | null
+    launcher: BootstrapperLauncher
+    stateRoot: string
+}): Promise<ActiveRuntimeV3> {
+    const args = [...runtimePathArgs(options), '--active-lease-id', options.activeLeaseId]
+    return unwrapSemanticResult(
+        await runBootstrapperCommand({
+            launcher: options.launcher,
+            command: 'rollback-runtime',
+            args,
+            parseResult: parseActiveRuntimeV3,
+        }),
+    )
+}
+
 export async function repairActiveRuntime(options: {
     channel: string
     dist: string

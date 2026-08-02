@@ -15,7 +15,7 @@ import {
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
 import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
-import { claimActiveApp, repairActiveRuntime, resolveActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
+import { claimActiveApp, repairActiveRuntime, resolveActiveRuntime, rollbackActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
 import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
@@ -232,22 +232,40 @@ async function startPackagedBootstrap(): Promise<void> {
             stateRoot: runtimePaths.stateRoot,
         })
     let activeRuntime: ActiveRuntimeV3
+    let skipStartupUpdate = false
     try {
-        activeRuntime = await resolveRuntime()
+        try {
+            activeRuntime = await resolveRuntime()
+        } catch (error) {
+            if (runtimePaths.hostBundle) throw error
+            console.error('PulseSync runtime validation failed; attempting repair', error)
+            const request = getDesktopUpdateManifestRequest()
+            try {
+                await repairActiveRuntime({
+                    channel: request.channel,
+                    dist: request.dist,
+                    launcher: runtimePaths.launcher,
+                    manifestUrl: request.manifestUrl,
+                    requestedSource: request.requestedSource,
+                    serverHealthUrl: request.serverHealthUrl,
+                    stateRoot: runtimePaths.stateRoot,
+                })
+                activeRuntime = await resolveRuntime()
+            } catch (repairError) {
+                console.error('PulseSync runtime repair failed; rolling back to known-good runtime', repairError)
+                activeRuntime = await rollbackActiveRuntime({
+                    activeLeaseId: claim.lease.leaseId,
+                    hostBundle: runtimePaths.hostBundle,
+                    launcher: runtimePaths.launcher,
+                    stateRoot: runtimePaths.stateRoot,
+                })
+                skipStartupUpdate = true
+            }
+        }
     } catch (error) {
-        if (runtimePaths.hostBundle) throw error
-        console.error('PulseSync runtime validation failed; attempting repair', error)
-        const request = getDesktopUpdateManifestRequest()
-        await repairActiveRuntime({
-            channel: request.channel,
-            dist: request.dist,
-            launcher: runtimePaths.launcher,
-            manifestUrl: request.manifestUrl,
-            requestedSource: request.requestedSource,
-            serverHealthUrl: request.serverHealthUrl,
-            stateRoot: runtimePaths.stateRoot,
-        })
-        activeRuntime = await resolveRuntime()
+        console.error('PulseSync runtime could not be prepared for launch', error)
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+        return
     }
     await launchQueue.bindSink(input => inbox.enqueue(input))
     const coordinator = new StartupCoordinator({
@@ -259,10 +277,21 @@ async function startPackagedBootstrap(): Promise<void> {
         queue: launchQueue,
         runtimePaths,
     })
-    await coordinator.run()
+    await (skipStartupUpdate ? coordinator.runWithoutUpdate() : coordinator.run())
 }
 
-void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevelopmentApplication()).catch(error => {
+void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevelopmentApplication()).catch(async error => {
     console.error('PulseSync bootstrap failed', error)
-    app.quit()
+    if (!app.isPackaged && !enableDevUpdater) {
+        app.quit()
+        return
+    }
+    try {
+        await app.whenReady()
+        const bootstrapWindow = await createBootstrapWindow()
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+    } catch (displayError) {
+        console.error('PulseSync bootstrap failure UI could not be displayed', displayError)
+        app.quit()
+    }
 })

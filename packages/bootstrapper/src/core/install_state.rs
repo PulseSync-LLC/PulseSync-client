@@ -605,6 +605,34 @@ pub fn acknowledge_runtime_with_host(
     Ok(state)
 }
 
+pub fn rollback_active_runtime_with_host(
+    state_root: &Path,
+    lease_id: &str,
+    host_bundle: Option<&Path>,
+) -> Result<ActiveRuntimeV3> {
+    let state_root = canonical_install_root(state_root)?;
+    let mut state = read_install_state_metadata(&state_root)?;
+    if !matches!(state.activation.state, ActivationState::Pending) {
+        return Err("runtime activation is not pending".into());
+    }
+    if state.activation.launch_owner.as_deref() != Some(lease_id) {
+        return Err("runtime activation launch owner mismatch".into());
+    }
+    state.latest = state.known_good.clone();
+    state.running = state.known_good.clone();
+    state.generation = state
+        .generation
+        .checked_add(1)
+        .ok_or("install-state generation overflow")?;
+    state.activation = RuntimeActivationV3 {
+        state: ActivationState::Confirmed,
+        generation: state.generation,
+        launch_owner: None,
+    };
+    write_install_state(&state_root, &state)?;
+    resolve_active_runtime_with_host(&state_root, lease_id, host_bundle)
+}
+
 fn cleanup_inactive_runtime_after_activation(state_root: &Path, state: &InstallStateV3) {
     if let Err(error) = cleanup_inactive_runtime(state_root, state) {
         eprintln!("runtime cleanup deferred after activation: {error}");

@@ -88,6 +88,10 @@ export class StartupCoordinator {
         return this.runGate()
     }
 
+    public runWithoutUpdate(): Promise<void> {
+        return this.startApplicationAfterFailure()
+    }
+
     private runGate(): Promise<void> {
         if (this.gatePromise) return this.gatePromise
         const operation = this.executeGate().finally(() => {
