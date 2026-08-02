@@ -201,6 +201,40 @@ pub fn create_install_plan(
 
     preflight.push(check_install_dir(&install_dir));
 
+    let installs_host = decision.selected_artifacts.iter().any(|key| key == "host");
+    let requires_complete_slot = decision.artifacts.as_ref().is_some_and(|artifacts| {
+        artifacts.layout == crate::domain::manifest::ArtifactLayout::VersionedComponents
+    }) && installs_host;
+    if requires_complete_slot {
+        let missing_components = decision
+            .component_versions
+            .keys()
+            .filter(|name| {
+                !decision
+                    .selected_artifacts
+                    .iter()
+                    .any(|key| key == &format!("module:{name}"))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        preflight.push(if missing_components.is_empty() {
+            pass(
+                "complete-versioned-runtime-slot",
+                "Host update installs every component into the new runtime slot",
+                None,
+            )
+        } else {
+            block(
+                "complete-versioned-runtime-slot",
+                format!(
+                    "Host update would reuse components from another runtime slot: {}",
+                    missing_components.join(", ")
+                ),
+                None,
+            )
+        });
+    }
+
     if decision.artifacts.is_some() {
         for staged in staged_artifacts {
             let key = &staged.key;
@@ -223,6 +257,44 @@ pub fn create_install_plan(
                 artifacts.push(artifact);
             }
         }
+    }
+    if requires_complete_slot {
+        let mut missing_artifacts = Vec::new();
+        if !artifacts
+            .iter()
+            .any(|artifact| artifact.key.as_str() == "host")
+        {
+            missing_artifacts.push("host".to_string());
+        }
+        missing_artifacts.extend(
+            decision
+                .component_versions
+                .keys()
+                .filter(|name| {
+                    let key = format!("module:{name}");
+                    !artifacts
+                        .iter()
+                        .any(|artifact| artifact.key.as_str() == key)
+                })
+                .cloned()
+                .map(|name| format!("module:{name}")),
+        );
+        preflight.push(if missing_artifacts.is_empty() {
+            pass(
+                "complete-versioned-runtime-slot-artifacts",
+                "Every component artifact is staged for the new runtime slot",
+                None,
+            )
+        } else {
+            block(
+                "complete-versioned-runtime-slot-artifacts",
+                format!(
+                    "New runtime slot is missing staged components: {}",
+                    missing_artifacts.join(", ")
+                ),
+                None,
+            )
+        });
     }
     let omitted_components = decision
         .plan
@@ -248,6 +320,7 @@ pub fn create_install_plan(
         current_version: decision.current_version.clone(),
         dist: decision.dist.clone(),
         install_dir,
+        installs_host,
         preflight,
         retain_app_versions: normalize_retain_app_versions(retain_app_versions),
         staging_dir,

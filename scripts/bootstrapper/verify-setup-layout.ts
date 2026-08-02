@@ -2,7 +2,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { componentContainerName, readRuntimeComponentMetadata } from '../component-layout.js'
+import { readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -326,11 +326,20 @@ function main(): void {
     const componentMetadata = readRuntimeComponentMetadata(projectRoot)
     for (const component of Object.values(componentMetadata)) {
         const installedComponent = installState.latest?.components?.[component.name]
-        const expectedPath = path.join(hostRelativePath, 'modules', componentContainerName(component), component.diskName).replace(/\\/gu, '/')
-        if (installedComponent?.version !== component.version || installedComponent?.path !== expectedPath) {
+        const installedRevision = installedComponent?.revision
+        const hasValidRevision = Number.isSafeInteger(installedRevision) && installedRevision > 0
+        const expectedPath = hasValidRevision
+            ? path.join(hostRelativePath, 'modules', `${component.diskName}-${installedRevision}`, component.diskName).replace(/\\/gu, '/')
+            : null
+        if (
+            installedComponent?.version !== component.version ||
+            installedComponent?.diskName !== component.diskName ||
+            !hasValidRevision ||
+            installedComponent?.path !== expectedPath
+        ) {
             throw new Error(`Unexpected installed layout for ${component.name}: ${String(installedComponent?.path)}`)
         }
-        requirePath(path.join(installRoot, expectedPath), 'directory')
+        requirePath(path.join(installRoot, expectedPath!), 'directory')
     }
 
     rejectPath(path.join(installRoot, 'app'))

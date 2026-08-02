@@ -580,26 +580,48 @@ pub fn decide_component_update(
         return decision;
     }
     let mut selected_artifacts = Vec::new();
-    let host_changed = if target.layout == ArtifactLayout::MacosHybrid {
+    let host_version_changed = if target.layout == ArtifactLayout::MacosHybrid {
         installed.latest.host.bundle_version.as_deref() != target.host.bundle_version.as_deref()
-            || target
-                .host
-                .electron_abi
-                .as_deref()
-                .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi))
     } else {
         installed.latest.host.version != target.host.version
-            || target
-                .host
-                .electron_abi
-                .as_deref()
-                .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi))
     };
+    let host_abi_changed = target
+        .host
+        .electron_abi
+        .as_deref()
+        .is_some_and(|abi| installed.latest.host.electron_abi.as_deref() != Some(abi));
+    if target.layout == ArtifactLayout::VersionedComponents
+        && !host_version_changed
+        && host_abi_changed
+    {
+        let mut decision = decide_update(
+            manifest,
+            installed_desktop_version,
+            &installed_bundle_version,
+            dist,
+        );
+        decision.reason = "host-version-not-advanced".to_string();
+        decision.update_available = false;
+        decision.selected_artifacts.clear();
+        decision.plan = target_plan(target, &[], Some(installed));
+        return decision;
+    }
+    let host_changed = host_version_changed || host_abi_changed;
     if host_changed {
         selected_artifacts.push("host".to_string());
+        if target.layout == ArtifactLayout::VersionedComponents {
+            // A Windows/Linux host directory is one runtime slot. Never carry a
+            // component path forward from another app-* directory.
+            selected_artifacts.extend(
+                target
+                    .components
+                    .keys()
+                    .map(|name| format!("module:{name}")),
+            );
+        }
     }
     let bundle_replaces_runtime = host_changed && target.layout == ArtifactLayout::MacosHybrid;
-    if !bundle_replaces_runtime {
+    if !host_changed {
         for (name, component) in &target.components {
             if installed
                 .latest
