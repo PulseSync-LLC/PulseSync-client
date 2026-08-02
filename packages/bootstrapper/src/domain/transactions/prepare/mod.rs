@@ -448,6 +448,7 @@ fn prepare_transaction_file_inner(
             "bundleVersion": plan.bundle_version,
             "artifactLayout": plan.artifact_layout,
             "hostVersion": plan.host_version,
+            "installsHost": plan.installs_host,
             "hostBundle": plan.host_bundle,
             "hostBundleVersion": plan.host_bundle_version,
             "bootstrapperVersion": plan.bootstrapper_version,

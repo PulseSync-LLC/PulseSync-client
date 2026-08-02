@@ -44,6 +44,8 @@ pub struct InstallPlan {
     pub executable: bool,
     #[serde(rename = "installDir")]
     pub install_dir: PathBuf,
+    #[serde(default, rename = "installsHost")]
+    pub installs_host: bool,
     pub preflight: Vec<InstallPlanCheck>,
     #[serde(rename = "retainAppVersions")]
     pub retain_app_versions: usize,

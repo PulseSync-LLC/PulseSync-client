@@ -16,9 +16,78 @@ use crate::{
 };
 use serde_json::{Value, json};
 use std::{
+    collections::BTreeMap,
     fs,
     path::{Path, PathBuf},
 };
+
+fn validate_complete_versioned_runtime_slot(
+    transaction: &Value,
+    artifacts: &[TransactionArtifact],
+    install_dir: &Path,
+) -> Result<()> {
+    if transaction.get("artifactLayout").and_then(Value::as_str) != Some("versioned-components") {
+        return Ok(());
+    }
+    let contains_host = artifacts.iter().any(|artifact| artifact.key == "host");
+    let declared_installs_host = transaction.get("installsHost").and_then(Value::as_bool);
+    let installs_host = declared_installs_host.unwrap_or(contains_host);
+    if declared_installs_host.is_some_and(|declared| declared != contains_host) {
+        return Err("versioned transaction host selection does not match its artifacts".into());
+    }
+    if !installs_host {
+        return Ok(());
+    }
+
+    let host_version = transaction
+        .get("hostVersion")
+        .and_then(Value::as_str)
+        .ok_or("hostVersion is required")?;
+    let component_versions = transaction
+        .get("componentVersions")
+        .and_then(Value::as_object)
+        .ok_or("componentVersions is required")?;
+    let component_revisions = transaction
+        .get("componentRevisions")
+        .and_then(Value::as_object)
+        .ok_or("componentRevisions is required")?;
+    let component_disk_names = transaction
+        .get("componentDiskNames")
+        .and_then(Value::as_object)
+        .ok_or("componentDiskNames is required")?;
+    let host_path = install_dir.join(format!("app-{}", sanitize_path_segment(host_version)?));
+    let artifact_paths = artifacts
+        .iter()
+        .map(|artifact| (artifact.key.as_str(), &artifact.target_path))
+        .collect::<BTreeMap<_, _>>();
+
+    if artifact_paths.get("host").copied() != Some(&host_path) {
+        return Err("versioned host target path does not match the new runtime slot".into());
+    }
+    for name in component_versions.keys() {
+        let revision = component_revisions
+            .get(name)
+            .and_then(Value::as_u64)
+            .ok_or_else(|| format!("component revision is missing: {name}"))?;
+        let disk_name = component_disk_names
+            .get(name)
+            .and_then(Value::as_str)
+            .ok_or_else(|| format!("component disk name is missing: {name}"))?;
+        let disk_name = sanitize_path_segment(disk_name)?;
+        let expected_path = host_path
+            .join("modules")
+            .join(format!("{disk_name}-{revision}"))
+            .join(&disk_name);
+        let artifact_key = format!("module:{name}");
+        if artifact_paths.get(artifact_key.as_str()).copied() != Some(&expected_path) {
+            return Err(format!(
+                "versioned host update is missing component in the new runtime slot: {name}"
+            )
+            .into());
+        }
+    }
+    Ok(())
+}
 
 fn verify_artifact(artifact: &TransactionArtifact) -> Result<()> {
     let stat = fs::metadata(&artifact.prepared_path)?;
@@ -257,6 +326,7 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
             .ok_or("backupDir is required")?,
     );
     let artifacts = transaction_artifacts(&transaction)?;
+    validate_complete_versioned_runtime_slot(&transaction, &artifacts, &install_dir)?;
     // Validate and capture the current runtime before replacing any component.
     // A bootstrapper self-update changes the file referenced by the current
     // snapshot, so reading the state after the replacement would incorrectly

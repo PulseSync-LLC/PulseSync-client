@@ -396,6 +396,7 @@ pub(super) fn transaction_matches(
                 .map(|item| item.as_str().map(str::to_string))
                 .collect::<Option<Vec<_>>>()
         });
+    let expected_installs_host = decision.selected_artifacts.iter().any(|key| key == "host");
     if plan.bundle_version != decision.bundle_version
         || plan.artifact_layout != decision_artifacts.layout
         || plan.host_bundle_version != decision.host_bundle_version
@@ -406,6 +407,8 @@ pub(super) fn transaction_matches(
                 .is_none_or(|host| !paths_match(path, host))
         })
         || plan.host_content_sha256 != expected_host_content
+        || plan.installs_host != expected_installs_host
+        || value.get("installsHost").and_then(Value::as_bool) != Some(plan.installs_host)
         || plan.component_content_sha256s != expected_component_content
         || plan.omitted_components != expected_omitted_components
         || transaction_omitted_components.as_ref() != Some(&plan.omitted_components)
