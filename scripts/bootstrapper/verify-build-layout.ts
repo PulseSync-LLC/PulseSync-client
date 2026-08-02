@@ -3,7 +3,7 @@ import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { componentContainerName, readRuntimeComponentMetadata } from '../component-layout.js'
+import { findVersionedComponentContainer, readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -72,17 +72,10 @@ function main(): void {
         runTsxScript('scripts/bootstrapper/verify-setup-layout.ts', ['--install-root', bundleRoot, '--platform', platform, '--arch', arch])
         const contentsDir = path.join(bundleRoot, 'Contents')
         const componentMetadata = readRuntimeComponentMetadata(projectRoot)
+        const nativeContainer = findVersionedComponentContainer(path.join(contentsDir, 'modules'), componentMetadata.pulsesyncNative)
         verifyMacUniversalBinary(path.join(contentsDir, 'MacOS', productName))
         verifyMacUniversalBinary(path.join(contentsDir, 'Resources', 'bootstrapper', 'pulsesync-bootstrapper'))
-        verifyMacUniversalBinary(
-            path.join(
-                contentsDir,
-                'modules',
-                componentContainerName(componentMetadata.pulsesyncNative),
-                componentMetadata.pulsesyncNative.diskName,
-                'pulsesyncNative.node',
-            ),
-        )
+        verifyMacUniversalBinary(path.join(nativeContainer, componentMetadata.pulsesyncNative.diskName, 'pulsesyncNative.node'))
         return
     }
 
