@@ -82,7 +82,7 @@ const waitForDependencyOptimizer = async (server: ViteDevServer): Promise<void> 
 }
 
 const warmupRenderer = async (server: ViteDevServer): Promise<void> => {
-    const rendererEntry = '/src/main/renderer.ts'
+    const rendererEntry = '/src/renderer/index.ts'
     await server.transformRequest(rendererEntry)
     await server.waitForRequestsIdle(rendererEntry)
     await waitForDependencyOptimizer(server)
