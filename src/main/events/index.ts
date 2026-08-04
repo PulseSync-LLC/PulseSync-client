@@ -34,7 +34,7 @@ import { loadAddons } from '../utils/addonUtils'
 import config, { isDevmark } from '@common/appConfig'
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { getState } from '../modules/state'
-import { get_current_track } from '../modules/httpServer'
+import { get_current_track, sendAuthorizationStatus } from '../modules/httpServer'
 import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
@@ -771,6 +771,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
         setMainErrorTrackingUser(data.status ? data.user : null)
+        sendAuthorizationStatus(authorized)
         tryOpenPendingAddon()
     })
     ipcMain.handle(MainEvents.START_BROWSER_AUTH, async () => {
@@ -781,6 +782,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
         cancelBrowserAuthFlow()
         State.delete('tokens.token')
         authorized = false
+        sendAuthorizationStatus(false)
         return { success: true }
     })
 

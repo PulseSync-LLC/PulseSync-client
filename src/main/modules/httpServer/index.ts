@@ -17,6 +17,7 @@ import { registerServerIpcEvents } from './events/registerServerIpcEvents'
 import { createHttpRequestHandler } from './httpRequestHandler'
 import { createAddonService } from './addonService'
 import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
+import mainHttpClient from '../../http/client'
 
 let data: Track = trackInitials
 let server: http.Server | null = null
@@ -24,6 +25,18 @@ let io: IOServer | null = null
 let attempt = 0
 let isStarting = false
 const State = getState()
+const USER_VALIDATION_TOKEN_REFRESH_WINDOW_MS = 6 * 60 * 1000
+const USER_VALIDATION_TOKEN_RETRY_DELAY_MS = 60 * 1000
+
+type UserValidationToken = {
+    token: string
+    expiresAt: number
+}
+
+let cachedUserValidationToken: (UserValidationToken & { authToken: string }) | null = null
+let userValidationTokenGeneration = 0
+let userValidationTokenRequest: { authToken: string; promise: Promise<UserValidationToken | null> } | null = null
+let userValidationTokenRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
 const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
 
@@ -35,9 +48,91 @@ const addonService = createAddonService({
     getSelectedAddon: () => selectedAddon,
 })
 
+const getUserValidationToken = async (): Promise<UserValidationToken | null> => {
+    const authToken = State.get('tokens.token')
+    if (!authorized || typeof authToken !== 'string' || !authToken) return null
+
+    if (
+        cachedUserValidationToken?.authToken === authToken &&
+        cachedUserValidationToken.expiresAt - Date.now() > USER_VALIDATION_TOKEN_REFRESH_WINDOW_MS
+    ) {
+        return cachedUserValidationToken
+    }
+    if (userValidationTokenRequest?.authToken === authToken) return userValidationTokenRequest.promise
+
+    const generation = userValidationTokenGeneration
+    const promise = (async (): Promise<UserValidationToken | null> => {
+        try {
+            const response = await mainHttpClient.post<{ ok?: boolean; token?: string; expiresAt?: number }>('/user/validation/token', {
+                authToken,
+                timeoutMs: 5000,
+            })
+            const token = typeof response.data?.token === 'string' ? response.data.token : ''
+            const expiresAt = Number(response.data?.expiresAt)
+            if (!response.ok || response.data?.ok !== true || !token || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
+                return null
+            }
+            if (generation !== userValidationTokenGeneration || State.get('tokens.token') !== authToken || !authorized) return null
+
+            cachedUserValidationToken = { authToken, token, expiresAt }
+            return { token, expiresAt }
+        } catch (error) {
+            logger.http.warn('Failed to request user validation token:', error)
+            return null
+        }
+    })()
+
+    userValidationTokenRequest = { authToken, promise }
+    try {
+        return await promise
+    } finally {
+        if (userValidationTokenRequest?.promise === promise) userValidationTokenRequest = null
+    }
+}
+
+const clearUserValidationTokenRefreshTimer = (): void => {
+    if (!userValidationTokenRefreshTimer) return
+    clearTimeout(userValidationTokenRefreshTimer)
+    userValidationTokenRefreshTimer = null
+}
+
+const scheduleUserValidationTokenRefresh = (delayMs: number): void => {
+    clearUserValidationTokenRefreshTimer()
+    userValidationTokenRefreshTimer = setTimeout(() => {
+        userValidationTokenRefreshTimer = null
+        if (authorized) void sendUserValidationToken()
+    }, Math.max(USER_VALIDATION_TOKEN_RETRY_DELAY_MS, delayMs))
+}
+
+const sendUserValidationToken = async (targetSocket?: Socket): Promise<void> => {
+    if (!authorized || !io) return
+
+    const sockets = (targetSocket ? [targetSocket] : Array.from(io.sockets.sockets.values())).filter(socket => {
+        const client = socket as any
+        return socket.connected && client.clientType === 'yaMusic' && client.hasPong
+    })
+    if (!sockets.length) return
+
+    const token = await getUserValidationToken()
+    if (!token) {
+        if (authorized && io) scheduleUserValidationTokenRefresh(USER_VALIDATION_TOKEN_RETRY_DELAY_MS)
+        return
+    }
+    if (!authorized || !io) return
+
+    sockets.forEach(socket => {
+        const client = socket as any
+        if (socket.connected && client.clientType === 'yaMusic' && client.hasPong) {
+            socket.emit('USER_VALIDATION_TOKEN', token)
+        }
+    })
+    scheduleUserValidationTokenRefresh(token.expiresAt - Date.now() - USER_VALIDATION_TOKEN_REFRESH_WINDOW_MS)
+}
+
 const closeServer = async (): Promise<void> => {
     const oldServer = server
     const oldIO = io
+    clearUserValidationTokenRefreshTimer()
 
     return new Promise(resolve => {
         if (oldIO) {
@@ -83,6 +178,7 @@ const initializeServer = () => {
             getAuthorized: () => authorized,
             getTrackData: () => data,
             sendDataToMusic: addonService.sendDataToMusic,
+            sendUserValidationToken,
             updateData,
             handleBrowserAuth,
         })
@@ -184,6 +280,24 @@ export const sendExtensions = addonService.sendExtensions
 export const sendAddonSettings = addonService.sendAddonSettings
 export const sendAllAddonSettings = addonService.sendAllAddonSettings
 export const get_current_track = addonService.getCurrentTrack
+export const sendAuthorizationStatus = (isAuthorized: boolean): void => {
+    if (!isAuthorized) {
+        userValidationTokenGeneration += 1
+        cachedUserValidationToken = null
+        clearUserValidationTokenRefreshTimer()
+    }
+    if (!io) return
+    io.sockets.sockets.forEach(socket => {
+        const client = socket as any
+        if (client.clientType === 'yaMusic' && client.hasPong) {
+            socket.emit('AUTH_STATUS', { authorized: isAuthorized })
+        }
+    })
+    if (isAuthorized) {
+        addonService.sendDataToMusic()
+        void sendUserValidationToken()
+    }
+}
 export const getTrackInfo = () => data
 
 export default server

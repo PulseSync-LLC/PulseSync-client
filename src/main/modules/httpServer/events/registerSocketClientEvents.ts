@@ -30,6 +30,7 @@ interface RegisterSocketClientEventsOptions {
         currentAddonStateHash?: string
         webHostAddonProtocolVersion?: number
     }) => void
+    sendUserValidationToken: (targetSocket?: Socket) => Promise<void>
     updateData: (newData: any) => void
     handleBrowserAuth: (payload: any, client: Socket) => void
 }
@@ -42,6 +43,7 @@ export const registerSocketClientEvents = ({
     getAuthorized,
     getTrackData,
     sendDataToMusic,
+    sendUserValidationToken,
     updateData,
     handleBrowserAuth,
 }: RegisterSocketClientEventsOptions) => {
@@ -58,22 +60,33 @@ export const registerSocketClientEvents = ({
     logger.http.log(`New client connected: version=${version}, type=${clientType}`)
     socket.emit('PING', { message: 'Connected to server' })
 
-    socket.on('READY', async (payload?: { addonStateHashVersion?: number; addonStateHash?: string; webHostAddonProtocolVersion?: number }) => {
-        logger.http.log('READY received from client')
-        if ((socket as any).clientType !== 'yaMusic') return
+    socket.on(
+        'READY',
+        async (payload?: {
+            addonStateHashVersion?: number
+            addonStateHash?: string
+            webHostAddonProtocolVersion?: number
+            userValidationProtocolVersion?: number
+        }) => {
+            logger.http.log('READY received from client')
+            if ((socket as any).clientType !== 'yaMusic') return
 
-        sendToRenderer(RendererEvents.CLIENT_READY)
-        ;(socket as any).hasPong = true
-        ;(socket as any).webHostAddonProtocolVersion = payload?.webHostAddonProtocolVersion
-        if (getAuthorized()) {
-            sendDataToMusic({
-                targetSocket: socket,
-                currentAddonStateHashVersion: payload?.addonStateHashVersion,
-                currentAddonStateHash: typeof payload?.addonStateHash === 'string' ? payload.addonStateHash : undefined,
-                webHostAddonProtocolVersion: payload?.webHostAddonProtocolVersion,
-            })
-        }
-    })
+            sendToRenderer(RendererEvents.CLIENT_READY)
+            ;(socket as any).hasPong = true
+            ;(socket as any).webHostAddonProtocolVersion = payload?.webHostAddonProtocolVersion
+            ;(socket as any).userValidationProtocolVersion = payload?.userValidationProtocolVersion
+            socket.emit('AUTH_STATUS', { authorized: getAuthorized() })
+            if (getAuthorized()) {
+                void sendUserValidationToken(socket)
+                sendDataToMusic({
+                    targetSocket: socket,
+                    currentAddonStateHashVersion: payload?.addonStateHashVersion,
+                    currentAddonStateHash: typeof payload?.addonStateHash === 'string' ? payload.addonStateHash : undefined,
+                    webHostAddonProtocolVersion: payload?.webHostAddonProtocolVersion,
+                })
+            }
+        },
+    )
 
     socket.on('IS_PREMIUM_USER', async () => {
         logger.http.log('IS_PREMIUM_USER received')
