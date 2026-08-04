@@ -388,19 +388,6 @@ function setConfigBranch(branch: string) {
     log(LogLevel.SUCCESS, `Set branch=${branch} in appConfig.ts`)
 }
 
-function hasCompiledNativeArtifact(modulePath: string): boolean {
-    const releaseDir = path.join(modulePath, 'build', 'Release')
-    if (!fs.existsSync(releaseDir)) {
-        return false
-    }
-
-    return fs.readdirSync(releaseDir).some(fileName => path.extname(fileName).toLowerCase() === '.node')
-}
-
-function hasNativeModuleDependencies(modulePath: string): boolean {
-    return fs.existsSync(path.join(modulePath, 'node_modules'))
-}
-
 async function createLinuxAurTarball(version: string, outDir: string, releaseDir: string): Promise<void> {
     const archiveName = `pulsesync-app-${version}-linux-x64.tar.gz`
     const archivePath = path.join(releaseDir, archiveName)
@@ -972,7 +959,6 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
     const components = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
     const previousManifest = await readPublishedRevisionManifest(manifestUrl)
     const previousTarget = previousManifest?.targets?.[dist]
-    const hostChanged = previousTarget?.host?.version !== hostVersion
     const revisions: Record<string, number> = {}
 
     for (const component of Object.values(components)) {
@@ -989,13 +975,11 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
             }
             const contentChanged =
                 previous.version !== component.version || previous.diskName !== component.diskName || previous.contentSha256 !== contentSha256
-            revisions[component.name] = hostChanged || contentChanged ? previousRevision + 1 : previousRevision
+            revisions[component.name] = contentChanged ? previousRevision + 1 : previousRevision
         }
 
-        log(
-            LogLevel.INFO,
-            `Resolved ${component.name} revision ${revisions[component.name]} (${hostChanged ? `new host ${hostVersion}` : 'current host'})`,
-        )
+        const reason = !previous ? 'new component' : revisions[component.name] === previous.revision ? 'unchanged' : 'content changed'
+        log(LogLevel.INFO, `Resolved ${component.name} revision ${revisions[component.name]} (${reason}, host ${hostVersion})`)
     }
 
     process.env.PULSESYNC_COMPONENT_REVISIONS = JSON.stringify(revisions)
@@ -1079,10 +1063,6 @@ async function main(): Promise<void> {
             }
             if (os.platform() === 'darwin') {
                 await runCommandStep(`nativeModules:${mod}:universal`, `cd "${fullPath}" && yarn build --universal`)
-                continue
-            }
-            if (hasNativeModuleDependencies(fullPath) && hasCompiledNativeArtifact(fullPath)) {
-                log(LogLevel.SUCCESS, `Skipping native module "${mod}" (cached build artifacts found)`)
                 continue
             }
             await runCommandStep(`nativeModules:${mod}`, `cd "${fullPath}" && yarn build`)

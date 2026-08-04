@@ -6,6 +6,7 @@ import chalk from 'chalk'
 import {
     AbortMultipartUploadCommand,
     CompleteMultipartUploadCommand,
+    CopyObjectCommand,
     CreateMultipartUploadCommand,
     DeleteObjectsCommand,
     GetObjectCommand,
@@ -760,6 +761,41 @@ async function uploadFileToS3(
     log(LogLevel.INFO, `Uploaded ${key} (${finishedParts} parts, multipart)`)
 }
 
+async function copyUploadedFileInS3(
+    client: S3Client,
+    bucket: string,
+    sourceKey: string,
+    targetKey: string,
+    filePath: string,
+    headers: UploadHeaders,
+): Promise<void> {
+    const { size } = await fs.promises.stat(filePath)
+    const sha256 = await hashFileSha256(filePath)
+    if (await hasMatchingS3Object(client, bucket, targetKey, size, sha256, headers)) {
+        log(LogLevel.INFO, `Skipped unchanged ${targetKey}`)
+        return
+    }
+
+    const copySource = `${encodeURIComponent(bucket)}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`
+    try {
+        await client.send(
+            new CopyObjectCommand({
+                Bucket: bucket,
+                Key: targetKey,
+                CopySource: copySource,
+                ACL: 'public-read',
+                MetadataDirective: 'REPLACE',
+                Metadata: { sha256 },
+                ...headers,
+            }),
+        )
+        log(LogLevel.INFO, `Copied ${sourceKey} -> ${targetKey} (${Math.ceil(size / 1024)} KiB, server-side)`)
+    } catch (error) {
+        log(LogLevel.WARN, `Server-side copy failed for ${targetKey}; falling back to upload`)
+        await uploadFileToS3(client, bucket, targetKey, filePath, headers, { skipIfUnchanged: true })
+    }
+}
+
 async function archiveStoredDesktopManifest(client: S3Client, bucket: string, currentKey: string, archiveRoot: string): Promise<void> {
     let body: string
     try {
@@ -876,12 +912,12 @@ export async function publishToS3(
         })
         const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
         if (latestAliasPath) {
-            await uploadFileToS3(client, bucket, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
+            await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
         }
         if (legacyUpdateBridge && version) {
             const escapedVersion = escapeRegExp(version)
             if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.exe$`, 'iu').test(path.basename(filePath))) {
-                await uploadFileToS3(client, bucket, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
+                await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
                     CacheControl: 'public, max-age=31536000, immutable',
                 })
             }

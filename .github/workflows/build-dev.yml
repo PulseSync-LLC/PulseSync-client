@@ -168,7 +168,9 @@ jobs:
             packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/scripts/**', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/build.rs', 'packages/bootstrapper/src/**/*.rs', 'scripts/bootstrapper/build.ts') }}-input-stamps-v1
+          restore-keys: |
+            build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Create .env
         shell: bash
