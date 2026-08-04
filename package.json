@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "1.0.4",
+    "version": "1.0.5",
     "main": ".vite/main/bootstrap.cjs",
     "scripts": {
         "start": "tsx scripts/dev-remote.ts",
