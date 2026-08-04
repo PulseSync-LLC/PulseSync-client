@@ -565,7 +565,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
         io.sockets.sockets.forEach(client => {
             const socket = client as any
-            if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong) {
+            if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong && socket.userValidationProtocolVersion !== 1) {
                 logger.http.log('Emitting PREMIUM_CHECK_TOKEN')
                 client.emit(RendererEvents.PREMIUM_CHECK_TOKEN, {
                     ok: true,
