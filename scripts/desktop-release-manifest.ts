@@ -386,6 +386,20 @@ type ModuleArchive = {
     version: string
 }
 
+type ComponentArtifactIdentity = Pick<ModuleArchive, 'contentSha256' | 'diskName' | 'revision' | 'version'>
+
+function canReusePublishedComponentArtifact(
+    previous: VersionedArtifact | undefined,
+    current: ComponentArtifactIdentity,
+): previous is VersionedArtifact {
+    return (
+        previous?.version === current.version &&
+        previous.revision === current.revision &&
+        previous.diskName === current.diskName &&
+        previous.contentSha256 === current.contentSha256
+    )
+}
+
 function createFileInventory(sourceDir: string, releaseDir: string, artifactPrefix: string, version: string, dist: string): ModuleFile[] {
     const files: ModuleFile[] = []
     const visit = (directory: string): void => {
@@ -576,11 +590,17 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
     removeStaleInstallerAppArtifact(releaseDir, options.coreVersion)
 
-    const hostArtifact = await createVersionedArtifactDescriptor(
-        hostArtifactPath,
-        baseUrl,
-        macosBundle ? path.join('bundles', bundleVersion, options.dist) : path.join('hosts', targetHostVersion, options.dist),
-    )
+    const publishedHostArtifact =
+        hostSourceDir !== null && previousTarget && sameHostVersion && previousTarget.host.contentSha256 === hostContentSha256
+            ? previousTarget.host.artifact
+            : null
+    const hostArtifact = publishedHostArtifact
+        ? publishedHostArtifact
+        : await createVersionedArtifactDescriptor(
+              hostArtifactPath,
+              baseUrl,
+              macosBundle ? path.join('bundles', bundleVersion, options.dist) : path.join('hosts', targetHostVersion, options.dist),
+          )
     const hostInventory =
         hostSourceDir && includeFileInventories
             ? createFileInventory(hostSourceDir, releaseDir, 'pulsesync-host-file', targetHostVersion, options.dist)
@@ -624,7 +644,9 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                 const previousComponent = previousTarget?.components[moduleName]
                 if (sameHostVersion && previousComponent?.revision !== undefined) {
                     const contentChanged =
-                        previousComponent.version !== moduleArchive.version || previousComponent.contentSha256 !== moduleArchive.contentSha256
+                        previousComponent.version !== moduleArchive.version ||
+                        previousComponent.diskName !== moduleArchive.diskName ||
+                        previousComponent.contentSha256 !== moduleArchive.contentSha256
                     if (moduleArchive.revision < previousComponent.revision) {
                         throw new Error(`Component revision regressed for ${moduleName}`)
                     }
@@ -632,11 +654,13 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                         throw new Error(`Component revision must advance when ${moduleName} content changes`)
                     }
                 }
-                const artifact = await createVersionedArtifactDescriptor(
-                    moduleArchive.archivePath,
-                    baseUrl,
-                    path.join('components', moduleName, moduleArchive.version, options.dist),
-                )
+                const artifact = canReusePublishedComponentArtifact(previousComponent, moduleArchive)
+                    ? previousComponent.artifact
+                    : await createVersionedArtifactDescriptor(
+                          moduleArchive.archivePath,
+                          baseUrl,
+                          path.join('components', moduleName, moduleArchive.version, options.dist),
+                      )
                 const previousFiles = previousComponent?.files ?? []
                 const files: VersionedFile[] = []
                 for (const file of moduleArchive.files) {
@@ -809,20 +833,18 @@ export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeCom
         throw new Error(`${component.name} revision must advance when content changes`)
     }
 
-    const artifact = await createVersionedArtifactDescriptor(
-        archivePath,
-        baseUrl,
-        path.join('components', component.name, component.version, options.dist),
-    )
+    const currentComponent: ComponentArtifactIdentity = {
+        contentSha256,
+        diskName: component.diskName,
+        revision: component.revision,
+        version: component.version,
+    }
+    const artifact = canReusePublishedComponentArtifact(previousComponent, currentComponent)
+        ? previousComponent.artifact
+        : await createVersionedArtifactDescriptor(archivePath, baseUrl, path.join('components', component.name, component.version, options.dist))
     const includeFileInventories = process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
     const inventory = includeFileInventories
-        ? createFileInventory(
-              componentModuleDir,
-              releaseDir,
-              `pulsesync-component-file-${component.name}`,
-              component.version,
-              options.dist,
-          )
+        ? createFileInventory(componentModuleDir, releaseDir, `pulsesync-component-file-${component.name}`, component.version, options.dist)
         : []
     const files: VersionedFile[] = []
     for (const file of inventory) {
