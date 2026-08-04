@@ -114,7 +114,7 @@ function isRemoteRendererCacheMiss(details: Electron.OnErrorOccurredListenerDeta
 
     try {
         const url = new URL(details.url)
-        if (url.hostname !== 'pulsesync.dev' || !url.pathname.startsWith('/app/versions/')) {
+        if (url.hostname !== 'pulsesync.dev' || !/^\/app\/[^/]+\/versions\//u.test(url.pathname)) {
             return false
         }
 
@@ -128,7 +128,7 @@ async function registerAppReadyEvents(): Promise<void> {
     const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'] }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
         if (isRemoteRendererCacheMiss(details)) {
-            logger.http.warn(`HTTP CACHE MISS: ${details.method} ${details.url} (from ${details.webContentsId})`)
+            logger.http.debug(`HTTP CACHE MISS: ${details.method} ${details.url} (from ${details.webContentsId})`)
             return
         }
 

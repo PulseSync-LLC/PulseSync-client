@@ -91,7 +91,7 @@ const registerRemoteMainWindowSecurity = (window: BrowserWindow): void => {
     })
     window.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
         if (webContents?.id === mainWebContentsId) {
-            logger.main.warn('Blocked remote renderer permission check', { permission, requestingOrigin })
+            logger.main.debug('Blocked remote renderer permission check', { permission, requestingOrigin })
         }
         return false
     })

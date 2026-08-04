@@ -26,7 +26,13 @@ export const migrateLegacyAddonSettings = async (addonsRoot: string): Promise<vo
         }
 
         try {
-            const parsed = JSON.parse(await fs.promises.readFile(schemaPath, 'utf8')) as {
+            const schema = await fs.promises.readFile(schemaPath, 'utf8')
+            if (!schema.trim()) {
+                logger.main.debug(`Addons: skipped empty legacy settings schema for ${entry.name}.`)
+                continue
+            }
+
+            const parsed = JSON.parse(schema) as {
                 sections?: Array<{ items?: Array<Record<string, unknown>> }>
             }
             const values = collectAddonSettingsValuesFromConfig(parsed)
