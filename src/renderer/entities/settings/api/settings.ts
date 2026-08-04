@@ -3,7 +3,7 @@ import React from 'react'
 import settingsInitials from '@entities/settings/model/settings.initials'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
-export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<void> => {
+export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<SettingsInterface> => {
     const [snapshot, token, runtimeInfo] = await Promise.all([
         desktopApi.settings.getSnapshot(),
         desktopApi.auth.getToken(),
@@ -31,4 +31,5 @@ export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<
         },
     }
     setApp(config)
+    return config
 }
