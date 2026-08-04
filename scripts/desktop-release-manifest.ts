@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import crypto from 'node:crypto'
 import { execFileSync } from 'node:child_process'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 import AdmZip from 'adm-zip'
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
@@ -247,6 +249,31 @@ async function createVersionedArtifactDescriptor(filePath: string, baseUrl: stri
     }
 }
 
+async function materializePublishedArtifact(artifact: BootstrapperArtifact, targetPath: string, label: string): Promise<void> {
+    if (fs.existsSync(targetPath)) {
+        const stat = fs.statSync(targetPath)
+        if ((artifact.size === undefined || artifact.size === stat.size) && (await sha256File(targetPath)) === artifact.sha256) return
+    }
+
+    const response = await fetch(artifact.url, { cache: 'no-store' })
+    if (!response.ok) throw new Error(`Cannot reuse published ${label} (${response.status}): ${artifact.url}`)
+    if (!response.body) throw new Error(`Cannot reuse published ${label}: empty response body`)
+
+    const temporaryPath = `${targetPath}.published-${process.pid}-${crypto.randomBytes(4).toString('hex')}.tmp`
+    try {
+        await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(temporaryPath))
+        const stat = fs.statSync(temporaryPath)
+        const sha256 = await sha256File(temporaryPath)
+        if (sha256 !== artifact.sha256 || (artifact.size !== undefined && stat.size !== artifact.size)) {
+            throw new Error(`Published ${label} does not match its manifest descriptor`)
+        }
+        fs.rmSync(targetPath, { force: true })
+        fs.renameSync(temporaryPath, targetPath)
+    } finally {
+        fs.rmSync(temporaryPath, { force: true })
+    }
+}
+
 function deltaToolPath(): string {
     const executable = process.platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
     const candidates = [
@@ -459,6 +486,7 @@ function createModuleArchives(
     packagedAppRootDir: string,
     coreVersion: string,
     dist: string,
+    includeFileInventories: boolean,
     allowlist?: ReadonlySet<string>,
 ): Record<string, ModuleArchive> {
     const modulesDir = path.join(packagedAppRootDir, 'modules')
@@ -486,7 +514,9 @@ function createModuleArchives(
             archivePath,
             contentSha256: hashDirectory(sourceDir),
             diskName: component.diskName,
-            files: createFileInventory(sourceDir, releaseDir, `pulsesync-component-file-${moduleName}`, moduleVersion, dist),
+            files: includeFileInventories
+                ? createFileInventory(sourceDir, releaseDir, `pulsesync-component-file-${moduleName}`, moduleVersion, dist)
+                : [],
             revision: component.revision,
             version: moduleVersion,
         }
@@ -585,7 +615,14 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const bootstrapperVersion = readBootstrapperVersion()
     const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
     const componentRootDir = macosBundle ? path.join(packagedAppRootDir, 'PulseSync.app', 'Contents') : packagedAppRootDir
-    const moduleArchivePaths = createModuleArchives(releaseDir, componentRootDir, options.coreVersion, options.dist, undefined)
+    const moduleArchivePaths = createModuleArchives(
+        releaseDir,
+        componentRootDir,
+        options.coreVersion,
+        options.dist,
+        includeFileInventories,
+        undefined,
+    )
     removeStaleBootstrapperArchive(releaseDir, bootstrapperVersion, options.dist)
     removeStaleNativeModulesArchive(releaseDir, options.coreVersion, options.dist)
     removeStaleInstallerAppArtifact(releaseDir, options.coreVersion)
@@ -594,6 +631,9 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         hostSourceDir !== null && previousTarget && sameHostVersion && previousTarget.host.contentSha256 === hostContentSha256
             ? previousTarget.host.artifact
             : null
+    if (publishedHostArtifact) {
+        await materializePublishedArtifact(publishedHostArtifact, hostArtifactPath, `host ${targetHostVersion}`)
+    }
     const hostArtifact = publishedHostArtifact
         ? publishedHostArtifact
         : await createVersionedArtifactDescriptor(
@@ -654,7 +694,11 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                         throw new Error(`Component revision must advance when ${moduleName} content changes`)
                     }
                 }
-                const artifact = canReusePublishedComponentArtifact(previousComponent, moduleArchive)
+                const reusedComponent = canReusePublishedComponentArtifact(previousComponent, moduleArchive)
+                if (reusedComponent) {
+                    await materializePublishedArtifact(previousComponent.artifact, moduleArchive.archivePath, `${moduleName} component`)
+                }
+                const artifact = reusedComponent
                     ? previousComponent.artifact
                     : await createVersionedArtifactDescriptor(
                           moduleArchive.archivePath,
@@ -839,7 +883,11 @@ export async function emitRuntimeComponentUpdateManifest(options: EmitRuntimeCom
         revision: component.revision,
         version: component.version,
     }
-    const artifact = canReusePublishedComponentArtifact(previousComponent, currentComponent)
+    const reusedComponent = canReusePublishedComponentArtifact(previousComponent, currentComponent)
+    if (reusedComponent) {
+        await materializePublishedArtifact(previousComponent.artifact, archivePath, `${component.name} component`)
+    }
+    const artifact = reusedComponent
         ? previousComponent.artifact
         : await createVersionedArtifactDescriptor(archivePath, baseUrl, path.join('components', component.name, component.version, options.dist))
     const includeFileInventories = process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'

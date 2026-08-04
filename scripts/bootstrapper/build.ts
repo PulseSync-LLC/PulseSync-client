@@ -1,4 +1,5 @@
 import 'dotenv/config'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 import { execFile } from 'node:child_process'
@@ -25,6 +26,11 @@ type BuildOptions = {
 
 const MAC_UNIVERSAL_TARGETS = ['x86_64-apple-darwin', 'aarch64-apple-darwin'] as const
 
+function cargoBuildEnvironment(): NodeJS.ProcessEnv {
+    const rustFlags = [process.env.RUSTFLAGS, ...(process.platform === 'win32' ? ['-C link-arg=/Brepro'] : [])].filter(Boolean).join(' ')
+    return { ...process.env, RUSTFLAGS: rustFlags }
+}
+
 function resolveInsideProject(targetPath: string): string {
     const resolvedPath = path.resolve(projectRoot, targetPath)
     const relativePath = path.relative(projectRoot, resolvedPath)
@@ -39,16 +45,54 @@ async function runCargoBuild(options: BuildOptions = {}): Promise<void> {
     if (options.target) args.push('--target', options.target)
     await execFileAsync('cargo', args, {
         cwd: projectRoot,
+        env: cargoBuildEnvironment(),
         windowsHide: true,
     })
+}
+
+function collectFiles(directory: string): string[] {
+    return fs.readdirSync(directory, { withFileTypes: true }).flatMap(entry => {
+        const entryPath = path.join(directory, entry.name)
+        return entry.isDirectory() ? collectFiles(entryPath) : [entryPath]
+    })
+}
+
+async function bootstrapperBuildInputsSha256(options: BuildOptions): Promise<string> {
+    const { stdout: rustc } = await execFileAsync('rustc', ['--version', '--verbose'], { cwd: projectRoot, windowsHide: true })
+    const inputs = ['Cargo.lock', 'Cargo.toml', 'build.rs']
+        .map(relativePath => path.join(bootstrapperRoot, relativePath))
+        .concat(collectFiles(path.join(bootstrapperRoot, 'src')), [fileURLToPath(import.meta.url)])
+        .sort()
+    const hash = crypto.createHash('sha256')
+    for (const input of inputs) {
+        hash.update(path.relative(projectRoot, input).replace(/\\/gu, '/'))
+        hash.update('\0')
+        hash.update(fs.readFileSync(input))
+        hash.update('\0')
+    }
+    hash.update(
+        JSON.stringify({
+            arch: process.arch,
+            cargoBuildTarget: process.env.CARGO_BUILD_TARGET ?? '',
+            platform: process.platform,
+            rustFlags: cargoBuildEnvironment().RUSTFLAGS ?? '',
+            rustc,
+            target: options.target ?? '',
+        }),
+    )
+    return hash.digest('hex')
 }
 
 function bootstrapperExecutableName(): string {
     return process.platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
 }
 
+function bootstrapperExecutablePath(options: BuildOptions = {}): string {
+    return path.join(bootstrapperRoot, 'target', ...(options.target ? [options.target] : []), 'release', bootstrapperExecutableName())
+}
+
 function resolveBootstrapperExecutable(options: BuildOptions = {}): string {
-    const executablePath = path.join(bootstrapperRoot, 'target', ...(options.target ? [options.target] : []), 'release', bootstrapperExecutableName())
+    const executablePath = bootstrapperExecutablePath(options)
     if (!fs.existsSync(executablePath) || !fs.statSync(executablePath).isFile()) {
         throw new Error(`Bootstrapper executable was not found: ${executablePath}`)
     }
@@ -57,8 +101,20 @@ function resolveBootstrapperExecutable(options: BuildOptions = {}): string {
 }
 
 export async function buildBootstrapperExecutable(options: BuildOptions = {}): Promise<string> {
+    const executablePath = bootstrapperExecutablePath(options)
+    const stampPath = `${executablePath}.build-inputs.sha256`
+    const buildInputs = await bootstrapperBuildInputsSha256(options)
+    if (process.env.CI && fs.existsSync(executablePath) && !fs.existsSync(stampPath)) {
+        fs.writeFileSync(stampPath, `${buildInputs}\n`, 'utf8')
+        return executablePath
+    }
+    if (fs.existsSync(executablePath) && fs.existsSync(stampPath) && fs.readFileSync(stampPath, 'utf8').trim() === buildInputs) {
+        return executablePath
+    }
     await runCargoBuild(options)
-    return resolveBootstrapperExecutable(options)
+    const executable = resolveBootstrapperExecutable(options)
+    fs.writeFileSync(stampPath, `${buildInputs}\n`, 'utf8')
+    return executable
 }
 
 export async function buildUniversalMacBootstrapperExecutable(): Promise<string> {
