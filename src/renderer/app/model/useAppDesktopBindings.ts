@@ -5,7 +5,6 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
 import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
-import { fetchSettings } from '@entities/settings/api/settings'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
 import type { DesktopUpdateAvailablePayload } from '@common/desktopApi/contract'
@@ -18,7 +17,6 @@ type Params = {
     fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
     setAddons: React.Dispatch<React.SetStateAction<Addon[]>>
-    setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
     setHasToken: React.Dispatch<React.SetStateAction<boolean>>
     setNavigateState: React.Dispatch<React.SetStateAction<Addon | null>>
     setNavigateTo: React.Dispatch<React.SetStateAction<string | null>>
@@ -34,7 +32,6 @@ export function useAppDesktopBindings({
     fetchModInfo,
     router,
     setAddons,
-    setApp,
     setHasToken,
     setNavigateState,
     setNavigateTo,
@@ -223,24 +220,10 @@ export function useAppDesktopBindings({
             desktopApi.updates.onAvailable(handleUpdateAvailable),
         ]
 
-        desktopApi.getRuntimeInfo().then(runtimeInfo => {
-            setApp(prevSettings => ({
-                ...prevSettings,
-                info: {
-                    ...prevSettings.info,
-                    version: runtimeInfo.coreVersion,
-                    branch: runtimeInfo.buildIdentity.commit,
-                    devmark: runtimeInfo.isDev || runtimeInfo.buildChannel === 'dev',
-                },
-            }))
-        })
-
-        void fetchSettings(setApp)
-
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
         }
-    }, [appRef, fetchModInfo, setApp, setUpdate, t, toastReference])
+    }, [appRef, fetchModInfo, setUpdate, t, toastReference])
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return

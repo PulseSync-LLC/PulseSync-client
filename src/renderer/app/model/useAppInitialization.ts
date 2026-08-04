@@ -3,6 +3,7 @@ import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } 
 import config from '@common/appConfig'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type Addon from '@entities/addon/model/addon.interface'
+import { fetchSettings } from '@entities/settings/api/settings'
 import { desktopApi } from '@shared/desktop/desktopApi'
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
@@ -18,6 +19,7 @@ type Params = {
     }
     setAddons: Dispatch<SetStateAction<Addon[]>>
     setAllAchievements: Dispatch<SetStateAction<any[]>>
+    setApp: Dispatch<SetStateAction<SettingsInterface>>
     setModInfoFetched: Dispatch<SetStateAction<boolean>>
     setMusicInstalled: Dispatch<SetStateAction<boolean>>
     setMusicVersion: Dispatch<SetStateAction<string | null>>
@@ -32,6 +34,7 @@ export function useAppInitialization({
     router,
     setAddons,
     setAllAchievements,
+    setApp,
     setModInfoFetched,
     setMusicInstalled,
     setMusicVersion,
@@ -50,11 +53,13 @@ export function useAppInitialization({
             desktopApi.music.checkInstall()
             desktopApi.lifecycle.ready()
 
-            const [musicStatus, musicVersion, fetchedAddons] = await Promise.all([
+            const [hydratedApp, musicStatus, musicVersion, fetchedAddons] = await Promise.all([
+                fetchSettings(setApp),
                 desktopApi.music.getStatus(),
                 desktopApi.music.getVersion(),
                 desktopApi.addons.list(),
             ])
+            appRef.current = hydratedApp
             const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : (musicVersion as string | null | undefined) || null
 
             setMusicInstalled(!!musicStatus)
@@ -69,7 +74,7 @@ export function useAppInitialization({
                 setWidgetInstalled(false)
             }
 
-            await fetchModInfo(appRef.current)
+            await fetchModInfo(hydratedApp)
 
             if (userId !== '-1') {
                 await fetchAchievements()
@@ -102,6 +107,7 @@ export function useAppInitialization({
         router,
         setAddons,
         setAllAchievements,
+        setApp,
         setMusicInstalled,
         setMusicVersion,
         setWidgetInstalled,
