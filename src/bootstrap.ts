@@ -24,6 +24,7 @@ declare const __non_vite_require__: (moduleId: string) => {
     startup(context?: { bootstrapRuntime?: ApplicationBootstrapRuntime; bootstrapWindow?: Electron.BrowserWindow }): Promise<ApplicationStartupHandle>
 }
 
+initMainErrorTracking({ version: PULSESYNC_HOST_VERSION, commit: PULSESYNC_BRANCH || 'unknown' })
 registerSchemes()
 handleUncaughtException()
 
