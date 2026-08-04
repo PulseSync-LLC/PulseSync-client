@@ -1,6 +1,8 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+import { Readable } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
 
 const GITHUB_RENDERER_BASE_URL = 'https://static.pulsesync.dev/app'
 const DESKTOP_MANIFEST_PATTERN = /^desktop-update(?:-hybrid)?-[a-z0-9_-]+\.json$/iu
@@ -139,25 +141,58 @@ function artifactAssetName(artifact, label) {
     return name
 }
 
-function rewriteVersionedArtifact(descriptor, label, context) {
+async function downloadCanonicalArtifact(artifact, assetName, label, context) {
+    if (!context.canonicalArtifactRoot) {
+        throw new Error(`${label} SHA-256 does not match ${assetName}`)
+    }
+
+    const targetDir = path.join(context.canonicalArtifactRoot, artifact.sha256.slice(0, 16))
+    const targetFile = path.join(targetDir, assetName)
+    if (fs.existsSync(targetFile) && sha256File(targetFile) === artifact.sha256.toLowerCase()) return targetFile
+
+    const response = await fetch(artifact.url, { headers: githubHeaders() })
+    if (!response.ok) throw new Error(`${label} canonical artifact download failed (${response.status}): ${artifact.url}`)
+    if (!response.body) throw new Error(`${label} canonical artifact response is empty: ${artifact.url}`)
+
+    fs.mkdirSync(targetDir, { recursive: true })
+    const temporaryFile = `${targetFile}.${process.pid}.${crypto.randomBytes(4).toString('hex')}.tmp`
+    try {
+        await pipeline(Readable.fromWeb(response.body), fs.createWriteStream(temporaryFile))
+        const actualHash = sha256File(temporaryFile)
+        const actualSize = fs.statSync(temporaryFile).size
+        if (actualHash !== artifact.sha256.toLowerCase() || (artifact.size !== undefined && artifact.size !== actualSize)) {
+            throw new Error(`${label} downloaded canonical artifact does not match its descriptor`)
+        }
+        fs.renameSync(temporaryFile, targetFile)
+    } finally {
+        fs.rmSync(temporaryFile, { force: true })
+    }
+    console.log(`Recovered canonical runtime asset: ${assetName}`)
+    return targetFile
+}
+
+async function rewriteVersionedArtifact(descriptor, label, context) {
     if (!descriptor || typeof descriptor !== 'object') throw new Error(`${label} descriptor is invalid`)
     delete descriptor.files
     const artifact = descriptor.artifact
     const assetName = artifactAssetName(artifact, label)
-    const sourceFile = uniqueSourceFile(context.fileIndex, assetName)
-    const actualHash = sha256File(sourceFile)
-    const actualSize = fs.statSync(sourceFile).size
-    if (typeof artifact.sha256 !== 'string' || artifact.sha256.toLowerCase() !== actualHash) {
-        throw new Error(`${label} SHA-256 does not match ${assetName}`)
+    if (typeof artifact.sha256 !== 'string' || !/^[a-f0-9]{64}$/iu.test(artifact.sha256)) {
+        throw new Error(`${label} has an invalid SHA-256`)
     }
-    if (artifact.size !== undefined && artifact.size !== actualSize) {
+    const expectedHash = artifact.sha256.toLowerCase()
+    const sourceFile = (context.fileIndex.get(assetName) || []).find(candidate => {
+        const stat = fs.statSync(candidate)
+        return (artifact.size === undefined || artifact.size === stat.size) && sha256File(candidate) === expectedHash
+    })
+    const resolvedSourceFile = sourceFile || (await downloadCanonicalArtifact(artifact, assetName, label, context))
+    if (artifact.size !== undefined && artifact.size !== fs.statSync(resolvedSourceFile).size) {
         throw new Error(`${label} size does not match ${assetName}`)
     }
     artifact.url = releaseDownloadUrl(context.repository, context.tag, assetName)
-    context.referencedAssets.set(assetName, sourceFile)
+    context.referencedAssets.set(assetName, resolvedSourceFile)
 }
 
-function transformManifest(sourceFile, context) {
+async function transformManifest(sourceFile, context) {
     const manifest = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
     if (!manifest || typeof manifest !== 'object' || ![3, 4, 5].includes(manifest.schemaVersion)) {
         throw new Error(`Unsupported desktop manifest schema: ${sourceFile}`)
@@ -168,15 +203,15 @@ function transformManifest(sourceFile, context) {
 
     for (const [dist, target] of Object.entries(manifest.targets)) {
         if (!target || typeof target !== 'object') throw new Error(`Desktop target is invalid: ${dist}`)
-        rewriteVersionedArtifact(target.host, `targets.${dist}.host`, context)
+        await rewriteVersionedArtifact(target.host, `targets.${dist}.host`, context)
         if (!target.components || typeof target.components !== 'object') {
             throw new Error(`Desktop target has no components: ${dist}`)
         }
         for (const [name, component] of Object.entries(target.components)) {
-            rewriteVersionedArtifact(component, `targets.${dist}.components.${name}`, context)
+            await rewriteVersionedArtifact(component, `targets.${dist}.components.${name}`, context)
         }
         if (target.bootstrapper !== undefined) {
-            rewriteVersionedArtifact(target.bootstrapper, `targets.${dist}.bootstrapper`, context)
+            await rewriteVersionedArtifact(target.bootstrapper, `targets.${dist}.bootstrapper`, context)
         }
     }
 
@@ -332,7 +367,7 @@ async function prepareComponentRelease(args) {
         repository,
         tag,
     }
-    rewriteVersionedArtifact(selected, `targets.${dist}.${component}`, context)
+    await rewriteVersionedArtifact(selected, `targets.${dist}.${component}`, context)
 
     const manifest = structuredClone(previous.manifest)
     copyManifestTopLevel(sourceManifest, manifest)
@@ -408,7 +443,7 @@ function verifyPreparedManifest(manifest, targetRoot, repository, tag) {
     }
 }
 
-function prepareRelease(args) {
+async function prepareRelease(args) {
     const sourceRoot = resolveInsideWorkspace(requiredArg(args, '--source'), 'Source')
     const targetRoot = resolveInsideWorkspace(requiredArg(args, '--target'), 'Target')
     const repository = requireRepository(requiredArg(args, '--repository'))
@@ -421,6 +456,7 @@ function prepareRelease(args) {
 
     fs.rmSync(targetRoot, { force: true, recursive: true })
     fs.mkdirSync(targetRoot, { recursive: true })
+    const canonicalArtifactRoot = path.join(targetRoot, '.canonical-runtime')
     const allFiles = listFiles(sourceRoot)
     const files = allFiles.filter(file => !isNestedPublicationFile(file, sourceRoot))
     const fileIndex = buildFileIndex(files)
@@ -428,22 +464,27 @@ function prepareRelease(args) {
     if (!manifestFiles.length) throw new Error(`No desktop update manifests found under ${sourceRoot}`)
 
     const referencedAssets = new Map()
-    const context = { fileIndex, referencedAssets, rendererManifestUrl, repository, tag }
+    const context = { canonicalArtifactRoot, fileIndex, referencedAssets, rendererManifestUrl, repository, tag }
     const transformedManifests = []
-    for (const manifestFile of manifestFiles) {
-        const name = path.basename(manifestFile)
-        uniqueSourceFile(fileIndex, name)
-        const manifest = transformManifest(manifestFile, context)
-        transformedManifests.push([name, manifest])
-    }
+    let ordinaryCount
+    try {
+        for (const manifestFile of manifestFiles) {
+            const name = path.basename(manifestFile)
+            uniqueSourceFile(fileIndex, name)
+            const manifest = await transformManifest(manifestFile, context)
+            transformedManifests.push([name, manifest])
+        }
 
-    const ordinaryCount = flattenOrdinaryAssets(files, sourceRoot, targetRoot)
-    for (const [name, sourceFile] of referencedAssets) {
-        copyExact(sourceFile, path.join(targetRoot, name))
-    }
-    for (const [name, manifest] of transformedManifests) {
-        fs.writeFileSync(path.join(targetRoot, name), `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
-        verifyPreparedManifest(manifest, targetRoot, repository, tag)
+        ordinaryCount = flattenOrdinaryAssets(files, sourceRoot, targetRoot)
+        for (const [name, sourceFile] of referencedAssets) {
+            copyExact(sourceFile, path.join(targetRoot, name))
+        }
+        for (const [name, manifest] of transformedManifests) {
+            fs.writeFileSync(path.join(targetRoot, name), `${JSON.stringify(manifest, null, 4)}\n`, 'utf8')
+            verifyPreparedManifest(manifest, targetRoot, repository, tag)
+        }
+    } finally {
+        fs.rmSync(canonicalArtifactRoot, { force: true, recursive: true })
     }
 
     console.log(
@@ -455,7 +496,7 @@ function prepareRelease(args) {
 async function main() {
     const [command, ...args] = process.argv.slice(2)
     if (command === 'prepare') {
-        prepareRelease(args)
+        await prepareRelease(args)
         return
     }
     if (command === 'prepare-component') {
