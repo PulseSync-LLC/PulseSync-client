@@ -89,12 +89,7 @@ const registerRemoteMainWindowSecurity = (window: BrowserWindow): void => {
         }
         callback(false)
     })
-    window.webContents.session.setPermissionCheckHandler((webContents, permission, requestingOrigin) => {
-        if (webContents?.id === mainWebContentsId) {
-            logger.main.debug('Blocked remote renderer permission check', { permission, requestingOrigin })
-        }
-        return false
-    })
+    window.webContents.session.setPermissionCheckHandler(() => false)
     window.webContents.on('will-attach-webview', event => {
         event.preventDefault()
         logger.main.warn('Blocked remote renderer webview attachment')
