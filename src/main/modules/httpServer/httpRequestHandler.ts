@@ -1,7 +1,6 @@
 import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { parse } from 'url'
 import type { Track } from '@entities/track/model/track.interface'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
 import { buildCorsHeaders } from './cors'
@@ -24,6 +23,17 @@ interface CreateHttpRequestHandlerOptions {
 }
 
 const ASSET_PREFIX = '/assets/'
+const REQUEST_URL_BASE = 'http://127.0.0.1'
+
+const parseRequestUrl = (value: string | undefined): URL => {
+    try {
+        return new URL(value || '/', REQUEST_URL_BASE)
+    } catch {
+        return new URL('/', REQUEST_URL_BASE)
+    }
+}
+
+const getRequestQuery = (value: string | undefined): Record<string, string> => Object.fromEntries(parseRequestUrl(value).searchParams.entries())
 
 const sendJson = (res: http.ServerResponse, status: number, payload: unknown) => {
     res.writeHead(status, { 'Content-Type': 'application/json' })
@@ -106,8 +116,8 @@ const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
 export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData }: CreateHttpRequestHandlerOptions) => {
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
 
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
@@ -130,8 +140,9 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { pathname, query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
+            const { pathname } = parseRequestUrl(req.url)
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
             const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
@@ -157,9 +168,9 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
-            const fileName = query.file as string
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
+            const fileName = query.file
 
             if (!directory || !fileName) return sendJson(res, 400, { error: 'Missing query parameters: directory/id/name or file' })
             if (/^https?:\/\//i.test(fileName)) {
@@ -211,7 +222,7 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     return (req: http.IncomingMessage, res: http.ServerResponse) => {
         const { method, url } = req
-        const { pathname } = parse(url || '', true)
+        const { pathname } = parseRequestUrl(url)
 
         setCorsHeaders(req, res, allowedOrigins)
 
