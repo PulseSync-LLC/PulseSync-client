@@ -15,11 +15,37 @@ import logger from './logger'
 
 const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
 const errorTrackingRuntime = globalThis as typeof globalThis & { [INITIALIZED_KEY]?: boolean }
+type MainErrorTrackingIdentity = { version: string; commit: string }
+
+let currentIdentity: MainErrorTrackingIdentity = {
+    version: PULSESYNC_VERSION,
+    commit: PULSESYNC_BRANCH || 'unknown',
+}
 
 const isInitialized = (): boolean => errorTrackingRuntime[INITIALIZED_KEY] === true
 
-export const initMainErrorTracking = (identity: { version: string; commit: string }): void => {
-    if (!ERROR_TRACKING_ENABLED || isInitialized()) return
+const applyMainErrorTrackingIdentity = (identity: MainErrorTrackingIdentity): void => {
+    currentIdentity = identity
+    if (!isInitialized()) return
+
+    Sentry.setTags({
+        ...ERROR_TRACKING_BUILD_TAGS,
+        'desktop.commit': identity.commit,
+        'desktop.version': identity.version,
+        process: 'main',
+        platform: process.platform,
+        architecture: process.arch,
+    })
+}
+
+export const initMainErrorTracking = (identity: MainErrorTrackingIdentity): void => {
+    if (!ERROR_TRACKING_ENABLED) return
+
+    currentIdentity = identity
+    if (isInitialized()) {
+        applyMainErrorTrackingIdentity(identity)
+        return
+    }
 
     try {
         Sentry.init({
@@ -41,18 +67,12 @@ export const initMainErrorTracking = (identity: { version: string; commit: strin
                 ),
             beforeSend: event => {
                 event.platform = 'javascript'
+                event.release = getDesktopErrorTrackingRelease(currentIdentity.version, currentIdentity.commit)
                 return addErrorTrackingDebugIds(addErrorTrackingRuntimeTags(sanitizeErrorTrackingEvent(event)))
             },
         })
-        Sentry.setTags({
-            ...ERROR_TRACKING_BUILD_TAGS,
-            'desktop.commit': identity.commit,
-            'desktop.version': identity.version,
-            process: 'main',
-            platform: process.platform,
-            architecture: process.arch,
-        })
         errorTrackingRuntime[INITIALIZED_KEY] = true
+        applyMainErrorTrackingIdentity(identity)
     } catch (error) {
         logger.main.warn('Failed to initialize error tracking:', error)
     }
