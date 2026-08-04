@@ -20,6 +20,7 @@ const configCache = new Map<string, AddonConfig | null>()
 const configExistsCache = new Map<string, boolean>()
 const docsRequestCache = new Map<string, Promise<DocTab[]>>()
 const configRequestCache = new Map<string, Promise<{ config: AddonConfig | null; exists: boolean }>>()
+let cacheGeneration = 0
 
 const DOC_README_PATTERN = /^readme(?:\.[^.]+)?$/i
 const DOC_LICENSE_PATTERN = /^licen[sc]e(?:\.[^.]+)?$/i
@@ -95,7 +96,9 @@ const requestAddonDocs = (addon: AddonInterface, cacheKey: string): Promise<DocT
     if (existing) return existing
 
     const request = fetchAddonDocs(addon).finally(() => {
-        docsRequestCache.delete(cacheKey)
+        if (docsRequestCache.get(cacheKey) === request) {
+            docsRequestCache.delete(cacheKey)
+        }
     })
 
     docsRequestCache.set(cacheKey, request)
@@ -107,7 +110,9 @@ const requestAddonConfig = (addon: AddonInterface, cacheKey: string): Promise<{ 
     if (existing) return existing
 
     const request = fetchAddonConfig(addon).finally(() => {
-        configRequestCache.delete(cacheKey)
+        if (configRequestCache.get(cacheKey) === request) {
+            configRequestCache.delete(cacheKey)
+        }
     })
 
     configRequestCache.set(cacheKey, request)
@@ -115,6 +120,8 @@ const requestAddonConfig = (addon: AddonInterface, cacheKey: string): Promise<{ 
 }
 
 export const clearAddonFilesCache = (addon?: AddonInterface | null): void => {
+    cacheGeneration += 1
+
     if (!addon) {
         docsCache.clear()
         configCache.clear()
@@ -140,6 +147,7 @@ const buildAddonUrl = (addon: AddonInterface, file: string): string =>
 export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<void> => {
     if (!addon) return
 
+    const generation = cacheGeneration
     const cacheKey = getAddonCacheKey(addon)
     const shouldFetchDocs = !docsCache.has(cacheKey)
     const shouldFetchConfig = !configExistsCache.has(cacheKey)
@@ -148,11 +156,13 @@ export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<v
 
     if (shouldFetchDocs) {
         const fetched = await requestAddonDocs(addon, cacheKey)
+        if (generation !== cacheGeneration) return
         docsCache.set(cacheKey, fetched)
     }
 
     if (shouldFetchConfig) {
         const { config, exists } = await requestAddonConfig(addon, cacheKey)
+        if (generation !== cacheGeneration) return
         configCache.set(cacheKey, config)
         configExistsCache.set(cacheKey, exists)
     }
@@ -213,28 +223,29 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
         }
 
         let active = true
+        const generation = cacheGeneration
 
-        if (!hasCachedDocs) {
-            ;(async () => {
-                const fetched = await requestAddonDocs(addon, cacheKey)
+        ;(async () => {
+            const fetched = await requestAddonDocs(addon, cacheKey)
+            if (generation === cacheGeneration) {
                 docsCache.set(cacheKey, fetched)
                 if (active) {
                     setDocs(fetched)
                 }
-            })()
-        }
+            }
+        })()
 
-        if (cachedConfigExists === undefined) {
-            ;(async () => {
-                const { config, exists } = await requestAddonConfig(addon, cacheKey)
+        ;(async () => {
+            const { config, exists } = await requestAddonConfig(addon, cacheKey)
+            if (generation === cacheGeneration) {
                 configCache.set(cacheKey, config)
                 configExistsCache.set(cacheKey, exists)
                 if (active) {
                     setConfig(config)
                     setConfigExists(exists)
                 }
-            })()
-        }
+            }
+        })()
 
         return () => {
             active = false
