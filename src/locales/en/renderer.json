@@ -472,8 +472,8 @@
         "enableAnyway": "Enable anyway",
         "filtersLabel": "Filters",
         "notFound": {
-            "discordLink": "Visit the official Discord server to download add-ons",
-            "emptyDescription": "Looks like you don't have any add-ons installed yet.",
+            "catalogLink": "Open catalog",
+            "emptyDescription": "You don't have any add-ons installed yet. Find one in the catalog.",
             "filteredDescription": "The extension may have been removed, filtered out, or not installed yet.",
             "titleEmpty": "No add-ons found",
             "titleFiltered": "Extension not found"
