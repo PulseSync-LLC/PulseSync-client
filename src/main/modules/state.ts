@@ -1,5 +1,6 @@
 import logger from './logger'
 import { getStore, StoreType } from './storage'
+import isAppDev from '../utils/isAppDev'
 
 class State {
     private store: StoreType
@@ -10,7 +11,14 @@ class State {
         this.state = {
             ...this.store.getAll(),
         }
-        logger.main.info('State initialized with:', this.state)
+        if (isAppDev) {
+            logger.main.debug('State initialized with:', {
+                ...this.state,
+                tokens: this.state.tokens ? { ...this.state.tokens, token: '[redacted]' } : undefined,
+            })
+        } else {
+            logger.main.info('State initialized')
+        }
     }
 
     public get(key: string): any {

@@ -47,6 +47,7 @@ import { readBufResilient } from './main/utils/readBufResilient'
 import { prestartCheck } from './main/startup/prestartCheck'
 import type { LaunchRequestEnvelopeV1 } from './main/modules/bootstrapper/contracts'
 import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './main/modules/updater/updater'
+import { migrateCompletedLaunchRequestIds, writeCompletedLaunchRequestIds } from './main/modules/bootstrap/launchCompletionStore'
 
 const State = getState()
 initMainI18n(State.get('settings.language'))
@@ -141,17 +142,30 @@ export async function startMainApplication(context: ApplicationStartupContext = 
         const windowStartup = await createWindow({ bootstrapWindow: context.bootstrapWindow })
         handleEvents(mainWindow)
         const handleLaunchRequest = await createApplicationLaunchRequestHandler()
-        const completedIds = new Set<string>(
-            Array.isArray(State.get('app.completedLaunchRequestIds'))
-                ? State.get('app.completedLaunchRequestIds').filter((value: unknown): value is string => typeof value === 'string').slice(-256)
-                : [],
-        )
+        const legacyCompletedLaunchRequestIds = State.get('app.completedLaunchRequestIds')
+        let persistedCompletedLaunchRequestIds: string[] = []
+        try {
+            persistedCompletedLaunchRequestIds = migrateCompletedLaunchRequestIds(legacyCompletedLaunchRequestIds)
+            if (legacyCompletedLaunchRequestIds !== undefined) State.delete('app.completedLaunchRequestIds')
+        } catch (error) {
+            logger.main.warn('Failed to load completed launch requests:', error)
+            persistedCompletedLaunchRequestIds = Array.isArray(legacyCompletedLaunchRequestIds)
+                ? legacyCompletedLaunchRequestIds.filter((value: unknown): value is string => typeof value === 'string').slice(-256)
+                : []
+        }
+        const completedIds = new Set<string>(persistedCompletedLaunchRequestIds)
         const deliverLaunchRequest = async (request: LaunchRequestEnvelopeV1): Promise<boolean> => {
             if (completedIds.has(request.id)) return true
             await windowStartup.ready
             await handleLaunchRequest(request)
             completedIds.add(request.id)
-            State.set('app.completedLaunchRequestIds', Array.from(completedIds).slice(-256))
+            try {
+                const retainedIds = writeCompletedLaunchRequestIds(completedIds)
+                completedIds.clear()
+                retainedIds.forEach(id => completedIds.add(id))
+            } catch (error) {
+                logger.main.warn('Failed to persist completed launch request:', error)
+            }
             return true
         }
         const pendingBrowserAuth = consumePendingBrowserAuthFromDeepLink()
