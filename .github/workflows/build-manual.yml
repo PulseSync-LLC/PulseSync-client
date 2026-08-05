@@ -69,6 +69,7 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
+  actions: read
   contents: read
 
 jobs:
@@ -137,7 +138,6 @@ jobs:
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.s3_branch == 'dev' && '1' || '0' }}
-          S3_KEEP_RECENT_VERSIONS: ${{ inputs.s3_branch == 'dev' && '2' || '' }}
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           SENTRY_URL: https://issues.pulsesync.dev
@@ -183,38 +183,19 @@ jobs:
               ;;
           esac
 
-  cleanup_dev_s3:
-    name: Cleanup Dev S3
-    needs: build
-    if: ${{ inputs.upload_to_s3 == true && inputs.s3_branch == 'dev' }}
-    runs-on: ubuntu-latest
-    environment: BUILD_PRODUCTION
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.target }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: yarn
-          cache-dependency-path: '**/yarn.lock'
-
-      - name: Create .env
-        shell: bash
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-        run: |
-          if [ -n "$ENV_FILE" ]; then
-            printf '%s' "$ENV_FILE" > .env
-          fi
-
-      - name: Install deps
-        run: yarn install --frozen-lockfile
-
-      - name: Remove unreferenced dev artifacts
-        run: yarn s3:prune --branch dev --keep-releases 2 --grace-hours 24 --apply
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [build, publish_renderer]
+    if: >-
+      ${{
+        always() &&
+        inputs.upload_to_s3 == true &&
+        (inputs.s3_branch == 'dev' || inputs.s3_branch == 'beta')
+      }}
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ inputs.target }}
+    secrets: inherit
 
   publish_renderer:
     name: Publish Remote Renderer

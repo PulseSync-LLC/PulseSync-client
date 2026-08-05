@@ -38,6 +38,7 @@ on:
         default: all
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -130,6 +131,7 @@ jobs:
 
       - name: Publish component and prepare GitHub assets
         env:
+          DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           GITHUB_TOKEN: ${{ github.token }}
           GLITCHTIP_SOURCEMAPS: "0"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
@@ -148,38 +150,18 @@ jobs:
           path: out/component-github-release/**/*
           if-no-files-found: error
 
-  cleanup_dev_s3:
-    name: Cleanup Dev S3
-    needs: build
-    if: ${{ inputs.channel == 'dev' }}
-    runs-on: ubuntu-latest
-    environment: BUILD_PRODUCTION
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ inputs.ref }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: yarn
-          cache-dependency-path: '**/yarn.lock'
-
-      - name: Create .env
-        shell: bash
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-        run: |
-          if [ -n "$ENV_FILE" ]; then
-            printf '%s' "$ENV_FILE" > .env
-          fi
-
-      - name: Install deps
-        run: yarn install --frozen-lockfile
-
-      - name: Remove unreferenced dev artifacts
-        run: yarn s3:prune --branch dev --keep-releases 2 --grace-hours 24 --apply
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [build, release]
+    if: >-
+      ${{
+        always() &&
+        (inputs.channel == 'dev' || inputs.channel == 'beta')
+      }}
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ inputs.ref }}
+    secrets: inherit
 
   release:
     name: Create component release

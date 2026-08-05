@@ -114,3 +114,4 @@ Debug
 build
 *.node
 /nativeModules/checkAccess/yarn.lock
+docs/
