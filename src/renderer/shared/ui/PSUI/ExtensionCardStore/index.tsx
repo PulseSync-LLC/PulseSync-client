@@ -10,7 +10,7 @@ type ExtensionCardSize = 'default' | 'large'
 type ExtensionStatus = 'accepted' | 'active' | 'deprecated' | 'pending' | 'rejected'
 type ExtensionType = 'css' | 'js' | 'both'
 type DownloadVariant = 'default' | 'installed' | 'remove'
-type AddonKind = 'theme' | 'script'
+type AddonKind = 'theme' | 'script' | 'web-addon'
 
 export interface ExtensionCardStoreProps {
     title: string
@@ -76,8 +76,8 @@ const CompactDownloadIcon = () => (
 )
 
 const KindBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
-    const text = kind === 'script' ? t('store.kind.script') : t('store.kind.theme')
-    const className = kind === 'script' ? st.badge_script : st.badge_theme
+    const text = t(`store.kind.${kind}`)
+    const className = kind === 'theme' ? st.badge_theme : st.badge_script
     return <div className={[st.card_badge, className].join(' ')}>{text}</div>
 }
 

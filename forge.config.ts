@@ -110,7 +110,7 @@ const forgeConfig: ForgeConfig = {
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
             [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
-            [FuseV1Options.EnableNodeCliInspectArguments]: true,
+            [FuseV1Options.EnableNodeCliInspectArguments]: false,
         }),
     ],
     hooks: {

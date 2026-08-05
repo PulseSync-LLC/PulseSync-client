@@ -1,5 +1,5 @@
 export type StoreAddonStatus = 'pending' | 'rejected' | 'accepted'
-export type StoreAddonKind = 'theme' | 'script'
+export type StoreAddonKind = 'theme' | 'script' | 'web-addon'
 
 export interface StoreAddonRelease {
     id: string

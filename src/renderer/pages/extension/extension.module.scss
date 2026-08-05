@@ -136,6 +136,20 @@
     overflow: hidden;
     white-space: nowrap;
 }
+.legacyRestrictionBadge {
+    appearance: none;
+    flex: 0 0 auto;
+    padding: 3px 6px;
+    border: 1px solid rgba(255, 121, 121, 0.42);
+    border-radius: 5px;
+    background: rgba(239, 68, 68, 0.16);
+    color: #ff9b9b;
+    font-size: 10px;
+    font-family: inherit;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+}
 .addonType {
     transition: var(--transition);
     display: flex;

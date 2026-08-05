@@ -13,6 +13,11 @@ export type GetMeData = {
 
 export type GetMeVars = Record<string, never>
 
+export type LegacyAddonRestrictionsState = {
+    enabled: boolean
+    loading: boolean
+}
+
 export type AppProvidersProps = {
     user: UserInterface
     setUser: Dispatch<SetStateAction<UserInterface>>
@@ -43,6 +48,7 @@ export type AppProvidersProps = {
     refreshAddons: () => Promise<void>
     notificationsValue: NotificationsContextValue
     router: ReturnType<typeof createHashRouter>
+    onLegacyAddonRestrictionsChange: (state: LegacyAddonRestrictionsState) => void
 }
 
 export type PlayerProps = {

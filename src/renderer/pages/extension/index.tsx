@@ -7,6 +7,8 @@ import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interfa
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
+import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
 
 import toast from '@shared/ui/toast'
 
@@ -135,7 +137,7 @@ function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
-    const { isExperimentEnabled } = useExperiments()
+    const { getExperiment, isExperimentEnabled } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
@@ -450,7 +452,8 @@ export default function ExtensionPage() {
                 : await loadAddons(true)
             setAddons(refreshedAddons)
 
-            const enabledStateSnapshot = typeof result.theme !== 'string' || !Array.isArray(result.scripts) ? await desktopApi.settings.getSnapshot() : null
+            const enabledStateSnapshot =
+                typeof result.theme !== 'string' || !Array.isArray(result.scripts) ? await desktopApi.settings.getSnapshot() : null
             const nextTheme = typeof result.theme === 'string' ? result.theme : String(enabledStateSnapshot?.addons.theme || 'Default')
             const nextEnabledScripts = Array.isArray(result.scripts)
                 ? readEnabledScriptsState(result.scripts)
@@ -758,6 +761,11 @@ export default function ExtensionPage() {
     }, [selectedAddon])
 
     const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, false)
+    const legacyAddonRestrictionsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const legacyAddonRestrictionsExperiment = getExperiment(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions)
+    const selectedAddonIsRestrictedLegacy = isRestrictedLegacyAddon(selectedAddon, legacyAddonRestrictionsEnabled)
+    const selectedAddonIsAuthoredByUser = isAddonAuthor(selectedAddon, user)
+    const openLegacyAddonMigrationModal = useLegacyAddonMigrationModal()
 
     const canManagePublication = useMemo(() => {
         if (!storePublishingEnabled || !selectedAddon || !user) return false
@@ -848,7 +856,7 @@ export default function ExtensionPage() {
     ])
 
     const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
-        if (!selectedAddon) {
+        if (!selectedAddon || selectedAddonIsRestrictedLegacy) {
             return 'none'
         }
 
@@ -873,12 +881,20 @@ export default function ExtensionPage() {
         }
 
         return 'none'
-    }, [selectedAddon, selectedPublication])
+    }, [selectedAddon, selectedAddonIsRestrictedLegacy, selectedPublication])
 
     const handleSubmitAddon = useCallback(
         async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
             if (!selectedAddon || !storePublishingEnabled) return
             if (publicationSubmitBusyRef.current) return
+            if (selectedAddonIsRestrictedLegacy) {
+                if (selectedAddonIsAuthoredByUser) {
+                    openLegacyAddonMigrationModal()
+                } else {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.publicationBlocked'))
+                }
+                return
+            }
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
             if (!changelog) {
@@ -963,9 +979,12 @@ export default function ExtensionPage() {
         [
             i18n.language,
             loadAddons,
+            openLegacyAddonMigrationModal,
             publicationChangelogText,
             publicationGithubUrlText,
             selectedAddon,
+            selectedAddonIsAuthoredByUser,
+            selectedAddonIsRestrictedLegacy,
             selectedPublication?.id,
             selectedPublication?.currentRelease?.githubUrl,
             selectedPublication?.currentRelease?.usedAiDuringDevelopment,
@@ -1022,6 +1041,16 @@ export default function ExtensionPage() {
             return
         }
 
+        if (selectedAddonIsRestrictedLegacy && selectedStoreUpdate.type !== 'web-addon') {
+            if (selectedAddonIsAuthoredByUser) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
+                void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
+            } else {
+                toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'))
+            }
+            return
+        }
+
         setStoreUpdateBusy(true)
         const toastId = toast.custom('loading', t('layout.updateAction'), t('common.pleaseWait'))
 
@@ -1048,7 +1077,15 @@ export default function ExtensionPage() {
         } finally {
             setStoreUpdateBusy(false)
         }
-    }, [selectedAddon, selectedStoreUpdate, setAddons, t])
+    }, [
+        legacyAddonRestrictionsExperiment?.meta,
+        selectedAddon,
+        selectedAddonIsAuthoredByUser,
+        selectedAddonIsRestrictedLegacy,
+        selectedStoreUpdate,
+        setAddons,
+        t,
+    ])
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 

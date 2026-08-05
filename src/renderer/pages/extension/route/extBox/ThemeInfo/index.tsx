@@ -16,6 +16,9 @@ import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import userContext from '@entities/user/model/context'
+import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
+import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
+import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
 
 interface Props {
     addon: AddonInterface
@@ -103,7 +106,7 @@ const ThemeInfo: React.FC<Props> = ({
     const { t } = useTranslation()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal, setModalState } = useModalContext()
-    const { refreshAddons } = React.useContext(userContext)
+    const { refreshAddons, user } = React.useContext(userContext)
     const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
     const actionsRef = useRef<HTMLDivElement>(null)
@@ -220,6 +223,9 @@ const ThemeInfo: React.FC<Props> = ({
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
+    const legacyAddonRestrictionsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
+    const openLegacyAddonMigrationModal = useLegacyAddonMigrationModal()
     const resolvedGithubUrl = (publication?.currentRelease?.githubUrl || publicationGithubUrlText || '').trim()
     const hasGithubUrl = Boolean(resolvedGithubUrl)
     return (
@@ -237,6 +243,7 @@ const ThemeInfo: React.FC<Props> = ({
             </div>
 
             <div className={s.topTags}>
+                {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={s.legacyRestrictionTag} /> : null}
                 {addon.tags &&
                     addon.tags.length > 0 &&
                     addon.tags.map(tag => (
@@ -323,7 +330,12 @@ const ThemeInfo: React.FC<Props> = ({
                         {canManagePublication && (
                             <Button
                                 className={s.actionButton}
-                                onClick={() =>
+                                onClick={() => {
+                                    if (showLegacyRestriction) {
+                                        openLegacyAddonMigrationModal()
+                                        return
+                                    }
+
                                     openModal(Modals.EXTENSION_PUBLICATION_MODAL, {
                                         addon,
                                         authorsDisplay,
@@ -336,7 +348,7 @@ const ThemeInfo: React.FC<Props> = ({
                                         onPublish: onPublishAddon ?? null,
                                         onUpdate: onUpdateAddon ?? null,
                                     })
-                                }
+                                }}
                                 title={authorsDisplay}
                             >
                                 <MdSync size={18} />
