@@ -26,7 +26,7 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 50
 
-      - uses: dorny/paths-filter@v4.0.1
+      - uses: dorny/paths-filter@v4.0.2
         id: filter
         with:
           base: ${{ github.ref_name }}
@@ -45,11 +45,8 @@ jobs:
               - 'nativeModules/**'
               - 'packages/bootstrapper/**'
               - 'packages/desktop-core/**'
-              - 'scripts/**'
-              - '!scripts/renderer/**'
-              - '!scripts/s3-prune.ts'
-              - '!scripts/s3-retention.ts'
-              - '!scripts/s3-upload.ts'
+              - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
+              - 'scripts/!(renderer)/**/*'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
