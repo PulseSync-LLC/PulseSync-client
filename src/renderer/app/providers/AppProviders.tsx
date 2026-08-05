@@ -16,6 +16,7 @@ import ExperimentOverridesDevModal from '@widgets/modalContainer/modals/Experime
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import type { AppProvidersProps } from '@app/AppShell.types'
 import PlayerProvider from '@app/providers/PlayerProvider'
+import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'
 
 export default function AppProviders({
     user,
@@ -47,6 +48,7 @@ export default function AppProviders({
     refreshAddons,
     notificationsValue,
     router,
+    onLegacyAddonRestrictionsChange,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
 
@@ -139,6 +141,7 @@ export default function AppProviders({
             <UserContext.Provider value={userContextValue}>
                 <NewsProvider key={user.id} enabled={!loading}>
                     <ExperimentsProvider userId={user.id}>
+                        <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
                         <ExperimentOverridesDevModal />
                         <UpdateChannelOverrideModal />
                         <NotificationsProvider value={notificationsValue}>

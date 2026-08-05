@@ -2,7 +2,11 @@ import React from 'react'
 import cn from 'clsx'
 import { MdCheckCircle, MdIntegrationInstructions, MdInvertColors } from 'react-icons/md'
 
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import Addon from '@entities/addon/model/addon.interface'
+import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
+import userContext from '@entities/user/model/context'
+import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
 type Props = {
@@ -28,7 +32,11 @@ export default function AddonCard({
     onDisable,
     onEnable,
 }: Props) {
+    const { isExperimentEnabled } = useExperiments()
+    const { user } = React.useContext(userContext)
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
+    const legacyAddonRestrictionsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
 
     return (
         <div
@@ -63,6 +71,7 @@ export default function AddonCard({
                 }}
             />
             <div className={extensionStylesV2.addonName}>{addon.name}</div>
+            {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
             <div className={extensionStylesV2.addonType}>
                 {addon.type === 'theme' ? <MdInvertColors size={isEnabled ? 24 : 21} /> : <MdIntegrationInstructions size={isEnabled ? 24 : 21} />}
             </div>

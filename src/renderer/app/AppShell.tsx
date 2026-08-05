@@ -28,6 +28,8 @@ import { useAppInitialization } from '@app/model/useAppInitialization'
 import { useAppDesktopBindings } from '@app/model/useAppDesktopBindings'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { normalizeSupportedLanguage, rememberLanguage } from '@app/i18n'
+import type { LegacyAddonRestrictionsState } from '@app/AppShell.types'
+import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 
 type AchievementCatalogItem = {
     id: string
@@ -73,6 +75,7 @@ function App() {
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
     const [isAppDeprecated, setIsAppDeprecated] = useState(false)
+    const [legacyAddonRestrictions, setLegacyAddonRestrictions] = useState<LegacyAddonRestrictionsState>({ enabled: false, loading: true })
     const toastReference = useRef<string | null>(null)
     const lastNotInstalledToastKeyRef = useRef<string | null>(null)
     const storeAddonUpdateCheckInFlightRef = useRef(false)
@@ -216,7 +219,7 @@ function App() {
 
     const syncStoreAddonUpdates = useCallback(
         async (installedAddons: Addon[]) => {
-            if (isAutonomousMode) {
+            if (isAutonomousMode || legacyAddonRestrictions.loading) {
                 return
             }
 
@@ -232,8 +235,11 @@ function App() {
                 const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
                 const outdatedAddons = updates.filter(publishedAddon => {
                     const installedAddon = installedByStoreId.get(publishedAddon.id)
+                    const legacyUpdateBlocked =
+                        isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type !== 'web-addon'
                     return (
                         !!installedAddon &&
+                        !legacyUpdateBlocked &&
                         !!publishedAddon.currentRelease?.downloadUrl &&
                         compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
                     )
@@ -314,7 +320,7 @@ function App() {
                 storeAddonUpdateCheckInFlightRef.current = false
             }
         },
-        [isAutonomousMode, setAddons],
+        [isAutonomousMode, legacyAddonRestrictions.enabled, legacyAddonRestrictions.loading, setAddons],
     )
 
     const handleSocketAchievementsUpdate = useCallback(
@@ -466,6 +472,7 @@ function App() {
                 refreshAddons={refreshAddons}
                 notificationsValue={notificationsValue}
                 router={router}
+                onLegacyAddonRestrictionsChange={setLegacyAddonRestrictions}
             />
         </SocketProvider>
     )

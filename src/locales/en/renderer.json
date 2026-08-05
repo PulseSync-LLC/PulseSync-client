@@ -433,7 +433,8 @@
                 "CDN_BUCKET_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
                 "CDN_DOMAIN_URL_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
                 "S3_UPLOAD_FAILED": "Failed to send the add-on files. Please try again later.",
-                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation."
+                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation.",
+                "LEGACY_ADDON_PUBLICATION_DISABLED": "The server rejected this legacy add-on. Migrate it to the WebHost runtime before publishing."
             },
             "publishError": "Failed to publish the add-on.",
             "updateError": "Failed to send the add-on update."
@@ -443,6 +444,16 @@
             "description": "The add-on {{name}} was loaded from an untrusted source and was not found in the catalog. We do not guarantee its safety, stability, or the safety of your data.",
             "caption": "Enable it only if you trust the source and understand the risks.",
             "confirm": "Enable anyway"
+        },
+        "legacyAddon": {
+            "warningTitle": "Legacy add-on",
+            "warningDescription": "Migration to WebHost is required to publish new versions.",
+            "warningAction": "Publishing and legacy updates are disabled. Click to open the WebHost migration guide.",
+            "migrationModalTitle": "Migration to WebHost required",
+            "migrationModalDescription": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to WebHost to continue publishing.",
+            "openNews": "Open announcement",
+            "publicationBlocked": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to the WebHost runtime.",
+            "storeUpdateBlocked": "This legacy add-on cannot be updated until its author migrates it to the WebHost runtime. Opening more information."
         },
         "tabs": {
             "changelog": "Changelog",
@@ -455,6 +466,7 @@
         "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
         "storeUpdateComplete": "Add-on {{name}} was updated.",
         "storeUpdateFailed": "Failed to update add-on {{name}}.",
+        "storeUpdateUnavailable": "This update is currently unavailable.",
         "reloadFailed": "Reload failed",
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
@@ -508,6 +520,7 @@
             "all": "All",
             "scripts": "Scripts",
             "themes": "Themes",
+            "webAddons": "WebHost",
             "title": "TYPE"
         }
     },
@@ -1197,7 +1210,8 @@
         },
         "kind": {
             "theme": "Theme",
-            "script": "Script"
+            "script": "Script",
+            "web-addon": "WebHost"
         },
         "badges": {
             "officialTemplate": "Official template",

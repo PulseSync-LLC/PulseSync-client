@@ -71,6 +71,22 @@
     }
 }
 
+.legacyRestrictionTag {
+    appearance: none;
+    display: inline-flex;
+    align-items: center;
+    padding: 6px 10px;
+    border: 1px solid rgba(255, 142, 142, 0.5);
+    border-radius: 8px;
+    background: rgba(190, 35, 50, 0.72);
+    color: #fff0f0;
+    font-size: 11px;
+    font-family: inherit;
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+}
+
 .libraryLogo {
     text-align: center;
     line-height: 1.1;

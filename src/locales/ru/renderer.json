@@ -433,7 +433,8 @@
                 "CDN_BUCKET_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
                 "CDN_DOMAIN_URL_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
                 "S3_UPLOAD_FAILED": "Не удалось отправить файлы аддона. Попробуй позже.",
-                "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию."
+                "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию.",
+                "LEGACY_ADDON_PUBLICATION_DISABLED": "Сервер запретил публикацию legacy-аддона. Переведите его на WebHost runtime."
             },
             "publishError": "Не удалось опубликовать аддон.",
             "updateError": "Не удалось отправить обновление аддона."
@@ -443,6 +444,16 @@
             "description": "Аддон {{name}} загружен из непроверенного источника и не найден в каталоге. Мы не гарантируем его безопасность, стабильность и сохранность ваших данных.",
             "caption": "Включайте его только если доверяете источнику и понимаете возможные риски.",
             "confirm": "Включить всё равно"
+        },
+        "legacyAddon": {
+            "warningTitle": "Legacy-аддон",
+            "warningDescription": "Для публикации новых версий требуется переход на WebHost.",
+            "warningAction": "Публикация и legacy-обновления отключены. Нажмите, чтобы открыть инструкцию по переходу на WebHost.",
+            "migrationModalTitle": "Требуется переход на WebHost",
+            "migrationModalDescription": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost, чтобы продолжить публикацию.",
+            "openNews": "Открыть новость",
+            "publicationBlocked": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost runtime.",
+            "storeUpdateBlocked": "Этот legacy-аддон нельзя обновить, пока его автор не переведёт аддон на WebHost runtime. Открываем подробности."
         },
         "tabs": {
             "changelog": "Патчноуты",
@@ -455,6 +466,7 @@
         "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
         "storeUpdateComplete": "Аддон {{name}} обновлён.",
         "storeUpdateFailed": "Не удалось обновить аддон {{name}}.",
+        "storeUpdateUnavailable": "Это обновление пока недоступно.",
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
@@ -508,6 +520,7 @@
             "all": "Все",
             "scripts": "Скрипты",
             "themes": "Темы",
+            "webAddons": "WebHost",
             "title": "ТИП"
         }
     },
@@ -1197,7 +1210,8 @@
         },
         "kind": {
             "theme": "Тема",
-            "script": "Скрипт"
+            "script": "Скрипт",
+            "web-addon": "WebHost"
         },
         "badges": {
             "officialTemplate": "Официальный шаблон",

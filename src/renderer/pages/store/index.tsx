@@ -27,7 +27,7 @@ type ModerationAddonsQuery = {
     getModerationAddons: StoreAddon[]
 }
 
-type StoreTypeFilter = 'all' | 'theme' | 'script'
+type StoreTypeFilter = 'all' | 'theme' | 'script' | 'web-addon'
 type StoreSortKey = 'latestRelease' | 'name' | 'downloads'
 
 const STORE_CARD_MIN_HEIGHT = 238
@@ -40,7 +40,7 @@ function resolveTheme(index: number): 'purple' | 'red' | 'wave' {
 }
 
 function resolveType(type: StoreAddon['type']): 'css' | 'js' {
-    return type === 'script' ? 'js' : 'css'
+    return type === 'theme' ? 'css' : 'js'
 }
 
 function formatDate(value: string, locale?: string): string {
@@ -558,7 +558,7 @@ export default function StorePage() {
                         <div className={st.store_toolbar}>
                             <div className={cn(st.store_toolbarSide, st.store_toolbarSideStart)}>
                                 <div className={st.store_filterOptions}>
-                                    {(['all', 'theme', 'script'] as const).map(option => (
+                                    {(['all', 'theme', 'script', 'web-addon'] as const).map(option => (
                                         <button
                                             key={option}
                                             type="button"
@@ -569,7 +569,9 @@ export default function StorePage() {
                                                 ? t('filters.type.all')
                                                 : option === 'theme'
                                                   ? t('filters.type.themes')
-                                                  : t('filters.type.scripts')}
+                                                  : option === 'script'
+                                                    ? t('filters.type.scripts')
+                                                    : t('filters.type.webAddons')}
                                         </button>
                                     ))}
                                 </div>
