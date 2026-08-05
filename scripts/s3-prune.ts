@@ -1,5 +1,5 @@
 import 'dotenv/config'
-import { pruneUnreferencedDesktopArtifacts } from './s3-upload.js'
+import { pruneUnreferencedDesktopArtifacts } from './s3-retention.js'
 
 function argValue(name: string): string | null {
     const index = process.argv.indexOf(name)
@@ -14,12 +14,19 @@ function positiveNumber(name: string, fallback: number): number {
     return value
 }
 
+function releaseIds(name: string): string[] {
+    const raw = argValue(name)
+    if (!raw) return []
+    return Array.from(new Set(raw.split(',').map(value => value.trim()).filter(Boolean)))
+}
+
 const branch = argValue('--branch') ?? 'dev'
 const summary = await pruneUnreferencedDesktopArtifacts(branch, {
     apply: process.argv.includes('--apply'),
-    graceHours: positiveNumber('--grace-hours', 24),
+    graceHours: positiveNumber('--grace-hours', 2),
     keepReleases: positiveNumber('--keep-releases', 2),
     prefix: argValue('--prefix') ?? undefined,
+    protectedReleaseIds: releaseIds('--protect-releases'),
 })
 
 console.log(JSON.stringify(summary, null, 2))

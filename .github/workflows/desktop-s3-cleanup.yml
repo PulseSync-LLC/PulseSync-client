@@ -1,0 +1,69 @@
+name: Cleanup Desktop S3
+
+on:
+  workflow_call:
+    inputs:
+      checkout_ref:
+        description: Git ref containing the retention scripts
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      checkout_ref:
+        description: Git ref containing the retention scripts
+        required: true
+        default: dev
+        type: string
+
+permissions:
+  actions: read
+  contents: read
+
+jobs:
+  cleanup:
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.checkout_ref }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          cache: yarn
+          cache-dependency-path: "**/yarn.lock"
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Resolve active release IDs
+        id: active_releases
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          active_releases="$(
+            gh api --method GET "repos/${GITHUB_REPOSITORY}/actions/runs?per_page=100" --paginate \
+              --jq '.workflow_runs[] | select(.status != "completed") | .id' |
+              sort -u |
+              paste -sd, -
+          )"
+          echo "release_ids=$active_releases" >> "$GITHUB_OUTPUT"
+          echo "Protecting active release IDs: ${active_releases:-none}"
+
+      - name: Remove unreferenced desktop artifacts
+        shell: bash
+        run: |
+          yarn s3:prune --branch dev --keep-releases 2 --grace-hours 2 --protect-releases "${{ steps.active_releases.outputs.release_ids }}" --apply
+          yarn s3:prune --branch beta --keep-releases 2 --grace-hours 2 --protect-releases "${{ steps.active_releases.outputs.release_ids }}" --apply

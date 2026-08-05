@@ -6,6 +6,7 @@ on:
       - dev
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -18,6 +19,7 @@ jobs:
     outputs:
       desktop: ${{ steps.filter.outputs.desktop }}
       renderer: ${{ steps.filter.outputs.renderer }}
+      retention: ${{ steps.filter.outputs.retention }}
     steps:
       - uses: actions/checkout@v6
         with:
@@ -45,6 +47,9 @@ jobs:
               - 'packages/desktop-core/**'
               - 'scripts/**'
               - '!scripts/renderer/**'
+              - '!scripts/s3-prune.ts'
+              - '!scripts/s3-retention.ts'
+              - '!scripts/s3-upload.ts'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
@@ -59,7 +64,6 @@ jobs:
               - 'Info.plist'
               - 'graphql.config.yml'
               - 'schema.graphql'
-              - '.github/workflows/build-dev.yml'
               - '.github/workflows/desktop-tests.yml'
             renderer:
               - 'src/renderer/**'
@@ -69,20 +73,26 @@ jobs:
               - 'src/styles/**'
               - 'static/**'
               - 'scripts/renderer/**'
-              - 'scripts/s3-upload.ts'
               - 'package.json'
               - 'yarn.lock'
               - '.yarnrc.yml'
               - 'vite.renderer.config.ts'
               - 'vite-env.d.ts'
               - 'tsconfig*.json'
+            retention:
+              - 'scripts/s3-prune.ts'
+              - 'scripts/s3-retention.ts'
+              - '.github/workflows/desktop-s3-cleanup.yml'
               - '.github/workflows/build-dev.yml'
+              - '.github/workflows/build-manual.yml'
+              - '.github/workflows/publish-component.yml'
 
       - name: Report changed build-related files
         shell: bash
         run: |
           echo "desktop=${{ steps.filter.outputs.desktop }}"
           echo "renderer=${{ steps.filter.outputs.renderer }}"
+          echo "retention=${{ steps.filter.outputs.retention }}"
 
   version:
     needs: changes
@@ -194,7 +204,6 @@ jobs:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
           PULSESYNC_DISABLE_FILE_INVENTORIES: "1"
-          S3_KEEP_RECENT_VERSIONS: 2
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
@@ -222,37 +231,18 @@ jobs:
           path: release/**/*
           if-no-files-found: error
 
-  cleanup_dev_s3:
-    name: Cleanup Dev S3
-    needs: build
-    runs-on: ubuntu-latest
-    environment: BUILD_PRODUCTION
-
-    steps:
-      - uses: actions/checkout@v6
-        with:
-          ref: ${{ github.sha }}
-
-      - uses: actions/setup-node@v6
-        with:
-          node-version: 22
-          cache: yarn
-          cache-dependency-path: '**/yarn.lock'
-
-      - name: Create .env
-        shell: bash
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-        run: |
-          if [ -n "$ENV_FILE" ]; then
-            printf '%s' "$ENV_FILE" > .env
-          fi
-
-      - name: Install deps
-        run: yarn install --frozen-lockfile
-
-      - name: Remove unreferenced dev artifacts
-        run: yarn s3:prune --branch dev --keep-releases 2 --grace-hours 24 --apply
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [changes, build, publish_renderer, github_prerelease]
+    if: >-
+      ${{
+        always() &&
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.retention == 'true')
+      }}
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ github.sha }}
+    secrets: inherit
 
   publish_renderer:
     name: Publish Remote Renderer
@@ -373,8 +363,8 @@ jobs:
 
   skip-build:
     needs: changes
-    if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' }}
+    if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip dev build
-        run: echo "Skipping dev workflow because no desktop or renderer files changed."
+        run: echo "Skipping dev workflow because no desktop, renderer, or retention files changed."
