@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     outputs:
       desktop: ${{ steps.filter.outputs.desktop }}
       renderer: ${{ steps.filter.outputs.renderer }}
@@ -94,7 +94,7 @@ jobs:
   version:
     needs: changes
     if: ${{ needs.changes.outputs.desktop == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     environment: BUILD_PRODUCTION
     outputs:
       build_version: ${{ steps.version.outputs.build_version }}
@@ -106,6 +106,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -146,7 +147,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -156,6 +157,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -245,7 +247,7 @@ jobs:
     name: Publish Remote Renderer
     needs: changes
     if: ${{ needs.changes.outputs.renderer == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     environment: BUILD_PRODUCTION
     concurrency:
       group: remote-renderer-publish
@@ -259,6 +261,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -324,7 +327,7 @@ jobs:
     name: Create GitHub Prerelease
     needs: [changes, version, build]
     if: ${{ needs.changes.outputs.desktop == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
 
     steps:
       - uses: actions/checkout@v6
@@ -361,7 +364,7 @@ jobs:
   skip-build:
     needs: changes
     if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     steps:
       - name: Skip dev build
         run: echo "Skipping dev workflow because no desktop, renderer, or retention files changed."

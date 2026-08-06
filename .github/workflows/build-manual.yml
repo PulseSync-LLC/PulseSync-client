@@ -13,8 +13,8 @@ on:
         type: choice
         options:
           - all
-          - ubuntu-latest
-          - windows-latest
+          - blacksmith-4vcpu-ubuntu-2204
+          - blacksmith-4vcpu-windows-2025
           - macos-26
           - windows+macos
         default: all
@@ -86,7 +86,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-26"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-26"]' || format('["{0}"]', inputs.build_os))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","macos-26"]' || (inputs.build_os == 'windows+macos' && '["blacksmith-4vcpu-windows-2025","macos-26"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -96,6 +96,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -159,7 +160,7 @@ jobs:
           fi
 
       - name: Publish changelog (optional, single-run on ubuntu)
-        if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
+        if: ${{ inputs.publish_changelog == true && matrix.os == 'blacksmith-4vcpu-ubuntu-2204' }}
         shell: bash
         run: |
           VERSION_ARGS=()
@@ -201,7 +202,7 @@ jobs:
     name: Publish Remote Renderer
     needs: build
     if: ${{ inputs.publish_renderer == true }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     environment: BUILD_PRODUCTION
     concurrency:
       group: remote-renderer-publish
@@ -215,6 +216,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 

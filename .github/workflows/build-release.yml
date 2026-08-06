@@ -19,7 +19,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -27,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -97,7 +98,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish changelog (single-run on ubuntu)
-        if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'dev') }}
+        if: ${{ matrix.os == 'blacksmith-4vcpu-ubuntu-2204' && !contains(github.ref_name, 'dev') }}
         shell: bash
         run: |
           VERSION_ARGS=()
@@ -112,7 +113,7 @@ jobs:
     name: Create GitHub Release
     needs: build
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
 
     steps:
       - uses: actions/checkout@v6

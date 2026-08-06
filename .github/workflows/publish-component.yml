@@ -32,8 +32,8 @@ on:
         type: choice
         options:
           - all
-          - windows-latest
-          - ubuntu-latest
+          - blacksmith-4vcpu-windows-2025
+          - blacksmith-4vcpu-ubuntu-2204
           - macos-26
         default: all
 
@@ -48,7 +48,7 @@ concurrency:
 jobs:
   prepare:
     name: Prepare component release
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     outputs:
       matrix: ${{ steps.release.outputs.matrix }}
       prerelease: ${{ steps.release.outputs.prerelease }}
@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.build_os }}" == "all" ]]; then
-            matrix='["ubuntu-latest","windows-latest","macos-26"]'
+            matrix='["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","macos-26"]'
           else
             matrix='["${{ inputs.build_os }}"]'
           fi
@@ -93,6 +93,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: "**/yarn.lock"
 
@@ -166,7 +167,7 @@ jobs:
   release:
     name: Create component release
     needs: [prepare, build]
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
     steps:
       - name: Download prepared assets
         uses: actions/download-artifact@v8
