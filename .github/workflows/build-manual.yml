@@ -15,7 +15,7 @@ on:
           - all
           - blacksmith-4vcpu-ubuntu-2204
           - blacksmith-4vcpu-windows-2025
-          - macos-26
+          - blacksmith-6vcpu-macos-26
           - windows+macos
         default: all
       upload_to_s3:
@@ -86,7 +86,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","macos-26"]' || (inputs.build_os == 'windows+macos' && '["blacksmith-4vcpu-windows-2025","macos-26"]' || format('["{0}"]', inputs.build_os))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]' || (inputs.build_os == 'windows+macos' && '["blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
       - uses: actions/checkout@v6
