@@ -11,7 +11,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, blacksmith-4vcpu-windows-2025, macos-26, macos-26-intel]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, macos-26, macos-26-intel]
 
     steps:
       - uses: actions/checkout@v6

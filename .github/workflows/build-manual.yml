@@ -13,7 +13,7 @@ on:
         type: choice
         options:
           - all
-          - ubuntu-latest
+          - blacksmith-4vcpu-ubuntu-2204
           - windows-latest
           - macos-26
           - windows+macos
@@ -60,7 +60,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-26","macos-26-intel"]' || (inputs.build_os == 'macos-26' && '["macos-26","macos-26-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-26","macos-26-intel"]' || format('["{0}"]', inputs.build_os)))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["blacksmith-4vcpu-ubuntu-2204","windows-latest","macos-26","macos-26-intel"]' || (inputs.build_os == 'macos-26' && '["macos-26","macos-26-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-26","macos-26-intel"]' || format('["{0}"]', inputs.build_os)))) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -115,7 +115,7 @@ jobs:
           fi
 
       - name: Publish changelog (optional, single-run on ubuntu)
-        if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
+        if: ${{ inputs.publish_changelog == true && matrix.os == 'blacksmith-4vcpu-ubuntu-2204' }}
         shell: bash
         run: |
           VERSION_ARGS=()

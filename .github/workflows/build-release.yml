@@ -14,7 +14,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, blacksmith-4vcpu-windows-2025, macos-26, macos-26-intel]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, macos-26, macos-26-intel]
 
     steps:
       - uses: actions/checkout@v6
@@ -87,7 +87,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish changelog (single-run on ubuntu)
-        if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'dev') }}
+        if: ${{ matrix.os == 'blacksmith-4vcpu-ubuntu-2204' && !contains(github.ref_name, 'dev') }}
         shell: bash
         run: |
           VERSION_ARGS=()
