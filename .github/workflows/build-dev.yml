@@ -17,6 +17,7 @@ jobs:
   changes:
     runs-on: blacksmith-4vcpu-ubuntu-2204
     outputs:
+      bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
       desktop: ${{ steps.filter.outputs.desktop }}
       renderer: ${{ steps.filter.outputs.renderer }}
       retention: ${{ steps.filter.outputs.retention }}
@@ -43,10 +44,9 @@ jobs:
               - 'static/**'
               - 'icons/**'
               - 'nativeModules/**'
-              - 'packages/bootstrapper/**'
               - 'packages/desktop-core/**'
               - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
-              - 'scripts/!(renderer)/**/*'
+              - 'scripts/!(@(bootstrapper|renderer))/**/*'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
@@ -62,6 +62,9 @@ jobs:
               - 'graphql.config.yml'
               - 'schema.graphql'
               - '.github/workflows/desktop-tests.yml'
+            bootstrapper:
+              - 'packages/bootstrapper/**'
+              - 'scripts/bootstrapper/**'
             renderer:
               - 'src/renderer/**'
               - 'src/common/**'
@@ -87,6 +90,7 @@ jobs:
       - name: Report changed build-related files
         shell: bash
         run: |
+          echo "bootstrapper=${{ steps.filter.outputs.bootstrapper }}"
           echo "desktop=${{ steps.filter.outputs.desktop }}"
           echo "renderer=${{ steps.filter.outputs.renderer }}"
           echo "retention=${{ steps.filter.outputs.retention }}"
@@ -230,13 +234,27 @@ jobs:
           path: release/**/*
           if-no-files-found: error
 
+  publish_bootstrapper:
+    name: Publish Bootstrapper Component
+    needs: changes
+    if: ${{ needs.changes.outputs.bootstrapper == 'true' && needs.changes.outputs.desktop != 'true' }}
+    uses: ./.github/workflows/publish-component.yml
+    with:
+      ref: ${{ github.sha }}
+      channel: dev
+      component: bootstrapper
+      build_os: all
+      release_mode: reuse-latest
+    secrets: inherit
+
   cleanup_desktop_s3:
     name: Cleanup Desktop S3
     needs: [changes, build, publish_renderer, github_prerelease]
     if: >-
       ${{
         always() &&
-        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.retention == 'true')
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.retention == 'true') &&
+        (needs.changes.outputs.bootstrapper != 'true' || needs.changes.outputs.desktop == 'true')
       }}
     uses: ./.github/workflows/desktop-s3-cleanup.yml
     with:
@@ -363,7 +381,7 @@ jobs:
 
   skip-build:
     needs: changes
-    if: ${{ needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
+    if: ${{ needs.changes.outputs.bootstrapper != 'true' && needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
     runs-on: blacksmith-4vcpu-ubuntu-2204
     steps:
       - name: Skip dev build

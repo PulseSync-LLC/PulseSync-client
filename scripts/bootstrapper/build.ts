@@ -24,6 +24,14 @@ type BuildOptions = {
     target?: string
 }
 
+type PreparedBootstrapperRelease = {
+    channel: string
+    desktopVersion: string
+    dist: string
+    releaseDir: string
+    version: string
+}
+
 const MAC_UNIVERSAL_TARGETS = ['x86_64-apple-darwin', 'aarch64-apple-darwin'] as const
 
 function cargoBuildEnvironment(): NodeJS.ProcessEnv {
@@ -160,11 +168,11 @@ function readArgValue(args: string[], name: string): string | null {
     return args[index + 1] ?? null
 }
 
-async function publishBootstrapper(args: string[]): Promise<void> {
+async function prepareBootstrapperRelease(args: string[]): Promise<PreparedBootstrapperRelease> {
     const channel = readArgValue(args, '--channel')
     const dist = readArgValue(args, '--dist') || `${process.platform}-${process.arch}`
     if (!channel || !/^[a-z0-9][a-z0-9-]*$/u.test(channel)) {
-        throw new Error('Usage: tsx scripts/bootstrapper/build.ts publish --channel <name> [--dist win32-x64]')
+        throw new Error('Usage: tsx scripts/bootstrapper/build.ts <prepare|publish> --channel <name> [--dist win32-x64]')
     }
     const s3Url = process.env.S3_URL?.trim()
     if (!s3Url) throw new Error('S3_URL is required to publish bootstrapper updates')
@@ -191,8 +199,18 @@ async function publishBootstrapper(args: string[]): Promise<void> {
     }
     const version = manifest.targets[dist]?.bootstrapper?.version
     if (!version) throw new Error(`Generated manifest does not contain bootstrapper for ${dist}`)
+
+    return { channel, desktopVersion: manifest.desktopVersion, dist, releaseDir, version }
+}
+
+async function publishBootstrapper(args: string[]): Promise<void> {
+    const { channel, desktopVersion, dist, releaseDir, version } = await prepareBootstrapperRelease(args)
+    if (process.env.PULSESYNC_DEFER_S3_PUBLISH === '1') {
+        console.log(`PulseSync bootstrapper ${version} prepared for ${channel}/${dist}; desktop core remains ${desktopVersion}`)
+        return
+    }
     await publishToS3(channel, releaseDir, version, { keepRecentVersions: null })
-    console.log(`PulseSync bootstrapper ${version} published for ${channel}/${dist}; desktop core remains ${manifest.desktopVersion}`)
+    console.log(`PulseSync bootstrapper ${version} published for ${channel}/${dist}; desktop core remains ${desktopVersion}`)
 }
 
 function parseCopyOptions(args: string[]): CopyOptions {
@@ -225,6 +243,14 @@ async function main(): Promise<void> {
 
     if (command === 'publish') {
         await publishBootstrapper(args)
+        return
+    }
+
+    if (command === 'prepare') {
+        const prepared = await prepareBootstrapperRelease(args)
+        console.log(
+            `PulseSync bootstrapper ${prepared.version} prepared for ${prepared.channel}/${prepared.dist}; desktop core remains ${prepared.desktopVersion}`,
+        )
         return
     }
 

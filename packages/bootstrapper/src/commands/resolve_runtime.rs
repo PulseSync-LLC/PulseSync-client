@@ -9,6 +9,7 @@ use crate::{
         },
         packaged_runtime::ensure_macos_hybrid_state,
     },
+    domain::update_workflow::cleanup_terminal_update_workspaces,
 };
 use serde_json::{Value, json};
 use std::path::{Path, PathBuf};
@@ -47,6 +48,8 @@ pub fn acknowledge_runtime_command(args: &Args) -> Result<Value> {
         acknowledge_runtime_with_host(&state_root, &lease_id, generation, host_bundle.as_deref())?;
     if host_bundle.is_some() {
         let _ = crate::domain::macos_bundle::acknowledge_runtime_startup(&state_root)?;
+    } else if let Err(error) = cleanup_terminal_update_workspaces(&state_root) {
+        eprintln!("update cache cleanup deferred after runtime acknowledgement: {error}");
     }
     Ok(json!({
         "schemaVersion": 3,

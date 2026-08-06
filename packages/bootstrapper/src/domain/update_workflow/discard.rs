@@ -2,21 +2,18 @@ use super::{
     DISCARD_COMMAND, DiscardPreparedUpdateResult, DiscardReason, RemovedPreparedState,
     UPDATE_LOCK_TIMEOUT, UpdateWorkflowError,
     common::{
-        current_install_is_safe, paths_match, reject_live_self_update, scoped_update_path,
-        value_path, workflow_error,
+        current_install_is_safe, paths_match, referenced_by_transaction, reject_live_self_update,
+        remove_contained_directory, scoped_update_path, value_path, workflow_error,
     },
 };
 use crate::{
     core::{
-        error::Result as CoreResult,
         layout::{assert_inside, canonical_install_root, is_inside, resolve_layout},
         operation_lock::UpdateLock,
     },
     domain::{
         macos_bundle,
-        transactions::{
-            TransactionRecord, transaction_artifacts, transaction_records, transactions_with_id,
-        },
+        transactions::{transaction_artifacts, transaction_records, transactions_with_id},
     },
 };
 use serde_json::Value;
@@ -26,47 +23,6 @@ use std::{
     path::{Path, PathBuf},
 };
 use uuid::Uuid;
-
-fn referenced_by_other_transaction(records: &[TransactionRecord], candidate: &Path) -> bool {
-    records.iter().any(|record| {
-        let references = ["transactionDir", "stagingDir", "backupDir", "planFile"]
-            .into_iter()
-            .filter_map(|key| value_path(&record.value, key))
-            .chain(
-                record
-                    .value
-                    .get("artifacts")
-                    .and_then(Value::as_array)
-                    .into_iter()
-                    .flatten()
-                    .flat_map(|artifact| {
-                        ["sourcePath", "backupPath", "preparedPath"]
-                            .into_iter()
-                            .filter_map(|key| value_path(artifact, key))
-                    }),
-            );
-        references.into_iter().any(|path| {
-            paths_match(candidate, &path)
-                || is_inside(candidate, &path)
-                || is_inside(&path, candidate)
-        })
-    })
-}
-
-fn remove_contained_directory(path: &Path, root: &Path) -> CoreResult<bool> {
-    if !path.exists() {
-        return Ok(false);
-    }
-    if paths_match(path, root) || !is_inside(root, path) {
-        return Err(format!(
-            "refusing to remove directory outside owned root: {}",
-            path.display()
-        )
-        .into());
-    }
-    fs::remove_dir_all(path)?;
-    Ok(true)
-}
 
 pub fn discard_prepared_update(
     install_root: PathBuf,
@@ -482,8 +438,8 @@ pub fn discard_prepared_update(
             safe_to_continue,
         )
     })?;
-    let remove_staging = !referenced_by_other_transaction(&remaining, &staging_dir);
-    let remove_backup = !referenced_by_other_transaction(&remaining, &backup_dir);
+    let remove_staging = !referenced_by_transaction(&remaining, &staging_dir);
+    let remove_backup = !referenced_by_transaction(&remaining, &backup_dir);
     let staging_removed = if remove_staging {
         remove_contained_directory(&staging_dir, &staging_root).map_err(|error| {
             workflow_error(

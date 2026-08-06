@@ -1,3 +1,4 @@
+mod cleanup;
 mod common;
 mod discard;
 mod error;
@@ -5,6 +6,7 @@ mod model;
 mod prepare;
 mod prepare_validation;
 
+pub use cleanup::cleanup_terminal_update_workspaces;
 pub use discard::discard_prepared_update;
 pub use error::UpdateWorkflowError;
 pub use model::{

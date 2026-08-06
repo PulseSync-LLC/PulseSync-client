@@ -2,13 +2,17 @@ use super::{PrepareUpdateOptions, SESSION_LOCK_TIMEOUT, UpdateWorkflowError};
 use crate::core::{
     active_app::{ActiveAppLeaseState, verified_live_lease},
     error::Result as CoreResult,
-    layout::{Layout, LayoutKind, resolve_layout, resolve_macos_layout},
+    layout::{Layout, LayoutKind, is_inside, resolve_layout, resolve_macos_layout},
     path_segment::sanitize_path_segment,
     self_update::{SelfUpdateMutationGate, reconcile_self_update_mutation},
     session_lock::SessionLock,
 };
+use crate::domain::transactions::TransactionRecord;
 use serde_json::Value;
-use std::path::{Component, Path, PathBuf};
+use std::{
+    fs,
+    path::{Component, Path, PathBuf},
+};
 
 pub(super) fn workflow_error(
     command: &'static str,
@@ -83,6 +87,47 @@ pub(super) fn paths_match(left: &Path, right: &Path) -> bool {
 
 pub(super) fn value_path(value: &Value, key: &str) -> Option<PathBuf> {
     value.get(key).and_then(Value::as_str).map(PathBuf::from)
+}
+
+pub(super) fn referenced_by_transaction(records: &[TransactionRecord], candidate: &Path) -> bool {
+    records.iter().any(|record| {
+        let references = ["transactionDir", "stagingDir", "backupDir", "planFile"]
+            .into_iter()
+            .filter_map(|key| value_path(&record.value, key))
+            .chain(
+                record
+                    .value
+                    .get("artifacts")
+                    .and_then(Value::as_array)
+                    .into_iter()
+                    .flatten()
+                    .flat_map(|artifact| {
+                        ["sourcePath", "backupPath", "preparedPath"]
+                            .into_iter()
+                            .filter_map(|key| value_path(artifact, key))
+                    }),
+            );
+        references.into_iter().any(|path| {
+            paths_match(candidate, &path)
+                || is_inside(candidate, &path)
+                || is_inside(&path, candidate)
+        })
+    })
+}
+
+pub(super) fn remove_contained_directory(path: &Path, root: &Path) -> CoreResult<bool> {
+    if !path.exists() {
+        return Ok(false);
+    }
+    if paths_match(path, root) || !is_inside(root, path) {
+        return Err(format!(
+            "refusing to remove directory outside owned root: {}",
+            path.display()
+        )
+        .into());
+    }
+    fs::remove_dir_all(path)?;
+    Ok(true)
 }
 
 pub(super) fn scoped_update_path(
