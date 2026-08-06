@@ -14,7 +14,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     outputs:
       should_build: ${{ steps.filter.outputs.build }}
     steps:
@@ -65,7 +65,7 @@ jobs:
   version:
     needs: changes
     if: ${{ needs.changes.outputs.should_build == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     environment: BUILD_PRODUCTION
     outputs:
       build_version: ${{ steps.version.outputs.build_version }}
@@ -109,7 +109,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
+        os: [ubuntu-latest, blacksmith-4vcpu-windows-2025, macos-26, macos-26-intel]
 
     steps:
       - uses: actions/checkout@v6
@@ -186,7 +186,7 @@ jobs:
     name: Create GitHub Prerelease
     needs: [changes, version, build]
     if: ${{ needs.changes.outputs.should_build == 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
 
     steps:
       - name: Download build artifacts
@@ -233,7 +233,7 @@ jobs:
   skip-build:
     needs: changes
     if: ${{ needs.changes.outputs.should_build != 'true' }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2404
     steps:
       - name: Skip dev build
         run: echo "Skipping dev build because no app or build files changed."
