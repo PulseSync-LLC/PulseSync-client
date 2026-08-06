@@ -1,6 +1,29 @@
 name: Publish Runtime Component
 
 on:
+  workflow_call:
+    inputs:
+      ref:
+        description: "Branch, tag, or commit to publish"
+        required: true
+        type: string
+      channel:
+        description: "Update channel"
+        required: true
+        type: string
+      component:
+        description: "Runtime component"
+        required: true
+        type: string
+      build_os:
+        description: "Platforms to publish"
+        required: true
+        type: string
+      release_mode:
+        description: "Create a component release or update the latest full release"
+        required: false
+        default: new
+        type: string
   workflow_dispatch:
     inputs:
       ref:
@@ -58,9 +81,25 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Rust for bootstrapper validation
+        if: ${{ inputs.component == 'bootstrapper' }}
+        shell: bash
+        run: |
+          rustup toolchain install 1.88.0 --profile minimal --no-self-update
+          rustup default 1.88.0
+
+      - name: Validate bootstrapper
+        if: ${{ inputs.component == 'bootstrapper' }}
+        run: |
+          cargo fmt --manifest-path packages/bootstrapper/Cargo.toml --check
+          cargo check --manifest-path packages/bootstrapper/Cargo.toml
+          cargo test --manifest-path packages/bootstrapper/Cargo.toml
+
       - id: release
         name: Resolve release matrix and tag
         shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "${{ inputs.build_os }}" == "all" ]]; then
             matrix='["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]'
@@ -68,8 +107,26 @@ jobs:
             matrix='["${{ inputs.build_os }}"]'
           fi
 
-          base_version="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
-          tag="v${base_version}-${{ inputs.channel }}.components.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+          if [[ "${{ inputs.release_mode }}" == "reuse-latest" ]]; then
+            if [[ "${{ inputs.channel }}" != "dev" ]]; then
+              echo "reuse-latest currently supports only dev" >&2
+              exit 1
+            fi
+            if [[ "${{ inputs.component }}" != "bootstrapper" ]]; then
+              echo "reuse-latest currently supports only bootstrapper" >&2
+              exit 1
+            fi
+
+            tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '[.[] | select(.draft == false and .prerelease == true) | select(.tag_name | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+-dev\\.[0-9]+$")) | select(any(.assets[]?; .name == "desktop-update-win32-x64.json"))] | first | .tag_name // empty')"
+            if [[ -z "$tag" ]]; then
+              echo "No full dev release found to update" >&2
+              exit 1
+            fi
+          else
+            base_version="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
+            tag="v${base_version}-${{ inputs.channel }}.components.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
+          fi
+
           echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
           echo "tag=$tag" >> "$GITHUB_OUTPUT"
           echo "prerelease=${{ inputs.channel != 'beta' }}" >> "$GITHUB_OUTPUT"
@@ -130,12 +187,13 @@ jobs:
       - name: Typecheck
         run: yarn typecheck
 
-      - name: Publish component and prepare GitHub assets
+      - name: Build component and prepare GitHub assets
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           GITHUB_TOKEN: ${{ github.token }}
           GLITCHTIP_SOURCEMAPS: "0"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
+          PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.release_mode == 'reuse-latest' && '1' || '0' }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.channel == 'dev' && '1' || '0' }}
         run: >-
           yarn component:publish
@@ -151,13 +209,22 @@ jobs:
           path: out/component-github-release/**/*
           if-no-files-found: error
 
+      - name: Upload staged S3 assets
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: component-s3-${{ runner.os }}-${{ runner.arch }}
+          path: release/bootstrapper/**/*
+          if-no-files-found: error
+
   cleanup_desktop_s3:
     name: Cleanup Desktop S3
     needs: [build, release]
     if: >-
       ${{
         always() &&
-        (inputs.channel == 'dev' || inputs.channel == 'beta')
+        (inputs.channel == 'dev' || inputs.channel == 'beta') &&
+        (inputs.release_mode != 'reuse-latest' || needs.release.result == 'success')
       }}
     uses: ./.github/workflows/desktop-s3-cleanup.yml
     with:
@@ -165,10 +232,39 @@ jobs:
     secrets: inherit
 
   release:
-    name: Create component release
+    name: Publish component GitHub assets
     needs: [prepare, build]
     runs-on: blacksmith-4vcpu-ubuntu-2204
     steps:
+      - name: Checkout component release tooling
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.ref }}
+
+      - name: Set up Node.js
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: "**/yarn.lock"
+
+      - name: Create environment
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install dependencies
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        run: yarn install --frozen-lockfile
+
       - name: Download prepared assets
         uses: actions/download-artifact@v8
         with:
@@ -176,11 +272,135 @@ jobs:
           path: component-release-assets
           merge-multiple: true
 
+      - name: Download staged S3 assets
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        uses: actions/download-artifact@v8
+        with:
+          pattern: component-s3-*
+          path: component-s3-assets
+          merge-multiple: true
+
+      - id: s3_release
+        name: Validate complete staged S3 release
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        shell: bash
+        run: |
+          node - <<'NODE'
+          const crypto = require('node:crypto')
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const root = 'component-s3-assets'
+          const expected = [
+              ['desktop-update-hybrid-darwin-universal.json', 'darwin-universal'],
+              ['desktop-update-linux-x64.json', 'linux-x64'],
+              ['desktop-update-win32-x64.json', 'win32-x64'],
+          ]
+          const metadataVersions = new Set()
+          const versions = new Set()
+
+          for (const [name, dist] of expected) {
+              const manifest = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'))
+              const bootstrapper = manifest.targets?.[dist]?.bootstrapper
+              if (!bootstrapper) throw new Error(`${name} has no bootstrapper target for ${dist}`)
+              metadataVersions.add(manifest.metadataVersion)
+              versions.add(bootstrapper.version)
+              const assetName = decodeURIComponent(new URL(bootstrapper.artifact.url).pathname.split('/').pop())
+              const assetPath = path.join(root, assetName)
+              if (!fs.existsSync(assetPath)) throw new Error(`Missing staged asset: ${assetName}`)
+              const sha256 = crypto.createHash('sha256').update(fs.readFileSync(assetPath)).digest('hex')
+              if (sha256 !== bootstrapper.artifact.sha256) throw new Error(`Staged asset hash mismatch: ${assetName}`)
+          }
+
+          if (metadataVersions.size !== 1) throw new Error(`Metadata versions differ: ${[...metadataVersions].join(', ')}`)
+          if (versions.size !== 1) throw new Error(`Bootstrapper versions differ: ${[...versions].join(', ')}`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${[...versions][0]}\n`)
+          NODE
+
       - name: Show release assets
         shell: bash
         run: find component-release-assets -type f | sort
 
+      - name: Download current release manifests
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release download "${{ needs.prepare.outputs.tag }}" \
+            --repo "$GITHUB_REPOSITORY" \
+            --pattern 'desktop-update-*.json' \
+            --dir current-release-manifests
+
+      - name: Rebase component manifests onto current release
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        shell: bash
+        run: |
+          mkdir -p rebased-component-release
+          manifest_count=0
+
+          while IFS= read -r -d '' manifest; do
+            manifest_count=$((manifest_count + 1))
+            manifest_name="$(basename "$manifest")"
+            current_manifest="current-release-manifests/$manifest_name"
+            if [[ ! -f "$current_manifest" ]]; then
+              echo "Current release manifest missing: $manifest_name" >&2
+              exit 1
+            fi
+
+            mapfile -t component_data < <(node -e 'const fs = require("node:fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const dist = Object.keys(manifest.targets)[0]; const url = manifest.targets[dist].bootstrapper.artifact.url; console.log(dist); console.log(decodeURIComponent(new URL(url).pathname.split("/").pop()));' "$manifest")
+            dist="${component_data[0]}"
+            asset_name="${component_data[1]}"
+            source_asset="$(find component-release-assets -type f -name "$asset_name" -print -quit)"
+            if [[ -z "$source_asset" ]]; then
+              echo "Prepared component asset missing: $asset_name" >&2
+              exit 1
+            fi
+
+            node scripts/github-release-runtime.mjs prepare-component \
+              --source-manifest "$manifest" \
+              --source-asset "$source_asset" \
+              --target "rebased-component-release/$dist" \
+              --previous-github-manifest "$current_manifest" \
+              --repository "$GITHUB_REPOSITORY" \
+              --tag "${{ needs.prepare.outputs.tag }}" \
+              --channel "${{ inputs.channel }}" \
+              --dist "$dist" \
+              --component "${{ inputs.component }}"
+          done < <(find component-release-assets -type f -name 'desktop-update-*.json' -print0)
+
+          if [[ "$manifest_count" -eq 0 ]]; then
+            echo "No prepared component manifests found" >&2
+            exit 1
+          fi
+
+          rm -rf component-release-assets
+          mv rebased-component-release component-release-assets
+
+      - name: Update existing GitHub release
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          mapfile -d '' assets < <(find component-release-assets -type f -print0)
+          if [[ "${#assets[@]}" -eq 0 ]]; then
+            echo "No release assets found" >&2
+            exit 1
+          fi
+          gh release view "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null
+          gh release upload "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"
+
+      - name: Publish complete S3 release
+        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch ${{ inputs.channel }}
+          --dir component-s3-assets
+          --version ${{ steps.s3_release.outputs.version }}
+
       - name: Create GitHub component release
+        if: ${{ inputs.release_mode != 'reuse-latest' }}
         uses: softprops/action-gh-release@v2.6.1
         with:
           tag_name: ${{ needs.prepare.outputs.tag }}
