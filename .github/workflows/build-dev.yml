@@ -77,6 +77,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -119,6 +120,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
