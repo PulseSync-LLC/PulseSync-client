@@ -34,7 +34,7 @@ on:
           - all
           - blacksmith-4vcpu-windows-2025
           - blacksmith-4vcpu-ubuntu-2204
-          - macos-26
+          - blacksmith-6vcpu-macos-26
         default: all
 
 permissions:
@@ -63,7 +63,7 @@ jobs:
         shell: bash
         run: |
           if [[ "${{ inputs.build_os }}" == "all" ]]; then
-            matrix='["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","macos-26"]'
+            matrix='["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]'
           else
             matrix='["${{ inputs.build_os }}"]'
           fi
