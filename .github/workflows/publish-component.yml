@@ -59,6 +59,14 @@ on:
           - blacksmith-4vcpu-ubuntu-2204
           - blacksmith-6vcpu-macos-26
         default: all
+      release_mode:
+        description: "Release target"
+        required: true
+        type: choice
+        options:
+          - new
+          - reuse-latest
+        default: new
 
 permissions:
   actions: read
@@ -85,7 +93,7 @@ jobs:
         if: ${{ inputs.component == 'bootstrapper' }}
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --no-self-update
+          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --no-self-update
           rustup default 1.88.0
 
       - name: Validate bootstrapper
