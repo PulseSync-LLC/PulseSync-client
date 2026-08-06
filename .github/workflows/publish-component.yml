@@ -243,6 +243,7 @@ jobs:
     name: Publish component GitHub assets
     needs: [prepare, build]
     runs-on: blacksmith-4vcpu-ubuntu-2204
+    environment: BUILD_PRODUCTION
     steps:
       - name: Checkout component release tooling
         if: ${{ inputs.release_mode == 'reuse-latest' }}
