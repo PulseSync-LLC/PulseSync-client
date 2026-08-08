@@ -10,6 +10,7 @@ import ChangesBar from '@shared/ui/PSUI/ChangesBar'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ButtonV2 from '@shared/ui/buttonV2'
 import UserContext from '@entities/user/model/context'
+import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import apolloClient from '@shared/api/apolloClient'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
@@ -35,7 +36,7 @@ type Metadata = {
     version: string
     css: string
     script: string
-    type: 'theme' | 'script' | 'library' | string
+    type: Addon['type']
     tags: string[]
     dependencies: string[]
     conflictsWith: string[]
@@ -81,6 +82,7 @@ type PulseAuthorOption = {
 }
 
 const SEMVER = /^\d+\.\d+\.\d+$/
+const ADDON_TYPES: Metadata['type'][] = ['theme', 'script', 'web-addon']
 
 const DEFAULT_META: Metadata = {
     name: '',
@@ -274,7 +276,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
         if (!draft.name.trim()) return false
         if (splitAuthorEntries(draft.author).length === 0) return false
         if (!SEMVER.test(draft.version.trim())) return false
-        if (!['theme', 'script', 'library'].includes(draft.type)) return false
+        if (!ADDON_TYPES.includes(draft.type)) return false
         if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(version => semver.validRange(version))) return false
         return true
     }, [draft])
@@ -907,11 +909,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             <SelectInput
                                 label={t('metadata.labels.type')}
                                 value={draft.type}
-                                options={[
-                                    { value: 'theme', label: 'theme' },
-                                    { value: 'script', label: 'script' },
-                                    { value: 'library', label: 'library' },
-                                ]}
+                                options={ADDON_TYPES.map(type => ({ value: type, label: type }))}
                                 onChange={value => setField('type', value as Metadata['type'])}
                             />
 

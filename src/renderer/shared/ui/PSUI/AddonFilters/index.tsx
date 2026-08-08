@@ -4,20 +4,25 @@ import * as styles from '@shared/ui/PSUI/AddonFilters/AddonFilters.module.scss'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 import { MdKeyboardArrowUp, MdRefresh } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import type Addon from '@entities/addon/model/addon.interface'
+
+type AddonTypeFilter = 'all' | Addon['type']
+
+const ADDON_TYPE_FILTERS: AddonTypeFilter[] = ['all', 'theme', 'script', 'web-addon']
 
 interface AddonFiltersProps {
     tags: string[]
     creators: string[]
     sort: 'author' | 'alphabet' | 'date' | 'size' | 'type'
     sortOrder: 'asc' | 'desc'
-    type: 'theme' | 'script' | 'all'
+    type: AddonTypeFilter
     selectedTags: Set<string>
     selectedCreators: Set<string>
     onSortChange: (option: 'author' | 'alphabet' | 'date' | 'size' | 'type') => void
-    onTypeChange: (newType: 'theme' | 'script' | 'all') => void
+    onTypeChange: (newType: AddonTypeFilter) => void
     onToggleTag: (tag: string) => void
     onToggleCreator: (creator: string) => void
-    setType: React.Dispatch<React.SetStateAction<'theme' | 'script' | 'all'>>
+    setType: React.Dispatch<React.SetStateAction<AddonTypeFilter>>
     setSelectedTags: React.Dispatch<React.SetStateAction<Set<string>>>
     setSelectedCreators: React.Dispatch<React.SetStateAction<Set<string>>>
     onSortOrderChange: (order: 'asc' | 'desc') => void
@@ -117,10 +122,16 @@ export default function AddonFilters({
 
             <div className={styles.filterGroup}>
                 {renderTitle(t('filters.type.title'), resetType, type !== 'all')}
-                {['all', 'theme', 'script'].map(opt => (
-                    <div key={opt} className={cn(styles.radioLabel, type === opt && styles.selected)} onClick={() => setType(opt as any)}>
-                        <div className={cn(styles.customRadio, type === opt && styles.selected)} />
-                        {opt === 'all' ? t('filters.type.all') : opt === 'theme' ? t('filters.type.themes') : t('filters.type.scripts')}
+                {ADDON_TYPE_FILTERS.map(option => (
+                    <div key={option} className={cn(styles.radioLabel, type === option && styles.selected)} onClick={() => setType(option)}>
+                        <div className={cn(styles.customRadio, type === option && styles.selected)} />
+                        {option === 'all'
+                            ? t('filters.type.all')
+                            : option === 'theme'
+                              ? t('filters.type.themes')
+                              : option === 'script'
+                                ? t('filters.type.scripts')
+                                : t('filters.type.webAddons')}
                     </div>
                 ))}
             </div>

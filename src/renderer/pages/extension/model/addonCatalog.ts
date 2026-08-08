@@ -15,7 +15,7 @@ export const defaultOrder = {
 } as const
 
 export type SortKey = keyof typeof defaultOrder
-export type AddonTypeFilter = 'all' | 'theme' | 'script'
+export type AddonTypeFilter = 'all' | Addon['type']
 
 export function useDebouncedValue<T>(value: T, delay: number) {
     const [debounced, setDebounced] = useState(value)
@@ -108,7 +108,7 @@ export function filterAndSortAddons({
     let result = addons.filter(addon => addon.name !== 'Default')
 
     if (type !== 'all') {
-        result = result.filter(addon => (type === 'script' ? addon.type !== 'theme' : addon.type === type))
+        result = result.filter(addon => addon.type === type)
     }
 
     if (selectedTags.size > 0) {

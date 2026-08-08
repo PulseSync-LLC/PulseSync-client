@@ -26,7 +26,8 @@ import {
     getUniqueAddonCreators,
     getUniqueAddonTags,
     isAddonWhitelisted,
-    SortKey,
+    type AddonTypeFilter,
+    type SortKey,
     useDebouncedValue,
 } from '@pages/extension/model/addonCatalog'
 import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
@@ -169,7 +170,7 @@ export default function ExtensionPage() {
 
     const [showFilters, setShowFilters] = useState(false)
     const [sort, setSort] = useState<SortKey>('type')
-    const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
+    const [type, setType] = useState<AddonTypeFilter>('all')
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
@@ -590,7 +591,7 @@ export default function ExtensionPage() {
         setSearchQuery(e.target.value)
     }, [])
 
-    const handleTypeChange = useCallback((newType: 'all' | 'theme' | 'script') => {
+    const handleTypeChange = useCallback((newType: AddonTypeFilter) => {
         setType(newType)
     }, [])
 

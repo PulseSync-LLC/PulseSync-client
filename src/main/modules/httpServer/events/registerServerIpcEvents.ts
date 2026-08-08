@@ -18,7 +18,7 @@ interface RegisterServerIpcEventsOptions {
     startSocketServer: () => Promise<void>
     stopSocketServer: () => Promise<void>
     sendDataToMusic: () => void
-    sendExtensions: () => Promise<void>
+    sendExtensions: () => Promise<number>
     sendPremiumUserToClients: (args: any) => void
     getCurrentTrack: () => void
 }

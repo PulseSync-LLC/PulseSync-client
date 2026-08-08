@@ -158,6 +158,7 @@ const initializeServer = () => {
         logger,
         allowedOrigins,
         getTrackData: () => data,
+        reloadDevelopmentAddon: addonService.reloadDevelopmentAddon,
     })
 
     server = http.createServer(handleHttpRequest)
