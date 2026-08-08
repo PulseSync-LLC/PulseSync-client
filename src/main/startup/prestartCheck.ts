@@ -1,6 +1,3 @@
-import path from 'node:path'
-import fs from 'original-fs'
-import { app } from 'electron'
 import { setAddon } from '../modules/httpServer'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
@@ -20,15 +17,6 @@ function initializeAddon(): void {
 }
 
 export async function prestartCheck(): Promise<void> {
-    const pulseSyncMusicPath = path.join(app.getPath('music'), 'PulseSyncMusic')
-    if (!fs.existsSync(pulseSyncMusicPath)) {
-        try {
-            fs.mkdirSync(pulseSyncMusicPath, { recursive: true })
-        } catch (error) {
-            logger.main.error('Ошибка при создании директории PulseSyncMusic:', error)
-        }
-    }
-
     if (isLinux() && State.get('settings.modFilename')) {
         setAsarFilename(`${State.get('settings.modFilename')}.backup.asar`)
         if (!musicPath) {

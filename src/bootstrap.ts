@@ -5,6 +5,7 @@ import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
 import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
 import { registerSchemes } from './main/utils/serverUtils'
 import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
+import { applyHardwareAccelerationPreference } from './main/modules/bootstrap/hardwareAcceleration'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
 import { StartupCoordinator, type ApplicationBootstrapRuntime, type ApplicationStartupHandle } from './main/modules/bootstrap/startupCoordinator'
@@ -15,7 +16,13 @@ import {
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
 import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
-import { claimActiveApp, repairActiveRuntime, resolveActiveRuntime, rollbackActiveRuntime, startCanonicalApp } from './main/modules/bootstrapper/runtimeCommands'
+import {
+    claimActiveApp,
+    repairActiveRuntime,
+    resolveActiveRuntime,
+    rollbackActiveRuntime,
+    startCanonicalApp,
+} from './main/modules/bootstrapper/runtimeCommands'
 import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
@@ -24,6 +31,7 @@ declare const __non_vite_require__: (moduleId: string) => {
     startup(context?: { bootstrapRuntime?: ApplicationBootstrapRuntime; bootstrapWindow?: Electron.BrowserWindow }): Promise<ApplicationStartupHandle>
 }
 
+applyHardwareAccelerationPreference()
 initMainErrorTracking({ version: PULSESYNC_HOST_VERSION, commit: PULSESYNC_BRANCH || 'unknown' })
 registerSchemes()
 handleUncaughtException()
