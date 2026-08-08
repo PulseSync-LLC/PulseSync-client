@@ -1257,7 +1257,13 @@ async function main(): Promise<void> {
                 metadataVersion: process.env.DESKTOP_METADATA_VERSION,
                 previousManifestUrl: `${desktopArtifactBaseUrl}/desktop-update-${buildDist}.json`,
             })
-            await publishToS3(publishBranch, releaseDir, version, { legacyUpdateBridge: isLegacyUpdateBridgeEnabled(publishBranch, version) })
+            if (process.env.PULSESYNC_DEFER_S3_PUBLISH === '1') {
+                log(LogLevel.INFO, 'S3 publication deferred to the release job')
+            } else {
+                await publishToS3(publishBranch, releaseDir, version, {
+                    legacyUpdateBridge: isLegacyUpdateBridgeEnabled(publishBranch, version),
+                })
+            }
             if (publishChangelogFlag) {
                 await publishChangelogToApi(version)
             }

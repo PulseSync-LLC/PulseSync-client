@@ -47,6 +47,7 @@ jobs:
               - 'packages/desktop-core/**'
               - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
               - 'scripts/!(@(bootstrapper|renderer))/**/*'
+              - 'scripts/s3-upload.ts'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
@@ -191,11 +192,12 @@ jobs:
       - name: Check Sentry CLI
         run: yarn -s sentry-cli --version
 
-      - name: Build and publish dev
+      - name: Build dev release
         run: yarn build:package --nativeModules --publish dev
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
+          PULSESYNC_DEFER_S3_PUBLISH: "1"
           PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
           PULSESYNC_DISABLE_FILE_INVENTORIES: "1"
           GLITCHTIP_SOURCEMAPS: "1"
@@ -218,7 +220,7 @@ jobs:
             echo "release/ not found"; exit 1
           fi
 
-      - name: Upload release artifacts for GitHub prerelease
+      - name: Stage release output
         uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.os }}
@@ -333,29 +335,89 @@ jobs:
           git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
 
   github_prerelease:
-    name: Create GitHub Prerelease
+    name: Publish Desktop Prerelease
     needs: [changes, version, build]
     if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: blacksmith-4vcpu-ubuntu-2204
+    environment: BUILD_PRODUCTION
 
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
 
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: release-*
-          path: github-release-artifacts
+          path: staged-release
+          merge-multiple: true
+
+      - name: Validate complete staged release
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ needs.version.outputs.build_version }}
+          EXPECTED_METADATA_VERSION: ${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const expected = [
+              ['desktop-update-hybrid-darwin-universal.json', 'darwin-universal'],
+              ['desktop-update-linux-x64.json', 'linux-x64'],
+              ['desktop-update-win32-x64.json', 'win32-x64'],
+          ]
+
+          for (const [name, dist] of expected) {
+              const file = path.join('staged-release', name)
+              if (!fs.existsSync(file)) throw new Error(`Missing staged manifest: ${name}`)
+              const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+              if (String(manifest.metadataVersion) !== process.env.EXPECTED_METADATA_VERSION) {
+                  throw new Error(`${name} metadataVersion mismatch: ${manifest.metadataVersion}`)
+              }
+              if (manifest.desktopVersion !== process.env.EXPECTED_VERSION) {
+                  throw new Error(`${name} desktopVersion mismatch: ${manifest.desktopVersion}`)
+              }
+              if (manifest.channel !== 'dev') throw new Error(`${name} channel mismatch: ${manifest.channel}`)
+              if (!manifest.targets?.[dist]) throw new Error(`${name} has no target for ${dist}`)
+          }
+          NODE
 
       - name: Prepare GitHub release assets
         run: >-
           node scripts/github-release-runtime.mjs prepare
-          --source github-release-artifacts
+          --source staged-release
           --target github-release-assets
           --repository ${{ github.repository }}
           --tag ${{ needs.version.outputs.build_version }}
+
+      - name: Publish complete S3 release
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch dev
+          --dir staged-release
+          --version ${{ needs.version.outputs.build_version }}
+          --legacy-update-bridge
 
       - name: Create GitHub prerelease
         uses: softprops/action-gh-release@v2.6.1

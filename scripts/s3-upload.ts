@@ -862,17 +862,21 @@ function argValue(flag: string): string | null {
 async function cli(): Promise<void> {
     const branch = argValue('--branch') || argValue('-b')
     if (!branch) {
-        log(LogLevel.ERROR, 'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app]')
+        log(
+            LogLevel.ERROR,
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--legacy-update-bridge]',
+        )
         process.exit(1)
     }
     const dir = argValue('--dir') || 'release'
     const version = argValue('--version') || readPkgVersion()
     const prefix = argValue('--prefix') || process.env.S3_PREFIX || 'builds/app'
+    const legacyUpdateBridge = process.argv.includes('--legacy-update-bridge')
     log(LogLevel.INFO, `Branch: ${branch}`)
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
-    await publishToS3(branch, dir, version, { prefix })
+    await publishToS3(branch, dir, version, { prefix, legacyUpdateBridge })
 }
 
 const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
