@@ -61,6 +61,8 @@ jobs:
               - 'Info.plist'
               - 'graphql.config.yml'
               - 'schema.graphql'
+              - '.github/actions/cache-build-deps/**'
+              - '.github/workflows/build-dev.yml'
               - '.github/workflows/desktop-tests.yml'
             bootstrapper:
               - 'packages/bootstrapper/**'
@@ -172,18 +174,7 @@ jobs:
           rustup default 1.88.0
           if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            nativeModules/**/node_modules
-            nativeModules/**/build
-            nativeModules/**/target
-            packages/bootstrapper/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/scripts/**', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/build.rs', 'packages/bootstrapper/src/**/*.rs', 'scripts/bootstrapper/build.ts') }}-input-stamps-v1
-          restore-keys: |
-            build-deps-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+      - uses: ./.github/actions/cache-build-deps
 
       - name: Create .env
         shell: bash
