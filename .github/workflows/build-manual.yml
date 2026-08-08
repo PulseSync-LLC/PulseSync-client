@@ -129,6 +129,7 @@ jobs:
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
+          PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.s3_branch == 'dev' && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
@@ -149,6 +150,14 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
+
+      - name: Stage release output
+        if: ${{ inputs.upload_to_s3 == true }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: s3-release-${{ matrix.os }}
+          path: release/**/*
+          if-no-files-found: error
 
       - name: Publish changelog (optional, single-run on ubuntu)
         if: ${{ inputs.publish_changelog == true && matrix.os == 'blacksmith-4vcpu-ubuntu-2204' }}
@@ -175,13 +184,101 @@ jobs:
               ;;
           esac
 
+  publish_desktop_s3:
+    name: Publish Desktop S3 Release
+    needs: build
+    if: ${{ inputs.upload_to_s3 == true }}
+    runs-on: blacksmith-4vcpu-ubuntu-2204
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Download staged release
+        uses: actions/download-artifact@v8
+        with:
+          pattern: s3-release-*
+          path: staged-release
+          merge-multiple: true
+
+      - id: release
+        name: Validate staged release
+        shell: bash
+        env:
+          BUILD_OS: ${{ inputs.build_os }}
+          EXPECTED_METADATA_VERSION: ${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const manifestsByOs = {
+              'blacksmith-4vcpu-windows-2025': 'desktop-update-win32-x64.json',
+              'blacksmith-4vcpu-ubuntu-2204': 'desktop-update-linux-x64.json',
+              'blacksmith-6vcpu-macos-26': 'desktop-update-hybrid-darwin-universal.json',
+          }
+          const expected = process.env.BUILD_OS === 'all'
+              ? Object.values(manifestsByOs)
+              : process.env.BUILD_OS === 'windows+macos'
+                ? [manifestsByOs['blacksmith-4vcpu-windows-2025'], manifestsByOs['blacksmith-6vcpu-macos-26']]
+                : [manifestsByOs[process.env.BUILD_OS]]
+          const versions = new Set()
+
+          for (const name of expected) {
+              if (!name) throw new Error(`Unsupported build_os: ${process.env.BUILD_OS}`)
+              const file = path.join('staged-release', name)
+              if (!fs.existsSync(file)) throw new Error(`Missing staged manifest: ${name}`)
+              const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+              if (String(manifest.metadataVersion) !== process.env.EXPECTED_METADATA_VERSION) {
+                  throw new Error(`${name} metadataVersion mismatch: ${manifest.metadataVersion}`)
+              }
+              if (typeof manifest.desktopVersion !== 'string' || !manifest.desktopVersion) {
+                  throw new Error(`${name} has no desktopVersion`)
+              }
+              versions.add(manifest.desktopVersion)
+          }
+
+          if (versions.size !== 1) throw new Error(`Desktop versions differ: ${[...versions].join(', ')}`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${[...versions][0]}\n`)
+          NODE
+
+      - name: Publish complete S3 release
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch ${{ inputs.s3_branch }}
+          --dir staged-release
+          --version ${{ steps.release.outputs.version }}
+          ${{ (inputs.s3_branch == 'dev' || inputs.s3_branch == 'beta') && '--legacy-update-bridge' || '' }}
+
   cleanup_desktop_s3:
     name: Cleanup Desktop S3
-    needs: [build, publish_renderer]
+    needs: [publish_desktop_s3, publish_renderer]
     if: >-
       ${{
         always() &&
         inputs.upload_to_s3 == true &&
+        needs.publish_desktop_s3.result == 'success' &&
         (inputs.s3_branch == 'dev' || inputs.s3_branch == 'beta')
       }}
     uses: ./.github/workflows/desktop-s3-cleanup.yml
