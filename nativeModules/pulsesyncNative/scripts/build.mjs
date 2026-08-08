@@ -74,12 +74,6 @@ const buildInputs = buildInputsSha256(universal)
 
 mkdirSync(releaseDir, { recursive: true })
 
-if (process.env.CI && existsSync(destination) && !existsSync(stampPath)) {
-    writeFileSync(stampPath, `${buildInputs}\n`, 'utf8')
-    console.log(`Adopted source-keyed CI cache -> ${destination}`)
-    process.exit(0)
-}
-
 if (existsSync(destination) && existsSync(stampPath) && readFileSync(stampPath, 'utf8').trim() === buildInputs) {
     console.log(`Reused cached native module -> ${destination}`)
     process.exit(0)
