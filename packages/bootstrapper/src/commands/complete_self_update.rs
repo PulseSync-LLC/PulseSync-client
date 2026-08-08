@@ -246,7 +246,11 @@ fn complete_self_update_inner(args: &Args) -> Result<Value> {
     let launch_executable = if is_macos_bundle {
         explicit_app_executable
     } else {
-        layout.app_executable.clone()
+        resolve_layout(
+            install_root.clone(),
+            arg_value(args, "--app-executable-name"),
+        )?
+        .app_executable
     };
     if !launch_executable.is_file() {
         return Err("self-update target app executable is missing".into());
