@@ -7,10 +7,11 @@ import { sanitizeScript } from '../../utils/addonUtils'
 import { Server as IOServer, Socket } from 'socket.io'
 import { readAddonSettings } from './addonSettings'
 import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
-import { getAddonsRoot } from '../../utils/addonPaths'
+import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonPaths'
 
 interface StateLike {
     get: (key: string) => any
+    set: (key: string, value: any) => void
 }
 
 interface LoggerLike {
@@ -431,20 +432,53 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         })
     }
 
-    const sendExtensions = async (): Promise<void> => {
+    const sendExtensions = async (): Promise<number> => {
         const io = getIo()
-        if (!io) return
+        if (!io) return 0
         const found = readExtensionPayloads()
         const webHostSnapshot = readWebHostAddonsSnapshot()
+        let recipients = 0
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
                 sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: found })
-                if (supportsWebHostAddons(sock)) emitWebHostAddonsSnapshot(sock, webHostSnapshot)
+                if (supportsWebHostAddons(sock)) {
+                    recipients += 1
+                    emitWebHostAddonsSnapshot(sock, webHostSnapshot)
+                }
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
         })
+
+        return recipients
+    }
+
+    const reloadDevelopmentAddon = async (directoryName: string): Promise<{ enabled: true; recipients: number }> => {
+        if (!directoryName || directoryName === '.' || directoryName === '..' || path.basename(directoryName) !== directoryName) {
+            throw new Error('Development addon directory is invalid')
+        }
+
+        const addonDirectory = resolveAddonDirectory(directoryName)
+        if (!addonDirectory || addonDirectory !== directoryName) throw new Error('Development addon directory was not found')
+
+        const metadataPath = path.join(getAddonsRoot(), addonDirectory, 'metadata.json')
+        if (!fs.existsSync(metadataPath)) throw new Error('Development addon metadata was not found')
+
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as { installSource?: unknown; script?: unknown; type?: unknown }
+        if (metadata.type !== 'web-addon') throw new Error('Development reload only supports web-addon packages')
+        if (metadata.installSource === 'store') throw new Error('Development reload refuses store-managed addons')
+        if (typeof metadata.script !== 'string' || !resolveExistingFileInsideBase(path.dirname(metadataPath), metadata.script)) {
+            throw new Error('Development addon script is missing or invalid')
+        }
+
+        const storedScripts = readStoredAddonScripts()
+        const alreadyEnabled = storedScripts.some(script => resolveAddonDirectory(script) === addonDirectory)
+        if (!alreadyEnabled) {
+            state.set('addons.scripts', [...storedScripts, addonDirectory])
+        }
+
+        return { enabled: true, recipients: await sendExtensions() }
     }
 
     const sendAddonSettings = ({ addonName, targetSocket, force = false }: { addonName: string; targetSocket?: Socket; force?: boolean }): void => {
@@ -581,6 +615,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         setAddon,
         sendAddon,
         sendExtensions,
+        reloadDevelopmentAddon,
         sendAddonSettings,
         sendAllAddonSettings,
         sendDataToMusic,

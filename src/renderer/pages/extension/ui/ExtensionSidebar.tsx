@@ -8,7 +8,7 @@ import AddonFilters from '@shared/ui/PSUI/AddonFilters'
 import OptionMenu from '@shared/ui/PSUI/OptionMenu'
 import AddonCard from '@pages/extension/ui/AddonCard'
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
-import type { SortKey } from '@pages/extension/model/addonCatalog'
+import type { AddonTypeFilter, SortKey } from '@pages/extension/model/addonCatalog'
 
 type Props = {
     containerRef: React.RefObject<HTMLDivElement | null>
@@ -40,17 +40,17 @@ type Props = {
     setSelectedCreators: React.Dispatch<React.SetStateAction<Set<string>>>
     setSelectedTags: React.Dispatch<React.SetStateAction<Set<string>>>
     setSortOrder: React.Dispatch<React.SetStateAction<'asc' | 'desc'>>
-    setType: React.Dispatch<React.SetStateAction<'all' | 'theme' | 'script'>>
+    setType: React.Dispatch<React.SetStateAction<AddonTypeFilter>>
     showFilters: boolean
     sort: SortKey
     sortOrder: 'asc' | 'desc'
     t: (key: string, options?: Record<string, any>) => string
-    type: 'all' | 'theme' | 'script'
+    type: AddonTypeFilter
     uniqueCreators: string[]
     uniqueTags: string[]
 }
 
-function getActiveFiltersCount(type: 'all' | 'theme' | 'script', sort: SortKey, selectedTags: Set<string>, selectedCreators: Set<string>) {
+function getActiveFiltersCount(type: AddonTypeFilter, sort: SortKey, selectedTags: Set<string>, selectedCreators: Set<string>) {
     return (type !== 'all' ? 1 : 0) + (sort !== 'type' ? 1 : 0) + selectedTags.size + selectedCreators.size
 }
 

@@ -20,10 +20,15 @@ interface CreateHttpRequestHandlerOptions {
     logger: LoggerLike
     allowedOrigins: string[]
     getTrackData: () => Track
+    reloadDevelopmentAddon: (directoryName: string) => Promise<{ enabled: true; recipients: number }>
 }
 
 const ASSET_PREFIX = '/assets/'
 const REQUEST_URL_BASE = 'http://127.0.0.1'
+const DEVELOPMENT_RELOAD_HEADER = 'x-pulsesync-addon-dev'
+
+const isLoopbackAddress = (value: string | undefined): boolean =>
+    value === '127.0.0.1' || value === '::1' || value?.startsWith('::ffff:127.') === true
 
 const parseRequestUrl = (value: string | undefined): URL => {
     try {
@@ -113,7 +118,7 @@ const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
     return ''
 }
 
-export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData }: CreateHttpRequestHandlerOptions) => {
+export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData, reloadDevelopmentAddon }: CreateHttpRequestHandlerOptions) => {
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
             const query = getRequestQuery(req.url)
@@ -214,6 +219,26 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
         }
     }
 
+    const handleDevelopmentAddonReload = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+        if (!isLoopbackAddress(req.socket.remoteAddress) || req.headers[DEVELOPMENT_RELOAD_HEADER] !== '1') {
+            return sendJson(res, 403, { ok: false, error: 'Development addon reload is only available to the local template' })
+        }
+
+        const directoryName = String(getRequestQuery(req.url).directory || '').trim()
+        if (!directoryName || directoryName === '.' || directoryName === '..' || path.basename(directoryName) !== directoryName) {
+            return sendJson(res, 400, { ok: false, error: 'Invalid addon directory' })
+        }
+
+        try {
+            const result = await reloadDevelopmentAddon(directoryName)
+            logger.http.log(`Development addon reloaded: directory=${directoryName}, recipients=${result.recipients}`)
+            return sendJson(res, 200, { ok: true, protocolVersion: 1, ...result })
+        } catch (error) {
+            logger.http.error('Development addon reload failed:', error)
+            return sendJson(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Development addon reload failed' })
+        }
+    }
+
     const routes: Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => void> = {
         '/assets': handleGetAssetsRequest,
         '/addon_file': handleGetAddonRootFileRequest,
@@ -236,6 +261,10 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
         if (method === 'GET') {
             if (pathname && routes[pathname]) return routes[pathname](req, res)
             if (pathname && pathname.startsWith(ASSET_PREFIX)) return handleGetAssetFileRequest(req, res)
+        }
+        if (method === 'POST' && pathname === '/dev/addons/reload') {
+            void handleDevelopmentAddonReload(req, res)
+            return
         }
 
         sendJson(res, 404, { error: 'Not found' })
