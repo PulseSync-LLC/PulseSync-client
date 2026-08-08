@@ -1,7 +1,8 @@
-import { app, ipcMain } from 'electron'
+import { ipcMain } from 'electron'
 import logger from './logger'
 import ElectronStoreModule from 'electron-store'
 import { t } from '../i18n'
+import { PULSESYNC_STORE_ENCRYPTION_KEY, PULSESYNC_STORE_NAME } from './storageIdentity'
 
 const ElectronStore = ElectronStoreModule
 
@@ -269,20 +270,14 @@ class Store {
     constructor() {
         try {
             this.store = new ElectronStore({
-                name: 'pulsesync_settings',
-                encryptionKey: 'pulsesync',
+                name: PULSESYNC_STORE_NAME,
+                encryptionKey: PULSESYNC_STORE_ENCRYPTION_KEY,
                 schema,
             })
             logger.main.info('Store initialized')
             this.store.delete('app.rendererSourceMode')
         } catch (error) {
             logger.main.error('Error initializing ElectronStore:', error)
-        }
-
-        // Electron applies this only during startup, before the app becomes ready.
-        const hardwareAccelerationEnabled = this.store?.get('settings.hardwareAcceleration', true) ?? true
-        if (!hardwareAccelerationEnabled) {
-            app.disableHardwareAcceleration()
         }
     }
 

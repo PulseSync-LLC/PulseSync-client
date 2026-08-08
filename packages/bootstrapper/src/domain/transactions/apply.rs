@@ -4,7 +4,8 @@ use crate::{
         fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
         install_state::{
             ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation,
-            read_install_state, read_install_state_with_host, write_install_state,
+            read_install_state, read_install_state_with_host, synchronize_mutable_bootstrapper,
+            write_install_state,
         },
         layout::assert_inside,
         path_segment::sanitize_path_segment,
@@ -517,7 +518,11 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     if next_snapshot.bundle_version != next_snapshot.metadata_version.to_string() {
         return Err("bundleVersion must equal metadataVersion".into());
     }
+    let bootstrapper = next_snapshot.components.get("bootstrapper").cloned();
     install_state.latest = next_snapshot;
+    if let Some(bootstrapper) = bootstrapper.as_ref() {
+        synchronize_mutable_bootstrapper(&mut install_state, bootstrapper);
+    }
     install_state.generation = install_state
         .generation
         .checked_add(1)

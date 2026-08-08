@@ -103,6 +103,27 @@ pub struct InstallStateV3 {
     pub pinned: Option<RuntimeSnapshotV3>,
 }
 
+pub fn synchronize_mutable_bootstrapper(
+    state: &mut InstallStateV3,
+    bootstrapper: &RuntimeComponentV3,
+) {
+    for snapshot in [
+        &mut state.latest,
+        &mut state.running,
+        &mut state.last_successful,
+        &mut state.known_good,
+    ] {
+        snapshot
+            .components
+            .insert("bootstrapper".to_string(), bootstrapper.clone());
+    }
+    if let Some(snapshot) = state.pinned.as_mut() {
+        snapshot
+            .components
+            .insert("bootstrapper".to_string(), bootstrapper.clone());
+    }
+}
+
 #[derive(Debug, Serialize)]
 pub struct ActiveRuntimeV3 {
     #[serde(rename = "schemaVersion")]
@@ -497,6 +518,9 @@ pub fn resolve_active_runtime_with_host(
             }
             Some(owner) if owner == lease_id => {}
             Some(_) => {
+                if let Some(bootstrapper) = state.latest.components.get("bootstrapper").cloned() {
+                    synchronize_mutable_bootstrapper(&mut state, &bootstrapper);
+                }
                 state.latest = state.known_good.clone();
                 state.running = state.known_good.clone();
                 state.generation = state
@@ -617,6 +641,9 @@ pub fn rollback_active_runtime_with_host(
     }
     if state.activation.launch_owner.as_deref() != Some(lease_id) {
         return Err("runtime activation launch owner mismatch".into());
+    }
+    if let Some(bootstrapper) = state.latest.components.get("bootstrapper").cloned() {
+        synchronize_mutable_bootstrapper(&mut state, &bootstrapper);
     }
     state.latest = state.known_good.clone();
     state.running = state.known_good.clone();
