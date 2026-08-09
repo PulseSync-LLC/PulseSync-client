@@ -35,8 +35,8 @@ const getLevelBadgeStyle = (level: number) => {
     if (level >= 15) return { background: 'linear-gradient(270deg, #8BB8FF, #4A7FD9)' } // Голубой лёд
     if (level >= 10) return { background: 'linear-gradient(270deg, #6A9EFF, #3A68B0)' } // Светло-синий
 
-    if (level >= 5) return { background: 'linear-gradient(270deg, #3f4453, #2c303f)' } // Темный гранит
-    return { background: 'linear-gradient(270deg, #3a3e4d, #2c303f)' } // Стартовая тень
+    if (level >= 5) return { background: 'linear-gradient(270deg, var(--border-hover), var(--border))' } // Темный гранит
+    return { background: 'linear-gradient(270deg, var(--border), var(--surface-elevated))' } // Стартовая тень
 }
 
 const LevelBadge: React.FC<LevelBadgeProps> = ({ level }) => {

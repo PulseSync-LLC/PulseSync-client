@@ -1,10 +1,10 @@
 :root {
-    --cfg-text: var(--text-primary, #e7ecf3);
-    --cfg-muted: var(--text-secondary, #9fb0c6);
-    --cfg-accent: var(--accent, #6ea8fe);
+    --cfg-text: var(--text-primary);
+    --cfg-muted: var(--text-secondary);
+    --cfg-accent: var(--accent);
     --cfg-surface: #2e3446;
-    --cfg-surface-2: #3b4052;
-    --cfg-border: #3e465f;
+    --cfg-surface-2: var(--border);
+    --cfg-border: var(--border-hover);
 }
 
 .root {
@@ -29,7 +29,7 @@
     align-items: center;
     gap: 10px;
     width: -webkit-fill-available;
-    background: linear-gradient(180deg, rgba(255, 255, 255, 0.04), rgba(255, 255, 255, 0.02));
+    background: linear-gradient(180deg, var(--hover), var(--hover));
     border: 1px solid var(--cfg-border);
     border-radius: 12px;
     padding: 10px 12px;
@@ -38,7 +38,7 @@
 }
 .sectionHeader:hover {
     border-color: #556089;
-    box-shadow: 0 1px 0 rgba(255, 255, 255, 0.04) inset;
+    box-shadow: 0 1px 0 var(--hover) inset;
 }
 
 .badge {
@@ -92,7 +92,7 @@
 
 .placeholder {
     padding: 14px;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px dashed var(--active);
     border-radius: 12px;
     display: grid;
     gap: 6px;

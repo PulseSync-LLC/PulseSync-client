@@ -3,7 +3,7 @@
 .shell {
     @include shimmer.shell;
     min-height: 620px;
-    background: #252835;
+    background: var(--surface-elevated);
 }
 
 .hero {
@@ -24,7 +24,7 @@
 
 .tag,
 .tagSmall {
-    @include shimmer.surface(rgba(99, 106, 130, 0.53));
+    @include shimmer.surface(color-mix(in srgb, var(--text-muted) 53%, transparent));
     border-radius: 8px;
 }
 
@@ -39,7 +39,7 @@
 }
 
 .metaBar {
-    @include shimmer.surface(rgba(129, 141, 179, 0.08));
+    @include shimmer.surface(var(--hover));
     min-height: 66px;
     padding: 10px 300px 10px 40px;
     display: flex;
@@ -95,7 +95,7 @@
     height: 65px;
     align-items: center;
     background: rgba(56, 62, 82, 0.9411764706);
-    border-bottom: 1px solid #3d445b;
+    border-bottom: 1px solid var(--border);
 }
 
 .tab {

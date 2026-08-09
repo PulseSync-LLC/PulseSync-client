@@ -1,15 +1,15 @@
 :root {
     --bg: #1f2331;
-    --rad1: radial-gradient(900px 600px at 10% -10%, rgba(143, 164, 255, 0.18), transparent 60%);
+    --rad1: radial-gradient(900px 600px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%);
     --rad2: radial-gradient(700px 500px at 100% 10%, rgba(106, 141, 255, 0.15), transparent 60%);
 
-    --panel: #3b435c;
-    --panel-soft: #3b435c;
+    --panel: var(--border-hover);
+    --panel-soft: var(--border-hover);
     --text: #e9edff;
     --muted: #b9c2e0;
 
     --brand: #8fa4ff;
-    --brand-2: #6a8dff;
+    --brand-2: var(--accent);
 }
 
 .page {
@@ -48,7 +48,7 @@
     background: #1a1f33;
     color: var(--brand);
     width: fit-content;
-    border: 1px solid rgba(255, 255, 255, 0.06);
+    border: 1px solid var(--hover);
     font-weight: 800;
     font-size: 11px;
     letter-spacing: 0.4px;
@@ -89,7 +89,7 @@
 }
 .statCard {
     background: var(--panel-soft);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--hover);
     border-radius: 14px;
     padding: 12px;
     display: flex;
@@ -97,7 +97,7 @@
     gap: 10px;
     box-shadow:
         0 10px 24px rgba(0, 0, 0, 0.22),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        inset 0 0 0 1px var(--hover);
 }
 .statIcon {
     width: 36px;
@@ -132,7 +132,7 @@
 .segmented {
     display: inline-flex;
     background: #242a3e;
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--hover);
     border-radius: 10px;
     padding: 3px;
 }
@@ -147,7 +147,7 @@
     cursor: pointer;
 }
 .segBtn:hover {
-    background: rgba(255, 255, 255, 0.06);
+    background: var(--hover);
 }
 .segActive {
     color: #0f1630;
@@ -156,13 +156,13 @@
 
 .chartCard {
     background: var(--panel-soft);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--hover);
     border-radius: 16px;
     margin-top: 12px;
     padding: 14px;
     box-shadow:
         0 14px 30px rgba(0, 0, 0, 0.28),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        inset 0 0 0 1px var(--hover);
 }
 .chartWrapper {
     height: 300px;
@@ -191,13 +191,13 @@
 
 .card {
     background: var(--panel);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    border: 1px solid var(--hover);
     border-radius: 16px;
     padding: 14px;
     margin-top: 12px;
     box-shadow:
         0 14px 30px rgba(0, 0, 0, 0.28),
-        inset 0 0 0 1px rgba(255, 255, 255, 0.02);
+        inset 0 0 0 1px var(--hover);
 }
 .cardHeader {
     display: flex;

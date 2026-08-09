@@ -13,7 +13,7 @@
     overflow: hidden;
     border-radius: 8px;
     box-shadow: 0px 0px 8px 2px #00000078;
-    background-color: #2e313d;
+    background-color: var(--border);
 }
 
 .filterWindowInner {
@@ -48,7 +48,7 @@
     line-height: 140%;
     text-transform: uppercase;
 
-    color: #98ffd6;
+    color: var(--accent);
 }
 
 .textGroup {
@@ -75,20 +75,20 @@
     font-weight: 400;
     font-size: 14px;
 
-    color: #b9c5e6;
+    color: var(--text-secondary);
 
     width: -webkit-fill-available;
     transition: var(--transition);
 
     &:hover {
-        color: #98ffd6;
-        background: #51616881;
+        color: var(--accent);
+        background: color-mix(in srgb, var(--text-muted) 51%, transparent);
     }
 }
 
 input[type='radio'],
 input[type='checkbox'] {
-    accent-color: #b9c5e6;
+    accent-color: var(--text-secondary);
     width: 14px;
     height: 14px;
     cursor: pointer;
@@ -109,7 +109,7 @@ input[type='checkbox'] {
     height: 14px;
     min-width: 14px;
     border-radius: 50%;
-    border: 2px solid #b9c5e6;
+    border: 2px solid var(--text-secondary);
     position: relative;
     background-color: transparent;
     transition:
@@ -122,7 +122,7 @@ input[type='checkbox'] {
     position: absolute;
     width: 10px;
     height: 10px;
-    background-color: #98ffd6;
+    background-color: var(--accent);
     border-radius: 50%;
     top: 50%;
     left: 50%;
@@ -136,17 +136,17 @@ input[type='checkbox'] {
 }
 
 .selected {
-    color: #98ffd6;
-    background: #516168;
+    color: var(--accent);
+    background: var(--text-muted);
 }
 
 .radioLabel.selected .customRadio {
-    background-color: #516168;
-    border-color: #98ffd6;
+    background-color: var(--text-muted);
+    border-color: var(--accent);
 }
 
 .radioLabel:hover .customRadio {
-    border-color: #99ccb8;
+    border-color: var(--success);
 }
 
 .checkboxLabel input[type='checkbox'] {
@@ -157,7 +157,7 @@ input[type='checkbox'] {
     width: 14px;
     height: 14px;
     min-width: 14px;
-    border: 2px solid #b9c5e6;
+    border: 2px solid var(--text-secondary);
     border-radius: 3px;
     position: relative;
     transition:
@@ -176,7 +176,7 @@ input[type='checkbox'] {
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
-    border: 5px solid #98ffd6;
+    border: 5px solid var(--accent);
     opacity: 0;
     transition:
         opacity 0.3s,
@@ -186,16 +186,16 @@ input[type='checkbox'] {
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox::before {
     opacity: 1;
     transform: translate(-50%, -50%) scale(0.5);
-    background-color: #98ffd6;
+    background-color: var(--accent);
 }
 
 .checkboxLabel input[type='checkbox']:checked + .customCheckbox {
-    background-color: #516168;
-    border-color: #98ffd6;
+    background-color: var(--text-muted);
+    border-color: var(--accent);
 }
 
 .checkboxLabel:hover .customCheckbox {
-    border-color: #99ccb8;
+    border-color: var(--success);
 }
 
 .resetIcon {

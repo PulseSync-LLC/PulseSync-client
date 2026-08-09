@@ -20,7 +20,7 @@
     overflow: overlay;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
-    background: #2c303f;
+    background: var(--border);
 }
 
 .containerFixInnerLocked {
@@ -55,7 +55,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2c303f 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 67%, transparent) 0%, var(--border) 100%);
     z-index: 2;
     pointer-events: none;
 }
@@ -99,7 +99,7 @@
     }
 
     &.active {
-        color: #7effcc;
+        color: var(--success);
     }
 }
 
@@ -114,7 +114,7 @@
     bottom: 0;
     height: 4px;
     border-radius: 10px;
-    background: #7effcc;
+    background: var(--success);
     transition: var(--transition);
 }
 
@@ -124,7 +124,7 @@
     height: 48px;
     max-width: 400px;
     width: 100%;
-    background-color: #12151fb8;
+    background-color: color-mix(in srgb, var(--surface-primary) 72%, transparent);
     border: 1px solid #69739452;
     border-radius: 10px;
     cursor: text;
@@ -218,7 +218,7 @@
 
         &:hover {
             cursor: default;
-            color: #959dba;
+            color: var(--text-secondary);
         }
     }
 }
@@ -234,7 +234,7 @@
         left: 0;
         width: 100%;
         height: 2px;
-        background: #75e987;
+        background: var(--success);
     }
 
     &:hover {
@@ -263,7 +263,7 @@
     display: flex;
     flex-direction: column;
     padding: 15px 40px;
-    background: #2c303f;
+    background: var(--border);
 }
 
 .userGrid {
@@ -297,13 +297,13 @@
     right: -7px;
     width: 14px;
     height: 14px;
-    border: 5px solid #292c36;
+    border: 5px solid var(--border);
     border-radius: 50%;
 }
 
 .userCard {
     cursor: pointer;
-    background: #292c36;
+    background: var(--border);
     border-radius: 12px;
     padding: 20px;
     display: flex;
@@ -316,8 +316,8 @@
 
     &:hover {
         background: #2f323d;
-        outline: 4px solid #6a728a;
-        box-shadow: 0px 0px 15px #6a728a !important;
+        outline: 4px solid var(--text-muted);
+        box-shadow: 0px 0px 15px var(--text-muted) !important;
     }
 }
 
@@ -402,7 +402,7 @@
 .paginationButtonLR {
     width: fit-content;
     height: 30px;
-    background: rgba(149, 157, 186, 0.2);
+    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
     border-radius: 18px;
     transition: var(--transition);
     box-sizing: border-box;
@@ -414,18 +414,18 @@
     padding: 10px 15px;
     gap: 10px;
     border: none;
-    color: #959dba;
+    color: var(--text-secondary);
     cursor: pointer;
 }
 
 .paginationButton {
     padding: 0px 11px;
     width: fit-content;
-    background: rgba(149, 157, 186, 0.2);
+    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
     height: 30px;
     border: none;
     background: transparent;
-    color: #959dba;
+    color: var(--text-secondary);
     cursor: pointer;
     transition: var(--transition);
     border-radius: 18px;
@@ -436,17 +436,17 @@
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;
-    color: #959dba;
+    color: var(--text-secondary);
 
     &:hover {
-        color: #111f12;
+        color: color-mix(in srgb, var(--success) 8%, var(--surface-primary));
     }
 
     &.active {
         color: #1b311e;
-        background: #75e987;
+        background: var(--success);
         &:hover {
-            color: #111f12;
+            color: color-mix(in srgb, var(--success) 8%, var(--surface-primary));
         }
     }
 
@@ -454,12 +454,12 @@
         opacity: 0.5;
         cursor: default;
         &:hover {
-            color: #959dba;
+            color: var(--text-secondary);
         }
     }
 
     &:hover:not(:disabled) {
-        background: #75e987;
+        background: var(--success);
     }
 }
 
@@ -481,8 +481,8 @@
     align-items: center;
     justify-content: center;
     border-radius: 8px;
-    background: rgba(149, 157, 186, 0.1);
-    color: #959dba;
+    background: color-mix(in srgb, var(--text-secondary) 10%, transparent);
+    color: var(--text-secondary);
     font-weight: 600;
     font-size: 14px;
     transition: all 0.2s ease;
@@ -490,8 +490,8 @@
     cursor: pointer;
 
     &:hover:not(:disabled) {
-        background: rgba(117, 233, 135, 0.2);
-        color: #75e987;
+        background: color-mix(in srgb, var(--success) 20%, transparent);
+        color: var(--success);
     }
 
     &:disabled {
@@ -502,14 +502,14 @@
 
 .paginationPageButton {
     &.activePage {
-        background: #75e987;
-        color: #111f12;
+        background: var(--success);
+        color: color-mix(in srgb, var(--success) 8%, var(--surface-primary));
         font-weight: 700;
     }
 }
 
 .paginationEllipsis {
-    color: #959dba;
+    color: var(--text-secondary);
     padding: 0 8px;
     display: flex;
     align-items: center;
@@ -532,7 +532,7 @@
     align-items: center;
     gap: 12px;
     padding: 20px 0 25px 0;
-    color: #959dba;
+    color: var(--text-secondary);
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;

@@ -128,7 +128,7 @@
     position: absolute;
     width: 120px;
     height: 2px;
-    background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.1) 10%, rgba(255, 255, 255, 0.8) 50%, #fff 70%, transparent 100%);
+    background: linear-gradient(90deg, transparent 0%, var(--active) 10%, rgba(255, 255, 255, 0.8) 50%, #fff 70%, transparent 100%);
     border-radius: 2px;
     opacity: 0;
     animation: shooting 8s ease-in-out infinite;
@@ -207,7 +207,7 @@
     width: 56px;
     height: 56px;
     color: #fff;
-    filter: drop-shadow(0 0 30px rgba(255, 255, 255, 0.15));
+    filter: drop-shadow(0 0 30px var(--active));
 }
 
 .logoName {
@@ -230,9 +230,9 @@
     align-items: center;
     padding: 14px 0;
     width: 320px;
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--hover);
     backdrop-filter: blur(12px);
-    border: 1px solid rgba(255, 255, 255, 0.12);
+    border: 1px solid var(--active);
     border-radius: 12px;
     font-weight: 700;
     font-size: 14px;
@@ -242,15 +242,15 @@
     letter-spacing: 0.02em;
 
     &:hover {
-        background: rgba(255, 255, 255, 0.14);
-        border-color: rgba(255, 255, 255, 0.2);
+        background: var(--active);
+        border-color: var(--focus-ring);
         transform: translateY(-1px);
-        box-shadow: 0 4px 24px rgba(255, 255, 255, 0.06);
+        box-shadow: 0 4px 24px var(--hover);
     }
 
     &:active {
         transform: translateY(0);
-        background: rgba(255, 255, 255, 0.1);
+        background: var(--active);
     }
 
     &:disabled {
@@ -258,7 +258,7 @@
         cursor: default;
 
         &:hover {
-            background: rgba(255, 255, 255, 0.08);
+            background: var(--hover);
             transform: none;
             box-shadow: none;
         }

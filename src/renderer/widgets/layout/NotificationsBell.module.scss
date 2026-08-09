@@ -31,7 +31,7 @@
     background: color-mix(in srgb, var(--surface-elevated) 94%, var(--surface-primary) 6%);
     box-shadow:
         0 20px 48px rgba(0, 0, 0, 0.42),
-        0 0 0 1px rgba(255, 255, 255, 0.02) inset;
+        0 0 0 1px var(--hover) inset;
     overflow: hidden;
     -webkit-app-region: no-drag;
 
@@ -150,8 +150,8 @@
 }
 
 .notificationItemUnread {
-    border-color: color-mix(in srgb, var(--border) 72%, #c78c1f 28%);
-    background: color-mix(in srgb, var(--surface-secondary) 84%, #c78c1f 16%);
+    border-color: color-mix(in srgb, var(--border) 72%, var(--warning) 28%);
+    background: color-mix(in srgb, var(--surface-secondary) 84%, var(--warning) 16%);
 }
 
 .notificationItemSuccess,
@@ -165,11 +165,11 @@
 
 .notificationItemError,
 .notificationItemUnreadError {
-    border-color: color-mix(in srgb, var(--border) 74%, #ff7777 26%);
+    border-color: color-mix(in srgb, var(--border) 74%, var(--danger) 26%);
 }
 
 .notificationItemUnreadError {
-    background: color-mix(in srgb, var(--surface-secondary) 86%, #ff7777 14%);
+    background: color-mix(in srgb, var(--surface-secondary) 86%, var(--danger) 14%);
 }
 
 .notificationItemWarning,
@@ -233,7 +233,7 @@
     width: 8px;
     height: 8px;
     border-radius: 999px;
-    background: #c78c1f;
+    background: var(--warning);
     flex: 0 0 auto;
     box-shadow: 0 0 0 3px rgba(199, 140, 31, 0.14);
 }
@@ -290,11 +290,11 @@
 }
 
 .notificationItemUnreadError .notificationTone {
-    color: #ff7777;
+    color: var(--danger);
 }
 
 .notificationItemError .notificationTone {
-    color: color-mix(in srgb, #ff7777 78%, var(--text-secondary) 22%);
+    color: color-mix(in srgb, var(--danger) 78%, var(--text-secondary) 22%);
 }
 
 .notificationItemUnreadWarning .notificationTone,
@@ -313,7 +313,7 @@
 }
 
 .notificationItemUnreadError .notificationUnreadDot {
-    background: #ff7777;
+    background: var(--danger);
     box-shadow: 0 0 0 3px rgba(255, 119, 119, 0.16);
 }
 

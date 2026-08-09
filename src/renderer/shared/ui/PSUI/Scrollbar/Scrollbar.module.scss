@@ -30,7 +30,7 @@
     width: 5px;
 
     & > .scrollbarThumb {
-        background-color: #98b1ff96;
+        background-color: color-mix(in srgb, var(--text-secondary) 59%, transparent);
     }
 }
 
@@ -39,7 +39,7 @@
     cursor: pointer;
     position: absolute;
     width: 100%;
-    background-color: #a5b5e752;
+    background-color: color-mix(in srgb, var(--text-secondary) 32%, transparent);
     border-radius: 3px;
     transition: var(--transition);
     transform: translateY(0);
@@ -47,9 +47,9 @@
 
 .scrollbarTrack.visible {
     z-index: 9999;
-    background-color: #a5b5e752;
+    background-color: color-mix(in srgb, var(--text-secondary) 32%, transparent);
 }
 
 .scrollbarThumb:hover {
-    background-color: #98b1ff96;
+    background-color: color-mix(in srgb, var(--text-secondary) 59%, transparent);
 }

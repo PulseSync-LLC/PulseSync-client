@@ -6,7 +6,7 @@
     align-items: flex-start;
     padding: 10px 16px;
     width: -webkit-fill-available;
-    background: #3b4052;
+    background: var(--border);
     border-radius: 8px;
     gap: 2px;
     outline: transparent solid 2px;
@@ -14,7 +14,7 @@
     transition: var(--transition);
 
     &:hover {
-        outline: #8d9dd6 solid 2px;
+        outline: var(--text-secondary) solid 2px;
     }
 }
 
@@ -34,7 +34,7 @@
     font-weight: 500;
     font-size: 18px;
     line-height: 140%;
-    color: #c7cfee;
+    color: var(--text-secondary);
     background: transparent;
     outline: none;
     transition: var(--transition);
@@ -44,7 +44,7 @@
 
     &:empty:before {
         content: attr(data-placeholder);
-        color: #aaa;
+        color: var(--text-secondary);
         position: absolute;
         pointer-events: none;
     }
@@ -63,14 +63,14 @@
 
     &[contenteditable='true']:empty:before {
         content: attr(data-placeholder);
-        color: #7d849d;
+        color: var(--text-secondary);
         pointer-events: none;
         display: block;
     }
 
     &.placeholder {
         border: 0;
-        color: #7d849d;
+        color: var(--text-secondary);
     }
 
     &.focused {
@@ -80,7 +80,7 @@
 
 .error {
     font-size: 0.75rem;
-    color: #ffe55e;
+    color: var(--warning);
     animation: fadeIn 0.2s ease-in-out;
 }
 
@@ -104,7 +104,7 @@
     top: 100%;
     transform: translateY(10px);
     z-index: 20;
-    background: #3b4052;
+    background: var(--border);
     box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.25);
     border-radius: 8px;
     overflow: hidden;
@@ -124,7 +124,7 @@
     background: #494e65;
     padding: 10px 16px;
     cursor: pointer;
-    color: #c7cfee;
+    color: var(--text-secondary);
     transition: var(--transition);
 
     &:hover {
@@ -138,7 +138,7 @@
     align-items: center;
     gap: 6px;
     font-size: 13px;
-    color: #c7cfee;
+    color: var(--text-secondary);
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -183,7 +183,7 @@
 
     svg {
         transition: var(--transition);
-        color: #7d849d;
+        color: var(--text-secondary);
     }
 }
 

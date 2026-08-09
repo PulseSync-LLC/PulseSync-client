@@ -12,8 +12,8 @@
 
     width: -webkit-fill-available;
 
-    background: #232631;
-    border-bottom: 1px solid #3d445b;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border);
 
     .left {
         display: flex;

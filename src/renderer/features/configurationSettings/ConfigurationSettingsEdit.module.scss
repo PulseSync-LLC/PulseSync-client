@@ -1,13 +1,13 @@
 :root {
-    --cfg-text: var(--text-primary, #e7ecf3);
-    --cfg-muted: var(--text-secondary, #9fb0c6);
+    --cfg-text: var(--text-primary);
+    --cfg-muted: var(--text-secondary);
     --cfg-gap: 12px;
     --cfg-gap-lg: 20px;
-    --cfg-accent: var(--accent, #8d9dd6);
+    --cfg-accent: var(--accent);
     --cfg-success: #63d69b;
-    --cfg-surface: #3b4052;
-    --cfg-surface-2: #353b4f;
-    --cfg-border: #3e465f;
+    --cfg-surface: var(--border);
+    --cfg-surface-2: var(--border);
+    --cfg-border: var(--border-hover);
 }
 
 .root {
@@ -36,14 +36,14 @@
     height: 32px;
     padding: 0 12px;
     border-radius: 10px;
-    border: 1px solid #4b5575;
-    background: #40465b;
-    color: #e7ecf3;
+    border: 1px solid var(--border-hover);
+    background: var(--border-hover);
+    color: var(--text-primary);
     cursor: pointer;
     transition: 0.18s ease;
 }
 .addBtn:hover {
-    border-color: #6b76a3;
+    border-color: var(--text-muted);
     transform: translateY(-1px);
 }
 
@@ -55,8 +55,8 @@
     height: 28px;
     border-radius: 8px;
     border: 1px solid #48516b;
-    background: #40465b;
-    color: #e7ecf3;
+    background: var(--border-hover);
+    color: var(--text-primary);
     cursor: pointer;
     transition: 0.18s ease;
 }
@@ -116,8 +116,8 @@
 }
 
 .dropSection {
-    outline-color: rgba(141, 157, 214, 0.9) !important;
-    box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.25) inset;
+    outline-color: color-mix(in srgb, var(--text-secondary) 90%, transparent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 25%, transparent) inset;
 }
 .dropTail::after {
     content: '';
@@ -142,7 +142,7 @@
     transition: 0.18s ease;
 }
 .item:hover {
-    outline-color: rgba(141, 157, 214, 0.35);
+    outline-color: color-mix(in srgb, var(--text-secondary) 35%, transparent);
 }
 
 .itemHeader {
@@ -167,14 +167,14 @@
     justify-content: center;
     width: 30px;
     height: 30px;
-    color: #c7cfee;
+    color: var(--text-secondary);
     cursor: grab;
     user-select: none;
     border-radius: 8px;
     transition: background 0.12s ease;
 }
 .handle:hover {
-    background: rgba(255, 255, 255, 0.05);
+    background: var(--hover);
 }
 .handle:active {
     cursor: grabbing;
@@ -183,12 +183,12 @@
 .dropBefore {
     box-shadow:
         0 -3px 0 0 var(--cfg-success) inset,
-        0 -1px 10px rgba(99, 214, 155, 0.25) inset;
+        0 -1px 10px color-mix(in srgb, var(--success) 25%, transparent) inset;
 }
 .dropAfter {
     box-shadow:
         0 3px 0 0 var(--cfg-success) inset,
-        0 1px 10px rgba(99, 214, 155, 0.25) inset;
+        0 1px 10px color-mix(in srgb, var(--success) 25%, transparent) inset;
 }
 
 .rowWithDelete {
@@ -220,14 +220,14 @@
     padding: 0 10px;
     font-size: 12px;
     border-radius: 999px;
-    border: 1px solid #4b5575;
-    background: #40465b;
-    color: #e7ecf3;
+    border: 1px solid var(--border-hover);
+    background: var(--border-hover);
+    color: var(--text-primary);
     cursor: pointer;
     transition: 0.18s ease;
 }
 .chip:hover {
-    border-color: #6b76a3;
+    border-color: var(--text-muted);
     transform: translateY(-1px);
 }
 
@@ -267,7 +267,7 @@
     z-index: 9999;
     min-width: 160px;
     padding: 6px;
-    background: #2b3042;
+    background: var(--border);
     border: 1px solid var(--cfg-border);
     border-radius: 10px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -286,19 +286,19 @@
     padding: 0 10px;
     border-radius: 8px;
     background: transparent;
-    color: #e7ecf3;
+    color: var(--text-primary);
     border: 1px solid transparent;
     cursor: pointer;
     transition: 0.15s ease;
 }
 .addMenuItem:hover {
-    background: #3a4057;
-    border-color: #4a5473;
+    background: var(--border);
+    border-color: var(--border-hover);
 }
 
 .placeholder {
     padding: 14px;
-    border: 1px dashed rgba(255, 255, 255, 0.15);
+    border: 1px dashed var(--active);
     border-radius: 12px;
     display: grid;
     gap: 6px;
@@ -312,8 +312,8 @@
 }
 
 .dropTarget {
-    outline-color: rgba(141, 157, 214, 0.9) !important;
-    box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.25) inset;
+    outline-color: color-mix(in srgb, var(--text-secondary) 90%, transparent) !important;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 25%, transparent) inset;
 }
 .list {
     display: grid;

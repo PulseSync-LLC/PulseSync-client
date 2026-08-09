@@ -9,7 +9,7 @@
     padding: 8px 25px;
     gap: 10px;
 
-    background: #577eff;
+    background: var(--accent);
     border-radius: 8px;
     min-width: fit-content;
 
@@ -30,7 +30,7 @@
     }
 
     &:not(:disabled):active {
-        background: #577eff;
+        background: var(--accent);
         color: #ffffff;
     }
 }

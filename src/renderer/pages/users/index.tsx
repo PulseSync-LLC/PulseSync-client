@@ -379,7 +379,7 @@ export default function UsersPage() {
             display: 'flex',
             alignItems: 'stretch',
             padding: `${pt}px 40px 12px 40px`,
-            backgroundImage: 'linear-gradient(180deg, rgba(38, 41, 53, 0.67) 0%, #2C303F 100%)',
+            backgroundImage: 'linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 67%, transparent) 0%, var(--border) 100%)',
             backgroundColor: '#1D202B',
             backgroundRepeat: 'no-repeat',
             backgroundPosition: 'center center',

@@ -10,7 +10,7 @@
     justify-content: center;
     align-items: flex-start;
     box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
-    background: #1f222b;
+    background: var(--surface-tertiary);
     border-radius: 10px;
     padding: 7px 0;
 }
@@ -54,7 +54,7 @@
     }
 
     &:hover {
-        background: #3b4155 !important;
+        background: var(--border) !important;
         position: relative;
         --spacing: 3%;
 
@@ -76,7 +76,7 @@
             justify-content: center;
             align-items: flex-start;
             box-shadow: rgba(0, 0, 0, 0.6117647059) 1px 2px 20px 1px;
-            background: #1f222b;
+            background: var(--surface-tertiary);
             border-radius: 8px;
             padding: 7px 0;
             min-width: 370px;
@@ -120,7 +120,7 @@
     }
 
     &:hover {
-        background: #3b4155 !important;
+        background: var(--border) !important;
     }
 
     &:hover {

@@ -8,7 +8,7 @@
 
     width: -webkit-fill-available;
 
-    background: #3b4155;
+    background: var(--border);
 
     .status {
         font-weight: 800;
@@ -65,7 +65,7 @@
                     flex: none;
                     overflow: hidden;
                     white-space: nowrap;
-                    color: #dbdee1;
+                    color: var(--text-primary);
                 }
 
                 .time {
@@ -76,14 +76,14 @@
                     flex: none;
                     overflow: hidden;
                     white-space: nowrap;
-                    color: #dbdee1;
+                    color: var(--text-primary);
                 }
 
                 .timeline {
                     font-weight: 600;
                     font-size: 11px;
                     line-height: 15px;
-                    color: #dbdee1;
+                    color: var(--text-primary);
                     display: flex;
                     width: -webkit-fill-available;
                     align-items: center;
@@ -104,7 +104,7 @@
 
                         & > .timeline_progress {
                             height: 2px;
-                            background: #fafafa;
+                            background: var(--text-primary);
                         }
                     }
                 }
@@ -138,7 +138,7 @@
             font-size: 12px;
             line-height: 16px;
 
-            color: #fafafa;
+            color: var(--text-primary);
 
             &:hover {
                 background: #69749a;

@@ -18,7 +18,7 @@
     font-weight: 800;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: #ffb0b0;
+    color: var(--danger);
 }
 
 .title {
@@ -26,7 +26,7 @@
     font-size: 28px;
     line-height: 1.05;
     font-weight: 900;
-    color: #f6f8ff;
+    color: var(--text-primary);
 }
 
 .description,
@@ -34,7 +34,7 @@
     margin: 0;
     font-size: 15px;
     line-height: 1.55;
-    color: #d6def7;
+    color: var(--text-primary);
 }
 
 .caption {

@@ -1,5 +1,5 @@
 :root {
-    --modal-bg: #292c36;
+    --modal-bg: var(--border);
     --modal-text: #ffffff;
     --modal-border: rgb(255 255 255 / 6%);
 }
@@ -69,7 +69,7 @@
     outline: 1px solid var(--modal-border);
     position: sticky;
     top: 0;
-    background: #292c36;
+    background: var(--border);
 }
 
 .modal-header h2 {
@@ -97,7 +97,7 @@
 }
 
 .close-button:hover {
-    background: rgba(255, 255, 255, 0.08);
+    background: var(--hover);
 }
 
 em {

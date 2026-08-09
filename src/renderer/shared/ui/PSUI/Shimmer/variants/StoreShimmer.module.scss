@@ -18,7 +18,7 @@
 }
 
 .card {
-    @include shimmer.surface(linear-gradient(180deg, rgba(35, 38, 50, 0.94) 0%, rgba(30, 34, 46, 0.98) 100%));
+    @include shimmer.surface(linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 94%, transparent) 0%, color-mix(in srgb, var(--surface-tertiary) 98%, transparent) 100%));
     position: relative;
     display: grid;
     grid-template-columns: minmax(0, 1fr) auto;
@@ -33,7 +33,7 @@
     border-radius: 10px;
     overflow: hidden;
     box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
-    outline: 2px solid #98ffd600;
+    outline: 2px solid transparent;
 }
 
 .headerRow {
@@ -71,7 +71,7 @@
 }
 
 .headerMeta {
-    @include shimmer.text-surface(rgba(255, 255, 255, 0.12));
+    @include shimmer.text-surface(var(--active));
     width: 78px;
     height: 22px;
     flex: 0 0 auto;
@@ -102,7 +102,7 @@
 }
 
 .version {
-    @include shimmer.text-surface(rgba(255, 255, 255, 0.14));
+    @include shimmer.text-surface(var(--active));
     width: 54px;
     height: 25px;
     flex: 0 0 auto;
@@ -122,8 +122,8 @@
     height: 72px;
     border-radius: 14px;
     flex: 0 0 auto;
-    outline: 3px solid rgba(255, 255, 255, 0.05);
-    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.45);
+    outline: 3px solid var(--hover);
+    box-shadow: 0 12px 25px color-mix(in srgb, var(--surface-primary) 45%, transparent);
 }
 
 .text {
@@ -160,7 +160,7 @@
 }
 
 .downloads {
-    @include shimmer.text-surface(rgba(214, 222, 248, 0.16));
+    @include shimmer.text-surface(color-mix(in srgb, var(--text-primary) 16%, transparent));
     width: 116px;
     height: 11px;
     margin-top: 2px;

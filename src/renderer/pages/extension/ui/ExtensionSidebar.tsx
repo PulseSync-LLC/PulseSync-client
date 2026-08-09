@@ -134,7 +134,7 @@ export default function ExtensionSidebar({
                         <button
                             ref={filterButtonRef}
                             className={extensionStylesV2.filterButton}
-                            style={showFilters ? { background: '#98FFD6', color: '#181818' } : undefined}
+                            style={showFilters ? { background: 'var(--accent)', color: 'var(--accent-foreground)' } : undefined}
                             onClick={onToggleFilters}
                             aria-label={t('extensions.filtersLabel')}
                         >
@@ -147,7 +147,7 @@ export default function ExtensionSidebar({
                     <button
                         ref={optionButtonRef}
                         className={cn(extensionStylesV2.optionsButton, optionMenu && extensionStylesV2.optionsButtonActive)}
-                        style={optionMenu ? { background: '#98FFD6', color: '#181818' } : undefined}
+                        style={optionMenu ? { background: 'var(--accent)', color: 'var(--accent-foreground)' } : undefined}
                         onClick={onToggleOptionMenu}
                         aria-label={t('extensions.optionsLabel')}
                     >
