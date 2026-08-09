@@ -5,7 +5,6 @@ import Minus from '@shared/assets/icons/minus.svg'
 import Minimize from '@shared/assets/icons/minimize.svg'
 import Maximize from '@shared/assets/icons/maximize.svg'
 import Close from '@shared/assets/icons/close.svg'
-import ArrowDown from '@shared/assets/icons/arrowDown.svg'
 
 import userContext from '@entities/user/model/context'
 import ContextMenu from '@features/context_menu'
@@ -42,13 +41,14 @@ import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
 
 interface p {
     goBack?: boolean
+    title?: string
 }
 
 type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
-const Header: React.FC<p> = () => {
+const Header: React.FC<p> = ({ title }) => {
     const settingsAvailable = false
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
@@ -398,25 +398,22 @@ const Header: React.FC<p> = () => {
             <header ref={containerRef} className={styles.nav_bar}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
+                        <div className={styles.railLogoSlot} aria-hidden="true">
+                            <img className={styles.railLogo} src={staticAsset('assets/icons/v4/rail-logo.png')} alt="" />
+                        </div>
                         {/*<TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>*/}
                         {/*    <button className={styles.settingsButton} disabled={!settingsAvailable}>*/}
                         {/*        <MdSettings size={22} />*/}
                         {/*    </button>*/}
                         {/*</TooltipButton>*/}
                         <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu}>
-                            <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
-                            <span>PulseSync</span>
-                            <div className={isMenuOpen ? styles.true : styles.false}>
-                                <ArrowDown />
-                            </div>
+                            <span>{title ?? 'PulseSync'}</span>
                         </button>
                         <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
                     </div>
                     <div className={styles.event_container}>
                         {isDevmark && (
-                            <div className={styles.dev}>
-                                {t('header.developmentBuild', { branch: app.info.branch || t('header.unknownBranch') })}
-                            </div>
+                            <div className={styles.dev}>{t('header.developmentBuild', { branch: app.info.branch || t('header.unknownBranch') })}</div>
                         )}
                         <div className={styles.menu} ref={userCardRef}>
                             {!isAutonomousMode ? (

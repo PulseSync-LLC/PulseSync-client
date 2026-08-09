@@ -1,10 +1,10 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { MdAltRoute } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import { useModalContext } from '@app/providers/modal'
 import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/header.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
 
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
@@ -62,7 +62,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
                 aria-label={label}
                 onClick={() => openModal(Modals.UPDATE_CHANNEL_OVERRIDE)}
             >
-                <MdAltRoute size={18} />
+                <img src={staticAsset('assets/icons/v4/header-routing.png')} alt="" aria-hidden="true" />
             </button>
         </TooltipButton>
     )

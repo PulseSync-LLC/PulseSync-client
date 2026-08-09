@@ -1,6 +1,8 @@
 import React, { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { IconButton } from '@pulsesync/uikit/actions'
+import { Tooltip } from '@pulsesync/uikit/feedback'
 import { AnimatePresence, motion } from 'framer-motion'
-import { MdDoneAll, MdNotificationsNone } from 'react-icons/md'
+import { MdDoneAll } from 'react-icons/md'
 import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router-dom'
@@ -9,9 +11,9 @@ import { useModalContext } from '@app/providers/modal'
 import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
 import Loader from '@shared/ui/PSUI/Loader'
-import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
 
 const WEBSITE_ORIGIN = (() => {
     try {
@@ -61,6 +63,7 @@ const NotificationsBell: React.FC = () => {
     const [isOpen, setOpen] = useState(false)
     const rootRef = useRef<HTMLDivElement>(null)
     const notificationItems = notificationsContext.notifications
+    const hasUnreadNotifications = notificationsContext.unreadCount > 0
 
     useEffect(() => {
         if (!isOpen) return
@@ -205,22 +208,16 @@ const NotificationsBell: React.FC = () => {
 
     return (
         <div className={styles.notificationTrigger} ref={rootRef}>
-            <TooltipButton tooltipText={t('header.notifications.open')} side="bottom" as="div">
-                <button
-                    type="button"
-                    className={styles.iconButton}
-                    aria-label={t('header.notifications.open')}
-                    onClick={() => setOpen(current => !current)}
-                >
-                    <MdNotificationsNone size={18} />
-                </button>
-            </TooltipButton>
-
-            {notificationsContext.unreadCount > 0 && (
-                <span className={styles.notificationBadgeCount}>
-                    {notificationsContext.unreadCount > 99 ? '99+' : notificationsContext.unreadCount}
-                </span>
-            )}
+            <Tooltip content={t('header.notifications.open')} position="bottom">
+                <IconButton variant="ghost" size="compact" aria-label={t('header.notifications.open')} onClick={() => setOpen(current => !current)}>
+                    <img
+                        className={hasUnreadNotifications ? styles.headerBellIcon : `${styles.headerBellIcon} ${styles.headerBellIconIdle}`}
+                        src={staticAsset(hasUnreadNotifications ? 'assets/icons/v4/header-bell.png' : 'assets/icons/v4/header-bell-idle.png')}
+                        alt=""
+                        aria-hidden="true"
+                    />
+                </IconButton>
+            </Tooltip>
 
             <AnimatePresence>
                 {isOpen && (

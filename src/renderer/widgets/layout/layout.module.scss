@@ -12,23 +12,26 @@
     // max-width: 1157px;
     width: -webkit-fill-available;
     bottom: 0;
-    top: 50px;
-    background: var(--Main);
+    top: 48px;
+    background: var(--surface-primary);
     z-index: 8000;
-    padding: 0 20px 20px 0;
+    padding: 0 10px 10px 0;
 
     .navigation_bar {
         display: flex;
         flex-direction: column;
         justify-content: space-between;
         align-items: center;
-        padding: 10px 20px 0 20px;
+        width: 54px;
+        flex: 0 0 54px;
+        box-sizing: border-box;
+        padding: 10px;
 
         .navigation_buttons {
             display: flex;
             flex-direction: column;
             align-items: flex-start;
-            gap: 10px;
+            gap: 5px;
         }
         .alert_fix {
             z-index: 12223;
@@ -39,7 +42,9 @@
             cursor: pointer;
             display: flex;
             flex-direction: row;
-            padding: 12px;
+            width: 34px;
+            height: 34px;
+            padding: 5px;
             border-radius: var(--BorderRadius);
             background: var(--download);
             border: none;
@@ -53,6 +58,11 @@
 
             & > svg {
                 fill: var(--downloadColor);
+            }
+
+            & > img {
+                width: 24px;
+                height: 24px;
             }
         }
     }

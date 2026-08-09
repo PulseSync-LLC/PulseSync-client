@@ -172,6 +172,7 @@ export default function HomePage() {
         <PageLayout title={t('pages.home.title')}>
             <div className={styles.home}>
                 <div className={styles.grid}>
+                    <HomeNewsSection />
                     <div className={styles.leftColumn}>
                         <HomePrimaryComponentsSection
                             items={primaryComponents}
@@ -188,7 +189,6 @@ export default function HomePage() {
                             onOpenObsWidgetFolder={openObsWidgetFolder}
                         />
                     </div>
-                    <HomeNewsSection />
                 </div>
             </div>
         </PageLayout>

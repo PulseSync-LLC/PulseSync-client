@@ -1,6 +1,5 @@
 import React, { useCallback, useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
-import { MdDownload, MdHandyman, MdHome, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
 import Header from '@widgets/layout/header'
 import NavButtonPulse from '@shared/ui/PSUI/NavButton'
 import Preloader from '@widgets/preloader'
@@ -86,12 +85,12 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                 <title>{title + ' - PulseSync'}</title>
             </Helmet>
             <div className={pageStyles.children}>
-                <Header goBack={goBack} />
+                <Header goBack={goBack} title={title} />
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
-                                <MdHome size={24} />
+                                <img src={staticAsset('assets/icons/v4/home.png')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/extensions"
@@ -99,15 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <MdPower size={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse
-                                to="/store"
-                                text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
-                                disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
-                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
-                            >
-                                <MdStoreMallDirectory size={24} />
+                                <img src={staticAsset('assets/icons/v4/extensions.png')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/users"
@@ -115,13 +106,21 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled || (!isAutonomousMode && !usersPageEnabled)}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <MdPeople size={24} />
+                                <img src={staticAsset('assets/icons/v4/users.png')} alt="" aria-hidden="true" />
+                            </NavButtonPulse>
+                            <NavButtonPulse
+                                to="/store"
+                                text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
+                                disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
+                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
+                            >
+                                <img src={staticAsset('assets/icons/v4/store.png')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
                             {isUserDeveloper(user?.perms) && (
                                 <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
-                                    <MdHandyman size={24} />
+                                    <img src={staticAsset('assets/icons/v4/settings.png')} alt="" aria-hidden="true" />
                                 </NavButtonPulse>
                             )}
                             {updateAvailable && (
@@ -133,7 +132,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         }}
                                         className={pageStyles.update_download}
                                     >
-                                        <MdDownload size={24} />
+                                        <img src={staticAsset('assets/icons/v4/download.png')} alt="" aria-hidden="true" />
                                     </button>
                                 </TooltipButton>
                             )}
