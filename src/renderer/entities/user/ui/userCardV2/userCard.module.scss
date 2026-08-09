@@ -86,7 +86,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(0deg, #2c303f 0%, rgba(55, 60, 80, 0.3) 100%);
+    background: linear-gradient(0deg, var(--border) 0%, color-mix(in srgb, var(--border) 30%, transparent) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -181,7 +181,7 @@
         left: -100%;
         width: 100%;
         height: 100%;
-        background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.08), transparent);
+        background: linear-gradient(90deg, transparent, var(--hover), transparent);
         animation: shimmer 1.6s infinite;
     }
 }

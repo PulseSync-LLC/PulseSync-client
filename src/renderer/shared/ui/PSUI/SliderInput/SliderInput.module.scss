@@ -9,12 +9,12 @@
     flex-direction: column;
     gap: 6px;
     padding: 10px 16px;
-    background: #3b4052;
+    background: var(--border);
     border-radius: 8px;
     outline: transparent solid 2px;
     transition: var(--transition);
     &:hover {
-        outline: #8d9dd6 solid 2px;
+        outline: var(--text-secondary) solid 2px;
     }
 }
 
@@ -41,7 +41,7 @@
 .val {
     width: -webkit-fill-available;
     border-radius: 8px;
-    color: #e7ecf3;
+    color: var(--text-primary);
     padding: 7px 10px;
     text-align: left;
     transition: var(--transition);
@@ -49,17 +49,17 @@
 }
 .unitLabel {
     margin-left: 6px;
-    color: #c7cfee;
+    color: var(--text-secondary);
     font-size: 12px;
 }
 .valInput {
     width: fit-content;
     max-width: 30px;
-    background: #353b4f;
-    border: 1px solid #8d9dd6;
-    box-shadow: 0 0 0 2px rgba(141, 157, 214, 0.18);
+    background: var(--border);
+    border: 1px solid var(--text-secondary);
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 18%, transparent);
     border-radius: 8px;
-    color: #e7ecf3;
+    color: var(--text-primary);
     padding: 6px 10px;
     font-size: 16px;
     outline: none;
@@ -70,7 +70,7 @@
     height: var(--sl-h);
     border-radius: 999px;
     background: #2f3547;
-    border: 1px solid #3e465f;
+    border: 1px solid var(--border-hover);
     cursor: pointer;
     outline: 1px solid #5d6b95;
 }
@@ -80,7 +80,7 @@
     top: 0;
     bottom: 0;
     border-radius: 999px;
-    background: linear-gradient(90deg, #8d9dd6, #6aa0ff);
+    background: linear-gradient(90deg, var(--text-secondary), #6aa0ff);
 }
 .thumb {
     position: absolute;
@@ -91,7 +91,7 @@
     min-width: var(--sl-thumb);
     border-radius: 50%;
     background: #ffffff;
-    border: 2px solid #1b1f2a;
+    border: 2px solid var(--surface-tertiary);
     box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
     pointer-events: none;
 }

@@ -18,14 +18,14 @@
 
 .themeInfo::before {
     z-index: 0;
-    background: linear-gradient(180deg, rgba(16, 18, 28, 0.04) 0%, rgba(16, 18, 28, 0.14) 100%),
-        radial-gradient(circle at 20% 84%, rgba(14, 16, 25, 0.2) 0%, rgba(14, 16, 25, 0.08) 28%, transparent 52%),
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-primary) 4%, transparent) 0%, color-mix(in srgb, var(--surface-primary) 14%, transparent) 100%),
+        radial-gradient(circle at 20% 84%, color-mix(in srgb, var(--background) 20%, transparent) 0%, color-mix(in srgb, var(--background) 8%, transparent) 28%, transparent 52%),
         linear-gradient(90deg, rgba(18, 20, 31, 0.14) 0%, rgba(18, 20, 31, 0.04) 38%, rgba(18, 20, 31, 0) 64%);
 }
 
 .themeInfo::after {
     z-index: 1;
-    background: linear-gradient(180deg, rgba(10, 12, 18, 0) 58%, rgba(10, 12, 18, 0.12) 100%);
+    background: linear-gradient(180deg, transparent 58%, color-mix(in srgb, var(--background) 12%, transparent) 100%);
 }
 
 .content {
@@ -62,12 +62,12 @@
     align-items: center;
     padding: 6px 12px;
     gap: 5px;
-    background: rgba(99, 106, 130, 0.53);
+    background: color-mix(in srgb, var(--text-muted) 53%, transparent);
     border-radius: 8px;
     text-transform: uppercase;
 
     &:hover {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
     }
 }
 
@@ -103,7 +103,7 @@
 
 .libraryLogoImg {
     width: 140px;
-    filter: drop-shadow(0 10px 24px rgba(8, 10, 18, 0.38)) drop-shadow(0 2px 8px rgba(8, 10, 18, 0.5));
+    filter: drop-shadow(0 10px 24px color-mix(in srgb, var(--background) 38%, transparent)) drop-shadow(0 2px 8px color-mix(in srgb, var(--background) 50%, transparent));
     position: relative;
     z-index: 1;
 }
@@ -115,8 +115,8 @@
     position: relative;
     z-index: 1;
     text-shadow:
-        0 2px 8px rgba(8, 10, 18, 0.5),
-        0 12px 32px rgba(8, 10, 18, 0.38);
+        0 2px 8px color-mix(in srgb, var(--background) 50%, transparent),
+        0 12px 32px color-mix(in srgb, var(--background) 38%, transparent);
     user-select: text;
 }
 
@@ -135,7 +135,7 @@
     gap: 16px 24px;
     padding: 10px 40px 0;
     margin: 0 auto;
-    background: linear-gradient(180deg, #434963 0%, #383e52 100%);
+    background: linear-gradient(180deg, #434963 0%, var(--border) 100%);
     align-self: stretch;
     position: sticky;
     z-index: 11;
@@ -190,7 +190,7 @@
     font-weight: 700;
     font-size: 12px;
     line-height: 16px;
-    color: #a3accb;
+    color: var(--text-secondary);
     min-width: 0;
 }
 
@@ -220,7 +220,7 @@
     white-space: nowrap;
     padding: 12px 16px;
     gap: 8px;
-    background: rgba(132, 221, 255, 0.16);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
     border-radius: 8px;
     color: #dff8ff;
     line-height: 1;
@@ -237,7 +237,7 @@
     }
 
     &:hover:not(:disabled) {
-        background: rgba(132, 221, 255, 0.24);
+        background: color-mix(in srgb, var(--accent) 24%, transparent);
     }
 
     &:disabled {
@@ -267,32 +267,32 @@
 }
 
 .enabledState {
-    background: rgba(99, 106, 130, 0.53);
+    background: color-mix(in srgb, var(--text-muted) 53%, transparent);
     color: #fff;
 
     &:hover:not(:disabled) {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
     }
 }
 
 .disabledState {
-    background: rgba(91, 98, 120, 0.58);
+    background: color-mix(in srgb, var(--text-muted) 58%, transparent);
     color: #fff;
 
     &:hover:not(:disabled) {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
     }
 
     &:disabled {
-        background: rgba(99, 106, 130, 0.28);
+        background: color-mix(in srgb, var(--text-muted) 28%, transparent);
         color: rgba(255, 255, 255, 0.48);
         cursor: default;
-        box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.04);
+        box-shadow: inset 0 0 0 1px var(--hover);
     }
 }
 
 .updateState {
-    background: rgba(168, 255, 102, 0.18);
+    background: color-mix(in srgb, var(--success) 18%, transparent);
     color: #dff7c7;
 
     &:hover:not(:disabled) {
@@ -311,7 +311,7 @@
     gap: 5px;
     width: 46px;
     height: 46px;
-    background: rgba(99, 106, 130, 0.53);
+    background: color-mix(in srgb, var(--text-muted) 53%, transparent);
     border-radius: 8px;
     flex: none;
     order: 3;
@@ -319,10 +319,10 @@
     justify-content: center;
 
     &:hover {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
     }
     &:disabled {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
     }
 }
 
@@ -346,23 +346,23 @@
 }
 
 .statusAccepted {
-    background: rgba(168, 255, 102, 0.2);
-    color: #d4ffb6;
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+    color: var(--success);
 }
 
 .statusPending {
-    background: rgba(245, 158, 11, 0.2);
-    color: #ffd790;
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
+    color: var(--warning);
 }
 
 .statusRejected {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ffb0b0;
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
+    color: var(--danger);
 }
 
 .statusUnpublished {
-    background: rgba(148, 163, 184, 0.2);
-    color: #d8e1f0;
+    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
+    color: var(--text-primary);
 }
 
 .statusMeta {
@@ -379,7 +379,7 @@
     width: 20px;
     height: 20px;
     margin-left: 4px;
-    background: rgba(99, 106, 130, 0.53);
+    background: color-mix(in srgb, var(--text-muted) 53%, transparent);
     border-radius: 4px;
     cursor: pointer;
     position: relative;
@@ -406,10 +406,10 @@
     cursor: pointer;
     font-size: 12px;
     border-radius: 4px;
-    color: #a3accb;
+    color: var(--text-secondary);
 
     &:hover {
-        background: rgba(99, 106, 130, 0.75);
+        background: color-mix(in srgb, var(--text-muted) 75%, transparent);
         color: #fff;
     }
 }

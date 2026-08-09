@@ -24,7 +24,7 @@
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #8fffd4;
+    color: var(--success);
 }
 
 .headlineRow {
@@ -46,7 +46,7 @@
     font-size: 28px;
     line-height: 1.05;
     font-weight: 900;
-    color: #f6f8ff;
+    color: var(--text-primary);
 }
 
 .authors {
@@ -94,23 +94,23 @@
     font-weight: 800;
     letter-spacing: 0.04em;
     text-transform: uppercase;
-    color: #98a3c8;
+    color: var(--text-secondary);
 }
 
 .requiredMark {
-    color: #98ffd6;
+    color: var(--accent);
 }
 
 .value {
     font-size: 16px;
     font-weight: 800;
-    color: #f4f7ff;
+    color: var(--text-primary);
 }
 
 .subValue {
     font-size: 14px;
     line-height: 1.55;
-    color: #d6def7;
+    color: var(--text-primary);
     white-space: pre-wrap;
 }
 
@@ -119,40 +119,40 @@
     min-height: 118px;
     resize: vertical;
     padding: 14px 16px;
-    border: 1px solid rgba(146, 157, 190, 0.2);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
     border-radius: 14px;
-    background: rgba(18, 20, 28, 0.42);
-    color: #f4f7ff;
+    background: color-mix(in srgb, var(--surface-primary) 42%, transparent);
+    color: var(--text-primary);
     font: inherit;
     line-height: 1.5;
     outline: none;
 
     &::placeholder {
-        color: #7f8bad;
+        color: var(--text-secondary);
     }
 
     &:focus {
-        border-color: rgba(104, 137, 255, 0.75);
+        border-color: color-mix(in srgb, var(--accent) 75%, transparent);
     }
 }
 
 .githubInput {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid rgba(146, 157, 190, 0.2);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
     border-radius: 14px;
-    background: rgba(18, 20, 28, 0.42);
-    color: #f4f7ff;
+    background: color-mix(in srgb, var(--surface-primary) 42%, transparent);
+    color: var(--text-primary);
     font: inherit;
     line-height: 1.5;
     outline: none;
 
     &::placeholder {
-        color: #7f8bad;
+        color: var(--text-secondary);
     }
 
     &:focus {
-        border-color: rgba(104, 137, 255, 0.75);
+        border-color: color-mix(in srgb, var(--accent) 75%, transparent);
     }
 }
 
@@ -162,7 +162,7 @@
     gap: 12px;
     width: 100%;
     padding: 12px 14px;
-    border: 1px solid rgba(146, 157, 190, 0.14);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 14%, transparent);
     border-radius: 12px;
     background: rgba(255, 255, 255, 0.025);
     font-size: 14px;
@@ -203,7 +203,7 @@
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        border: 5px solid #98ffd6;
+        border: 5px solid var(--accent);
         opacity: 0;
         transition:
             opacity 0.3s,
@@ -214,21 +214,21 @@
 .rulesCheckbox input[type='checkbox']:checked + .rulesCheckboxMark::before {
     opacity: 1;
     transform: translate(-50%, -50%) scale(0.5);
-    background-color: #98ffd6;
+    background-color: var(--accent);
 }
 
 .rulesCheckbox input[type='checkbox']:checked + .rulesCheckboxMark {
     background-color: rgba(81, 97, 104, 0.96);
-    border-color: #98ffd6;
-    box-shadow: 0 0 0 4px rgba(152, 255, 214, 0.08);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 4px color-mix(in srgb, var(--success) 8%, transparent);
 }
 
 .rulesCheckbox:hover .rulesCheckboxMark {
-    border-color: rgba(153, 204, 184, 0.95);
+    border-color: color-mix(in srgb, var(--success) 95%, transparent);
 }
 
 .rulesCheckbox input[type='checkbox']:focus-visible + .rulesCheckboxMark {
-    outline: 2px solid rgba(104, 137, 255, 0.75);
+    outline: 2px solid color-mix(in srgb, var(--accent) 75%, transparent);
     outline-offset: 3px;
 }
 
@@ -238,7 +238,7 @@
 }
 
 .rulesLink {
-    color: #98ffd6;
+    color: var(--accent);
     text-decoration: none;
     transition: color 0.2s ease;
 
@@ -265,23 +265,23 @@
 }
 
 .statusAccepted {
-    background: rgba(168, 255, 102, 0.2);
-    color: #d4ffb6;
+    background: color-mix(in srgb, var(--success) 20%, transparent);
+    color: var(--success);
 }
 
 .statusPending {
-    background: rgba(245, 158, 11, 0.2);
-    color: #ffd790;
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
+    color: var(--warning);
 }
 
 .statusRejected {
-    background: rgba(239, 68, 68, 0.2);
-    color: #ffb0b0;
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
+    color: var(--danger);
 }
 
 .statusUnpublished {
-    background: rgba(148, 163, 184, 0.2);
-    color: #d8e1f0;
+    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
+    color: var(--text-primary);
 }
 
 @media (max-width: 640px) {

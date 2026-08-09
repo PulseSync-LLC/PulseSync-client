@@ -13,11 +13,11 @@
     outline: 1px solid var(--modal-border);
 
     &:nth-child(odd) {
-        background: linear-gradient(90deg, #577eff24 0%, rgba(87, 126, 255, 0) 100%);
+        background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 100%);
     }
 
     &:nth-child(even) {
-        background: linear-gradient(90deg, #577eff10 0%, rgba(87, 126, 255, 0) 100%);
+        background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 100%);
     }
 }
 
@@ -31,7 +31,7 @@
 }
 
 .versionBadge {
-    @include shimmer.text-surface(#3468f2);
+    @include shimmer.text-surface(var(--accent));
     width: 58px;
     height: 20px;
 }

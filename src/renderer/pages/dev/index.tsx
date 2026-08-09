@@ -154,7 +154,7 @@ function Dev() {
                     enabled: true,
                     mode: 'index' as InteractionMode,
                     intersect: false,
-                    backgroundColor: '#2c303f',
+                    backgroundColor: 'var(--border)',
                     titleFont: { size: 11, family: 'Inter, sans-serif', weight: '400' as const },
                     bodyFont: { size: 11, family: 'Inter, sans-serif', weight: '400' as const },
                     padding: 8,

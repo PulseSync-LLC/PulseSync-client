@@ -44,7 +44,7 @@
         height: 100%;
         left: 0;
         top: 0;
-        background: linear-gradient(132.84deg, #6e75ff 15.35%, #0c2cff 87.95%);
+        background: linear-gradient(132.84deg, var(--accent) 15.35%, #0c2cff 87.95%);
         mix-blend-mode: color-burn;
     }
 
@@ -118,7 +118,7 @@
                 opacity: 0.3 !important;
 
                 &:hover {
-                    background: rgba(22, 24, 30, 0.7);
+                    background: color-mix(in srgb, var(--surface-primary) 70%, transparent);
                     cursor: default;
                 }
             }

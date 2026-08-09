@@ -97,8 +97,8 @@
             width: 100%;
             max-width: 560px;
 
-            background: #1e2027;
-            border: 1px solid #363944;
+            background: var(--surface-tertiary);
+            border: 1px solid var(--border);
             border-radius: 10px;
 
             & > .patch_detail {
@@ -159,7 +159,7 @@
                         }
 
                         & > .version_new {
-                            background: #3468f2;
+                            background: var(--accent);
                         }
                     }
 
@@ -192,7 +192,7 @@
                     border: 1px solid rgba(255, 188, 122, 0.14);
                     border-left: 3px solid rgba(255, 166, 84, 0.72);
                     background: rgba(255, 214, 170, 0.05);
-                    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.03);
+                    box-shadow: inset 0 1px 0 var(--hover);
 
                     & > .patch_error_title_row {
                         display: flex;
@@ -238,7 +238,7 @@
                         padding: 7px 19px;
                         gap: 10px;
 
-                        background: #3468f2;
+                        background: var(--accent);
                         border-radius: 4px;
                         border: 0;
 
@@ -268,7 +268,7 @@
             width: 700px;
             gap: 35px;
             height: fit-content;
-            background: #fffb9c;
+            background: var(--warning);
             border-radius: 10px;
 
             & > div {
@@ -291,7 +291,7 @@
                     width: fit-content;
 
                     * {
-                        color: #535240;
+                        color: var(--text-muted);
                     }
 
                     & > div {
@@ -299,7 +299,7 @@
                         font-size: 20px;
                         line-height: 27px;
 
-                        color: #535240;
+                        color: var(--text-muted);
                     }
                 }
 
@@ -322,10 +322,10 @@
                     font-size: 18px;
                     line-height: 25px;
 
-                    color: #fffb9c;
+                    color: var(--warning);
 
                     * {
-                        color: #fffb9c;
+                        color: var(--warning);
                     }
 
                     &:hover {

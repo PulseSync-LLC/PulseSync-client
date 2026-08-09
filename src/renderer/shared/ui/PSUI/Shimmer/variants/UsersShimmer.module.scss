@@ -43,7 +43,7 @@
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: linear-gradient(0deg, #2c303f 0%, rgba(55, 60, 80, 0.3) 100%);
+    background: linear-gradient(0deg, var(--border) 0%, color-mix(in srgb, var(--border) 30%, transparent) 100%);
 }
 
 .avatar {

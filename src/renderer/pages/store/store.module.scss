@@ -12,7 +12,7 @@
     overflow: overlay;
     width: var(--scrollWStore);
     height: var(--scrollHStore);
-    background: #2c303f;
+    background: var(--border);
 }
 
 .containerFixInnerLocked {
@@ -88,7 +88,7 @@
     gap: 10px;
     border-radius: 10px;
     background: rgba(18, 21, 31, 0.72);
-    border: 1px solid rgba(105, 115, 148, 0.32);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 32%, transparent);
 }
 
 .store_search_input {
@@ -108,7 +108,7 @@
     margin: 0;
 
     &::placeholder {
-        color: #8e98ba;
+        color: var(--text-secondary);
     }
 
     &:focus,
@@ -122,7 +122,7 @@
 
 .store_search_icon {
     flex: 0 0 auto;
-    color: #98a3c8;
+    color: var(--text-secondary);
     font-size: 22px;
 }
 
@@ -134,7 +134,7 @@
 }
 
 .store_filterChip {
-    border: 1px solid rgba(105, 115, 148, 0.32);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 32%, transparent);
     border-radius: 10px;
     min-height: 36px;
     padding: 0 14px;
@@ -142,8 +142,8 @@
     align-items: center;
     justify-content: center;
     white-space: nowrap;
-    background: #12151fb8;
-    color: #8e98ba;
+    background: color-mix(in srgb, var(--surface-primary) 72%, transparent);
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 700;
     transition:
@@ -153,8 +153,8 @@
     cursor: pointer;
 
     &:hover {
-        background: rgba(96, 109, 149, 0.38);
-        border-color: rgba(150, 170, 223, 0.3);
+        background: color-mix(in srgb, var(--text-muted) 38%, transparent);
+        border-color: color-mix(in srgb, var(--text-secondary) 30%, transparent);
     }
 }
 
@@ -197,7 +197,7 @@
     gap: 16px;
     padding: 0 16px;
     box-sizing: border-box;
-    border-top: 1px solid rgba(123, 137, 184, 0.2);
+    border-top: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
     padding-top: 24px;
 }
 
@@ -230,10 +230,10 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    color: #d8def1;
+    color: var(--text-primary);
     border-radius: 18px;
     background: rgba(18, 21, 31, 0.42);
-    border: 1px solid rgba(105, 115, 148, 0.18);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 18%, transparent);
 }
 
 .store_sectionGrid {
@@ -273,7 +273,7 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    color: #d8def1;
+    color: var(--text-primary);
 }
 
 .store_loading {

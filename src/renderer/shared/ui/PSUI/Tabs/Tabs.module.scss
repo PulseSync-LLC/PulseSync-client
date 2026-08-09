@@ -5,8 +5,8 @@
     gap: 8px;
     box-sizing: border-box;
     align-items: center;
-    background: #383e52;
-    border-bottom: 1px solid #3d445b;
+    background: var(--border);
+    border-bottom: 1px solid var(--border);
     left: 0;
     right: 0;
     position: sticky;
@@ -62,12 +62,12 @@
         bottom: 0px;
         width: 100%;
         height: 0px;
-        background: #98ffd6;
+        background: var(--accent);
     }
 
     &:hover {
         cursor: pointer;
-        color: #98ffd6;
+        color: var(--accent);
 
         &::after {
             bottom: -1px;
@@ -91,11 +91,11 @@
 }
 
 .activeTabButton {
-    color: #98ffd6;
+    color: var(--accent);
 
     &::after {
         bottom: -1px;
         height: 4px;
-        background: #98ffd6;
+        background: var(--accent);
     }
 }

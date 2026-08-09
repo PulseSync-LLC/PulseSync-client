@@ -27,10 +27,10 @@
         'Segoe UI Variable',
         'SF Pro Text',
         sans-serif;
-    color: #eff2ff;
+    color: var(--text-primary);
 
     box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
-    outline: 2px solid #98ffd600;
+    outline: 2px solid transparent;
     transition: var(--transition);
     animation: fadeInUp 0.4s ease-out forwards;
 
@@ -71,11 +71,11 @@
     height: 100%;
     z-index: 1;
     pointer-events: none;
-    background: linear-gradient(0deg, rgba(35, 38, 50, 0.95) 0%, rgba(35, 38, 50, 0.7) 40%, rgba(35, 38, 50, 0.4) 100%);
+    background: linear-gradient(0deg, color-mix(in srgb, var(--surface-elevated) 95%, transparent) 0%, color-mix(in srgb, var(--surface-elevated) 70%, transparent) 40%, color-mix(in srgb, var(--surface-elevated) 40%, transparent) 100%);
 }
 
 .card_with_image_bg {
-    background-color: #232632;
+    background-color: var(--surface-secondary);
     padding: 72px 14px 14px;
 }
 
@@ -85,7 +85,7 @@
 
 .card_theme_purple {
     background: linear-gradient(0deg, #252735 0%, rgba(48, 51, 70, 0.85) 39.42%, rgba(54, 58, 78, 0.3) 100%),
-        radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), #232632;
+        radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), var(--surface-secondary);
 }
 
 .card_theme_red {
@@ -94,9 +94,9 @@
 }
 
 .card_theme_wave {
-    background: linear-gradient(0deg, #151826 0%, rgba(16, 20, 33, 0.9) 40%, rgba(10, 14, 29, 0.4) 100%),
+    background: linear-gradient(0deg, #151826 0%, color-mix(in srgb, var(--surface-primary) 90%, transparent) 40%, color-mix(in srgb, var(--background) 40%, transparent) 100%),
         radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.9), transparent 55%),
-        radial-gradient(circle at 50% 0%, rgba(34, 197, 94, 0.85), transparent 55%),
+        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--success) 85%, transparent), transparent 55%),
         radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.9), transparent 55%), #050816;
 }
 
@@ -133,7 +133,7 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    box-shadow: 0 12px 25px rgba(15, 23, 42, 0.7);
+    box-shadow: 0 12px 25px color-mix(in srgb, var(--surface-primary) 70%, transparent);
     overflow: hidden;
     outline: 3px solid rgb(255 255 255 / 5%);
     box-sizing: border-box;
@@ -176,7 +176,7 @@
     font-weight: 700;
     font-size: 22px;
     line-height: 110%;
-    color: #eff2ff;
+    color: var(--text-primary);
 
     white-space: nowrap;
     overflow: hidden;
@@ -194,7 +194,7 @@
     min-height: 25px;
     padding: 0 8px;
     border-radius: 999px;
-    background: rgba(255, 255, 255, 0.15);
+    background: var(--active);
     color: #d4dcf6;
     font-size: 14px;
     font-weight: 700;
@@ -241,7 +241,7 @@
 
     font-size: 12px;
     line-height: 110%;
-    color: #b0b9d8;
+    color: var(--text-secondary);
 }
 
 .card_authors {
@@ -254,7 +254,7 @@
 }
 
 .card_authors_label {
-    color: #b0b9d8;
+    color: var(--text-secondary);
     font-weight: 600;
     white-space: nowrap;
 }
@@ -270,7 +270,7 @@
     margin: 0;
     border: none;
     background: transparent;
-    color: #b0b9d8;
+    color: var(--text-secondary);
     font: inherit;
     line-height: 1.2;
     cursor: pointer;
@@ -304,7 +304,7 @@
     border: none;
     cursor: pointer;
     z-index: 2;
-    color: #a8ff66;
+    color: var(--success);
     font-weight: 700;
     font-size: 14px;
     line-height: 1;
@@ -358,31 +358,31 @@
 }
 
 .download_button_installed {
-    background: rgba(168, 255, 102, 0.12);
-    color: #9fe267;
-    border: 1px solid rgba(168, 255, 102, 0.12);
+    background: color-mix(in srgb, var(--success) 12%, transparent);
+    color: var(--success);
+    border: 1px solid color-mix(in srgb, var(--success) 12%, transparent);
 
     &:disabled {
-        background: rgba(168, 255, 102, 0.12);
-        color: #9fe267;
-        border: 1px solid rgba(168, 255, 102, 0.12);
+        background: color-mix(in srgb, var(--success) 12%, transparent);
+        color: var(--success);
+        border: 1px solid color-mix(in srgb, var(--success) 12%, transparent);
     }
 }
 
 .download_button_remove {
-    background: rgba(239, 68, 68, 0.14);
-    color: #ff9b9b;
-    border: 1px solid rgba(239, 68, 68, 0.16);
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    color: var(--danger);
+    border: 1px solid color-mix(in srgb, var(--danger) 16%, transparent);
 
     &:hover:not(:disabled) {
         background: rgba(239, 68, 68, 0.22);
-        color: #ffd0d0;
+        color: var(--danger);
     }
 
     &:disabled {
-        background: rgba(239, 68, 68, 0.14);
-        color: #ff9b9b;
-        border: 1px solid rgba(239, 68, 68, 0.16);
+        background: color-mix(in srgb, var(--danger) 14%, transparent);
+        color: var(--danger);
+        border: 1px solid color-mix(in srgb, var(--danger) 16%, transparent);
     }
 }
 
@@ -425,7 +425,7 @@
 .button_installed {
     cursor: default;
     pointer-events: none;
-    background: #a8ff66;
+    background: var(--success);
     color: black;
 }
 
@@ -519,8 +519,8 @@
     padding: 0 9px;
     box-sizing: border-box;
     border-radius: 999px;
-    background: rgba(11, 16, 29, 0.28);
-    border: 1px solid rgba(255, 255, 255, 0.08);
+    background: color-mix(in srgb, var(--background) 28%, transparent);
+    border: 1px solid var(--hover);
     color: rgba(239, 242, 255, 0.92);
     font-size: 10px;
     font-weight: 700;
@@ -557,12 +557,12 @@
 }
 
 .badge_active {
-    background-color: rgb(168, 255, 102);
+    background-color: var(--success);
     color: black;
 }
 
 .badge_theme {
-    background-color: rgb(168, 255, 102);
+    background-color: var(--success);
     color: black;
 }
 
@@ -576,8 +576,8 @@
 }
 
 .badge_pending {
-    background-color: #f59e0b;
-    color: #111827;
+    background-color: var(--warning);
+    color: var(--surface-tertiary);
 }
 
 .badge_rejected {
@@ -599,13 +599,13 @@
 
 .badge_tag {
     background: rgba(17, 24, 39, 0.74);
-    border: 1px solid rgba(255, 255, 255, 0.14);
+    border: 1px solid var(--active);
     color: #dbeafe;
 }
 
 .badge_warningTag {
-    background: #f59e0b;
-    color: #111827;
+    background: var(--warning);
+    color: var(--surface-tertiary);
 }
 
 .aiTooltipTrigger {

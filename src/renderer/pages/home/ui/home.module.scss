@@ -13,7 +13,7 @@
     padding: 18px;
     border-radius: 14px;
     background: linear-gradient(180deg, rgba(79, 87, 116, 0.08) 0%, rgba(79, 87, 116, 0) 100%), #2f3446;
-    border: 1px solid rgba(91, 100, 128, 0.55);
+    border: 1px solid color-mix(in srgb, var(--text-muted) 55%, transparent);
     box-sizing: border-box;
 }
 
@@ -125,31 +125,19 @@
 .ymItem {
     background:
         conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
-        #232632;
+        var(--surface-secondary);
 }
 
 .modItem {
     background:
         conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
-        #232632;
-    .actionButton {
-        color: #505bd8;
-        &:not(:disabled):active {
-            color: #505bd8;
-        }
-    }
+        var(--surface-secondary);
 }
 
 .clientItem {
     background:
         conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
-        #232632;
-    .actionButton {
-        color: #3c67f7;
-        &:not(:disabled):active {
-            color: #3c67f7;
-        }
-    }
+        var(--surface-secondary);
 }
 
 .secondaryItem {
@@ -267,7 +255,7 @@
     font-size: 14px;
     line-height: 110%;
 
-    color: #c8a826;
+    color: var(--accent-foreground);
 
     transition:
         transform 0.16s ease,
@@ -279,14 +267,14 @@
     }
 
     &:not(:disabled):active {
-        background: #ececec;
+        background: var(--text-primary);
         transform: translateY(0);
-        color: #c8a826;
+        color: var(--accent-foreground);
     }
 
     &:disabled {
-        background: #6b7388;
-        color: rgba(244, 246, 251, 0.72);
+        background: var(--text-muted);
+        color: color-mix(in srgb, var(--text-primary) 72%, transparent);
     }
 }
 
@@ -296,7 +284,7 @@
     font-size: 14px;
     line-height: 110%;
 
-    color: rgba(244, 246, 251, 0.72);
+    color: color-mix(in srgb, var(--text-primary) 72%, transparent);
 
     display: flex;
     align-items: center;
@@ -329,7 +317,7 @@
     font-size: 14px;
     line-height: 110%;
 
-    color: #3b4052;
+    color: var(--border);
 
     transition:
         transform 0.16s ease,
@@ -341,14 +329,14 @@
     }
 
     &:not(:disabled):active {
-        background: #ececec;
+        background: var(--text-primary);
         transform: translateY(0);
-        color: #3b4052;
+        color: var(--border);
     }
 
     &:disabled {
-        background: #6b7388;
-        color: rgba(244, 246, 251, 0.72);
+        background: var(--text-muted);
+        color: color-mix(in srgb, var(--text-primary) 72%, transparent);
     }
 }
 
@@ -362,8 +350,8 @@
     border-radius: 8px;
     flex: 0 0 36px;
     line-height: 0;
-    color: rgba(244, 246, 251, 0.78);
-    background: rgba(255, 255, 255, 0.11);
+    color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+    background: var(--active);
     transition: none;
 
     svg {
@@ -373,14 +361,14 @@
     }
 
     &:not(:disabled):hover {
-        color: rgba(244, 246, 251, 0.78);
-        background: rgba(255, 255, 255, 0.11);
+        color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+        background: var(--active);
         transform: none;
     }
 
     &:not(:disabled):active {
-        color: rgba(244, 246, 251, 0.78);
-        background: rgba(255, 255, 255, 0.11);
+        color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+        background: var(--active);
         transform: none;
     }
 }
@@ -393,7 +381,7 @@
 .secondaryUnavailableButton:disabled {
     opacity: 1;
     background: #ffffff;
-    color: #3b4052;
+    color: var(--border);
     cursor: help;
 }
 
@@ -564,13 +552,13 @@
     flex: 0 0 auto;
     padding: 10px 14px;
     border-radius: 10px;
-    background: #f6f8ff;
-    color: #2f3854;
+    background: var(--text-primary);
+    color: var(--border);
     font-size: 13px;
     font-weight: 800;
 
     &:not(:disabled):active {
-        color: #2f3854;
+        color: var(--border);
     }
 }
 
@@ -605,12 +593,12 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: radial-gradient(circle at top, rgba(144, 161, 214, 0.2) 0%, rgba(144, 161, 214, 0) 45%), rgba(34, 39, 55, 0.76);
-    border: 1px solid rgba(118, 131, 172, 0.24);
+    background: radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%), color-mix(in srgb, var(--surface-elevated) 76%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 24%, transparent);
 }
 
 .newsStateTitle {
-    color: #f4f7ff;
+    color: var(--text-primary);
     font-size: 20px;
     font-weight: 800;
     line-height: 1.2;
@@ -628,13 +616,13 @@
     margin-top: 16px;
     padding: 10px 14px;
     border-radius: 10px;
-    background: #f6f8ff;
-    color: #2f3854;
+    background: var(--text-primary);
+    color: var(--border);
     font-size: 13px;
     font-weight: 800;
 
     &:not(:disabled):active {
-        color: #2f3854;
+        color: var(--border);
     }
 }
 
@@ -642,8 +630,8 @@
 .newsSkeletonItem {
     overflow: hidden;
     border-radius: 18px;
-    background: rgba(35, 40, 56, 0.88);
-    border: 1px solid rgba(119, 131, 165, 0.2);
+    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
 }
 
 .newsSkeletonFeatured {
@@ -659,7 +647,7 @@
 .newsSkeletonDescription,
 .newsSkeletonDescriptionShort,
 .newsSkeletonItemTitle {
-    background: linear-gradient(90deg, rgba(115, 127, 164, 0.18) 0%, rgba(159, 173, 214, 0.28) 50%, rgba(115, 127, 164, 0.18) 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--text-secondary) 18%, transparent) 0%, color-mix(in srgb, var(--text-secondary) 28%, transparent) 50%, color-mix(in srgb, var(--text-secondary) 18%, transparent) 100%);
     background-size: 220% 100%;
     animation: newsShimmer 1.35s ease-in-out 0.75s infinite;
 }

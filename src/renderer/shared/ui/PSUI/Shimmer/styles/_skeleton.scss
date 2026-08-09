@@ -6,7 +6,7 @@
     gap: 16px;
 }
 
-@mixin surface($background: rgba(129, 141, 179, 0.18)) {
+@mixin surface($background: color-mix(in srgb, var(--text-secondary) 18%, transparent)) {
     position: relative;
     overflow: hidden;
     background: $background;
@@ -16,12 +16,12 @@
         position: absolute;
         inset: 0;
         transform: translateX(-100%);
-        background: linear-gradient(90deg, transparent 0%, rgba(255, 255, 255, 0.12) 42%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
+        background: linear-gradient(90deg, transparent 0%, var(--active) 42%, rgba(255, 255, 255, 0.22) 50%, transparent 100%);
         animation: shimmer-slide 1.35s ease-in-out 0.75s infinite;
     }
 }
 
-@mixin text-surface($background: rgba(129, 141, 179, 0.18)) {
+@mixin text-surface($background: color-mix(in srgb, var(--text-secondary) 18%, transparent)) {
     @include surface($background);
     border-radius: 999px;
 }

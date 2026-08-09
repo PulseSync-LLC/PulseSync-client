@@ -35,7 +35,7 @@
     border: none;
     border-radius: 8px;
     background: transparent;
-    color: #b8c0d6;
+    color: var(--text-secondary);
     flex-shrink: 0;
     cursor: pointer;
     transition:
@@ -47,7 +47,7 @@
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.06);
+        background: var(--hover);
         color: #ffffff;
     }
 
@@ -84,10 +84,10 @@
     max-height: calc(100vh - 180px);
     overflow: auto;
     overflow-x: hidden;
-    border: 1px solid #353946;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #242832;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    background: var(--surface-elevated);
+    box-shadow: inset 0 1px 0 var(--hover);
     box-sizing: border-box;
 }
 
@@ -98,8 +98,8 @@
     min-width: 0;
     padding: 14px;
     border-radius: 12px;
-    border: 1px solid #363944;
-    background: #1f232d;
+    border: 1px solid var(--border);
+    background: var(--surface-tertiary);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -113,14 +113,14 @@
 
 .item:hover {
     transform: translateY(-1px);
-    border-color: #4a4f5d;
-    background: #232834;
+    border-color: var(--border-hover);
+    background: var(--surface-elevated);
 }
 
 .itemActive {
-    border-color: #577eff;
-    background: linear-gradient(180deg, rgba(87, 126, 255, 0.14) 0%, rgba(87, 126, 255, 0.05) 100%), #232834;
-    box-shadow: inset 0 0 0 1px rgba(87, 126, 255, 0.18);
+    border-color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, rgba(87, 126, 255, 0.05) 100%), var(--surface-elevated);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .itemTop {
@@ -152,9 +152,9 @@
     min-height: 22px;
     padding: 0 9px;
     border-radius: 999px;
-    background: rgba(87, 126, 255, 0.16);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
     border: 1px solid rgba(87, 126, 255, 0.28);
-    color: #b7c7ff;
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 700;
     flex-shrink: 0;
@@ -180,15 +180,15 @@
 }
 
 .metaChip {
-    background: #2b303b;
-    border: 1px solid #3a3f4b;
+    background: var(--border);
+    border: 1px solid var(--border);
     color: #c8d0e3;
 }
 
 .metaChipActive {
-    background: rgba(87, 126, 255, 0.16);
+    background: color-mix(in srgb, var(--accent) 16%, transparent);
     border: 1px solid rgba(87, 126, 255, 0.28);
-    color: #b7c7ff;
+    color: var(--text-secondary);
 }
 
 .form {
@@ -198,10 +198,10 @@
     display: grid;
     align-content: start;
     gap: 16px;
-    border: 1px solid #353946;
+    border: 1px solid var(--border);
     border-radius: 14px;
-    background: #242832;
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    background: var(--surface-elevated);
+    box-shadow: inset 0 1px 0 var(--hover);
     overflow-x: hidden;
 }
 
@@ -226,7 +226,7 @@
 
 .formDescription {
     margin: 8px 0 0;
-    color: #b6bfd4;
+    color: var(--text-secondary);
     line-height: 1.5;
     max-width: 560px;
     overflow-wrap: anywhere;
@@ -238,10 +238,10 @@
     gap: 6px;
     min-height: 32px;
     padding: 0 10px;
-    border: 1px solid #3a3f4b;
+    border: 1px solid var(--border);
     border-radius: 10px;
-    background: #2b303b;
-    color: #dbe2ff;
+    background: var(--border);
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 700;
     cursor: pointer;
@@ -253,15 +253,15 @@
 }
 
 .copyButton:hover {
-    border-color: #577eff;
-    background: rgba(87, 126, 255, 0.14);
+    border-color: var(--accent);
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
     color: #ffffff;
     transform: translateY(-1px);
 }
 
 .copyButton:focus-visible {
     outline: none;
-    box-shadow: 0 0 0 3px rgba(87, 126, 255, 0.14);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
 }
 
 .groupsGrid {
@@ -276,8 +276,8 @@
     min-width: 0;
     padding: 12px;
     border-radius: 12px;
-    border: 1px solid #363944;
-    background: #1f232d;
+    border: 1px solid var(--border);
+    background: var(--surface-tertiary);
     text-align: left;
     color: inherit;
     cursor: pointer;
@@ -291,14 +291,14 @@
 
 .groupButton:hover {
     transform: translateY(-1px);
-    border-color: #4a4f5d;
-    background: #232834;
+    border-color: var(--border-hover);
+    background: var(--surface-elevated);
 }
 
 .groupButtonActive {
-    border-color: #577eff;
-    background: linear-gradient(180deg, rgba(87, 126, 255, 0.14) 0%, rgba(87, 126, 255, 0.05) 100%), #232834;
-    box-shadow: inset 0 0 0 1px rgba(87, 126, 255, 0.18);
+    border-color: var(--accent);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, rgba(87, 126, 255, 0.05) 100%), var(--surface-elevated);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
 }
 
 .groupButtonName {
@@ -309,7 +309,7 @@
 }
 
 .groupDescription {
-    color: #b6bfd4;
+    color: var(--text-secondary);
     line-height: 1.45;
     overflow-wrap: anywhere;
 }
@@ -320,7 +320,7 @@
     min-width: 0;
     padding: 14px;
     border-radius: 12px;
-    border: 1px solid #353946;
+    border: 1px solid var(--border);
     background: #272c37;
 }
 
@@ -331,7 +331,7 @@
 }
 
 .fieldLabel {
-    color: #dbe2ff;
+    color: var(--text-primary);
     font-size: 12px;
     font-weight: 800;
     text-transform: uppercase;
@@ -341,8 +341,8 @@
 .fieldInput,
 .textarea {
     width: 100%;
-    border: 1px solid #363944;
-    background: #1e2027;
+    border: 1px solid var(--border);
+    background: var(--surface-tertiary);
     color: #ffffff;
     border-radius: 10px;
     font: inherit;
@@ -377,8 +377,8 @@
 .fieldInput:focus,
 .textarea:focus {
     outline: none;
-    border-color: #577eff;
-    box-shadow: 0 0 0 3px rgba(87, 126, 255, 0.14);
+    border-color: var(--accent);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
     background: #20232b;
 }
 
@@ -390,8 +390,8 @@
     width: 100%;
     box-sizing: border-box;
     text-align: center;
-    color: #b6bfd4;
-    background: #292c36;
+    color: var(--text-secondary);
+    background: var(--border);
 }
 
 @media (max-width: 1040px) {

@@ -10,12 +10,12 @@
     gap: 6px;
     padding: 10px 16px;
     width: -webkit-fill-available;
-    background: #3b4052;
+    background: var(--border);
     border-radius: 8px;
     outline: transparent solid 2px;
     transition: var(--transition);
     &:hover {
-        outline: #8d9dd6 solid 2px;
+        outline: var(--text-secondary) solid 2px;
     }
 }
 
@@ -36,7 +36,7 @@
 .value {
     font-weight: 500;
     font-size: 18px;
-    color: #c7cfee;
+    color: var(--text-secondary);
     transition: var(--transition);
 }
 .placeholder {
@@ -47,11 +47,11 @@
     transition:
         transform var(--transition),
         color var(--transition);
-    color: #c7cfee;
+    color: var(--text-secondary);
 }
 .open .arrow {
     transform: rotate(180deg);
-    color: #e4e9ff;
+    color: var(--text-primary);
 }
 
 .panel {
@@ -59,8 +59,8 @@
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    background: #2b3042;
-    border: 1px solid #3e465f;
+    background: var(--border);
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     padding: 6px;
@@ -78,17 +78,17 @@
 .searchInput {
     width: 100%;
     height: 38px;
-    border: 1px solid #4a526d;
+    border: 1px solid var(--border-hover);
     border-radius: 10px;
-    background: #242a39;
-    color: #e7ecf3;
+    background: var(--surface-elevated);
+    color: var(--text-primary);
     padding: 0 12px;
     font: inherit;
     outline: none;
 }
 
 .searchInput::placeholder {
-    color: #8f9bb3;
+    color: var(--text-secondary);
 }
 .list {
     display: grid;
@@ -109,7 +109,7 @@
     border: 1px solid transparent;
     border-radius: 8px;
     cursor: pointer;
-    color: #e7ecf3;
+    color: var(--text-primary);
     text-align: left;
     transition:
         background-color var(--transition),
@@ -117,21 +117,21 @@
 
     &:hover,
     &.hover {
-        background: #3a4057;
-        border-color: #4a5473;
+        background: var(--border);
+        border-color: var(--border-hover);
     }
 }
 .optionLabel {
     pointer-events: none;
 }
 .check {
-    color: #c7cfee;
+    color: var(--text-secondary);
 }
 
 .active {
-    background: #3a4057;
-    border-color: #8d9dd6;
-    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+    background: var(--border);
+    border-color: var(--text-secondary);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-secondary) 15%, transparent);
 }
 
 .valueLine {
@@ -143,5 +143,5 @@
 
 .arrowOpen {
     transform: rotate(180deg);
-    color: #e4e9ff;
+    color: var(--text-primary);
 }

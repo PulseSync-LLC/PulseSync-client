@@ -18,20 +18,20 @@
 }
 
 .statusText {
-    @include shimmer.text-surface(rgba(47, 56, 29, 0.22));
+    @include shimmer.text-surface(color-mix(in srgb, var(--success) 22%, transparent));
     width: 320px;
     height: 14px;
 }
 
 .statusIcon {
-    @include shimmer.surface(rgba(47, 56, 29, 0.22));
+    @include shimmer.surface(color-mix(in srgb, var(--success) 22%, transparent));
     width: 18px;
     height: 18px;
     border-radius: 4px;
 }
 
 .banner {
-    @include shimmer.surface(rgba(129, 141, 179, 0.14));
+    @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 14%, transparent));
     height: 350px;
     min-height: 350px;
     padding: 15px 40px;
@@ -140,7 +140,7 @@
 }
 
 .section {
-    @include shimmer.surface(#292c36);
+    @include shimmer.surface(var(--border));
     min-height: 240px;
     padding: 10px 40px;
     display: flex;
@@ -195,14 +195,14 @@
 }
 
 .progressBar {
-    @include shimmer.surface(rgba(154, 165, 200, 0.5));
+    @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 50%, transparent));
     position: relative;
     height: 45px;
     border-radius: 8px;
 }
 
 .progressFill {
-    @include shimmer.surface(rgba(151, 169, 255, 0.32));
+    @include shimmer.surface(color-mix(in srgb, var(--accent) 32%, transparent));
     position: absolute;
     left: 4px;
     top: 4px;
@@ -252,7 +252,7 @@
 }
 
 .achievementRow {
-    @include shimmer.surface(#474c5c);
+    @include shimmer.surface(var(--border-hover));
     height: 58px;
     border-radius: 8px;
     display: flex;

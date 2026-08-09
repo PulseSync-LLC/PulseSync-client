@@ -10,7 +10,7 @@ button {
     font-size: 15px;
     line-height: 1;
     color: #fff;
-    outline: 1px solid #040508;
+    outline: 1px solid var(--background);
     // box-shadow:
     //     hsla(210, 23%, 9%, 0.521) 0px 10px 38px -10px,
     //     hsla(208, 25%, 10%, 0.61) 0px 10px 20px -15px;
@@ -25,7 +25,7 @@ button {
     justify-content: center;
     align-items: flex-start;
     padding: 3px 8px;
-    background: #040508;
+    background: var(--background);
     font-weight: 800;
     font-size: 14px;
     line-height: 140%;
@@ -45,7 +45,7 @@ button {
 }
 
 .TooltipArrow {
-    fill: #040508;
+    fill: var(--background);
     width: 16px;
     height: 7px;
 }
@@ -59,7 +59,7 @@ button {
     align-items: center;
     justify-content: center;
     color: var(--violet-11);
-    background-color: #494f66;
+    background-color: var(--border-hover);
     box-shadow: 0 2px 10px var(--black-a7);
     user-select: none;
 }
@@ -67,7 +67,7 @@ button {
     background-color: var(--violet-3);
 }
 .IconButton:focus {
-    box-shadow: 0 0 0 2px #494f66;
+    box-shadow: 0 0 0 2px var(--border-hover);
 }
 
 @keyframes slideUpAndFade {

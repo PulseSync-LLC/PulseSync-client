@@ -1,9 +1,9 @@
 @use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
 
 :root {
-    --cfg-text: var(--text-primary, #e7ecf3);
-    --cfg-muted: var(--text-secondary, #9fb0c6);
-    --cfg-accent: var(--accent, #6ea8fe);
+    --cfg-text: var(--text-primary);
+    --cfg-muted: var(--text-secondary);
+    --cfg-accent: var(--accent);
 }
 
 .root {
@@ -18,8 +18,8 @@
 .alert {
     padding: 18px 24px;
     margin: 16px 40px;
-    background: #3b4052;
-    border: 1px solid #4a526d;
+    background: var(--border);
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
 }
 
@@ -27,8 +27,8 @@
 .skeletonFieldMedium,
 .skeletonFieldTall,
 .skeletonCard {
-    @include shimmer.surface(rgba(129, 141, 179, 0.14));
-    border: 1px solid rgba(74, 82, 109, 0.5);
+    @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 14%, transparent));
+    border: 1px solid color-mix(in srgb, var(--border-hover) 50%, transparent);
     border-radius: 14px;
 }
 
@@ -93,14 +93,14 @@
     gap: 4px;
     min-width: 0;
     padding: 10px 16px;
-    background: #3b4052;
+    background: var(--border);
     border-radius: 8px;
     outline: transparent solid 2px;
     transition: var(--transition);
 }
 
 .authorField:hover {
-    outline: #8d9dd6 solid 2px;
+    outline: var(--text-secondary) solid 2px;
 }
 
 .authorFieldLabel {
@@ -145,7 +145,7 @@
 }
 
 .authorSearchInput::placeholder {
-    color: #7d849d;
+    color: var(--text-secondary);
 }
 
 .authorSearchInput:focus {
@@ -160,9 +160,9 @@
     z-index: 12;
     display: flex;
     flex-direction: column;
-    border: 1px solid #3e465f;
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
-    background: #2b3042;
+    background: var(--border);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     padding: 6px;
     overflow: hidden;
@@ -170,7 +170,7 @@
 
 .authorSearchState {
     padding: 10px 12px;
-    color: #9fb0c6;
+    color: var(--text-secondary);
     font-size: 13px;
     line-height: 1.45;
 }
@@ -231,7 +231,7 @@
     border: 1px solid #5b6687;
     border-radius: 10px;
     background: #3b4460;
-    color: #f4f7ff;
+    color: var(--text-primary);
     font-size: 13px;
     font-weight: 600;
     cursor: pointer;
@@ -257,7 +257,7 @@
 .listSummaryLabel {
     font-size: 13px;
     font-weight: 700;
-    color: #f2f6ff;
+    color: var(--text-primary);
 }
 
 .listSummaryValue {
@@ -320,7 +320,7 @@
     border-radius: 14px;
     background: #282e3d;
     border: 1px solid #3d4458;
-    color: #e7ecf3;
+    color: var(--text-primary);
 }
 
 .listEditorSectionHeader {
@@ -331,7 +331,7 @@
 .listEditorFieldLabel {
     font-size: 14px;
     font-weight: 700;
-    color: #f2f6ff;
+    color: var(--text-primary);
 }
 
 .listEditorHint {
@@ -354,9 +354,9 @@
 .listEditorInput {
     height: 44px;
     width: 100%;
-    border: 1px solid #4a526d;
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
-    background: #242a39;
+    background: var(--surface-elevated);
     color: var(--cfg-text);
     padding: 0 14px;
     font: inherit;
@@ -364,7 +364,7 @@
 }
 
 .listEditorInput::placeholder {
-    color: #8f9bb3;
+    color: var(--text-secondary);
 }
 
 .listEditorInput:focus {
@@ -399,14 +399,14 @@
 }
 
 .authorSearchOption:hover {
-    background: #3a4057;
-    border-color: #4a5473;
+    background: var(--border);
+    border-color: var(--border-hover);
 }
 
 .authorSearchOptionSelected {
-    background: #3a4057;
-    border-color: #8d9dd6;
-    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+    background: var(--border);
+    border-color: var(--text-secondary);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-secondary) 15%, transparent);
 }
 
 .authorSearchBody {
@@ -425,18 +425,18 @@
 .authorSearchPrimary {
     font-size: 13px;
     font-weight: 700;
-    color: #f4f7ff;
+    color: var(--text-primary);
 }
 
 .authorSearchSecondary {
     font-size: 12px;
-    color: #9fb0c6;
+    color: var(--text-secondary);
 }
 
 .authorSearchAction {
     font-size: 12px;
     font-weight: 700;
-    color: #6ea8fe;
+    color: var(--accent);
     white-space: nowrap;
 }
 
@@ -451,8 +451,8 @@
     min-width: 0;
     max-width: 100%;
     padding: 1px 7px;
-    background: rgba(110, 168, 254, 0.12);
-    border: 1px solid rgba(141, 157, 214, 0.22);
+    background: color-mix(in srgb, var(--accent) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
     border-radius: 999px;
 }
 
@@ -472,7 +472,7 @@
     border: 0;
     border-radius: 0;
     background: transparent;
-    color: #7d849d;
+    color: var(--text-secondary);
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -502,7 +502,7 @@
     padding-right: 2px;
     border: 1px solid #343c50;
     border-radius: 12px;
-    background: #242a39;
+    background: var(--surface-elevated);
 }
 
 .listEditorEmpty {
@@ -519,7 +519,7 @@
     align-items: center;
     padding: 12px 14px;
     background: transparent;
-    border-bottom: 1px solid rgba(74, 82, 109, 0.5);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-hover) 50%, transparent);
 }
 
 .listEditorRow:last-child {
@@ -530,7 +530,7 @@
     font-size: 13px;
     line-height: 1.5;
     word-break: break-word;
-    color: #e7ecf3;
+    color: var(--text-primary);
 }
 
 .listEditorRemoveButton {
@@ -539,7 +539,7 @@
     border: 0;
     border-radius: 8px;
     background: rgba(255, 107, 107, 0.12);
-    color: #ffb1b1;
+    color: var(--danger);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -547,7 +547,7 @@
 }
 
 .listEditorRemoveButton:hover {
-    background: rgba(255, 107, 107, 0.2);
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .listEditorInlineError,
@@ -556,7 +556,7 @@
     border-radius: 12px;
     background: rgba(255, 107, 107, 0.14);
     border: 1px solid rgba(255, 107, 107, 0.32);
-    color: #ffb1b1;
+    color: var(--danger);
     font-size: 13px;
     line-height: 1.5;
 }
@@ -566,7 +566,7 @@
     max-height: 220px;
     object-fit: cover;
     border-radius: 10px;
-    border: 1px solid #4a526d;
+    border: 1px solid var(--border-hover);
     background: #2f3443;
 }
 
@@ -578,7 +578,7 @@
 }
 
 .primaryBtn {
-    background: #3468f2 !important;
+    background: var(--accent) !important;
     color: #fff !important;
     border: 0 !important;
 }
@@ -588,7 +588,7 @@
 
 .secondaryBtn {
     background: rgba(254, 110, 110, 0.12) !important;
-    color: #ff9f9f !important;
+    color: var(--danger) !important;
     border: 0 !important;
 }
 .secondaryBtn:hover {

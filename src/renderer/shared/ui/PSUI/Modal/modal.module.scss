@@ -24,7 +24,7 @@
 
     hr {
         border: none;
-        border-top: 1px solid rgba(255, 255, 255, 0.08);
+        border-top: 1px solid var(--hover);
         margin: 1.5rem 0;
     }
 
@@ -59,10 +59,10 @@
 }
 
 .updateItem:nth-child(odd) {
-    background: linear-gradient(90deg, #577eff24 0%, rgba(87, 126, 255, 0) 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 100%);
 }
 .updateItem:nth-child(even) {
-    background: linear-gradient(90deg, #577eff10 0%, rgba(87, 126, 255, 0) 100%);
+    background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 100%);
 }
 
 .version_info {
@@ -80,7 +80,7 @@
         color: #ffffff;
         padding: 2px 10px;
         border-radius: 33px;
-        background: #3468f2;
+        background: var(--accent);
     }
 
     span {

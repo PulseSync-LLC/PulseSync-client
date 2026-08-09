@@ -12,7 +12,7 @@
     max-width: 100%;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
-    background: #252835;
+    background: var(--surface-elevated);
     position: relative;
     overflow: hidden;
 }
@@ -30,7 +30,7 @@
     max-width: 100%;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
-    background: #33394b;
+    background: var(--border);
 
     & > .extensionContent {
         display: flex;
@@ -38,7 +38,7 @@
         min-width: 0;
         width: 100%;
         max-width: 100%;
-        background: #33394b;
+        background: var(--border);
         z-index: 2;
         position: relative;
         align-items: flex-start;
@@ -66,7 +66,7 @@
                 padding: 9px 25px;
                 gap: 10px;
 
-                background: #3468f2;
+                background: var(--accent);
                 color: #fff;
                 border-radius: 8px;
                 border: 0;
@@ -159,7 +159,7 @@
                 gap: 12px;
                 padding: 14px 16px;
                 border-radius: 12px;
-                background: rgba(129, 141, 179, 0.12);
+                background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
                 color: #e7edff;
                 line-height: 1.55;
             }
@@ -191,7 +191,7 @@
 
             .changelogBullet {
                 flex: 0 0 auto;
-                color: #8fffd4;
+                color: var(--success);
                 font-size: 18px;
                 line-height: 1.2;
             }
@@ -273,7 +273,7 @@
 }
 
 .relationsSectionTitle {
-    color: #f4f7ff;
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 800;
     line-height: 1.2;
@@ -300,9 +300,9 @@
     gap: 12px;
     padding: 14px 16px;
     border-radius: 16px;
-    border: 1px solid rgba(129, 141, 179, 0.14);
-    background: linear-gradient(180deg, rgba(73, 81, 107, 0.24) 0%, rgba(53, 59, 79, 0.34) 100%), rgba(129, 141, 179, 0.08);
-    box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.02);
+    border: 1px solid color-mix(in srgb, var(--text-secondary) 14%, transparent);
+    background: linear-gradient(180deg, rgba(73, 81, 107, 0.24) 0%, rgba(53, 59, 79, 0.34) 100%), var(--hover);
+    box-shadow: inset 0 1px 0 var(--hover);
 }
 
 .relationCardButton {
@@ -314,8 +314,8 @@
     text-align: left;
 
     &:hover {
-        border-color: rgba(129, 141, 179, 0.28);
-        background: linear-gradient(180deg, rgba(87, 96, 126, 0.28) 0%, rgba(60, 67, 90, 0.38) 100%), rgba(129, 141, 179, 0.1);
+        border-color: color-mix(in srgb, var(--text-secondary) 28%, transparent);
+        background: linear-gradient(180deg, color-mix(in srgb, var(--border-hover) 28%, transparent) 0%, rgba(60, 67, 90, 0.38) 100%), color-mix(in srgb, var(--text-secondary) 10%, transparent);
         transform: translateY(-1px);
     }
 }
@@ -331,14 +331,14 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    background: rgba(129, 141, 179, 0.14);
-    color: #dbe4ff;
+    background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
+    color: var(--text-primary);
     flex: 0 0 auto;
 }
 
 .relationCardIconDanger {
     background: rgba(255, 109, 109, 0.16);
-    color: #ffd0d0;
+    color: var(--danger);
 }
 
 .relationCardBody {
@@ -383,18 +383,18 @@
 }
 
 .relationCardStatusNeutral {
-    background: rgba(129, 141, 179, 0.16);
+    background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
     color: #d7e0fb;
 }
 
 .relationCardStatusMuted {
-    background: rgba(129, 141, 179, 0.11);
+    background: color-mix(in srgb, var(--text-secondary) 11%, transparent);
     color: #9eabc9;
 }
 
 .relationCardStatusDanger {
     background: rgba(255, 109, 109, 0.18);
-    color: #ffd0d0;
+    color: var(--danger);
 }
 
 .relationCardMetaRow {
@@ -463,7 +463,7 @@
     padding: 10px 35px;
     gap: 10px;
 
-    background: rgba(129, 141, 179, 0.22);
+    background: color-mix(in srgb, var(--text-secondary) 22%, transparent);
     border-radius: 8px;
     border: none;
 
@@ -478,19 +478,19 @@
     }
 
     &:hover {
-        background: rgba(129, 141, 179, 0.44);
+        background: color-mix(in srgb, var(--text-secondary) 44%, transparent);
     }
 }
 
 .defaultButtonActive {
     transition: var(--transition);
-    background: #3468f2;
+    background: var(--accent);
 
     &:disabled {
         opacity: 0.5;
     }
     &:hover {
-        background: rgb(37, 83, 209);
+        background: var(--accent);
     }
 }
 
@@ -498,7 +498,7 @@
     transition: var(--transition);
     display: flex;
     gap: 0px;
-    background: rgba(129, 141, 179, 0.22);
+    background: color-mix(in srgb, var(--text-secondary) 22%, transparent);
     border-radius: 8px;
 
     &:hover {
@@ -506,10 +506,10 @@
         background: transparent;
 
         & > .miniButton {
-            background: rgba(129, 141, 179, 0.22);
+            background: color-mix(in srgb, var(--text-secondary) 22%, transparent);
 
             &:hover {
-                background: rgba(129, 141, 179, 0.44);
+                background: color-mix(in srgb, var(--text-secondary) 44%, transparent);
             }
         }
     }
@@ -537,7 +537,7 @@
 }
 
 .miniButton:hover {
-    background: rgba(129, 141, 179, 0.44);
+    background: color-mix(in srgb, var(--text-secondary) 44%, transparent);
 }
 
 .edit {
@@ -554,18 +554,18 @@
     bottom: 30px;
     right: 30px;
 
-    background: #292c36;
-    border: 1px solid #363944;
+    background: var(--border);
+    border: 1px solid var(--border);
     border-radius: 69px;
     color: #ffffff;
 
     &:hover {
-        background: #363944;
+        background: var(--border);
     }
 }
 
 .activeEdit {
-    background: #3468f2;
+    background: var(--accent);
 
     &:hover {
         background: #3c6ef7;
@@ -623,12 +623,12 @@
 .howAlert {
     padding: 10px 15px;
     width: -webkit-fill-available;
-    background: #ffee71;
+    background: var(--warning);
     font-weight: 800;
     font-size: 14px;
     line-height: 15px;
     text-align: center;
-    color: #1f222b;
+    color: var(--surface-tertiary);
 }
 
 .formContainer {
@@ -666,12 +666,12 @@
 
 .saveButton:hover {
     filter: brightness(0.9);
-    background: #3468f2;
+    background: var(--accent);
     outline: 0;
 }
 
 .cancelButton:hover {
-    background: rgba(255, 72, 72, 0.363);
+    background: color-mix(in srgb, var(--danger) 36.3%, transparent);
     outline: 0;
 }
 
@@ -684,7 +684,7 @@
     padding: 8px 20px;
     border: none;
     border-radius: 6px;
-    background: #3468f2;
+    background: var(--accent);
     color: #fff;
     font-weight: 600;
     font-size: 14px;

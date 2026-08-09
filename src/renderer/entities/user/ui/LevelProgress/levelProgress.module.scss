@@ -5,7 +5,7 @@
     padding: 8px 12px 12px;
     gap: 8px;
     width: 100%;
-    background: #474c5c;
+    background: var(--border-hover);
     border-radius: 14px;
 
     .level_header {
@@ -14,7 +14,7 @@
         font-weight: 700;
         font-size: 14px;
         line-height: 140%;
-        color: #c4cce7;
+        color: var(--text-secondary);
         flex: none;
     }
 
@@ -28,8 +28,8 @@
         padding: 4px;
         gap: 10px;
         isolation: isolate;
-        background: rgba(154, 165, 200, 0.5);
-        //outline: 4px solid rgba(154, 165, 200, 0.5);
+        background: color-mix(in srgb, var(--text-secondary) 50%, transparent);
+        //outline: 4px solid color-mix(in srgb, var(--text-secondary) 50%, transparent);
         border-radius: 8px;
 
         .progress_fill {
