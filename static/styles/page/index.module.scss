@@ -1,15 +1,18 @@
 .page {
-    font-family: 'Open Runde', sans-serif;
+    font-family: var(--font-family), sans-serif;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
     overflow-y: scroll;
+    scrollbar-width: none;
     display: flex;
 
     padding: 0px;
-    background: var(--Main);
+    background: var(--background);
+    border-radius: 12px;
 
-    filter: drop-shadow(0px 0px 4px rgba(6, 10, 23, 0.65));
-    border-radius: 10px;
+    &::-webkit-scrollbar {
+        display: none;
+    }
 }
 
 .container30x15 {
@@ -65,9 +68,9 @@
         width: -webkit-fill-available;
         height: -webkit-fill-available;
 
-        border-radius: 10px;
-        background: var(--MainBG);
-        border: solid 1px #3d445b;
+        border-radius: 12px;
+        background: var(--background);
+        border: 1px solid var(--border);
         position: relative;
         overflow: hidden;
 

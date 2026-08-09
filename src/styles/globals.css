@@ -1,36 +1,37 @@
 @import url('./fonts.css');
 
 :root {
-    --white: #f0f0f0;
+    /* Legacy compatibility aliases. Exact fallbacks preserve bootstrap/preload. */
+    --white: var(--ps-foreground, #f0f0f0);
     --primary: #ffcc66;
-    --red: #ed4245;
+    --red: var(--ps-danger, #ed4245);
 
-    --medium: #131317;
-    --mediumer: #1c1c22;
-    --dark: #08070d;
+    --medium: var(--ps-surface-secondary, #131317);
+    --mediumer: var(--ps-surface-tertiary, #1c1c22);
+    --dark: var(--ps-surface-primary, #08070d);
 
-    --gray: #777;
-    --grayer: #25252d;
-    --Main: #16181e;
-    --MainBG: #232631;
+    --gray: var(--ps-text-muted, #777);
+    --grayer: var(--ps-surface-elevated, #25252d);
+    --Main: var(--ps-background, #16181e);
+    --MainBG: var(--ps-background, #232631);
 
-    --BorderColor: #363944;
-    --BorderRadius: 8px;
+    --BorderColor: var(--ps-border, #363944);
+    --BorderRadius: var(--ps-radius-sm, 8px);
 
-    --textInputContainer: #a3abc6;
-    --inputColor: #16181e;
-    --inputPlaceholderColor: #909bbe;
+    --textInputContainer: var(--ps-text-secondary, #a3abc6);
+    --inputColor: var(--ps-surface-secondary, #16181e);
+    --inputPlaceholderColor: var(--ps-text-secondary, #909bbe);
 
-    --HeaderBarTextColor: #e4e5ea;
+    --HeaderBarTextColor: var(--ps-text-primary, #e4e5ea);
 
-    --NavigationOnColor: #3e424c;
-    --NavigationIconDefaultSvgColor: #8f94a8;
+    --NavigationOnColor: var(--ps-active, #3e424c);
+    --NavigationIconDefaultSvgColor: var(--ps-text-secondary, #8f94a8);
 
-    --downloadColor: #75ff9c;
+    --downloadColor: var(--ps-success, #75ff9c);
     --download: #2a3e3900;
     --downloadH: #1b2e2a;
 
-    --panelsColor: #292c36;
+    --panelsColor: var(--ps-surface-elevated, #292c36);
 
     --transition: cubic-bezier(0.45, 0.65, 0.395, 1) all 0.2s;
 
@@ -69,11 +70,15 @@ a.disabled {
 }
 
 a.active > button {
-    background: #3e6aff;
+    background: var(--text-primary);
     border: none;
 
     & > svg {
-        fill: white;
+        fill: var(--background);
+    }
+
+    & > img {
+        filter: grayscale(1) brightness(0);
     }
 }
 

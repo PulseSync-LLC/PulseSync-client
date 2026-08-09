@@ -6,8 +6,8 @@ import semver from 'semver'
 import { resolveStructuredPublishPath } from './s3-upload.js'
 
 const LEGACY_UPDATE_BRIDGE_BASE_VERSIONS: Readonly<Record<'beta' | 'dev', ReadonlySet<string>>> = {
-    beta: new Set(['2.18.0', '2.18.1', '2.18.2', '2.18.3', '2.18.4']),
-    dev: new Set(['2.18.0', '2.18.1', '2.18.2', '2.18.3', '2.18.4']),
+    beta: new Set(['3.0.0', '3.0.1', '3.0.2', '3.0.3', '3.0.4']),
+    dev: new Set(['3.0.0', '3.0.1', '3.0.2', '3.0.3', '3.0.4']),
 }
 
 export type EmitLegacyUpdateBridgeOptions = {

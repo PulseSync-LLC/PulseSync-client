@@ -37,7 +37,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
         >
             <div className={styles.user_info}>
                 <div className={styles.user_banner}>
-                    <Banner className={styles.banner_image} hash={user.bannerHash} ext={user.bannerType} sizes="390px" alt="" allowAnimate={isOpen} />
+                    <Banner className={styles.banner_image} hash={user.bannerHash} ext={user.bannerType} sizes="280px" alt="" allowAnimate={isOpen} />
                     <div className={styles.banner_gradient} />
                     <motion.div
                         className={styles.banner_overlay}
@@ -68,7 +68,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                         className={styles.avatar}
                         hash={user.avatarHash}
                         ext={user.avatarType}
-                        sizes="85px"
+                        sizes="72px"
                         alt="card_avatar"
                         allowAnimate={isOpen}
                     />
@@ -97,7 +97,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                             key={user.username}
                             className={styles.username}
                         >
-                            {user.nickname}
+                            {user.nickname || user.username}
                         </div>
                         <div className={styles.usertag}>@{user.username}</div>
                     </div>
@@ -120,7 +120,13 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                 <button className={styles.menu_button} disabled>
                     {t('header.settings')}
                 </button>
-                <button className={styles.menu_button} onClick={logout}>
+                <button
+                    className={styles.menu_button}
+                    onClick={() => {
+                        logout()
+                        onClose()
+                    }}
+                >
                     {t('header.logout')}
                 </button>
             </div>

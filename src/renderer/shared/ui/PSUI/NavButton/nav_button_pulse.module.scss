@@ -5,19 +5,33 @@
     display: flex;
     background: transparent;
     border: none;
-    border-radius: 28px;
-    padding: 10px;
+    width: 34px;
+    height: 34px;
+    box-sizing: border-box;
+    border-radius: 6px;
+    padding: 5px;
     position: relative;
 
-    & > svg {
+    & > svg,
+    & > img {
+        width: 24px;
+        height: 24px;
         transition: var(--transition);
-        fill: #eef1ff;
+        fill: var(--text-secondary);
+    }
+
+    & > img {
+        filter: grayscale(1) brightness(0) invert(0.63);
     }
 
     &:hover {
-        background: #3456c8;
+        background: var(--surface-elevated);
         & > svg {
-            fill: white;
+            fill: var(--text-primary);
+        }
+
+        & > img {
+            filter: grayscale(1) brightness(0) invert(1);
         }
     }
 

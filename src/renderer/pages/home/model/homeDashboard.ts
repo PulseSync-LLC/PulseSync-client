@@ -33,6 +33,6 @@ export const primaryComponents: HomePrimaryComponent[] = [
 
 export const secondaryComponents: HomeSecondaryComponent[] = [
     { id: 'ffmpeg', title: 'FFmpeg', iconAsset: 'icons/homeFfmpeg.svg' },
-    { id: 'ytdlp', title: 'YT Dlp', iconAsset: 'icons/homeYtdlp.svg' },
+    { id: 'ytdlp', title: 'Yt Dlp', iconAsset: 'icons/homeYtdlp.svg' },
     { id: 'obs-widget', title: 'OBS Widget', iconAsset: 'icons/homeObs.svg' },
 ]
