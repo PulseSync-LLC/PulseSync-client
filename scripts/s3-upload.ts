@@ -23,6 +23,7 @@ const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_PART_SIZE = 8 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_CONCURRENCY = 4
+const REMOTE_RENDERER_RETAIN_VERSIONS = 5
 
 enum LogLevel {
     INFO = 'INFO',
@@ -803,6 +804,63 @@ export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPubl
     }
 }
 
+async function pruneRemoteRendererVersions(client: S3Client, bucket: string, prefix: string, currentBuildNumber: string): Promise<void> {
+    const versionsPrefix = `${prefix}/versions/`
+    const keysByVersion = new Map<string, string[]>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: versionsPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+        for (const object of response.Contents ?? []) {
+            const key = object.Key
+            if (!key) continue
+            const relativeKey = key.slice(versionsPrefix.length)
+            const version = relativeKey.split('/', 1)[0]
+            if (!/^(?:0|[1-9]\d*)$/u.test(version)) continue
+            const versionKeys = keysByVersion.get(version)
+            if (versionKeys) versionKeys.push(key)
+            else keysByVersion.set(version, [key])
+        }
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    const versions = [...keysByVersion.keys()].sort((left, right) => (BigInt(left) > BigInt(right) ? -1 : BigInt(left) < BigInt(right) ? 1 : 0))
+    const retainedVersions = new Set<string>([currentBuildNumber])
+    for (const version of versions) {
+        if (retainedVersions.size >= REMOTE_RENDERER_RETAIN_VERSIONS) break
+        retainedVersions.add(version)
+    }
+
+    const versionsToRemove = versions.filter(version => !retainedVersions.has(version))
+    const keysToDelete = versionsToRemove.flatMap(version => keysByVersion.get(version) ?? [])
+    for (let index = 0; index < keysToDelete.length; index += 1000) {
+        const keys = keysToDelete.slice(index, index + 1000)
+        const response = await client.send(
+            new DeleteObjectsCommand({
+                Bucket: bucket,
+                Delete: {
+                    Objects: keys.map(Key => ({ Key })),
+                    Quiet: true,
+                },
+            }),
+        )
+        if (response.Errors?.length) {
+            throw new Error(`Failed to prune remote renderer versions: ${response.Errors.map(error => `${error.Key}: ${error.Code}`).join(', ')}`)
+        }
+    }
+
+    log(
+        LogLevel.SUCCESS,
+        `Remote renderer retention: kept ${versions.length - versionsToRemove.length} version(s), removed ${keysToDelete.length} object(s) from ${versionsToRemove.length} version(s)`,
+    )
+}
+
 export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<RemoteRendererPublishPlan> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
@@ -841,6 +899,7 @@ export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string
         plan.manifestPath,
         getRemoteRendererPointerUploadHeaders(plan.manifestPath),
     )
+    await pruneRemoteRendererVersions(client, bucket, prefix, plan.buildNumber)
 
     log(LogLevel.SUCCESS, 'Publish directory to S3 completed')
     return plan
