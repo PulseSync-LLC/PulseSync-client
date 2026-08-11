@@ -1,11 +1,12 @@
 import { useTranslation } from 'react-i18next'
 
+import { HiQuestionMarkCircle } from 'react-icons/hi'
 import { MdFolderOpen } from 'react-icons/md'
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 import TooltipButton from '@shared/ui/tooltip_button'
 
-import type { HomeSecondaryComponent } from '@pages/home/model/homeDashboard'
+import type { HomeSecondaryComponent, HomeSecondaryComponentId } from '@pages/home/model/homeDashboard'
 
 import * as styles from './home.module.scss'
 import cn from 'clsx'
@@ -16,6 +17,10 @@ type Props = {
     isObsInstalling: boolean
     onInstallObsWidget: () => void
     onOpenObsWidgetFolder: () => void
+}
+
+const isMetadataBackedSubcomponent = (itemId: HomeSecondaryComponentId): boolean => {
+    return itemId === 'ffmpeg' || itemId === 'ytdlp'
 }
 
 export default function HomeSecondaryComponentsSection({ items, isObsInstalled, isObsInstalling, onInstallObsWidget, onOpenObsWidgetFolder }: Props) {
@@ -64,17 +69,20 @@ export default function HomeSecondaryComponentsSection({ items, isObsInstalled, 
                                               : t('layout.installAction')}
                                     </ButtonV2>
                                 </div>
-                            ) : (
+                            ) : isMetadataBackedSubcomponent(item.id) ? (
                                 <TooltipButton
                                     side={'right'}
                                     tooltipText={t('pages.home.onDemandInstallHint')}
                                     as="div"
                                     className={styles.secondaryActionTooltip}
                                 >
-                                    <ButtonV2 type="button" className={cn(styles.secondaryActionButton, styles.secondaryUnavailableButton)} disabled>
-                                        {t('layout.installAction')}
-                                    </ButtonV2>
+                                    <div className={styles.secondaryActionStatusLabel}>
+                                        {item.version ? t('pages.home.installed') : t('pages.home.notInstalled')}
+                                        <HiQuestionMarkCircle aria-hidden="true" />
+                                    </div>
                                 </TooltipButton>
+                            ) : (
+                                <div className={styles.secondaryStatus}>{t('pages.home.notInstalled')}</div>
                             )}
                         </article>
                     )

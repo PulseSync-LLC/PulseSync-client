@@ -378,13 +378,6 @@
     margin-left: auto;
 }
 
-.secondaryUnavailableButton:disabled {
-    opacity: 1;
-    background: #ffffff;
-    color: var(--border);
-    cursor: help;
-}
-
 .newsBody {
     flex: 1 1 auto;
     border-radius: 16px;
