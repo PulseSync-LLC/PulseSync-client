@@ -337,19 +337,43 @@
     "extensions": {
         "actions": {
             "store": "Каталог",
-            "github": "GitHub"
+            "github": "GitHub",
+            "openStore": "Открыть страницу в каталоге",
+            "openGithub": "Открыть страницу GitHub"
         },
         "addonCreateFailed": "Не удалось скачать шаблон аддона",
         "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
         "addonCreatedTitle": "Шаблон аддона скачан",
         "createHandleEvents": "Создайте handleEvents.json",
         "defaultThemeSet": "Тема по умолчанию установлена",
+        "disableAction": "Выключить",
         "editModeEnter": "Режим редактирования включен",
         "editModeExit": "Режим редактирования выключен",
         "handleEventsMissing": "Файл handleEvents.json не найден",
         "initError": "Ошибка инициализации",
         "loadError": "Ошибка загрузки темы",
         "loadFailed": "Ошибка загрузки",
+        "linksTitle": "Ссылки",
+        "groups": {
+            "favorites": "Избранное",
+            "category": "Категория"
+        },
+        "organization": {
+            "addFavorite": "Добавить в избранное",
+            "categoryInvalid": "Введите уникальное название категории",
+            "categoryNameLabel": "Название категории",
+            "categoryNamePlaceholder": "Например, Оформление",
+            "createAction": "Создать",
+            "createCategory": "Создать категорию",
+            "deleteCategory": "Удалить категорию",
+            "deleteCategoryConfirm": "Удалить категорию «{{name}}»? Аддоны останутся установленными и перейдут в раздел без категории.",
+            "deleteCategoryTitle": "Удаление категории",
+            "moveToCategory": "Переместить в категорию",
+            "organizeAddon": "Организовать аддон {{name}}",
+            "removeFavorite": "Убрать из избранного",
+            "saveFailed": "Не удалось сохранить организацию аддонов",
+            "uncategorized": "Без категории"
+        },
         "meta": {
             "author": "Автор",
             "authors": "Авторы:",
@@ -358,6 +382,7 @@
             "relations": "Связи",
             "source": "Источник",
             "size": "Размер",
+            "tags": "Теги",
             "updated": "Обновлено",
             "version": "Версия"
         },
@@ -458,6 +483,7 @@
         },
         "tabs": {
             "changelog": "Патчноуты",
+            "description": "Описание",
             "license": "Лицензия",
             "metadata": "Метадата",
             "relations": "Совместимость",

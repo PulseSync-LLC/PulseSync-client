@@ -1,0 +1,33 @@
+.root {
+    width: 100%;
+    min-width: 0;
+}
+
+.list {
+    width: 100%;
+    min-width: 0;
+    box-sizing: border-box;
+    overflow-x: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
+.tab {
+    display: inline-flex;
+    flex: 1 1 0;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    min-width: max-content;
+
+    svg,
+    img {
+        flex: 0 0 auto;
+        width: 18px;
+        height: 18px;
+        object-fit: contain;
+    }
+}

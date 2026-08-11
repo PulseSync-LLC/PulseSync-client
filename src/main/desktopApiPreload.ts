@@ -236,6 +236,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     addons: {
         list: () => ipcRenderer.invoke(MainEvents.GET_ADDONS),
         setEnabled: request => ipcRenderer.invoke(MainEvents.SET_ADDON_ENABLED, request),
+        saveOrganization: async organization => {
+            ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'addons.organization', organization)
+        },
         importPext: filePath => ipcRenderer.invoke(MainEvents.IMPORT_PEXT_FILE, filePath),
         installStore: request => ipcRenderer.invoke(MainEvents.INSTALL_STORE_ADDON, request),
         packageArchive: request => ipcRenderer.invoke(MainEvents.PACKAGE_ADDON_ARCHIVE, request),

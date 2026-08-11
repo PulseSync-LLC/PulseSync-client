@@ -6,15 +6,188 @@
 .container {
     display: flex;
     flex: 1 1 auto;
-    flex-direction: column;
-    align-items: flex-start;
     min-width: 0;
-    max-width: 100%;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
-    background: var(--surface-elevated);
+    width: 100%;
+    height: 100%;
+    background: var(--background);
     position: relative;
     overflow: hidden;
+}
+
+.summaryPane {
+    flex: 0 0 460px;
+    width: 460px;
+    height: 100%;
+    border-right: 1px solid var(--border);
+    background: var(--background);
+}
+
+.summaryPaneInner,
+.detailScrollInner {
+    width: 100%;
+    height: 100%;
+    overflow-y: auto;
+}
+
+.detailPane {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-width: 0;
+    height: 100%;
+    padding: 15px 24px 0;
+    box-sizing: border-box;
+    background: var(--background);
+}
+
+.detailScroll {
+    flex: 1 1 auto;
+    min-width: 0;
+    width: 100%;
+    min-height: 0;
+}
+
+.extensionContent {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+    width: 100%;
+    min-height: 100%;
+    padding: 15px 0 32px;
+    box-sizing: border-box;
+    background: var(--background);
+    color: var(--text-secondary);
+}
+
+.alertContent {
+    display: flex;
+    min-height: 260px;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    color: var(--text-secondary);
+    font-size: 16px;
+    font-weight: 700;
+}
+
+.settingsAlertButton,
+.primaryButton {
+    padding: 9px 18px;
+    border: 0;
+    border-radius: 7px;
+    background: var(--accent);
+    color: var(--accent-foreground);
+    font: inherit;
+    font-weight: 700;
+    cursor: pointer;
+}
+
+.settingsContent {
+    display: flex;
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 16px;
+}
+
+.galleryContainer {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    width: 100%;
+    min-width: 0;
+    gap: 14px;
+}
+
+.markdownContent,
+.markdownText {
+    width: 100%;
+    min-width: 0;
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.5;
+
+    h1,
+    h2,
+    h3,
+    h4 {
+        color: var(--text-primary);
+    }
+
+    img {
+        display: block;
+        max-width: 100%;
+        height: auto;
+        border-radius: 12px;
+    }
+
+    pre,
+    table {
+        max-width: 100%;
+        overflow-x: auto;
+    }
+}
+
+.markdownImage {
+    display: block;
+    width: 100%;
+    max-width: 100%;
+    height: auto;
+    object-fit: contain;
+    border-radius: 12px;
+}
+
+.changelogPanel,
+.changelogList,
+.changelogItem {
+    display: flex;
+    flex-direction: column;
+}
+
+.changelogPanel,
+.changelogList {
+    gap: 12px;
+}
+
+.changelogTitle,
+.changelogVersion {
+    color: var(--text-primary);
+    font-weight: 800;
+}
+
+.changelogTitle {
+    font-size: 18px;
+}
+
+.changelogItem {
+    gap: 10px;
+    padding: 14px 16px;
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    background: var(--surface-primary);
+}
+
+.changelogVersionRow {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.changelogDate {
+    color: var(--text-muted);
+    font-size: 12px;
+}
+
+@media (max-width: 1350px) {
+    .summaryPane {
+        flex-basis: 410px;
+        width: 410px;
+    }
+
+    .detailPane {
+        padding-inline: 18px;
+    }
 }
 
 .containerFix {
@@ -67,12 +240,12 @@
                 gap: 10px;
 
                 background: var(--accent);
-                color: #fff;
+                color: var(--accent-foreground);
                 border-radius: 8px;
                 border: 0;
 
                 &:hover {
-                    background: #2553d1;
+                    background: var(--accent-muted);
                 }
             }
         }
@@ -141,7 +314,7 @@
             }
 
             .changelogTitle {
-                color: #ffffff;
+                color: var(--text-primary);
                 font-size: 18px;
                 font-weight: 800;
             }
@@ -160,7 +333,7 @@
                 padding: 14px 16px;
                 border-radius: 12px;
                 background: color-mix(in srgb, var(--text-secondary) 12%, transparent);
-                color: #e7edff;
+                color: var(--text-primary);
                 line-height: 1.55;
             }
 
@@ -172,13 +345,13 @@
             }
 
             .changelogVersion {
-                color: #ffffff;
+                color: var(--text-primary);
                 font-size: 15px;
                 font-weight: 800;
             }
 
             .changelogDate {
-                color: rgba(231, 237, 255, 0.6);
+                color: var(--text-muted);
                 font-size: 12px;
                 font-weight: 600;
             }
@@ -280,7 +453,7 @@
 }
 
 .relationsSectionText {
-    color: #acb7d7;
+    color: var(--text-secondary);
     font-size: 13px;
     font-weight: 500;
     line-height: 1.45;
@@ -301,7 +474,7 @@
     padding: 14px 16px;
     border-radius: 16px;
     border: 1px solid color-mix(in srgb, var(--text-secondary) 14%, transparent);
-    background: linear-gradient(180deg, rgba(73, 81, 107, 0.24) 0%, rgba(53, 59, 79, 0.34) 100%), var(--hover);
+    background: var(--surface-secondary);
     box-shadow: inset 0 1px 0 var(--hover);
 }
 
@@ -315,7 +488,7 @@
 
     &:hover {
         border-color: color-mix(in srgb, var(--text-secondary) 28%, transparent);
-        background: linear-gradient(180deg, color-mix(in srgb, var(--border-hover) 28%, transparent) 0%, rgba(60, 67, 90, 0.38) 100%), color-mix(in srgb, var(--text-secondary) 10%, transparent);
+        background: var(--surface-tertiary);
         transform: translateY(-1px);
     }
 }
@@ -337,7 +510,7 @@
 }
 
 .relationCardIconDanger {
-    background: rgba(255, 109, 109, 0.16);
+    background: color-mix(in srgb, var(--danger) 16%, transparent);
     color: var(--danger);
 }
 
@@ -357,7 +530,7 @@
 
 .relationCardTitle {
     min-width: 0;
-    color: #ffffff;
+    color: var(--text-primary);
     font-size: 14px;
     font-weight: 800;
     line-height: 1.25;
@@ -378,22 +551,22 @@
 }
 
 .relationCardStatusSuccess {
-    background: rgba(122, 216, 142, 0.18);
-    color: #dff7e6;
+    background: color-mix(in srgb, var(--success) 18%, transparent);
+    color: var(--success);
 }
 
 .relationCardStatusNeutral {
     background: color-mix(in srgb, var(--text-secondary) 16%, transparent);
-    color: #d7e0fb;
+    color: var(--text-primary);
 }
 
 .relationCardStatusMuted {
     background: color-mix(in srgb, var(--text-secondary) 11%, transparent);
-    color: #9eabc9;
+    color: var(--text-muted);
 }
 
 .relationCardStatusDanger {
-    background: rgba(255, 109, 109, 0.18);
+    background: color-mix(in srgb, var(--danger) 18%, transparent);
     color: var(--danger);
 }
 
@@ -411,8 +584,8 @@
     justify-content: center;
     padding: 4px 8px;
     border-radius: 999px;
-    background: rgba(52, 104, 242, 0.18);
-    color: #bcd0ff;
+    background: var(--surface-elevated);
+    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 800;
     line-height: 1;
@@ -422,7 +595,7 @@
 
 .relationCardMeta {
     min-width: 0;
-    color: #8f9aba;
+    color: var(--text-muted);
     font-size: 12px;
     font-weight: 600;
     line-height: 1.25;
@@ -431,7 +604,7 @@
 
 .relationCardChevron {
     flex: 0 0 auto;
-    color: rgba(223, 232, 255, 0.45);
+    color: var(--text-disabled);
 }
 
 @media (max-width: 640px) {
@@ -471,7 +644,7 @@
     font-size: 14px;
     line-height: 140%;
 
-    color: #ffffff;
+    color: var(--text-primary);
 
     &:disabled {
         opacity: 0.5;
@@ -485,6 +658,7 @@
 .defaultButtonActive {
     transition: var(--transition);
     background: var(--accent);
+    color: var(--accent-foreground);
 
     &:disabled {
         opacity: 0.5;
@@ -533,7 +707,7 @@
     font-size: 14px;
     line-height: 140%;
 
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .miniButton:hover {
@@ -550,14 +724,14 @@
     gap: 10px;
     z-index: 9999;
 
-    position: fixed;
-    bottom: 30px;
-    right: 30px;
+    position: absolute;
+    bottom: 24px;
+    right: 24px;
 
     background: var(--border);
     border: 1px solid var(--border);
     border-radius: 69px;
-    color: #ffffff;
+    color: var(--text-primary);
 
     &:hover {
         background: var(--border);
@@ -566,9 +740,10 @@
 
 .activeEdit {
     background: var(--accent);
+    color: var(--accent-foreground);
 
     &:hover {
-        background: #3c6ef7;
+        background: var(--text-secondary);
     }
 }
 
@@ -658,7 +833,7 @@
 .cancelButton {
     transition: var(--transition);
     background: transparent;
-    color: #ffffff;
+    color: var(--text-primary);
     padding: 10px 20px;
     border: 0;
     outline: 0;
@@ -667,6 +842,7 @@
 .saveButton:hover {
     filter: brightness(0.9);
     background: var(--accent);
+    color: var(--accent-foreground);
     outline: 0;
 }
 
@@ -676,7 +852,7 @@
 }
 
 .metaType {
-    background: #414862;
+    background: var(--surface-tertiary);
 }
 
 .primaryButton {
@@ -685,7 +861,7 @@
     border: none;
     border-radius: 6px;
     background: var(--accent);
-    color: #fff;
+    color: var(--accent-foreground);
     font-weight: 600;
     font-size: 14px;
     cursor: pointer;
@@ -694,7 +870,7 @@
         transform 0.06s ease;
 
     &:hover {
-        background: #2a57d1;
+        background: var(--text-secondary);
     }
 
     &:active {

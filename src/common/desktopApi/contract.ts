@@ -22,6 +22,18 @@ export interface DesktopStateSnapshot {
     addons: Record<string, unknown>
 }
 
+export interface DesktopAddonOrganizationCategory {
+    id: string
+    name: string
+}
+
+export interface DesktopAddonOrganization {
+    version: 1
+    favoriteAddonIds: string[]
+    categories: DesktopAddonOrganizationCategory[]
+    categoryByAddonId: Record<string, string>
+}
+
 export interface DesktopSettingsPatch {
     autoStartInTray?: boolean
     autoStartMusic?: boolean
@@ -247,6 +259,7 @@ export interface PulseSyncDesktopApi {
     addons: {
         list(): Promise<unknown>
         setEnabled(request: DesktopSetAddonEnabledRequest): Promise<unknown>
+        saveOrganization(organization: DesktopAddonOrganization): Promise<void>
         importPext(path: string): Promise<unknown>
         installStore(request: DesktopInstallStoreAddonRequest): Promise<unknown>
         packageArchive(request: DesktopPackageAddonArchiveRequest): Promise<unknown>

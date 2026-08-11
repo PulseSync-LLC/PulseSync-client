@@ -123,6 +123,8 @@ export const desktopApi = {
     addons: {
         list: () => requireDesktopApi().addons.list(),
         setEnabled: (request: Parameters<PulseSyncDesktopApi['addons']['setEnabled']>[0]) => requireDesktopApi().addons.setEnabled(request),
+        saveOrganization: (organization: Parameters<PulseSyncDesktopApi['addons']['saveOrganization']>[0]) =>
+            requireDesktopApi().addons.saveOrganization(organization),
         importPext: (path: string) => requireDesktopApi().addons.importPext(path),
         installStore: (request: Parameters<PulseSyncDesktopApi['addons']['installStore']>[0]) => requireDesktopApi().addons.installStore(request),
         packageArchive: (request: Parameters<PulseSyncDesktopApi['addons']['packageArchive']>[0]) =>
