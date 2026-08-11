@@ -39,6 +39,22 @@
     display: flex;
 }
 
+.loading .icon > svg {
+    animation: toast-loading-spin 1s linear infinite;
+}
+
+@keyframes toast-loading-spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading .icon > svg {
+        animation: none;
+    }
+}
+
 .text {
     display: flex;
     flex-direction: column;
