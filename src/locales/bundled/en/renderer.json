@@ -1,0 +1,1307 @@
+{
+    "browserDownload": {
+        "description": "PulseSync is only available in the desktop app. Download the client to continue.",
+        "action": "Download PulseSync"
+    },
+    "common": {
+        "ok": "Ok",
+        "all": "All",
+        "allGoodTitle": "All good",
+        "attentionTitle": "Attention",
+        "cancel": "Cancel",
+        "cancelled": "Cancelled",
+        "caution": "Caution",
+        "clear": "Clear",
+        "clickToEdit": "Click to edit",
+        "connectedTitle": "Connected",
+        "connectionEstablished": "Connection established",
+        "connectionRestored": "Connection restored",
+        "continue": "Continue",
+        "delete": "Delete",
+        "disable": "Disable",
+        "disabled": "Disabled",
+        "do": "Do",
+        "done": "Done",
+        "doneTitle": "Done",
+        "downloadTitle": "Download",
+        "downloading": "Downloading...",
+        "emDash": "—",
+        "enable": "Enable",
+        "enabled": "Enabled",
+        "errorTitle": "Error",
+        "errorTitleShort": "Error",
+        "exportDone": "Export complete",
+        "exportTitle": "Export",
+        "fetchFailed": "Failed to fetch",
+        "fileNotFound": "File not found",
+        "importTitle": "Import",
+        "importing": "Importing...",
+        "infoTitleShort": "Info",
+        "linkLabel": "link",
+        "loading": "Loading...",
+        "loadingThemes": "Loading themes...",
+        "loadingTitle": "Loading",
+        "more": "More",
+        "networkTitle": "Network",
+        "notAvailable": "Not available",
+        "oopsTitle": "Oops",
+        "operationCancelled": "Operation cancelled",
+        "phewTitle": "Phew",
+        "pingPongTitle": "Ping-pong",
+        "pleaseWait": "Please wait",
+        "refresh": "Refresh",
+        "reset": "Reset",
+        "selectFile": "Select file",
+        "selectPlaceholder": "Select",
+        "serverUnavailable": "Server unavailable",
+        "somethingWrongTitle": "Something went wrong",
+        "submit": "Submit",
+        "successTitle": "Success",
+        "successTitleShort": "Success",
+        "takeBreakTitle": "Take a break",
+        "thinkLater": "Install later",
+        "tooManyAttempts": "Too many connection attempts.",
+        "waitTitle": "Wait",
+        "warningTitleShort": "Warning",
+        "discordRpc": "Discord RPC"
+    },
+    "auth": {
+        "accessQuestionTitle": "Maybe you don't have access?",
+        "appVersionDeprecatedMessage": "Authorization error. This app version is deprecated. Downloading the new version will start automatically.",
+        "appVersionDeprecatedTitle": "This app version is deprecated",
+        "authErrorTitle": "Authorization error 😡 {{title}}",
+        "bannedMessage": "You are banned. Reason: {{reason}}.",
+        "checkUpdates": "Check for updates",
+        "closeAfterSeconds": "The app will close in 10 seconds",
+        "consentPrefix": "By clicking \"Authorize\", you agree to",
+        "consentPrefixQuotes": "By clicking \"Authorize\", you agree to",
+        "deprecatedRequiresUpdate": "The app is outdated and requires an update 😡😡😡",
+        "deprecatedRequiresUpdateShort": "The app is outdated and requires an update",
+        "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
+        "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
+        "discordAuth": "Authorize",
+        "failedToFetchUser": "Failed to fetch user data. Please log in again.",
+        "images": {
+            "flatCylinder": "Flat Cylinder",
+            "icosahedron": "Icosahedron",
+            "pyramid": "Pyramid",
+            "thorusKnot": "Torus Knot"
+        },
+        "pendingAuth": "Waiting for authorization",
+        "pleaseLoginAgain": "Please log in again.",
+        "readTermsError": "Failed to read file:",
+        "sessionExpired": "Your session has expired. Please log in again.",
+        "sessionExpiredTitle": "Error",
+        "termsLink": "the Terms of Use",
+        "unknownAuthError": "Unknown authorization error."
+    },
+    "addons": {
+        "invalidType": "Addon is missing the type field or it is invalid",
+        "uploadRules": "You have read the addon upload rules",
+        "uploadTitle": "Addon upload ({{name}})"
+    },
+    "changes": {
+        "saveChanges": "Save changes",
+        "saving": "Saving...",
+        "unsavedWarning": "You have unsaved changes"
+    },
+    "colorInput": {
+        "inputFormat": "Input format"
+    },
+    "configEditor": {
+        "addItem": "Add item",
+        "addItemAfter": "Add item after",
+        "addOption": "Add option",
+        "addRow": "Add row",
+        "addSection": "Add section",
+        "collapse": "Collapse",
+        "collapseAll": "Collapse all",
+        "defaults": {
+            "line": "Line",
+            "newButton": "New button",
+            "newColor": "New color",
+            "newFile": "New file",
+            "newRow": "New row",
+            "newSection": "New section",
+            "newSelector": "New selector",
+            "newSlider": "New slider",
+            "newText": "New text row",
+            "newTextBlock": "New text block",
+            "option": "Option {{index}}"
+        },
+        "deleteSection": "Delete section",
+        "drag": "Drag",
+        "dragSection": "Drag section",
+        "duplicate": "Duplicate",
+        "duplicateSection": "Duplicate section",
+        "expand": "Expand",
+        "expandAll": "Expand all",
+        "labels": {
+            "description": "Description",
+            "name": "Name",
+            "sectionTitle": "Section title"
+        },
+        "optionsTitle": "Options",
+        "pathPlaceholder": "Enter path",
+        "placeholderHint": "Coming soon.",
+        "placeholderTitle": "Component in progress",
+        "placeholderWithType": "{{type}} component in progress",
+        "removeOption": "Remove option",
+        "removeRow": "Remove row",
+        "resetToDefault": "Reset to default"
+    },
+    "contextMenu": {
+        "boostyUrl": "Page on Boosty",
+        "appDirectory": "App directory",
+        "appSettings": {
+            "autoStartApp": "Auto-start app",
+            "autoUpdateStoreAddons": "Auto-update store add-ons",
+            "deletePextAfterImport": "Delete .pext after theme import",
+            "hardwareAcceleration": "Hardware acceleration",
+            "title": "App settings"
+        },
+        "language": {
+            "english": "English",
+            "russian": "Russian",
+            "title": "Language"
+        },
+        "misc": {
+            "checkUpdates": "Check for updates",
+            "collectLogs": "Collect logs archive",
+            "logsReady": "Opening the folder soon",
+            "title": "System",
+            "version": "Version: v{{version}}. Commit #{{branch}}",
+            "websocketStatus": "Websocket status"
+        },
+        "mod": {
+            "checkUpdates": "Check mod updates",
+            "clearCache": "Clear mod cache",
+            "resetAsarPath": "Reset custom folder",
+            "resetAsarPathSuccess": "Custom folder reset",
+            "defaultName": "Eclipse",
+            "notInstalled": "Not installed",
+            "remove": "Remove mod",
+            "showChangelog": "Show changelog after install",
+            "title": "Mod"
+        },
+        "updates": {
+            "title": "Updates",
+            "sourceBackend": "Source: PulseSync server",
+            "sourceGithub": "Source: GitHub",
+            "backend": "PulseSync server",
+            "github": "GitHub",
+            "channel": "Update channel",
+            "checkAppUpdates": "Check app updates",
+            "checkModUpdates": "Check mod updates",
+            "sourceChanged": "Update source switched to {{source}}.",
+            "sourceChangeError": "Failed to switch update source.",
+            "busy": "Source switching is unavailable while an update is being checked or downloaded."
+        },
+        "obsWidget": {
+            "copyPath": "Copy widget path",
+            "download": "Download OBS widget ({{status}})",
+            "openFolder": "Open OBS widget folder",
+            "remove": "Remove OBS widget",
+            "title": "OBS widget"
+        },
+        "status": {
+            "installed": "installed",
+            "notInstalled": "not installed"
+        },
+        "traySettings": {
+            "autoTray": "Start app in tray",
+            "hideOnClose": "Close button minimizes to tray",
+            "title": "Tray behavior"
+        },
+        "windowSettings": {
+            "saveWindowDimensions": "Save window size",
+            "saveWindowPosition": "Save window position",
+            "title": "Window settings"
+        }
+    },
+    "contextMenuThemes": {
+        "delete": "Delete {{name}}",
+        "deleteConfirm": "Are you sure you want to delete the addon \"{{name}}\"? This action cannot be undone.",
+        "deleteError": "Error deleting theme \"{{name}}\"",
+        "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
+        "directory": "Addon directory {{name}}",
+        "disable": "Disable {{name}}",
+        "enable": "Enable {{name}}",
+        "export": "Export {{name}}",
+        "exportSuccess": "Export successful",
+        "page": "Theme page {{name}}",
+        "pageLog": "Theme page",
+        "publish": "Publish {{name}}",
+        "publishLog": "Publish",
+        "rollback": "Rollback to server version",
+        "rollbackLog": "Rollback",
+        "title": "Manage"
+    },
+    "dev": {
+        "addonPlaceholder": "NAME",
+        "badge": "DEV",
+        "cards": {
+            "form": {
+                "open": "Open form",
+                "subtitle": "Create a form and confirm input",
+                "title": "Form"
+            },
+            "modals": {
+                "subtitle": "Custom modals",
+                "threeButtons": "Three buttons",
+                "title": "Modals",
+                "twoButtons": "Two buttons"
+            },
+            "toasts": {
+                "subtitle": "Custom notifications",
+                "title": "Toasts"
+            },
+            "upload": {
+                "open": "Open upload",
+                "subtitle": "Addon upload modal",
+                "title": "Upload"
+            }
+        },
+        "chart": {
+            "datasetLabel": "Online Users",
+            "timeLabel": "Time: {{time}}",
+            "usersOnline": "{{count}} users online"
+        },
+        "errors": {
+            "onlineLoad": "Failed to load online",
+            "statsLoad": "Failed to load stats"
+        },
+        "formik": {
+            "placeholder": "Enter text",
+            "submittedMessage": "Submitted: {{value}}",
+            "submittedTitle": "Submitted",
+            "text": "This modal uses Formik.",
+            "title": "Formik form"
+        },
+        "loadingAnalytics": "Loading analytics",
+        "metrics": {
+            "averageOnline": "Average online",
+            "onlineNow": "Online now",
+            "peak": "Peak for period",
+            "totalUsers": "Total users"
+        },
+        "modalThree": {
+            "subText": "Here we test three buttons.",
+            "text": "Modal text",
+            "title": "Modal"
+        },
+        "modalTwo": {
+            "text": "Modal text",
+            "title": "Modal"
+        },
+        "navigation": {
+            "auth": "Auth",
+            "extension": "Extensions",
+            "joint": "Joint",
+            "trackInfo": "TrackInfo",
+            "users": "Users"
+        },
+        "navigationHint": "Navigation example",
+        "noData": "No data",
+        "pageTitle": "Dev Gallery",
+        "rangeHours": "{{hours}}h",
+        "rangeLabel": "Range",
+        "sections": {
+            "analytics": "Analytics",
+            "components": "Components",
+            "metrics": "Metrics",
+            "navigation": "Navigation"
+        },
+        "subtitle": "Scroll down and try components live.",
+        "title": "Developer Gallery",
+        "updatedLabel": "Updated",
+        "updatedLabelWithTime": "Updated: {{time}}",
+        "upload": {
+            "scanning": "Scanning...",
+            "steps": {
+                "manifests": "Generating .manifests",
+                "review": "Sent for review",
+                "upload": "Uploading to server",
+                "validate": "Validation"
+            }
+        }
+    },
+    "errors": {
+        "copiedToClipboard": "Error contents copied to clipboard",
+        "copyFailed": "Failed to write to clipboard",
+        "copyStackFailed": "Failed to copy stack trace:",
+        "noStackTrace": "No stack trace available",
+        "title": "Hold on... Something went wrong...",
+        "unknownError": "An unknown error occurred"
+    },
+    "extensions": {
+        "actions": {
+            "store": "Catalog",
+            "github": "GitHub",
+            "openStore": "Open page in store",
+            "openGithub": "Open GitHub page"
+        },
+        "addonCreateFailed": "Failed to download the addon template",
+        "addonCreatedMessage": "The {{name}} template was saved successfully",
+        "addonCreatedTitle": "Addon template downloaded",
+        "createHandleEvents": "Create handleEvents.json",
+        "defaultThemeSet": "Default theme set",
+        "disableAction": "Disable",
+        "editModeEnter": "Edit mode enabled",
+        "editModeExit": "Edit mode disabled",
+        "handleEventsMissing": "handleEvents.json not found",
+        "initError": "Initialization error",
+        "loadError": "Theme load error",
+        "loadFailed": "Load failed",
+        "linksTitle": "Links",
+        "groups": {
+            "favorites": "Favorites",
+            "category": "Category"
+        },
+        "organization": {
+            "addFavorite": "Add to favorites",
+            "categoryInvalid": "Enter a unique category name",
+            "categoryNameLabel": "Category name",
+            "categoryNamePlaceholder": "For example, Appearance",
+            "createAction": "Create",
+            "createCategory": "Create category",
+            "deleteCategory": "Delete category",
+            "deleteCategoryConfirm": "Delete the “{{name}}” category? Its addons will remain installed and move to Uncategorized.",
+            "deleteCategoryTitle": "Delete category",
+            "moveToCategory": "Move to category",
+            "organizeAddon": "Organize {{name}}",
+            "removeFavorite": "Remove from favorites",
+            "saveFailed": "Failed to save addon organization",
+            "uncategorized": "Uncategorized"
+        },
+        "meta": {
+            "author": "Author",
+            "authors": "Authors:",
+            "conflictsWith": "Incompatible with",
+            "dependencies": "Dependencies",
+            "relations": "Relations",
+            "source": "Source",
+            "size": "Size",
+            "tags": "Tags",
+            "updated": "Updated",
+            "version": "Version"
+        },
+        "relations": {
+            "autoDisabled": "Automatically disabled: {{value}}",
+            "autoDisabledDependents": "Disabled add-ons that depend on {{dependency}}: {{value}}",
+            "autoEnabled": "Automatically enabled: {{value}}",
+            "blockedByConflicts": "Blocked by incompatible add-ons: {{value}}",
+            "blockedByDependencies": "Missing dependencies: {{value}}",
+            "disableBlockedByDependents": "Cannot disable: this add-on is required by {{value}}",
+            "disableBlockedResolved": "Could not disable the add-on {{name}}.",
+            "conflictsHint": "If this add-on is active, the current add-on cannot run alongside it.",
+            "dependenciesHint": "These add-ons must be installed before the current add-on can be enabled.",
+            "enableBlockedButtonLabel": "Dependency required",
+            "enableBlockedHintMissing": "Required: {{value}}",
+            "enableBlockedMissing": "Cannot enable the add-on: required dependencies are not installed: {{value}}",
+            "enableBlockedResolved": "Could not enable the add-on {{name}}. Check dependencies and incompatible add-ons.",
+            "statusConflictActive": "currently conflicts",
+            "statusEnabled": "enabled",
+            "statusInstalled": "installed",
+            "statusMissing": "missing",
+            "statusNotInstalled": "not installed"
+        },
+        "source": {
+            "local": "Local",
+            "store": "Catalog"
+        },
+        "publication": {
+            "statusLabel": "Publication",
+            "modalTitle": "Add-on publication",
+            "noteLabel": "Moderator note",
+            "githubUrlLabel": "GitHub link",
+            "githubUrlPlaceholder": "https://github.com/owner/repository",
+            "changelogLabel": "Changelog",
+            "changelogPlaceholder": "- Fixed the player bug\n- Updated card styles\n- Added a new setting",
+            "changelogRequired": "Add a changelog before publishing.",
+            "githubUrlRequired": "Add a GitHub link before publishing.",
+            "githubUrlInvalid": "Enter a valid GitHub link.",
+            "rulesAgreementPrefix": "I have read and agree to the",
+            "rulesAgreementLink": "add-on publication rules",
+            "aiUsageLabel": "AI was used during development",
+            "changelogTabTitle": "Changes in this version",
+            "changelogEmpty": "No changelog was added for this version yet.",
+            "cooldownLabel": "Resubmission",
+            "cooldownMessage": "After rejection, the add-on can be submitted again only after 3 days. Available {{date}}.",
+            "statusDate": "Updated {{date}}",
+            "publish": "Publish",
+            "update": "Update",
+            "uploading": "Sending...",
+            "successTitle": "Sent for review",
+            "publishSuccess": "The add-on has been submitted for moderation.",
+            "updateSuccess": "The add-on update has been submitted for moderation.",
+            "errors": {
+                "PACKAGE_FAILED": "Failed to prepare the add-on archive for upload.",
+                "ZIP_FILE_REQUIRED": "The add-on archive was not sent to the server.",
+                "INVALID_ZIP_FILE": "The add-on archive is corrupted or has an invalid format.",
+                "METADATA_JSON_MISSING": "The archive does not contain metadata.json.",
+                "METADATA_JSON_INVALID": "The metadata.json file contains invalid JSON.",
+                "ARCHIVE_MISSING_REQUIRED_FILES": "The archive is missing required add-on files.",
+                "STYLE_FILE_EMPTY": "The add-on style file is empty.",
+                "METADATA_IMAGE_NOT_FOUND": "The image referenced in metadata.json was not found in the archive.",
+                "METADATA_BANNER_NOT_FOUND": "The banner referenced in metadata.json was not found in the archive.",
+                "SCRIPT_USES_FORBIDDEN_EVAL": "The script did not pass the automatic security check.",
+                "SCRIPT_ACCESSES_OAUTH_STORAGE": "The script did not pass the automatic security check.",
+                "IMAGE_CONVERT_FAILED": "Failed to process the add-on images.",
+                "ADDON_NAME_REQUIRED": "Set an add-on name before submitting.",
+                "ADDON_DESCRIPTION_REQUIRED": "Set an add-on description before submitting.",
+                "ADDON_GITHUB_URL_REQUIRED": "Add a GitHub link before submitting.",
+                "ADDON_GITHUB_URL_INVALID": "Enter a valid GitHub link.",
+                "ADDON_AUTHORS_REQUIRED": "Specify at least one add-on author.",
+                "ADDON_NOT_FOUND": "The add-on publication was not found.",
+                "AUTHENTICATED_USER_ID_REQUIRED": "Failed to determine the current user for publication.",
+                "CDN_BUCKET_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
+                "CDN_DOMAIN_URL_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
+                "S3_UPLOAD_FAILED": "Failed to send the add-on files. Please try again later.",
+                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation.",
+                "WEB_ADDON_RUNTIME_INVALID": "The archive is marked as a WebHost add-on but does not contain a valid runtime registration. Build it with the official template.",
+                "LEGACY_ADDON_PUBLICATION_DISABLED": "The server rejected this legacy add-on. Migrate it to the WebHost runtime before publishing."
+            },
+            "publishError": "Failed to publish the add-on.",
+            "updateError": "Failed to send the add-on update."
+        },
+        "untrustedLocal": {
+            "title": "Untrusted add-on",
+            "description": "The add-on {{name}} was loaded from an untrusted source and was not found in the catalog. We do not guarantee its safety, stability, or the safety of your data.",
+            "caption": "Enable it only if you trust the source and understand the risks.",
+            "confirm": "Enable anyway"
+        },
+        "legacyAddon": {
+            "warningTitle": "Legacy add-on",
+            "warningDescription": "Migration to WebHost is required to publish new versions.",
+            "warningAction": "Publishing and legacy updates are disabled. Click to open the WebHost migration guide.",
+            "migrationModalTitle": "Migration to WebHost required",
+            "migrationModalDescription": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to WebHost to continue publishing.",
+            "openNews": "Open announcement",
+            "publicationBlocked": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to the WebHost runtime.",
+            "storeUpdateBlocked": "This legacy add-on cannot be updated until its author migrates it to the WebHost runtime. Opening more information."
+        },
+        "tabs": {
+            "changelog": "Changelog",
+            "description": "Description",
+            "license": "License",
+            "metadata": "Metadata",
+            "relations": "Compatibility",
+            "settings": "Settings"
+        },
+        "storeUpdateAvailableTitle": "Add-on update available",
+        "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
+        "storeUpdateComplete": "Add-on {{name}} was updated.",
+        "storeUpdateFailed": "Failed to update add-on {{name}}.",
+        "storeUpdateUnavailable": "This update is currently unavailable.",
+        "reloadFailed": "Reload failed",
+        "reloadSuccess": "Reloaded successfully",
+        "reopenTheme": "Reopen theme",
+        "scriptDisabled": "Script disabled",
+        "scriptDisabledMessage": "Script {{name}} was disabled.",
+        "scriptEnabled": "Script enabled",
+        "scriptEnabledMessage": "Script {{name}} was enabled.",
+        "themeActivated": "Theme activated",
+        "themeActivatedMessage": "Theme {{name}} activated",
+        "themeDeactivated": "Theme deactivated",
+        "themeDeactivatedMessage": "Default theme enabled.",
+        "noResults": "No results found",
+        "analyzingAddons": "Analyzing add-ons…",
+        "confirmTitle": "Are you sure?",
+        "enableAnyway": "Enable anyway",
+        "filtersLabel": "Filters",
+        "notFound": {
+            "catalogLink": "Open catalog",
+            "emptyDescription": "You don't have any add-ons installed yet. Find one in the catalog.",
+            "filteredDescription": "The extension may have been removed, filtered out, or not installed yet.",
+            "titleEmpty": "No add-ons found",
+            "titleFiltered": "Extension not found"
+        },
+        "optionsLabel": "Options",
+        "pageTitle": "Add-ons",
+        "searchPlaceholder": "Search...",
+        "supportedVersionsInfo": "This add-on works with Yandex Music versions: {{supported}}.",
+        "supportedVersionsUnknown": "unknown",
+        "supportedVersionsWarning": "This add-on works with Yandex Music versions: {{supported}}.\nYour Yandex Music version ({{musicVersion}}) is outside the supported range ({{supported}}). Errors or unexpected behavior may occur!",
+        "versionLabel": "Your version: {{version}}",
+        "whitelistLoadError": "Whitelist load error"
+    },
+    "filters": {
+        "authors": {
+            "title": "AUTHORS"
+        },
+        "sort": {
+            "az": "(A-Z)",
+            "byAlphabet": "By alphabet{{order}}",
+            "byAuthors": "By authors",
+            "byDate": "By date",
+            "bySize": "By size",
+            "byType": "By type",
+            "title": "SORT",
+            "za": "(Z-A)"
+        },
+        "tags": {
+            "title": "TAGS"
+        },
+        "type": {
+            "all": "All",
+            "scripts": "Scripts",
+            "themes": "Themes",
+            "webAddons": "WebHost",
+            "title": "TYPE"
+        }
+    },
+    "header": {
+        "accessDeniedTitle": "Access denied",
+        "avatarUploadForbidden": "Avatar upload is forbidden",
+        "avatarUploadRetry": "Avatar upload failed, please try again",
+        "avatarUploadSuccess": "Avatar uploaded successfully!",
+        "avatarUploadUnknownError": "Unknown error while uploading the avatar",
+        "bannerUploadForbidden": "Banner upload is forbidden",
+        "bannerUploadRetry": "Banner upload failed, please try again",
+        "bannerUploadSuccess": "Banner uploaded successfully!",
+        "bannerUploadUnknownError": "Unknown error while uploading the banner",
+        "developmentBuild": "DEVELOPMENT BUILD #{{branch}}",
+        "errorWithMessage": "Error: {{message}}",
+        "fileNotImage": "The file is not an image",
+        "avatarFileTooLarge": "Avatar size exceeds 5 MB",
+        "bannerFileTooLarge": "Banner size exceeds 5 MB",
+        "back": "Back",
+        "friends": "Friends",
+        "login": "Sign in",
+        "latestModUpdatesTitle": "Latest mod updates",
+        "latestUpdatesTitle": "Latest updates",
+        "logout": "Log out",
+        "logoutMessage": "Signed out successfully",
+        "logoutTitle": "See you, {{name}}",
+        "myProfile": "My profile",
+        "noChangelogFound": "Changelog not found.",
+        "notifications": {
+            "open": "Open notifications",
+            "title": "Notifications",
+            "unreadCount": "Unread: {{count}}",
+            "markAllRead": "Mark all read",
+            "loading": "Loading notifications...",
+            "empty": "There are no important notifications yet",
+            "read": "Read",
+            "openItem": "Open",
+            "categories": {
+                "addon": "Add-ons",
+                "achievement": "Achievements",
+                "localization": "Localization",
+                "subscription": "Subscription",
+                "security": "Security",
+                "system": "System"
+            },
+            "items": {
+                "addonPendingTitle": "Add-on sent for review",
+                "addonPendingBody": "{{name}} is now waiting for moderation.",
+                "addonAcceptedTitle": "Add-on accepted",
+                "addonAcceptedBody": "{{name}} is now available in the store.",
+                "addonRejectedTitle": "Add-on rejected",
+                "addonRejectedBody": "{{name}} was rejected during moderation.",
+                "achievementCompletedTitle": "Achievement completed",
+                "achievementCompletedBody": "Achievement unlocked: \"{{title}}\" (+{{points}} points).",
+                "localizationApprovedTitle": "Localization suggestion approved",
+                "localizationApprovedBody": "Your changes passed review and are already published.",
+                "localizationRejectedTitle": "Localization suggestion rejected",
+                "localizationRejectedBody": "Open the notification to review the feedback.",
+                "giveawayStartedTitle": "A new giveaway has started",
+                "giveawayStartedBody": "The \"{{giveaway}}\" giveaway is live. You can enter until {{date}}.",
+                "giveawayWonTitle": "You won a giveaway",
+                "giveawayWonBody": "You won \"{{prize}}\" in \"{{giveaway}}\".",
+                "giveawayWonPrize": "{{name}} for {{months}} mo",
+                "giveawayFallbackTitle": "Subscription giveaway",
+                "giveawayFallbackPrize": "PulseSync subscription",
+                "subscriptionPurchaseSucceededTitle": "Subscription purchased",
+                "subscriptionPurchaseSucceededBody": "{{plan}} is active until {{date}}. Thanks for your support.",
+                "subscriptionExpiringSoonTitle": "Subscription ends soon",
+                "subscriptionExpiringSoonBody": "{{plan}} ends on {{date}}. You can extend it early.",
+                "subscriptionFallbackPlan": "PulseSync subscription",
+                "subscriptionFallbackDate": "soon",
+                "genericTitle": "New notification",
+                "genericBody": "Open the notification to view details."
+            }
+        },
+        "subscription": {
+            "open": "Buy subscription"
+        },
+        "giveaways": {
+            "open": "Open subscription giveaways",
+            "eyebrow": "Subscriptions",
+            "title": "Subscription giveaways",
+            "subtitle": "Join active giveaways and get a subscription if you win.",
+            "count": "Active giveaways: {{count}}",
+            "availableCount": "Available to join: {{count}}",
+            "refresh": "Refresh",
+            "loading": "Loading giveaways...",
+            "loadError": "Failed to load subscription giveaways.",
+            "errorTitle": "Giveaways unavailable",
+            "emptyTitle": "No active giveaways yet",
+            "emptyText": "New subscription giveaways will appear here.",
+            "plan": "Plan: {{plan}}",
+            "planDisplay": "{{type}} · {{duration}}",
+            "winners": "Subscriptions to win: {{count}}",
+            "endsAt": "Until {{date}}",
+            "planLabel": "Plan",
+            "planTypes": {
+                "basic": "Basic",
+                "infinite": "Lifetime"
+            },
+            "planDurations": {
+                "monthly": "1 month",
+                "quarterly": "3 months",
+                "yearly": "12 months",
+                "custom": "{{months}} mo"
+            },
+            "winnersLabel": "Winners",
+            "timeLeftLabel": "Left",
+            "endsLabel": "Ends",
+            "statusLive": "Live",
+            "statusEntered": "Joined",
+            "statusEnded": "Ended",
+            "timeUnknown": "Time unknown",
+            "ended": "Ended",
+            "remainingDays": "{{days}}d {{hours}}h",
+            "remainingHours": "{{hours}}h {{minutes}}m",
+            "remainingMinutes": "{{minutes}}m",
+            "join": "Join",
+            "joining": "Joining...",
+            "entered": "Joined",
+            "notStarted": "Soon",
+            "enteredTitle": "Entry accepted",
+            "enteredText": "You joined “{{title}}”.",
+            "enterErrorTitle": "Could not join",
+            "enterErrorText": "Check your connection and try again."
+        },
+        "devOverrides": {
+            "open": "Open local experiment overrides",
+            "title": "Experiments",
+            "loading": "Loading experiments...",
+            "empty": "No experiments are available yet.",
+            "selectExperiment": "Select an experiment on the left.",
+            "overrideBadge": "override",
+            "overrideActive": "Override active",
+            "group": "Group",
+            "groupPlaceholder": "on / variant_name",
+            "metaLabel": "Meta (JSON)",
+            "availableGroups": "Available groups",
+            "groupsCount": "Groups: {{count}}",
+            "groupRollout": "{{percentage}}%",
+            "groupDescriptionEmpty": "No description",
+            "groupRequired": "Specify a group before applying the override",
+            "noGroup": "No group",
+            "copyName": "Copy key",
+            "copyNameSuccess": "Experiment key copied",
+            "copyNameError": "Failed to copy experiment key",
+            "apply": "Apply",
+            "clear": "Clear override",
+            "applied": "Override applied",
+            "cleared": "Override cleared",
+            "invalidJson": "The meta field must contain valid JSON",
+            "metaObjectError": "Meta must be a JSON object"
+        },
+        "updateChannel": {
+            "open": "Update channel",
+            "title": "Update channel",
+            "buildChannel": "Build",
+            "currentChannel": "Current",
+            "overrideChannel": "Override",
+            "noOverride": "none",
+            "selectLabel": "Switch to",
+            "optionDefault": "Default ({{channel}})",
+            "optionBeta": "beta",
+            "optionAlpha": "alpha",
+            "optionDev": "dev",
+            "apply": "Apply",
+            "saving": "Saving...",
+              "saved": "Switched to {{channel}}.",
+              "loadError": "Failed to load update channel settings.",
+              "saveError": "Failed to save the update channel.",
+              "busy": "Channel switching is unavailable while an update is being checked or downloaded.",
+              "downloadedHint": "The downloaded update will be cleared, then the selected channel will be checked again.",
+              "hint": "Switching back from alpha or dev to beta may require an older build.",
+              "nextChannel": "After apply: {{channel}}"
+          },
+        "settings": "Settings",
+        "unknownBranch": "unknown",
+        "uploadAttentionTitle": "Heads up",
+        "uploadAvatar": "Upload avatar",
+        "uploadBanner": "Upload banner"
+    },
+    "modals": {
+        "appUpdate": {
+            "title": "Update available",
+            "description": "Apply the update now?",
+            "buttons": {
+                "later": "Later",
+                "install": "Apply update"
+            }
+        },
+        "linuxAsarPath": {
+            "title": "Custom Yandex Music folder required",
+            "description": "Select the Yandex Music folder where the app.asar is located.",
+            "errors": {
+                "missingAsar": "app.asar was not found in the selected folder. Please pick the Yandex Music folder again."
+            },
+            "toasts": {
+                "errorTitle": "Error"
+            },
+            "buttons": {
+                "cancel": "Cancel",
+                "selectFolder": "Select folder"
+            }
+        },
+        "linuxPermissions": {
+            "title": "Not enough permissions",
+            "description": "Access to the Yandex Music folder is required.",
+            "subText": "Click \"Fix permissions\" and approve the prompt.",
+            "buttons": {
+                "cancel": "Cancel",
+                "fixPermissions": "Fix permissions"
+            },
+            "toasts": {
+                "successTitle": "Permissions updated",
+                "successDescription": "Retry installing or removing the mod.",
+                "errorTitle": "Failed to update permissions",
+                "applyFailed": "Error: {{message}}"
+            }
+        },
+        "macPermissions": {
+            "title": "Additional permissions required",
+            "description": "On macOS, the patcher needs either App Management or Full disk access.",
+            "subText": "Open settings will take you directly to the required system settings page.",
+            "buttons": {
+                "cancel": "Cancel",
+                "openSettings": "Open settings"
+            }
+        },
+        "premiumPromo": {
+            "title": "This is premium feature",
+            "description": "You need subscribe on Boosty to use this feature.\nAlso you should connect the same Discord account to your Boosty and PulseSync accounts.",
+            "subscribe": "Subscribe",
+            "ok": "Got it"
+        },
+        "premiumUnlocked": {
+            "title": "Premium unlocked",
+            "description": "You've unlocked premium features. Enjoy the enhanced experience.\nThank you for your support",
+            "ok": "Got it"
+        },
+        "yandexMusicUpdate": {
+            "title": "Remove Yandex Music",
+            "description": "You have an outdated Microsoft Store version of Yandex Music installed. It will be removed to ensure full functionality.",
+            "subText": "If you agree, the app will be removed. Afterwards you can install the latest version.",
+            "buttons": {
+                "cancel": "Cancel",
+                "delete": "Delete"
+            },
+            "toasts": {
+                "deletingTitle": "Removing...",
+                "deletingDescription": "Removing Yandex Music from the Microsoft Store",
+                "deleteStartFailed": "Failed to start app removal",
+                "deleteFailed": "Failed to remove the app",
+                "deleteSuccess": "Yandex Music removed successfully",
+                "successTitle": "Done",
+                "errorTitle": "Error"
+            }
+        },
+        "basicConfirmation": {
+            "confirm": "Confirm",
+            "delete": "Delete",
+            "ok": "Ok",
+            "cancel": "Cancel",
+            "defaultTitle": "Confirmation",
+            "defaultDescription": "Are you sure?"
+        }
+    },
+    "layout": {
+        "downloadProgress": "Download progress: {{progress}}%",
+        "downloadProgressLabel": "Download progress",
+        "downloading": "Downloading {{name}}...",
+        "errorOccurred": "An error occurred",
+        "errorWithMessage": "Error: {{message}}",
+        "forceInstallAction": "Install anyway",
+        "forceUpdateAction": "Update anyway",
+        "infoTitle": "Info.",
+        "installAction": "Install",
+        "installErrorTitle": "Install error",
+        "installUpdateTooltip": "Apply update",
+        "authRequired": {
+            "description": "This section is available only after you sign in. Sign in first, then open it again.",
+            "title": "Sign in required"
+        },
+        "installedVersionOutdated": "Installed version ({{version}}) is outdated",
+        "modInstallAlreadyRunning": "Installation already started",
+        "modInstallErrorTitle": "Mod install error",
+        "modInstallErrorProxyHint": "Make sure these domains are proxied/added to zapret:",
+        "modInstallFailed": "Failed to install the mod. Please try again.",
+        "modInstallInterrupted": "The download was interrupted. Check your connection and try again.",
+        "modInstallStart": "Starting mod installation...",
+        "modInstallSuccess": "Installation completed successfully!",
+        "modInstallTitle": "Mod installation",
+        "modInstallDescription": "The process will take about a minute",
+        "modInstallUpdateError": "Install/update error",
+        "modNotInstalled": "Not installed",
+        "modNotSupportedOnLinux": "The mod is not supported on Linux.",
+        "modUpdateAlreadyRunning": "Update already started",
+        "modUpdateFailed": "Failed to update the mod. Please try again or check your connection.",
+        "modUpdateLoadError": "Update download error",
+        "modUpdateStart": "Starting update download...",
+        "modUpdateSuccess": "Update completed successfully!",
+        "modUpdateTitle": "Mod update",
+        "musicAppName": "Yandex Music",
+        "musicDownloadProgress": "Downloading: {{progress}}%",
+        "musicDownloadProgressLabel": "Yandex Music installation",
+        "musicInstallFailed": "Failed to install Yandex Music",
+        "musicInstallSuccess": "Yandex Music installed successfully.",
+        "musicUpdateFailed": "Failed to update Yandex Music",
+        "musicUpdateSuccess": "Yandex Music updated successfully.",
+        "nav": {
+            "addonsBeta": "Add-ons",
+            "development": "Development",
+            "extensionsStore": "Extension store",
+            "home": "Home",
+            "trackInfo": "Track info",
+            "users": "Users",
+            "unavailableInAutonomous": "Unavailable in autonomous mode"
+        },
+        "newVersionFound": "New version {{version}} found. Running auto-update...",
+        "noModInstallsAvailable": "No mod installations available.",
+        "noModUpdatesAvailable": "No updates available to install.",
+        "patchUpdateAlt": "Patch update",
+        "updateAction": "Update",
+        "updateAlreadyRunning": "Update already started",
+        "updateMusicAction": "Update Yandex Music",
+        "unknownError": "Unknown error."
+    },
+    "levelProgress": {
+        "level": "Level {{level}}",
+        "totalPoints": "Total points across all levels: {{totalPoints}}"
+    },
+    "optionHeader": {
+        "settings": "Settings"
+    },
+    "metadata": {
+        "authorsEditor": {
+            "title": "Authors",
+            "pulseTitle": "PulseSync users",
+            "pulseHint": "Search by username and nickname. Click a user to add them as an add-on author.",
+            "searchPlaceholder": "Find a user",
+            "requiredPlaceholder": "Add at least one author",
+            "searchHint": "Start typing a username or nickname.",
+            "noSearchResults": "No users found",
+            "loading": "Loading users...",
+            "add": "Add",
+            "added": "Added",
+            "previewEmpty": "Not set",
+            "minimumOneAuthor": "An add-on must have at least one author.",
+            "selfRemovalBlocked": "You cannot remove yourself from the add-on authors."
+        },
+        "examples": {
+            "addonName": "My Awesome Addon",
+            "allowedUrls": "https://music.yandex.ru",
+            "supportedVersions": "^5.75.0",
+            "tags": "theme, dark, minimal"
+        },
+        "fixErrors": "Fix errors",
+        "relationsEditor": {
+            "title": "Add-on relations",
+            "description": "Use this section to define required dependencies and add-ons that cannot be used together with the current one.",
+            "dependenciesTitle": "Dependencies",
+            "dependenciesHint": "Choose a required add-on from the installed catalog. Its `id` will be saved to `metadata.json`.",
+            "dependenciesSelectLabel": "Add-on",
+            "dependenciesPlaceholder": "Choose an add-on",
+            "searchPlaceholder": "Search by name",
+            "conflictsTitle": "Blocked add-ons",
+            "conflictsHint": "Pulse can disable these add-ons automatically when a conflict appears.",
+            "conflictsSelectLabel": "Blocked add-on",
+            "conflictsPlaceholder": "Choose an add-on",
+            "add": "Add",
+            "edit": "Configure",
+            "dependenciesSummary": "Dependencies added: {{count}}",
+            "conflictsSummary": "Conflicts added: {{count}}",
+            "noSearchResults": "Nothing found",
+            "previewEmpty": "Not set"
+        },
+        "compatibilityEditor": {
+            "title": "URLs and versions",
+            "description": "URLs the add-on can access and Yandex Music versions it supports.",
+            "allowedUrlsTitle": "Allowed URLs",
+            "supportedVersionsTitle": "Supported Yandex Music versions",
+            "add": "Add",
+            "edit": "Configure",
+            "allowedUrlsHint": "One URL per line. You can paste multiple entries at once.",
+            "supportedVersionsHint": "Semver ranges such as ^5.75.0 or >=5.75 <5.80.",
+            "allowedUrlsSummary": "URLs added: {{count}}",
+            "supportedVersionsSummary": "{{value}}",
+            "invalidSupportedVersions": "Invalid version ranges: {{versions}}",
+            "previewEmpty": "Not set"
+        },
+        "authorOnlyAccess": "Only the add-on author can edit metadata.",
+        "labels": {
+            "allowedUrls": "Allowed URLs",
+            "author": "Author",
+            "banner": "Banner",
+            "css": "CSS",
+            "conflictsWith": "Blocked add-ons",
+            "dependencies": "Dependencies",
+            "description": "Description",
+            "image": "Image",
+            "libraryLogo": "Library logo",
+            "name": "Name",
+            "script": "Script",
+            "supportedVersions": "Supported versions",
+            "tags": "Tags (comma-separated)",
+            "type": "Type",
+            "version": "Version"
+        },
+        "loadError": "Failed to load metadata",
+        "placeholders": {
+            "cssPath": "style.css or absolute path",
+            "logoFile": "logo.png",
+            "scriptPath": "script.js or absolute path",
+            "selectOrEnterPath": "Select or enter a path"
+        },
+        "saveError": "Failed to save",
+        "versionFormat": "Version must be in X.Y.Z format"
+    },
+    "mod": {
+        "availableVersion": "Version {{version}} available",
+        "cacheClearError": "Failed to clear cache: {{message}}",
+        "cacheCleared": "Mod cache cleared",
+        "cacheClearing": "Clearing mod cache...",
+        "latestInstalled": "Latest version installed",
+        "notInstalledTitle": "Mod not installed",
+        "removeError": "Error removing mod: {{message}}",
+        "removedSuccess": "Mod removed successfully",
+        "removing": "Removing mod...",
+        "updateAvailableBody": "New version available: {{version}}",
+        "updateAvailableTitle": "Update available"
+    },
+    "obsWidget": {
+        "downloadError": "Failed to download widget: {{message}}",
+        "downloading": "Downloading OBS widget...",
+        "installSuccess": "OBS widget installed successfully",
+        "pathCopied": "Path copied to clipboard",
+        "pathCopyError": "Failed to copy path",
+        "pathFetchError": "Failed to get widget path",
+        "removeError": "Failed to remove widget: {{message}}",
+        "removeSuccess": "OBS widget removed successfully",
+        "removing": "Removing OBS widget..."
+    },
+    "options": {
+        "addonsDirectory": "Addons directory",
+        "createAddon": "Create addon",
+        "reloadAddons": "Reload addons",
+        "title": "Options"
+    },
+    "pages": {
+        "home": {
+            "title": "Home",
+            "mainComponents": "Primary components",
+            "auxiliaryComponents": "Secondary components",
+            "news": "News",
+            "newsSubtitle": "Latest project updates and important announcements.",
+            "newsOpenAll": "Open all",
+            "newsReadArticle": "Read article",
+            "newsReadTime": "{{count}} min read",
+            "newsEmpty": "No news yet",
+            "newsEmptyDescription": "New PulseSync posts will appear here as soon as the team publishes them.",
+            "newsError": "Failed to load news",
+            "whatsNew": "What's new?",
+            "musicReleaseNotesTitle": "Latest Yandex Music updates",
+            "musicReleaseNotesFallbackVersion": "Default",
+            "installed": "Installed",
+            "notInstalled": "Not installed",
+            "onDemandInstallHint": "This component installs automatically by Yandex Music when needed.",
+            "musicName": "Yandex Music",
+            "modName": "PulseSync Mod",
+            "clientName": "PulseSync Client"
+        },
+        "joint": {
+            "comingSoon": "Coming soon",
+            "title": "Joint"
+        },
+        "settings": {
+            "comingSoon": "Coming soon",
+            "title": "Settings"
+        },
+        "store": {
+            "cards": {
+                "betterPlayer": "Better player",
+                "colorize": "Colorize interface",
+                "customUi": "Custom UI",
+                "reachtext": "ReachText",
+                "themeGenerator": "Theme generator",
+                "volumeControl": "Volume control"
+            },
+            "headerSubtitle": "Refresh the interface and unlock new features",
+            "headerTitle": "Add-on catalog",
+            "title": "Catalog"
+        }
+    },
+    "profile": {
+        "achievements": {
+            "completed": "Completed",
+            "difficulty": {
+                "easy": "Easy",
+                "extreme": "Extreme",
+                "hard": "Hard",
+                "normal": "Normal"
+            },
+            "noCompleted": "🎯 No completed achievements yet",
+            "none": "No achievements",
+            "notReceived": "Unreceived achievements",
+            "points": "{{points}} points",
+            "progress": "Progress: {{current}} / {{total}}",
+            "subtitle": "Reach the highest level.",
+            "title": "Achievements",
+            "unknown": "Unknown",
+            "warningDescription": "We're improving the achievement system to make it better! Achievements aren't counted during listening right now, but we'll fix it soon. Thanks for your patience! 😊",
+            "warningTitle": "Attention! The achievement system is temporarily unavailable"
+        },
+        "errors": {
+            "loadFailed": "Load error",
+            "userNotFound": "User not found",
+            "withMessage": "Error: {{message}}"
+        },
+        "friends": {
+            "placeholder": "Friends list will appear here."
+        },
+        "friendButton": {
+            "actionError": "An error occurred. Please try again.",
+            "addFriend": "Add friend",
+            "editProfile": "Edit profile",
+            "follow": "Follow",
+            "following": "Following",
+            "friends": "Friends",
+            "removeFriend": "Remove friend",
+            "requestError": "Error while adding/removing a friend",
+            "unfollow": "Unfollow"
+        },
+        "level": "Level {{level}}",
+        "noNickname": "No nickname",
+        "pageTitle": "Profile",
+        "registrationDate": "Registration date",
+        "settings": {
+            "placeholder": "You can add an edit form and other settings here."
+        },
+        "sinceBeginning": "Since the beginning",
+        "status": {
+            "listeningWithTrack": "Listening: {{track}}"
+        },
+        "tabs": {
+            "friends": "Friends",
+            "friendsWithName": "Friends {{username}}",
+            "profileWithName": "Profile {{username}}",
+            "settings": "Profile settings"
+        }
+    },
+    "users": {
+        "fetchError": "Failed to fetch users.",
+        "noResults": "No results",
+        "pageTitle": "Users",
+        "searchPlaceholder": "search...",
+        "sort": {
+            "createdAt": "Registration date",
+            "lastOnline": "Last active",
+            "level": "Level",
+            "username": "Username"
+        },
+        "title": "Users"
+    },
+    "trackInfo": {
+        "albumCoverAlt": "Album cover",
+        "buttons": {
+            "enableDeepLinkDescription": "Adds “Open in web/app Yandex Music” buttons.",
+            "enableDeepLinkLabel": "Enable DeepLink",
+            "enableListenDescription": "Shows a “Listen” button in the status.",
+            "enableListenLabel": "Enable button (Listen)",
+            "enableWebsiteDescription": "Adds a button to the project site.",
+            "enableWebsiteLabel": "Enable button (PulseSync Project)"
+        },
+        "fallbackAlbumTitle": "PulseSync {{version}}",
+        "fields": {
+            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence",
+            "appIdLabel": "App ID",
+            "detailsDescription": "Details description",
+            "detailsLabel": "Details",
+            "listenButtonDescription": "Button label text",
+            "listenButtonLabel": "Listen to the track on Yandex Music",
+            "stateDescription": "State description",
+            "stateLabel": "State",
+            "statusDisplayTypeAria": "Status display type",
+            "statusDisplayTypeDescription": "Changes how activity is shown after “Listen”.",
+            "statusDisplayTypeLabel": "Change activity status display type",
+            "statusLanguage": "Change the language in which the app name will be displayed in RPC",
+            "textPlaceholder": "enter text"
+        },
+        "listeningStatus": "Listening to PulseSync",
+        "pageTitle": "Discord RPC",
+        "sections": {
+            "buttons": "Buttons",
+            "special": "Special",
+            "status": "Status"
+        },
+        "special": {
+            "showPausedDescription": "Shows the track in status even when paused.",
+            "showPausedLabel": "Show track while paused",
+            "showSmallIconDescription": "Shows a small icon with listening status.",
+            "showSmallIconLabel": "Enable listening status icon",
+            "showTrackVersionDescription": "Adds the track version to the title.",
+            "showTrackVersionLabel": "Show track version",
+            "supporterHideBrandingDescription": "Hides PulseSync branding in Rich Presence.",
+            "supporterHideBrandingLabel": "Hide PulseSync branding",
+            "supporterHideBrandingLockedDescription": "Available only with a Boosty subscription.",
+            "showVersionOrDeviceDescription": "Shows the app version instead of the device in the icon tooltip.",
+            "showVersionOrDeviceLabel": "Show app version instead of the playback device."
+        },
+        "validation": {
+            "maxLength": "Maximum length is {{count}} characters",
+            "minLength": "Minimum length is {{count}} characters",
+            "statusDisplayTypeFormat": "Enter 0 (Name), 1 (State), or 2 (Details)",
+            "statusDisplayTypeRequired": "Enter 0, 1, or 2"
+        }
+    },
+    "rpc": {
+        "message": "{{message}}",
+        "paused": "Paused",
+        "unknownArtist": "Unknown artist",
+        "unknownAlbum": "Unknown album",
+        "unknownTrack": "Unknown track",
+        "neuroMusic": "Neuro music"
+    },
+    "settings": {
+        "restartRequired": "Changes will take effect after restarting the app",
+        "toggles": {
+            "askSavePath": "Option \"Ask where to save track\" {{status}}",
+            "autoStartApp": "Option \"Auto-start app\" {{status}}",
+            "autoStartMusic": "Option \"Auto-start music\" {{status}}",
+            "autoUpdateStoreAddons": "Option \"Auto-update store add-ons\" {{status}}",
+            "autoTray": "Option \"Auto-start in tray\" {{status}}",
+            "closeAppInTray": "Option \"Close app to tray\" {{status}}",
+            "deletePextAfterImport": "Enabled deletion of .pext after theme import",
+            "saveAsMp3": "Option \"Save as mp3\" {{status}}",
+            "saveWindowDimensions": "Option \"Save window size\" {{status}}",
+            "saveWindowPosition": "Option \"Save window position\" {{status}}",
+            "showModChangelog": "Option \"Show changelog after install\" {{status}}"
+        },
+        "websocketStatusChanged": "Websocket status changed"
+    },
+    "store": {
+        "download": "Download",
+        "loading": "Loading store add-ons...",
+        "empty": "No published add-ons are available yet.",
+        "noResults": "Nothing was found.",
+        "filters": {
+            "type": "Type",
+            "sort": "Sort",
+            "latestRelease": "Latest release",
+            "name": "Name",
+            "downloads": "Downloads",
+            "order": "Sort order",
+            "orderAsc": "Ascending",
+            "orderDesc": "Descending"
+        },
+        "pendingSectionTitle": "Add-ons under moderation",
+        "pendingSectionSubtitle": "Add-ons undergoing moderation",
+        "pendingEmpty": "No add-ons under moderation match the current query.",
+        "searchPlaceholder": "Find an add-on...",
+        "downloadCount": "{{count}} downloads",
+        "approvedAt": "Reviewed {{date}}",
+        "submittedAt": "Submitted {{date}}",
+        "installed": "Installed",
+        "notInstalled": "Not installed",
+        "localVersionLinked": "A local version of {{title}} is already installed and linked to this publication.",
+        "installComplete": "Add-on {{title}} was installed.",
+        "installFailed": "Failed to install add-on {{title}}.",
+        "installUnavailable": "There is no installation file available for {{title}} yet.",
+        "openLocal": "Open local",
+        "remove": "Remove",
+        "removeConfirm": "Are you sure you want to delete the addon \"{{title}}\"?",
+        "removeComplete": "Add-on {{title}} was removed.",
+        "removeFailed": "Failed to remove add-on {{title}}.",
+        "unknownAddon": "Add-on",
+        "logs": {
+            "downloadComplete": "[Store] Download complete. Starting installation.",
+            "downloadStart": "[Store] Starting download {{title}}",
+            "installComplete": "[Store] Installed {{title}}!"
+        },
+        "status": {
+            "accepted": "Accepted",
+            "active": "Active",
+            "deprecated": "Deprecated",
+            "notPublished": "Not published",
+            "pending": "Pending review",
+            "rejected": "Rejected"
+        },
+        "kind": {
+            "theme": "Theme",
+            "script": "Script",
+            "web-addon": "WebHost"
+        },
+        "badges": {
+            "officialTemplate": "Official template",
+            "aiUsage": "AI",
+            "aiUsageTooltip": "AI was used during development of this add-on"
+        },
+        "type": {
+            "both": "CSS + JS",
+            "css": "CSS",
+            "js": "JS"
+        }
+    },
+    "textInput": {
+        "commands": {
+            "trackAlbum": "album title",
+            "trackArtist": "artist name",
+            "trackTitle": "track title"
+        },
+        "statusDisplay": {
+            "appName": "App name",
+            "trackArtist": "Track artist",
+            "trackTitle": "Track title"
+        },
+        "statusLanguage": {
+            "english": "English",
+            "russian": "Russian"
+        }
+    },
+    "updates": {
+        "checkingTitle": "Checking for updates",
+        "downloadError": "Download error",
+        "downloaded": "Update downloaded",
+        "downloadingLabel": "Downloading",
+        "downloadingTitle": "Downloading update",
+        "notFoundMessage": "App is up to date",
+        "notFoundTitle": "No updates",
+        "mod": {
+            "notFoundMessage": "Mod is up to date",
+            "notFoundTitle": "No updates"
+        }
+    },
+    "userStatus": {
+        "inactive": "Inactive",
+        "listening": "Listening",
+        "offline": "Offline",
+        "online": "Online"
+    },
+    "utils": {
+        "charCount": {
+            "withMax": "{{currentLength}} / {{maxLength}}",
+            "withoutMax": "{{currentLength}}"
+        },
+        "connectionAttemptMessage": "Connection attempt. Retries left: {{retriesLeft}}. Next in {{retryIntervalInSeconds}}s.",
+        "connectionAttemptTitle": "Ping-pong",
+        "internetCheckError": "Failed to check internet connection",
+        "timeAgo": {
+            "days": "{{count}}d",
+            "hours": "{{count}}h",
+            "minutes": "{{count}}m",
+            "months": "{{count}}mo",
+            "seconds": "{{count}}s",
+            "weeks": "{{count}}w",
+            "years": "{{count}}y"
+        }
+    }
+}

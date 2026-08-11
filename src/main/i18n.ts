@@ -1,8 +1,8 @@
 import i18next, { TOptions } from 'i18next'
 import { app } from 'electron'
 
-import en from '../locales/en/main.json'
-import ru from '../locales/ru/main.json'
+import en from '../locales/bundled/en/main.json'
+import ru from '../locales/bundled/ru/main.json'
 
 type MainTranslateOptions = Omit<TOptions, 'defaultValue'>
 

@@ -8,6 +8,7 @@ import { remoteRendererDevConfig } from './dev-remote-config.js'
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
 const remoteRendererCacheDir = path.resolve(projectRoot, 'node_modules/.vite-remote-renderer')
+const localizationPathPrefix = '/locales/'
 
 const { host, port, rendererUrl, manifestPath, manifestUrl } = remoteRendererDevConfig
 
@@ -43,9 +44,23 @@ const manifestPlugin = (): Plugin => ({
                 JSON.stringify({
                     buildNumber: '0',
                     url: rendererUrl,
+                    localizationUrl: new URL('/locales/', rendererUrl).toString(),
                     requiresDesktopApi: `^${DESKTOP_API_VERSION}`,
                 }),
             )
+        })
+        server.middlewares.use(localizationPathPrefix, (request, response) => {
+            const match = request.url?.match(/^\/?(en|ru)\/(main|renderer)\.json(?:\?.*)?$/u)
+            if (!match) {
+                response.statusCode = 404
+                response.end()
+                return
+            }
+            const sourcePath = path.join(projectRoot, 'src', 'locales', match[1], `${match[2]}.json`)
+            response.statusCode = 200
+            response.setHeader('Content-Type', 'application/json; charset=utf-8')
+            response.setHeader('Cache-Control', 'no-store')
+            response.end(fs.readFileSync(sourcePath))
         })
     },
 })

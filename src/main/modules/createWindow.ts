@@ -12,6 +12,7 @@ import { getState } from './state'
 import { fileURLToPath } from 'node:url'
 import { importPextFile, isPextFilePath } from './pextImporter'
 import { resolveMainRendererSources, type MainRendererSource } from './rendererSource'
+import { refreshRemoteLocalization } from './localization'
 import config from '@common/appConfig'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
@@ -224,6 +225,7 @@ const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: Ma
             if (isAppDev) {
                 await window.webContents.session.clearCache()
             }
+            await refreshRemoteLocalization(source)
             registerRemoteRendererResponseHeaders(window, source.origin)
             await window.loadURL(source.url)
             await assertRemotePreloadSurface(window)
