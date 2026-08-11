@@ -288,8 +288,14 @@ jobs:
 
   publish_renderer:
     name: Publish Remote Renderer
-    needs: build
-    if: ${{ inputs.publish_renderer == true }}
+    needs: [build, publish_desktop_s3]
+    if: >-
+      ${{
+        always() &&
+        inputs.publish_renderer == true &&
+        needs.build.result == 'success' &&
+        (inputs.upload_to_s3 != true || needs.publish_desktop_s3.result == 'success')
+      }}
     runs-on: blacksmith-4vcpu-ubuntu-2204
     environment: BUILD_PRODUCTION
     concurrency:

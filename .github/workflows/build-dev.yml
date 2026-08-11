@@ -256,8 +256,14 @@ jobs:
 
   publish_renderer:
     name: Publish Remote Renderer
-    needs: changes
-    if: ${{ needs.changes.outputs.renderer == 'true' }}
+    needs: [changes, github_prerelease]
+    if: >-
+      ${{
+        always() &&
+        needs.changes.result == 'success' &&
+        needs.changes.outputs.renderer == 'true' &&
+        (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success')
+      }}
     runs-on: blacksmith-4vcpu-ubuntu-2204
     environment: BUILD_PRODUCTION
     concurrency:
