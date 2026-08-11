@@ -27,8 +27,14 @@ import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopM
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
 
+const APP_ID = 'pulsesync.app'
+
 declare const __non_vite_require__: (moduleId: string) => {
     startup(context?: { bootstrapRuntime?: ApplicationBootstrapRuntime; bootstrapWindow?: Electron.BrowserWindow }): Promise<ApplicationStartupHandle>
+}
+
+if (process.platform === 'win32') {
+    app.setAppUserModelId(app.isPackaged ? APP_ID : `${APP_ID}.dev`)
 }
 
 applyHardwareAccelerationPreference()

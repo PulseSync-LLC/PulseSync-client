@@ -54,10 +54,6 @@ const State = getState()
 initMainI18n(State.get('settings.language'))
 registerLocalizationIpc()
 
-if (isWindows()) {
-    app.setAppUserModelId('pulsesync.app')
-}
-
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',
     '.jpg': 'image/jpeg',
