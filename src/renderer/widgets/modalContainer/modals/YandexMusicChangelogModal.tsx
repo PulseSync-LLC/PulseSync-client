@@ -198,7 +198,7 @@ const YandexMusicChangelogModal: React.FC = () => {
     return (
         <Modal title={t('pages.home.musicReleaseNotesTitle')} isOpen={isOpen} reqClose={() => closeModal(Modals.YANDEX_MUSIC_CHANGELOG)}>
             <div className={cn(modalStyles.updateModal, (isLoading || error) && modalStyles.updateModalMaxedHeight)}>
-                {isLoading && <Loader variant="panel" />}
+                {isLoading && <Loader variant="modChangelog" />}
                 {!isLoading && error && <p>{t('header.errorWithMessage', { message: error })}</p>}
                 {!isLoading &&
                     !error &&

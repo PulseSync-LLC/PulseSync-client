@@ -62,7 +62,9 @@
 }
 
 .modal-header {
+    z-index: 2;
     display: flex;
+    flex: 0 0 auto;
     justify-content: space-between;
     align-items: center;
     padding: 24px;

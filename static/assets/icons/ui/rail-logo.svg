@@ -1,3 +1,5 @@
-<svg xmlns="http://www.w3.org/2000/svg" width="108" height="96" viewBox="0 0 108 96" version="1.1">
-    <path d="M 34 33.500 L 34 39 45 39 C 54.111 39, 56 39.258, 56 40.500 C 56 41.742, 54.111 42, 45 42 L 34 42 34 55 L 34 68 43 68 L 52 68 52 61 L 52 54 63 54 L 74 54 74 41 L 74 28 54 28 L 34 28 34 33.500 M 55 62.500 L 55 68 64.500 68 L 74 68 74 62.500 L 74 57 64.500 57 L 55 57 55 62.500" stroke="none" fill="#ffffff" fill-rule="evenodd"/>
+<svg width="108" height="96" viewBox="0 0 750 750" fill="none" xmlns="http://www.w3.org/2000/svg">
+    <rect width="750" height="750" rx="44" fill="black" />
+    <rect x="382.516" y="473.715" width="222.484" height="131.285" fill="white" />
+    <path d="M145 145L605 145V440.714H349.444V605H145V309.286H400.556V276.429H145V145Z" fill="white" />
 </svg>
