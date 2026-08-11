@@ -6,11 +6,14 @@
 }
 
 .item {
+    position: relative;
     display: flex;
-    align-items: flex-start;
-    gap: 28px;
-    padding: 24px;
+    flex-direction: column;
     outline: 1px solid var(--modal-border);
+
+    &:first-child {
+        margin-top: 12px;
+    }
 
     &:nth-child(odd) {
         background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 100%);
@@ -22,18 +25,33 @@
 }
 
 .versionInfo {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 1;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    width: 120px;
-    flex-shrink: 0;
+    align-items: center;
+    gap: 10px;
+    width: max-content;
+    max-width: calc(100% - 48px);
+    padding: 5px 10px;
+    box-sizing: border-box;
+    border-radius: 999px;
+    background: var(--background);
+    transform: translate(-50%, -50%);
 }
 
 .versionBadge {
-    @include shimmer.text-surface(var(--accent));
+    @include shimmer.text-surface;
     width: 58px;
-    height: 20px;
+    height: 12px;
+}
+
+.separator {
+    @include shimmer.text-surface;
+    width: 4px;
+    height: 4px;
+    flex: 0 0 auto;
 }
 
 .date {
@@ -43,12 +61,13 @@
 }
 
 .content {
-    flex: 1;
     display: flex;
     flex-direction: column;
     gap: 20px;
     min-width: 0;
-    padding-top: 2px;
+    width: 100%;
+    padding: 30px 24px 24px;
+    box-sizing: border-box;
 }
 
 .section {
@@ -94,16 +113,7 @@
 }
 
 @media (max-width: 640px) {
-    .item {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .versionInfo {
-        width: auto;
-    }
-
     .content {
-        width: 100%;
+        padding-inline: 18px;
     }
 }

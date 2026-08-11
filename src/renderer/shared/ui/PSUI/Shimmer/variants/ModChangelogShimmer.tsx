@@ -8,6 +8,7 @@ export default function ModChangelogShimmer() {
                 <div key={index} className={styles.item}>
                     <div className={styles.versionInfo}>
                         <div className={styles.versionBadge} />
+                        <div className={styles.separator} />
                         <div className={styles.date} />
                     </div>
                     <div className={styles.content}>

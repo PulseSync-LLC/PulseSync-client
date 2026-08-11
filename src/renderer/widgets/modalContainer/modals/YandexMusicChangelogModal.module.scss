@@ -1,13 +1,9 @@
 .updateItem {
-    display: grid;
-    grid-template-columns: 104px minmax(0, 1fr);
-    align-items: start;
-    column-gap: 1.125rem;
+    display: flex;
 }
 
 .versionInfo {
-    min-width: 104px;
-    margin-bottom: 0;
+    min-width: 0;
 
     span {
         white-space: nowrap;
@@ -16,6 +12,7 @@
 
 .content {
     min-width: 0;
+    width: 100%;
 
     p:first-child,
     ul:first-child {
