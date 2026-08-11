@@ -335,7 +335,7 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             }}
             onClick={hideToast}
         >
-            <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
+            <div className={styles.icon}>{sticky && typeof value === 'number' ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>
                 <div className={styles.title}>{title}</div>
                 <div className={styles.msg}>{msg ?? ''}</div>
