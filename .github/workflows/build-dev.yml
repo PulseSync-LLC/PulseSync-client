@@ -15,7 +15,7 @@ concurrency:
 
 jobs:
   changes:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
       desktop: ${{ steps.filter.outputs.desktop }}
@@ -102,7 +102,7 @@ jobs:
   version:
     needs: changes
     if: ${{ needs.changes.outputs.desktop == 'true' }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     outputs:
       build_version: ${{ steps.version.outputs.build_version }}
@@ -155,7 +155,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, blacksmith-6vcpu-macos-26]
+        os: [ubuntu-latest, windows-2025, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -265,7 +265,7 @@ jobs:
         needs.changes.outputs.renderer == 'true' &&
         (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success')
       }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     concurrency:
       group: remote-renderer-publish
@@ -345,7 +345,7 @@ jobs:
     name: Publish Desktop Prerelease
     needs: [changes, version, build]
     if: ${{ needs.changes.outputs.desktop == 'true' }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
 
     steps:
@@ -442,7 +442,7 @@ jobs:
   skip-build:
     needs: changes
     if: ${{ needs.changes.outputs.bootstrapper != 'true' && needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     steps:
       - name: Skip dev build
         run: echo "Skipping dev workflow because no desktop, renderer, or retention files changed."

@@ -21,7 +21,7 @@ permissions:
 
 jobs:
   cleanup:
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
 
     steps:

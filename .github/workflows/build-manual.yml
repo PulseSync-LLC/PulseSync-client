@@ -13,9 +13,9 @@ on:
         type: choice
         options:
           - all
-          - blacksmith-4vcpu-ubuntu-2204
-          - blacksmith-4vcpu-windows-2025
-          - blacksmith-6vcpu-macos-26
+          - ubuntu-latest
+          - windows-2025
+          - macos-26
           - windows+macos
         default: all
       upload_to_s3:
@@ -86,7 +86,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]' || (inputs.build_os == 'windows+macos' && '["blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]' || format('["{0}"]', inputs.build_os))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-2025","macos-26"]' || (inputs.build_os == 'windows+macos' && '["windows-2025","macos-26"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -160,7 +160,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish changelog (optional, single-run on ubuntu)
-        if: ${{ inputs.publish_changelog == true && matrix.os == 'blacksmith-4vcpu-ubuntu-2204' }}
+        if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
         shell: bash
         run: |
           VERSION_ARGS=()
@@ -188,7 +188,7 @@ jobs:
     name: Publish Desktop S3 Release
     needs: build
     if: ${{ inputs.upload_to_s3 == true }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
 
     steps:
@@ -234,14 +234,14 @@ jobs:
           const path = require('node:path')
 
           const manifestsByOs = {
-              'blacksmith-4vcpu-windows-2025': 'desktop-update-win32-x64.json',
-              'blacksmith-4vcpu-ubuntu-2204': 'desktop-update-linux-x64.json',
-              'blacksmith-6vcpu-macos-26': 'desktop-update-hybrid-darwin-universal.json',
+              'windows-2025': 'desktop-update-win32-x64.json',
+              'ubuntu-latest': 'desktop-update-linux-x64.json',
+              'macos-26': 'desktop-update-hybrid-darwin-universal.json',
           }
           const expected = process.env.BUILD_OS === 'all'
               ? Object.values(manifestsByOs)
               : process.env.BUILD_OS === 'windows+macos'
-                ? [manifestsByOs['blacksmith-4vcpu-windows-2025'], manifestsByOs['blacksmith-6vcpu-macos-26']]
+                ? [manifestsByOs['windows-2025'], manifestsByOs['macos-26']]
                 : [manifestsByOs[process.env.BUILD_OS]]
           const versions = new Set()
 
@@ -296,7 +296,7 @@ jobs:
         needs.build.result == 'success' &&
         (inputs.upload_to_s3 != true || needs.publish_desktop_s3.result == 'success')
       }}
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     concurrency:
       group: remote-renderer-publish
