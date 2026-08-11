@@ -1,4 +1,4 @@
-import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 import cn from 'clsx'
 import { useNavigate } from 'react-router-dom'
 import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
@@ -6,8 +6,8 @@ import { FaGithub } from 'react-icons/fa'
 import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
-import ViewModal from '@features/context_menu_themes/viewModal'
 import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
+import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 import config from '@common/appConfig'
 import { staticAsset } from '@shared/lib/staticAssets'
@@ -40,7 +40,6 @@ interface Props {
     onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
-    onBottomBarHeightChange?: (height: number) => void
 }
 
 function useResolvedImage(url: string | null, fallback: string | null) {
@@ -101,38 +100,15 @@ const ThemeInfo: React.FC<Props> = ({
     onUpdateAddon,
     setSelectedTags,
     setShowFilters,
-    onBottomBarHeightChange,
 }) => {
     const { t } = useTranslation()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal, setModalState } = useModalContext()
     const { refreshAddons, user } = React.useContext(userContext)
-    const [menuOpen, setMenuOpen] = useState(false)
     const nav = useNavigate()
-    const actionsRef = useRef<HTMLDivElement>(null)
-    const moreBtnRef = useRef<HTMLButtonElement>(null)
-    const bottomBarRef = useRef<HTMLDivElement>(null)
     const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
 
     const authorNames = normalizeAuthorNames(addon.author)
-
-    const MAX_VISIBLE = 1
-    const visibleAuthors = authorNames.slice(0, MAX_VISIBLE)
-    const hiddenAuthors = authorNames.slice(MAX_VISIBLE)
-
-    const [showAll, setShowAll] = useState(false)
-
-    useEffect(() => {
-        if (!showAll) return
-        const handler = (e: MouseEvent) => {
-            const target = e.target as HTMLElement
-            if (!target.closest(`.${s.moreBox}`)) {
-                setShowAll(false)
-            }
-        }
-        document.addEventListener('mousedown', handler)
-        return () => document.removeEventListener('mousedown', handler)
-    }, [showAll])
 
     const [isMac, setIsMac] = useState(false)
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
@@ -166,262 +142,168 @@ const ThemeInfo: React.FC<Props> = ({
     const bannerUrl = useResolvedImage(bannerSource, fallbackBanner)
     const logoUrl = useResolvedImage(logoSource, null)
 
-    useEffect(() => {
-        if (!menuOpen) return
-        function handleClickOutside(e: MouseEvent) {
-            const target = e.target as Node
-            if (actionsRef.current && actionsRef.current.contains(target)) return
-            setMenuOpen(false)
-        }
-        document.addEventListener('mousedown', handleClickOutside)
-        return () => document.removeEventListener('mousedown', handleClickOutside)
-    }, [menuOpen])
-
-    useLayoutEffect(() => {
-        const node = bottomBarRef.current
-        if (!node || !onBottomBarHeightChange) return
-
-        const emitHeight = () => {
-            const styles = window.getComputedStyle(node)
-            const paddingTop = Number.parseFloat(styles.paddingTop || '0') || 0
-            const paddingBottom = Number.parseFloat(styles.paddingBottom || '0') || 0
-            const nextTop = Math.max(0, Math.ceil(node.offsetHeight - paddingTop - paddingBottom))
-            onBottomBarHeightChange(nextTop)
-        }
-
-        emitHeight()
-
-        if (typeof ResizeObserver === 'undefined') {
-            window.addEventListener('resize', emitHeight)
-            return () => window.removeEventListener('resize', emitHeight)
-        }
-
-        const observer = new ResizeObserver(() => emitHeight())
-        observer.observe(node)
-        window.addEventListener('resize', emitHeight)
-
-        return () => {
-            observer.disconnect()
-            window.removeEventListener('resize', emitHeight)
-        }
-    }, [
-        onBottomBarHeightChange,
-        addon.directoryName,
-        addon.author,
-        addon.size,
-        addon.version,
-        addon.lastModified,
-        addon.installSource,
-        addon.dependencies?.length,
-        addon.conflictsWith?.length,
-        enableBlockedReason,
-        canManagePublication,
-        hasStoreUpdate,
-        publication?.currentRelease?.githubUrl,
-        publicationGithubUrlText,
-    ])
-
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
-    const legacyAddonRestrictionsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
     const openLegacyAddonMigrationModal = useLegacyAddonMigrationModal()
     const resolvedGithubUrl = (publication?.currentRelease?.githubUrl || publicationGithubUrlText || '').trim()
     const hasGithubUrl = Boolean(resolvedGithubUrl)
+    const openPublication = () => {
+        if (showLegacyRestriction) {
+            openLegacyAddonMigrationModal()
+            return
+        }
+
+        openModal(Modals.EXTENSION_PUBLICATION_MODAL, {
+            addon,
+            authorsDisplay,
+            publication: publication ?? null,
+            publicationBusy,
+            changelogText: publicationChangelogText,
+            githubUrlText: publicationGithubUrlText,
+            onChangeChangelog: onPublicationChangelogChange ?? null,
+            onChangeGithubUrl: onPublicationGithubUrlChange ?? null,
+            onPublish: onPublishAddon ?? null,
+            onUpdate: onUpdateAddon ?? null,
+        })
+    }
+    const managementItems: DropdownMenuItem[] = [
+        ...(canManagePublication
+            ? [
+                  {
+                      key: 'publication',
+                      label: t('extensions.publication.statusLabel'),
+                      icon: <MdSync size={18} />,
+                      onClick: openPublication,
+                      divider: true,
+                  },
+              ]
+            : []),
+        ...createContextMenuActions(
+            undefined,
+            themeActive,
+            { showCheck: false, showDirectory: true, showExport: true, showDelete: true },
+            addon,
+            { Modals, openModal, setModalState },
+            refreshAddons,
+        )
+            .filter(item => item.show && item.icon)
+            .map((item, index) => ({ key: `management-${index}`, label: item.label, icon: item.icon, onClick: item.onClick })),
+    ]
     return (
-        <>
-            <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }}>
-                <div className={s.content}>
-                    <div className={s.libraryLogo} onClick={() => nav(`/${encodeURIComponent(addon.directoryName)}`)}>
-                        {logoUrl ? (
-                            <img className={s.libraryLogoImg} src={logoUrl} alt="Library Logo" />
-                        ) : (
-                            <div className={s.libraryLogoText}>{addon.name}</div>
-                        )}
-                    </div>
-                </div>
-            </div>
+        <div className={s.summary}>
+            <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }} />
 
-            <div className={s.topTags}>
-                {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={s.legacyRestrictionTag} /> : null}
-                {addon.tags &&
-                    addon.tags.length > 0 &&
-                    addon.tags.map(tag => (
-                        <Button
-                            key={tag}
-                            className={s.tag}
-                            onClick={() => {
-                                if (setSelectedTags && setShowFilters) {
-                                    setSelectedTags(prev => new Set([...prev, tag]))
-                                    setShowFilters(false)
-                                }
-                            }}
-                        >
-                            {tag}
+            <div className={s.identityRow}>
+                <button className={s.libraryLogo} onClick={() => nav(`/${encodeURIComponent(addon.directoryName)}`)} aria-label={addon.name}>
+                    {logoUrl ? <img className={s.libraryLogoImg} src={logoUrl} alt="" /> : <span className={s.libraryLogoText}>{addon.name}</span>}
+                </button>
+
+                <div className={s.actions}>
+                    {hasStoreUpdate ? (
+                        <Button className={cn(s.toggleButton, s.updateState)} onClick={onStoreUpdate} disabled={storeUpdateBusy}>
+                            {storeUpdateBusy ? t('common.importing') : t('layout.updateAction')}
                         </Button>
-                    ))}
-            </div>
+                    ) : (
+                        <Button
+                            className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
+                            disabled={!isEnabled && !!enableBlockedReason}
+                            title={!isEnabled && enableBlockedReason ? enableBlockedReason : undefined}
+                            onClick={() => onToggleEnabled(!isEnabled)}
+                        >
+                            {isEnabled
+                                ? t('extensions.disableAction')
+                                : enableBlockedReason
+                                  ? t('extensions.relations.enableBlockedButtonLabel')
+                                  : t('common.enable')}
+                        </Button>
+                    )}
 
-            <div className={s.invisible}></div>
-
-            <div className={s.bottomBar} ref={bottomBarRef}>
-                <div className={s.meta}>
-                    <div className={s.metaItem}>
-                        <span className={s.label}>{t('extensions.meta.author')}</span>
-                        <span className={s.value}>
-                            {visibleAuthors.map((u, i) => (
-                                <React.Fragment key={u}>
-                                    <span onClick={() => nav(`/profile/${encodeURIComponent(u)}`)} className={s.authorLink}>
-                                        {u}
-                                    </span>
-                                    {i < visibleAuthors.length - 1 && <span>, </span>}
-                                </React.Fragment>
-                            ))}
-
-                            {hiddenAuthors.length > 0 && (
-                                <span className={s.moreBox} onClick={() => setShowAll(!showAll)}>
-                                    <MdMoreHoriz size={16} />
-                                    {showAll && (
-                                        <div className={s.morePopup}>
-                                            {hiddenAuthors.map(u => (
-                                                <div
-                                                    key={u}
-                                                    onClick={() => {
-                                                        nav(`/profile/${encodeURIComponent(u)}`)
-                                                        setShowAll(false)
-                                                    }}
-                                                    className={s.moreAuthor}
-                                                >
-                                                    {u}
-                                                </div>
-                                            ))}
-                                        </div>
-                                    )}
-                                </span>
-                            )}
-                        </span>
-                    </div>
-
-                    <div className={s.metaItem}>
-                        <span className={s.label}>{t('extensions.meta.size')}</span>
-                        <span className={s.value}>{addon.size ?? t('common.emDash')}</span>
-                    </div>
-
-                    <div className={s.metaItem}>
-                        <span className={s.label}>{t('extensions.meta.version')}</span>
-                        <span className={s.value}>{addon.version ?? t('common.emDash')}</span>
-                    </div>
-
-                    <div className={s.metaItem}>
-                        <span className={s.label}>{t('extensions.meta.updated')}</span>
-                        <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
-                    </div>
-
-                    <div className={s.metaItem}>
-                        <span className={s.label}>{t('extensions.meta.source')}</span>
-                        <span className={s.value}>
-                            {addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}
-                        </span>
-                    </div>
-                </div>
-
-                <div className={s.sideActions} ref={actionsRef}>
-                    <div className={s.actions}>
-                        {canManagePublication && (
-                            <Button
-                                className={s.actionButton}
-                                onClick={() => {
-                                    if (showLegacyRestriction) {
-                                        openLegacyAddonMigrationModal()
-                                        return
-                                    }
-
-                                    openModal(Modals.EXTENSION_PUBLICATION_MODAL, {
-                                        addon,
-                                        authorsDisplay,
-                                        publication: publication ?? null,
-                                        publicationBusy,
-                                        changelogText: publicationChangelogText,
-                                        githubUrlText: publicationGithubUrlText,
-                                        onChangeChangelog: onPublicationChangelogChange ?? null,
-                                        onChangeGithubUrl: onPublicationGithubUrlChange ?? null,
-                                        onPublish: onPublishAddon ?? null,
-                                        onUpdate: onUpdateAddon ?? null,
-                                    })
-                                }}
-                                title={authorsDisplay}
-                            >
-                                <MdSync size={18} />
-                                <span>{t('extensions.publication.statusLabel')}</span>
-                            </Button>
-                        )}
-
-                        {hasStoreUpdate ? (
-                            <Button className={cn(s.toggleButton, s.updateState)} onClick={onStoreUpdate} disabled={storeUpdateBusy}>
-                                {storeUpdateBusy ? t('common.importing') : t('layout.updateAction')}
-                            </Button>
-                        ) : (
-                            <Button
-                                className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
-                                disabled={!isEnabled && !!enableBlockedReason}
-                                title={!isEnabled && enableBlockedReason ? enableBlockedReason : undefined}
-                                onClick={() => onToggleEnabled(!isEnabled)}
-                            >
-                                {isEnabled
-                                    ? t('common.disable')
-                                    : enableBlockedReason
-                                      ? t('extensions.relations.enableBlockedButtonLabel')
-                                      : t('common.enable')}
-                            </Button>
-                        )}
-
-                        {/*{canAccessStore && (*/}
-                        {/*    <Button className={s.miniButton} title={t('extensions.actions.store')} onClick={() => nav('/store')}>*/}
-                        {/*        <MdStoreMallDirectory size={20} />*/}
-                        {/*    </Button>*/}
-                        {/*)}*/}
-
-                        {addon.installSource === 'store' && (
-                            <Button
-                                className={s.miniButton}
-                                title={t('extensions.actions.github')}
-                                aria-label={t('extensions.actions.github')}
-                                disabled={!hasGithubUrl}
-                                onClick={() => {
-                                    if (resolvedGithubUrl) {
-                                        window.open(resolvedGithubUrl, '_blank', 'noopener,noreferrer')
-                                    }
-                                }}
-                            >
-                                <FaGithub size={18} />
-                            </Button>
-                        )}
-
-                        <Button className={s.miniButton} onClick={() => setMenuOpen(o => !o)} title={t('common.more')} ref={moreBtnRef}>
+                    <DropdownMenu items={managementItems} menuClassName={s.managementMenu} placement="right-start">
+                        <Button className={s.miniButton} title={t('common.more')}>
                             <MdMoreHoriz size={20} />
                         </Button>
-
-                        {menuOpen && (
-                            <ViewModal
-                                items={createContextMenuActions(
-                                    undefined,
-                                    themeActive,
-                                    {
-                                        showCheck: false,
-                                        showDirectory: true,
-                                        showExport: true,
-                                        showDelete: true,
-                                    },
-                                    addon,
-                                    { Modals, openModal, setModalState },
-                                    refreshAddons,
-                                )}
-                            />
-                        )}
-                    </div>
+                    </DropdownMenu>
                 </div>
             </div>
-        </>
+
+            <div className={s.copy}>
+                <h1>{addon.name}</h1>
+                {addon.description ? <p>{addon.description}</p> : null}
+            </div>
+
+            <div className={s.meta}>
+                <div className={s.metaItem}>
+                    <span className={s.label}>{t('extensions.meta.version')}</span>
+                    <span className={s.value}>{addon.version ?? t('common.emDash')}</span>
+                </div>
+                <div className={s.metaItem}>
+                    <span className={s.label}>{t('extensions.meta.updated')}</span>
+                    <span className={s.value}>{addon.lastModified ?? t('common.emDash')}</span>
+                </div>
+                <div className={s.metaItem}>
+                    <span className={s.label}>{t('extensions.meta.size')}</span>
+                    <span className={s.value}>{addon.size ?? t('common.emDash')}</span>
+                </div>
+                <div className={s.metaItem}>
+                    <span className={s.label}>{t('extensions.meta.source')}</span>
+                    <span className={s.value}>{addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}</span>
+                </div>
+            </div>
+
+            <section className={s.section}>
+                <h2>{t('extensions.meta.authors')}</h2>
+                <div className={s.chipList}>
+                    {authorNames.map(author => (
+                        <button key={author} className={s.authorChip} onClick={() => nav(`/profile/${encodeURIComponent(author)}`)}>
+                            <span /> {author}
+                        </button>
+                    ))}
+                </div>
+            </section>
+
+            {(showLegacyRestriction || addon.tags?.length > 0) && (
+                <section className={s.section}>
+                    <h2>{t('extensions.meta.tags')}</h2>
+                    <div className={s.chipList}>
+                        {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={s.legacyRestrictionTag} /> : null}
+                        {addon.tags?.map(tag => (
+                            <Button
+                                key={tag}
+                                className={s.tag}
+                                onClick={() => {
+                                    if (setSelectedTags && setShowFilters) {
+                                        setSelectedTags(previous => new Set([...previous, tag]))
+                                        setShowFilters(false)
+                                    }
+                                }}
+                            >
+                                {tag}
+                            </Button>
+                        ))}
+                    </div>
+                </section>
+            )}
+
+            {(canAccessStore || hasGithubUrl) && (
+                <section className={s.section}>
+                    <h2>{t('extensions.linksTitle')}</h2>
+                    <div className={s.linkList}>
+                        {canAccessStore ? (
+                            <Button className={s.linkButton} onClick={() => nav('/store')}>
+                                <MdStoreMallDirectory size={16} /> {t('extensions.actions.openStore')}
+                            </Button>
+                        ) : null}
+                        {hasGithubUrl ? (
+                            <Button className={s.linkButton} onClick={() => window.open(resolvedGithubUrl, '_blank', 'noopener,noreferrer')}>
+                                <FaGithub size={16} /> {t('extensions.actions.openGithub')}
+                            </Button>
+                        ) : null}
+                    </div>
+                </section>
+            )}
+        </div>
     )
 }
 

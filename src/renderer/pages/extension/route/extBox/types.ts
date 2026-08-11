@@ -3,6 +3,8 @@ import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeA
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
 export const RELATIONS_TAB = 'Relations'
+export const DESCRIPTION_TAB = 'Description'
+export const LICENSE_TAB = 'License'
 
 export interface DocTab {
     title: string

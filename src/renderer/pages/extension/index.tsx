@@ -33,6 +33,14 @@ import {
 import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
 import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
 import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
+import {
+    assignAddonCategory,
+    createAddonCategory,
+    deleteAddonCategory,
+    EMPTY_ADDON_ORGANIZATION,
+    normalizeAddonOrganization,
+    setAddonFavorite,
+} from '@pages/extension/model/addonOrganization'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 import { staticAsset } from '@shared/lib/staticAssets'
@@ -46,6 +54,7 @@ import { compareVersions } from '@shared/lib/utils'
 import { useModalContext } from '@app/providers/modal'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -138,12 +147,14 @@ function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
-    const { getExperiment, isExperimentEnabled } = useExperiments()
+    const { getExperiment, isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
     const [currentTheme, setCurrentTheme] = useState<string>('Default')
     const [enabledScripts, setEnabledScripts] = useState<string[]>([])
+    const [addonOrganization, setAddonOrganization] = useState<DesktopAddonOrganization>(EMPTY_ADDON_ORGANIZATION)
+    const addonOrganizationRef = useRef(addonOrganization)
     const [searchQuery, setSearchQuery] = useState('')
     const debouncedSearchQuery = useDebouncedValue(searchQuery.toLowerCase(), 250)
 
@@ -176,6 +187,27 @@ export default function ExtensionPage() {
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
 
     const loadedRef = useRef(false)
+
+    const commitAddonOrganization = useCallback(
+        (update: (current: DesktopAddonOrganization) => DesktopAddonOrganization) => {
+            const previous = addonOrganizationRef.current
+            const next = update(previous)
+            if (next === previous) return false
+
+            addonOrganizationRef.current = next
+            setAddonOrganization(next)
+            void desktopApi.addons.saveOrganization(next).catch(error => {
+                console.error('[Addons] failed to save sidebar organization', error)
+                if (addonOrganizationRef.current === next) {
+                    addonOrganizationRef.current = previous
+                    setAddonOrganization(previous)
+                }
+                toast.custom('error', t('common.oopsTitle'), t('extensions.organization.saveFailed'))
+            })
+            return true
+        },
+        [t],
+    )
     const requestedAddonId = useMemo(() => {
         const stateAddon = (location.state as { theme?: Addon } | null)?.theme
         const raw = stateAddon?.directoryName ?? stateAddon?.name ?? contactId
@@ -306,6 +338,9 @@ export default function ExtensionPage() {
                 setAddons(filtered)
                 setCurrentTheme(String(snapshot.addons.theme || 'Default'))
                 setEnabledScripts(readEnabledScriptsState(snapshot.addons.scripts))
+                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization)
+                addonOrganizationRef.current = nextOrganization
+                setAddonOrganization(nextOrganization)
                 return filtered
             } catch (error) {
                 console.error(t('extensions.loadError'), error)
@@ -591,20 +626,6 @@ export default function ExtensionPage() {
         setSearchQuery(e.target.value)
     }, [])
 
-    const handleTypeChange = useCallback((newType: AddonTypeFilter) => {
-        setType(newType)
-    }, [])
-
-    const toggleSet = useCallback((setVal: Set<string>, value: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
-        const newSet = new Set(setVal)
-        if (newSet.has(value)) {
-            newSet.delete(value)
-        } else {
-            newSet.add(value)
-        }
-        setter(newSet)
-    }, [])
-
     const handleSortChange = useCallback(
         (option: SortKey) => {
             if (option === sort) {
@@ -674,16 +695,6 @@ export default function ExtensionPage() {
 
     const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
 
-    const toggleFilterPanel = useCallback(() => {
-        setShowFilters(prev => !prev)
-        setOptionMenu(false)
-    }, [])
-
-    const toggleOptionMenu = useCallback(() => {
-        setOptionMenu(prev => !prev)
-        setShowFilters(false)
-    }, [])
-
     const getImagePath = useCallback((addon: Addon) => buildAddonImagePath(addon, fallbackAddonImage), [fallbackAddonImage])
 
     const handleReloadAddons = useCallback(async () => {
@@ -717,20 +728,45 @@ export default function ExtensionPage() {
         })
     }, [t])
 
-    const enabledAddons = useMemo(
-        () =>
-            mergedAddons.filter(addon =>
-                addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
-            ),
-        [mergedAddons, currentTheme, enabledScripts],
+    const handleCreateCategory = useCallback(
+        (name: string) => {
+            const created = commitAddonOrganization(current => createAddonCategory(current, name))
+            if (!created) {
+                toast.custom('error', t('common.oopsTitle'), t('extensions.organization.categoryInvalid'))
+            }
+            return created
+        },
+        [commitAddonOrganization, t],
     )
 
-    const disabledAddons = useMemo(
-        () =>
-            mergedAddons.filter(
-                addon => !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
-            ),
-        [mergedAddons, currentTheme, enabledScripts],
+    const handleDeleteCategory = useCallback(
+        (categoryId: string, categoryName: string) => {
+            setModalState(Modals.BASIC_CONFIRMATION, {
+                title: t('extensions.organization.deleteCategoryTitle'),
+                description: t('extensions.organization.deleteCategoryConfirm', { name: categoryName }),
+                confirmLabel: t('modals.basicConfirmation.delete'),
+                confirmVariant: 'danger',
+                onConfirm: () => {
+                    commitAddonOrganization(current => deleteAddonCategory(current, categoryId))
+                },
+            })
+            openModal(Modals.BASIC_CONFIRMATION)
+        },
+        [Modals.BASIC_CONFIRMATION, commitAddonOrganization, openModal, setModalState, t],
+    )
+
+    const handleSetAddonFavorite = useCallback(
+        (addon: Addon, favorite: boolean) => {
+            commitAddonOrganization(current => setAddonFavorite(current, addon.id, favorite))
+        },
+        [commitAddonOrganization],
+    )
+
+    const handleAssignAddonCategory = useCallback(
+        (addon: Addon, categoryId: string | null) => {
+            commitAddonOrganization(current => assignAddonCategory(current, addon.id, categoryId))
+        },
+        [commitAddonOrganization],
     )
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
@@ -762,7 +798,7 @@ export default function ExtensionPage() {
     }, [selectedAddon])
 
     const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, false)
-    const legacyAddonRestrictionsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const legacyAddonRestrictionsExperiment = getExperiment(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions)
     const selectedAddonIsRestrictedLegacy = isRestrictedLegacyAddon(selectedAddon, legacyAddonRestrictionsEnabled)
     const selectedAddonIsAuthoredByUser = isAddonAuthor(selectedAddon, user)
@@ -1218,7 +1254,10 @@ export default function ExtensionPage() {
     )
 
     return (
-        <PageLayout title={t('extensions.pageTitle')}>
+        <PageLayout
+            title={t('extensions.pageTitle')}
+            titleDetail={selectedAddon ? { label: selectedAddon.name, icon: getImagePath(selectedAddon) } : undefined}
+        >
             <EnableAddonModal
                 addon={modalAddon}
                 isOpen={modalOpen}
@@ -1238,26 +1277,28 @@ export default function ExtensionPage() {
             />
             <div className={extensionStylesV2.container}>
                 <ExtensionSidebar
+                    addons={mergedAddons}
+                    addonOrganization={addonOrganization}
                     containerRef={containerRef}
                     currentTheme={currentTheme}
-                    disabledAddons={disabledAddons}
-                    enabledAddons={enabledAddons}
                     enabledScripts={enabledScripts}
                     fallbackAddonImage={fallbackAddonImage}
                     filterButtonRef={filterButtonRef}
                     getImagePath={getImagePath}
                     onAddonClick={handleAddonClick}
                     onCreateNewAddon={handleCreateNewAddon}
+                    onCreateCategory={handleCreateCategory}
+                    onDeleteCategory={handleDeleteCategory}
                     onDisableAddon={addon => handleCheckboxChange(addon, false, true)}
                     onEnableAddon={handleEnableAddon}
+                    onAssignAddonCategory={handleAssignAddonCategory}
+                    onSetAddonFavorite={handleSetAddonFavorite}
                     onOpenAddonsDirectory={handleOpenAddonsDirectory}
                     onReloadAddons={handleReloadAddons}
                     onSearchChange={handleSearchChange}
                     onSortChange={handleSortChange}
-                    onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
-                    onToggleFilters={toggleFilterPanel}
-                    onToggleOptionMenu={toggleOptionMenu}
-                    onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
+                    onFiltersOpenChange={setShowFilters}
+                    onOptionMenuOpenChange={setOptionMenu}
                     optionButtonRef={optionButtonRef}
                     optionMenu={optionMenu}
                     searchQuery={searchQuery}

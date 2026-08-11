@@ -337,19 +337,43 @@
     "extensions": {
         "actions": {
             "store": "Catalog",
-            "github": "GitHub"
+            "github": "GitHub",
+            "openStore": "Open page in store",
+            "openGithub": "Open GitHub page"
         },
         "addonCreateFailed": "Failed to download the addon template",
         "addonCreatedMessage": "The {{name}} template was saved successfully",
         "addonCreatedTitle": "Addon template downloaded",
         "createHandleEvents": "Create handleEvents.json",
         "defaultThemeSet": "Default theme set",
+        "disableAction": "Disable",
         "editModeEnter": "Edit mode enabled",
         "editModeExit": "Edit mode disabled",
         "handleEventsMissing": "handleEvents.json not found",
         "initError": "Initialization error",
         "loadError": "Theme load error",
         "loadFailed": "Load failed",
+        "linksTitle": "Links",
+        "groups": {
+            "favorites": "Favorites",
+            "category": "Category"
+        },
+        "organization": {
+            "addFavorite": "Add to favorites",
+            "categoryInvalid": "Enter a unique category name",
+            "categoryNameLabel": "Category name",
+            "categoryNamePlaceholder": "For example, Appearance",
+            "createAction": "Create",
+            "createCategory": "Create category",
+            "deleteCategory": "Delete category",
+            "deleteCategoryConfirm": "Delete the “{{name}}” category? Its addons will remain installed and move to Uncategorized.",
+            "deleteCategoryTitle": "Delete category",
+            "moveToCategory": "Move to category",
+            "organizeAddon": "Organize {{name}}",
+            "removeFavorite": "Remove from favorites",
+            "saveFailed": "Failed to save addon organization",
+            "uncategorized": "Uncategorized"
+        },
         "meta": {
             "author": "Author",
             "authors": "Authors:",
@@ -358,6 +382,7 @@
             "relations": "Relations",
             "source": "Source",
             "size": "Size",
+            "tags": "Tags",
             "updated": "Updated",
             "version": "Version"
         },
@@ -458,6 +483,7 @@
         },
         "tabs": {
             "changelog": "Changelog",
+            "description": "Description",
             "license": "License",
             "metadata": "Metadata",
             "relations": "Compatibility",

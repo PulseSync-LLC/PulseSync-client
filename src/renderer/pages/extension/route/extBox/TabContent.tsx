@@ -13,7 +13,7 @@ import ConfigurationSettings from '@features/configurationSettings/Configuration
 import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
 import { AddonConfig } from '@features/configurationSettings/types'
 
-import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+import { ActiveTab, DESCRIPTION_TAB, DocTab, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import * as styles from '@pages/extension/route/extensionview.module.scss'
 import appConfig from '@common/appConfig'
 import Addon from '@entities/addon/model/addon.interface'
@@ -380,7 +380,17 @@ const TabContent: React.FC<Props> = ({
         )
     }
 
-    const doc = docs.find(d => (d.value || d.title) === active)
+    const doc =
+        active === DESCRIPTION_TAB
+            ? docs.find(d => (d.value || d.title).toLowerCase() === 'readme') || {
+                  title: t('extensions.tabs.description'),
+                  value: DESCRIPTION_TAB,
+                  content: addon.description || '',
+                  isMarkdown: true,
+              }
+            : active === LICENSE_TAB
+              ? docs.find(d => /license|licence|mit/i.test(d.value || d.title))
+              : docs.find(d => (d.value || d.title) === active)
     if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
 
     return (

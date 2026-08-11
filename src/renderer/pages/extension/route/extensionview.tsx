@@ -45,7 +45,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
     const [activeTab, setActiveTab] = useState<ActiveTab>('README' as ActiveTab)
     const [editMode, setEditMode] = useState(false)
-    const [tabStickyTop, setTabStickyTop] = useState(66)
     const hasRelations = useMemo(
         () => Boolean(addonRelationsEnabled && (addon.dependencies?.length || addon.conflictsWith?.length)),
         [addon.conflictsWith?.length, addon.dependencies?.length, addonRelationsEnabled],
@@ -88,12 +87,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     }, [addon.author, user.id, user.nickname, user.username])
 
     useEffect(() => {
-        if (activeTab === 'Metadata' && !canEditMetadata) {
-            setActiveTab(selectDefaultExtensionTab({ docs, hasPublicationChangelog, shouldOpenRelationsByDefault }))
-        }
-    }, [activeTab, canEditMetadata, docs, hasPublicationChangelog, shouldOpenRelationsByDefault])
-
-    useEffect(() => {
         if (activeTab === RELATIONS_TAB && !hasRelations) {
             setActiveTab(selectDefaultExtensionTab({ docs, hasPublicationChangelog }))
         }
@@ -107,17 +100,17 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
     return (
         <div className={s.container}>
-            <Scrollbar className={s.containerFix} classNameInner={s.containerFixInner}>
-                {activeTab === 'Settings' && configExists && addon.type !== 'web-addon' && (
-                    <button
-                        className={cn(s.edit, editMode && s.activeEdit)}
-                        onClick={() => setEditMode(e => !e)}
-                        title={editMode ? t('extensions.editModeExit') : t('extensions.editModeEnter')}
-                    >
-                        <MdEdit />
-                    </button>
-                )}
+            {activeTab === 'Settings' && configExists && addon.type !== 'web-addon' && (
+                <button
+                    className={cn(s.edit, editMode && s.activeEdit)}
+                    onClick={() => setEditMode(e => !e)}
+                    title={editMode ? t('extensions.editModeExit') : t('extensions.editModeEnter')}
+                >
+                    <MdEdit />
+                </button>
+            )}
 
+            <Scrollbar className={s.summaryPane} classNameInner={s.summaryPaneInner}>
                 <ThemeInfo
                     addon={addon}
                     isEnabled={isEnabled}
@@ -138,20 +131,20 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     onUpdateAddon={onUpdateAddon}
                     setSelectedTags={setSelectedTags}
                     setShowFilters={setShowFilters}
-                    onBottomBarHeightChange={setTabStickyTop}
                 />
+            </Scrollbar>
 
+            <div className={s.detailPane}>
+                <TabNavigation
+                    active={activeTab}
+                    onChange={setActiveTab}
+                    docs={docs}
+                    hasPublicationChangelog={publicationReleases.length > 0}
+                    hasRelations={hasRelations}
+                    showMetadataTab={canEditMetadata}
+                />
+                <Scrollbar className={s.detailScroll} classNameInner={s.detailScrollInner}>
                 <div className={s.extensionContent}>
-                    <TabNavigation
-                        active={activeTab}
-                        onChange={setActiveTab}
-                        docs={docs}
-                        hasPublicationChangelog={publicationReleases.length > 0}
-                        hasRelations={hasRelations}
-                        showMetadataTab={canEditMetadata}
-                        showSettingsTab={addon.type !== 'web-addon' || Boolean(addon.settings?.sections?.length)}
-                        stickyTop={tabStickyTop}
-                    />
                     <TabContent
                         key={addon.path}
                         active={activeTab}
@@ -169,6 +162,7 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     />
                 </div>
             </Scrollbar>
+            </div>
         </div>
     )
 }
