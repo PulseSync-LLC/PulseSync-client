@@ -67,7 +67,7 @@
     width: 100%;
     font-size: 13px;
     line-height: 1.5;
-    color: #a5adc3;
+    color: var(--text-secondary);
 }
 
 .statusLabel {
@@ -90,7 +90,7 @@
 }
 
 .statusMeta {
-    color: #cfd6ea;
+    color: var(--text-primary);
 }
 
 .fieldWrap {

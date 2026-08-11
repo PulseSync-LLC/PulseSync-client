@@ -6,14 +6,14 @@
     padding: 2px;
     box-sizing: border-box;
     overflow: hidden;
-    background: #00000033;
+    background: color-mix(in srgb, var(--background) 80%, transparent);
     border-radius: 10px;
     cursor: pointer;
     transition: var(--transition);
     animation: fadeInUp 0.4s ease-out forwards;
 
     &:hover {
-        background: #181a21;
+        background: var(--hover);
     }
 }
 
@@ -135,7 +135,7 @@
     font-weight: 700;
     font-size: 18px;
     line-height: 110%;
-    color: #ffffff;
+    color: var(--text-primary);
     height: 20px;
 }
 
@@ -172,7 +172,7 @@
     width: 100%;
     height: 150px;
     border-radius: 8px;
-    background-color: #3a3e4d;
+    background-color: var(--skeleton-base);
 
     &::before {
         content: '';

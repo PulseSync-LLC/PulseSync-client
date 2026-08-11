@@ -35,7 +35,7 @@
     text-align: center;
     line-height: 22px;
     font-weight: 800;
-    color: #dbe0ef;
+    color: var(--text-primary);
 }
 
 .rowTextWrap {
@@ -52,7 +52,7 @@
     height: 8px;
     border-radius: 9999px;
     overflow: hidden;
-    background: #2f364b;
+    background: var(--surface-elevated);
     box-shadow: inset 0 0 0 1px var(--hover);
 }
 .progressFill {
@@ -94,10 +94,10 @@
 }
 
 .st_idle .rowIcon {
-    color: #c8cfdf;
+    color: var(--text-secondary);
 }
 .st_idle .rowLabel {
-    color: #e8ebf6;
+    color: var(--text-primary);
 }
 
 .errorInline {

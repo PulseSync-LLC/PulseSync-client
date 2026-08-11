@@ -1,14 +1,14 @@
 :root {
-    --bg: #1f2331;
+    --bg: var(--background);
     --rad1: radial-gradient(900px 600px at 10% -10%, color-mix(in srgb, var(--accent) 18%, transparent), transparent 60%);
     --rad2: radial-gradient(700px 500px at 100% 10%, rgba(106, 141, 255, 0.15), transparent 60%);
 
     --panel: var(--border-hover);
     --panel-soft: var(--border-hover);
-    --text: #e9edff;
-    --muted: #b9c2e0;
+    --text: var(--text-primary);
+    --muted: var(--text-secondary);
 
-    --brand: #8fa4ff;
+    --brand: var(--accent);
     --brand-2: var(--accent);
 }
 
@@ -45,7 +45,7 @@
     place-items: center;
     padding: 0 10px;
     border-radius: 999px;
-    background: #1a1f33;
+    background: var(--surface-secondary);
     color: var(--brand);
     width: fit-content;
     border: 1px solid var(--hover);
@@ -105,7 +105,7 @@
     display: grid;
     place-items: center;
     border-radius: 10px;
-    background: #2e354e;
+    background: var(--surface-elevated);
     color: var(--muted);
     font-size: 18px;
 }
@@ -131,7 +131,7 @@
 }
 .segmented {
     display: inline-flex;
-    background: #242a3e;
+    background: var(--surface-tertiary);
     border: 1px solid var(--hover);
     border-radius: 10px;
     padding: 3px;
@@ -150,7 +150,7 @@
     background: var(--hover);
 }
 .segActive {
-    color: #0f1630;
+    color: var(--accent-foreground);
     background: var(--brand);
 }
 

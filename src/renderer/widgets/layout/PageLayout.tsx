@@ -5,14 +5,18 @@ import pageStyles from '@widgets/layout/pageStyles'
 
 type PageLayoutProps = {
     title: string
+    titleDetail?: {
+        label: string
+        icon?: string
+    }
     children: React.ReactNode
     containerRef?: React.Ref<HTMLDivElement>
     className?: string
 }
 
-const PageLayout: React.FC<PageLayoutProps> = ({ title, children, containerRef, className }) => {
+const PageLayout: React.FC<PageLayoutProps> = ({ title, titleDetail, children, containerRef, className }) => {
     return (
-        <Layout title={title}>
+        <Layout title={title} titleDetail={titleDetail}>
             <div className={pageStyles.page}>
                 <div className={pageStyles.container}>
                     <div ref={containerRef} className={clsx(pageStyles.main_container, className)}>

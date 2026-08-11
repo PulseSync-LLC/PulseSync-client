@@ -64,7 +64,7 @@
                     pointer-events: none;
 
                     &:hover {
-                        background: #3c3f4a;
+                        background: var(--surface-elevated);
                     }
                 }
             }
@@ -105,6 +105,18 @@
                     line-height: 140%;
 
                     color: var(--HeaderBarTextColor);
+                }
+
+                .breadcrumbSeparator {
+                    color: var(--text-secondary);
+                }
+
+                .breadcrumbIcon {
+                    width: 19px;
+                    height: 19px;
+                    flex: 0 0 19px;
+                    border-radius: 6px;
+                    object-fit: cover;
                 }
             }
 
@@ -160,7 +172,7 @@
                     border-radius: 8px;
 
                     &:hover {
-                        background: #262a35;
+                        background: var(--surface-tertiary);
                     }
 
                     & > .imageDetail {
@@ -203,7 +215,7 @@
                             font-size: 12px;
                             line-height: 110%;
 
-                            color: #fff;
+                            color: var(--text-primary);
                             text-overflow: ellipsis;
                             flex: none;
                             overflow: hidden;
@@ -217,7 +229,7 @@
                             font-size: 10px;
                             line-height: 110%;
 
-                            color: #fff;
+                            color: var(--text-primary);
                             text-overflow: ellipsis;
                             flex: none;
                             overflow: hidden;
@@ -249,7 +261,7 @@
                         bottom: 361px;
                         right: 0;
                         left: 0;
-                        background: linear-gradient(180deg, var(--border) 38%, #2b304000 100%);
+                        background: linear-gradient(180deg, var(--border) 38%, transparent 100%);
                         z-index: 1;
                         pointer-events: none;
                     }
@@ -259,7 +271,7 @@
                         font-size: 18px;
                         line-height: 140%;
 
-                        color: #ffffff;
+                        color: var(--text-primary);
                     }
 
                     & > .settingsContainer {
@@ -720,7 +732,7 @@
 .dev {
     opacity: 1;
     color: var(--surface-tertiary);
-    background: #fff34c;
+    background: var(--development-build);
     padding: 2px 12px;
     font-size: 12px;
     font-weight: 1000;
@@ -784,7 +796,7 @@
     justify-content: center;
     border-radius: 999px;
     background: var(--danger);
-    color: #fff;
+    color: var(--text-primary);
     font-size: 10px;
     font-weight: 900;
     line-height: 1;
@@ -793,7 +805,8 @@
 }
 
 .devOverridesBadge {
-    background: #4c79ff;
+    background: var(--warning);
+    color: var(--accent-foreground);
 }
 
 .giveawaysBadge {
@@ -808,7 +821,7 @@
     justify-content: center;
     border-radius: 999px;
     background: var(--danger);
-    color: #fff;
+    color: var(--text-primary);
     font-size: 10px;
     font-weight: 900;
     line-height: 1;

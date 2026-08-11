@@ -62,7 +62,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
                 aria-label={label}
                 onClick={() => openModal(Modals.UPDATE_CHANNEL_OVERRIDE)}
             >
-                <img src={staticAsset('assets/icons/v4/header-routing.png')} alt="" aria-hidden="true" />
+                <img src={staticAsset('assets/icons/ui/header-routing.svg')} alt="" aria-hidden="true" />
             </button>
         </TooltipButton>
     )

@@ -82,7 +82,7 @@
         top: 0px;
         bottom: 0px;
 
-        background: rgba(22, 24, 30, 0.85);
+        background: color-mix(in srgb, var(--background) 85%, transparent);
         backdrop-filter: blur(9.5px);
 
         & > .patch_container {
@@ -130,7 +130,7 @@
                     padding: 0px;
 
                     & > .alert_version_update {
-                        color: #ffffff;
+                        color: var(--text-primary);
                         display: flex;
                         flex-direction: row;
                         align-items: center;
@@ -151,15 +151,16 @@
                             font-weight: 600;
                             font-size: 12px;
 
-                            color: #ffffff;
+                            color: var(--text-primary);
                         }
 
                         & > .version_old {
-                            background: #585858;
+                            background: var(--text-muted);
                         }
 
                         & > .version_new {
                             background: var(--accent);
+                            color: var(--accent-foreground);
                         }
                     }
 
@@ -169,7 +170,7 @@
                         line-height: 140%;
                         text-transform: uppercase;
 
-                        color: #ffffff;
+                        color: var(--text-primary);
                     }
 
                     & > .alert_warn {
@@ -177,7 +178,7 @@
                         font-size: 14px;
                         line-height: 140%;
 
-                        color: #ffffff;
+                        color: var(--text-secondary);
                     }
                 }
 
@@ -189,16 +190,16 @@
                     width: 100%;
                     padding: 12px 14px 12px 13px;
                     border-radius: 8px;
-                    border: 1px solid rgba(255, 188, 122, 0.14);
-                    border-left: 3px solid rgba(255, 166, 84, 0.72);
-                    background: rgba(255, 214, 170, 0.05);
+                    border: 1px solid color-mix(in srgb, var(--warning) 14%, transparent);
+                    border-left: 3px solid color-mix(in srgb, var(--warning) 72%, transparent);
+                    background: color-mix(in srgb, var(--warning) 5%, transparent);
                     box-shadow: inset 0 1px 0 var(--hover);
 
                     & > .patch_error_title_row {
                         display: flex;
                         align-items: center;
                         gap: 8px;
-                        color: #ffb779;
+                        color: var(--warning);
 
                         & > svg {
                             flex-shrink: 0;
@@ -210,14 +211,14 @@
                         font-size: 12px;
                         line-height: 1.3;
                         letter-spacing: 0.01em;
-                        color: #ffd3ae;
+                        color: var(--warning);
                     }
 
                     & > .patch_error_message {
                         font-weight: 400;
                         font-size: 13px;
                         line-height: 1.45;
-                        color: rgba(255, 243, 232, 0.9);
+                        color: var(--text-secondary);
                         word-break: break-word;
                     }
                 }
@@ -246,10 +247,10 @@
                         font-size: 14px;
                         line-height: 140%;
 
-                        color: #ffffff;
+                        color: var(--accent-foreground);
 
                         &:hover {
-                            background: #2c56c8;
+                            background: var(--accent-muted);
                         }
                     }
                 }
@@ -314,7 +315,7 @@
 
                     width: 413px;
 
-                    background: #48483b;
+                    background: var(--surface-elevated);
                     border: 0;
                     border-radius: 10px;
 
@@ -329,7 +330,7 @@
                     }
 
                     &:hover {
-                        background: #2c2b26;
+                        background: var(--surface-tertiary);
                     }
                 }
             }
@@ -343,8 +344,8 @@
 }
 
 .betatest {
-    color: white;
-    background: #4c79ff;
+    color: var(--accent-foreground);
+    background: var(--warning);
     padding: 0px 6px;
     border-radius: 4px;
     font-size: 11px;

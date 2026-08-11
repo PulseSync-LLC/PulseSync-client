@@ -2,7 +2,7 @@
     --cfg-text: var(--text-primary);
     --cfg-muted: var(--text-secondary);
     --cfg-accent: var(--accent);
-    --cfg-surface: #2e3446;
+    --cfg-surface: var(--surface-elevated);
     --cfg-surface-2: var(--border);
     --cfg-border: var(--border-hover);
 }
@@ -37,7 +37,7 @@
     transition: 0.16s ease;
 }
 .sectionHeader:hover {
-    border-color: #556089;
+    border-color: var(--border-hover);
     box-shadow: 0 1px 0 var(--hover) inset;
 }
 
@@ -45,8 +45,8 @@
     min-width: 22px;
     height: 22px;
     border-radius: 999px;
-    background: #454c66;
-    color: #d7def6;
+    background: var(--surface-tertiary);
+    color: var(--text-primary);
     font-size: 12px;
     display: inline-flex;
     align-items: center;
@@ -65,7 +65,7 @@
     height: 16px;
     mask: url("data:image/svg+xml,%3Csvg viewBox='0 0 24 24' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M7 10l5 5 5-5' stroke='%23fff' stroke-width='2' fill='none' stroke-linecap='round' stroke-linejoin='round'/%3E%3C/svg%3E")
         no-repeat center/contain;
-    background: #cfd8ff;
+    background: var(--accent);
     transform: rotate(0deg);
     transition: transform 0.18s ease;
 }

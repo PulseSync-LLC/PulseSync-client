@@ -133,7 +133,7 @@
     outline: 1px solid var(--border-hover);
     transition: var(--transition);
     &:hover {
-        outline-color: #59648a;
+    outline-color: var(--focus-ring);
     }
 }
 .slider:focus-visible {
@@ -151,7 +151,7 @@
     transition: var(--transition);
 }
 .slider:hover::-webkit-slider-thumb {
-    background: #e8ecff;
+    background: var(--accent);
 }
 .slider::-moz-range-thumb {
     width: 14px;
@@ -193,7 +193,7 @@
 }
 .inputLabel {
     font-size: 12px;
-    color: #cfd7ef;
+    color: var(--text-secondary);
 }
 .text {
     width: 100%;
@@ -213,7 +213,7 @@
     }
 }
 .textInvalid {
-    border-color: #ff6b6b;
+    border-color: var(--danger);
     box-shadow: 0 0 0 2px color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
@@ -242,7 +242,7 @@
         border-color: var(--border-hover);
     }
     &:hover .selectArrow {
-        color: #d8defa;
+    color: var(--text-primary);
         transform: translateY(-50%) rotate(180deg) scale(1.05);
     }
     &:focus-within .select {

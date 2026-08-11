@@ -42,13 +42,17 @@ import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
 interface p {
     goBack?: boolean
     title?: string
+    titleDetail?: {
+        label: string
+        icon?: string
+    }
 }
 
 type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
-const Header: React.FC<p> = ({ title }) => {
+const Header: React.FC<p> = ({ title, titleDetail }) => {
     const settingsAvailable = false
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
@@ -399,7 +403,7 @@ const Header: React.FC<p> = ({ title }) => {
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
                         <div className={styles.railLogoSlot} aria-hidden="true">
-                            <img className={styles.railLogo} src={staticAsset('assets/icons/v4/rail-logo.png')} alt="" />
+                            <img className={styles.railLogo} src={staticAsset('assets/icons/ui/rail-logo.svg')} alt="" />
                         </div>
                         {/*<TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>*/}
                         {/*    <button className={styles.settingsButton} disabled={!settingsAvailable}>*/}
@@ -408,6 +412,13 @@ const Header: React.FC<p> = ({ title }) => {
                         {/*</TooltipButton>*/}
                         <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu}>
                             <span>{title ?? 'PulseSync'}</span>
+                            {titleDetail ? (
+                                <>
+                                    <span className={styles.breadcrumbSeparator}>/</span>
+                                    {titleDetail.icon ? <img className={styles.breadcrumbIcon} src={titleDetail.icon} alt="" /> : null}
+                                    <span>{titleDetail.label}</span>
+                                </>
+                            ) : null}
                         </button>
                         <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
                     </div>

@@ -1,8 +1,8 @@
-$error-color: #ff5555;
-$text-color: #ffffff;
-$secondary-text-color: #bbbbbb;
-$background-color: #1e1e1e;
-$border-color: #444;
+$error-color: var(--danger);
+$text-color: var(--text-primary);
+$secondary-text-color: var(--text-secondary);
+$background-color: var(--surface-tertiary);
+$border-color: var(--border-hover);
 $font-family: 'Arial, sans-serif';
 
 .errorBoundary {

@@ -182,7 +182,7 @@
 .metaChip {
     background: var(--border);
     border: 1px solid var(--border);
-    color: #c8d0e3;
+    color: var(--text-secondary);
 }
 
 .metaChipActive {
@@ -321,7 +321,7 @@
     padding: 14px;
     border-radius: 12px;
     border: 1px solid var(--border);
-    background: #272c37;
+    background: var(--surface-elevated);
 }
 
 .field {
@@ -371,7 +371,7 @@
 
 .fieldInput::placeholder,
 .textarea::placeholder {
-    color: #7f879a;
+    color: var(--text-muted);
 }
 
 .fieldInput:focus,
@@ -379,7 +379,7 @@
     outline: none;
     border-color: var(--accent);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 14%, transparent);
-    background: #20232b;
+    background: var(--surface-tertiary);
 }
 
 .empty {

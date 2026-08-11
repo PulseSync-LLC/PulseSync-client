@@ -212,7 +212,7 @@ const NotificationsBell: React.FC = () => {
                 <IconButton variant="ghost" size="compact" aria-label={t('header.notifications.open')} onClick={() => setOpen(current => !current)}>
                     <img
                         className={hasUnreadNotifications ? styles.headerBellIcon : `${styles.headerBellIcon} ${styles.headerBellIconIdle}`}
-                        src={staticAsset(hasUnreadNotifications ? 'assets/icons/v4/header-bell.png' : 'assets/icons/v4/header-bell-idle.png')}
+                        src={staticAsset(hasUnreadNotifications ? 'assets/icons/ui/header-bell.svg' : 'assets/icons/ui/header-bell-idle.svg')}
                         alt=""
                         aria-hidden="true"
                     />

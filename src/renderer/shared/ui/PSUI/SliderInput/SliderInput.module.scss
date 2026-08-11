@@ -69,10 +69,10 @@
     position: relative;
     height: var(--sl-h);
     border-radius: 999px;
-    background: #2f3547;
+    background: var(--surface-elevated);
     border: 1px solid var(--border-hover);
     cursor: pointer;
-    outline: 1px solid #5d6b95;
+    outline: 1px solid var(--border-hover);
 }
 .fill {
     position: absolute;
@@ -80,7 +80,7 @@
     top: 0;
     bottom: 0;
     border-radius: 999px;
-    background: linear-gradient(90deg, var(--text-secondary), #6aa0ff);
+    background: linear-gradient(90deg, var(--text-secondary), var(--accent));
 }
 .thumb {
     position: absolute;

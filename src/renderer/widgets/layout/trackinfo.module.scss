@@ -15,7 +15,7 @@
         font-size: 12px;
         line-height: 16px;
 
-        color: #ecedef;
+    color: var(--text-primary);
     }
 
     .statusRPC {
@@ -43,7 +43,7 @@
                 --imgSize: 64px;
                 width: var(--imgSize);
                 height: var(--imgSize);
-                background: #4e5058;
+    background: var(--surface-elevated);
                 border-radius: var(--BorderRadius);
             }
 
@@ -100,7 +100,7 @@
                         width: -webkit-fill-available;
                         height: 2px;
 
-                        background: #999999;
+    background: var(--text-secondary);
 
                         & > .timeline_progress {
                             height: 2px;
@@ -131,7 +131,7 @@
 
             width: -webkit-fill-available;
 
-            background: #545d7b;
+    background: var(--text-muted);
             border-radius: 4px;
 
             font-weight: 700;
@@ -141,7 +141,7 @@
             color: var(--text-primary);
 
             &:hover {
-                background: #69749a;
+    background: var(--text-secondary);
             }
         }
     }
