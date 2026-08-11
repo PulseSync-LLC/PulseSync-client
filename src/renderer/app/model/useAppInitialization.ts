@@ -1,4 +1,4 @@
-import { useEffect, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
+import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
 
 import config from '@common/appConfig'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
@@ -41,13 +41,31 @@ export function useAppInitialization({
     setWidgetInstalled,
     userId,
 }: Params) {
-    useEffect(() => {
-        if (userId === '-1') {
-            setModInfoFetched(false)
-        }
-    }, [setModInfoFetched, userId])
+    const initializationStartedRef = useRef(false)
+    const detectedMusicVersionRef = useRef<string | null>(null)
+    const achievementsUserIdRef = useRef<string | null>(null)
+    const userIdRef = useRef(userId)
 
     useEffect(() => {
+        userIdRef.current = userId
+        if (userId === '-1') {
+            setModInfoFetched(false)
+            setAllAchievements([])
+            achievementsUserIdRef.current = null
+            setMusicVersion(config.AUTONOMOUS_MUSIC_VERSION)
+            return
+        }
+
+        setMusicVersion(detectedMusicVersionRef.current)
+        if (achievementsUserIdRef.current === userId) return
+        achievementsUserIdRef.current = userId
+        void fetchAchievements()
+    }, [fetchAchievements, setAllAchievements, setModInfoFetched, setMusicVersion, userId])
+
+    useEffect(() => {
+        if (initializationStartedRef.current) return
+        initializationStartedRef.current = true
+
         const initializeApp = async () => {
             desktopApi.updates.start()
             desktopApi.music.checkInstall()
@@ -60,7 +78,9 @@ export function useAppInitialization({
                 desktopApi.addons.list(),
             ])
             appRef.current = hydratedApp
-            const resolvedMusicVersion = userId === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : (musicVersion as string | null | undefined) || null
+            detectedMusicVersionRef.current = (musicVersion as string | null | undefined) || null
+            const resolvedMusicVersion =
+                userIdRef.current === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : detectedMusicVersionRef.current
 
             setMusicInstalled(!!musicStatus)
             setMusicVersion(resolvedMusicVersion)
@@ -76,20 +96,16 @@ export function useAppInitialization({
 
             await fetchModInfo(hydratedApp)
 
-            if (userId !== '-1') {
-                await fetchAchievements()
-                return
-            }
-
-            setAllAchievements([])
             const routerPath = router && 'state' in router ? router.state?.location?.pathname : undefined
-            if (routerPath === '/auth/callback') {
+            if (userIdRef.current === '-1' && routerPath === '/auth/callback') {
                 await router.navigate('/home', { replace: true })
             }
         }
 
         void initializeApp()
+    }, [appRef, fetchModInfo, router, setAddons, setApp, setMusicInstalled, setMusicVersion, setWidgetInstalled])
 
+    useEffect(() => {
         const modCheckId = setInterval(
             () => {
                 void fetchModInfo(appRef.current)
@@ -100,17 +116,5 @@ export function useAppInitialization({
         return () => {
             clearInterval(modCheckId)
         }
-    }, [
-        appRef,
-        fetchAchievements,
-        fetchModInfo,
-        router,
-        setAddons,
-        setAllAchievements,
-        setApp,
-        setMusicInstalled,
-        setMusicVersion,
-        setWidgetInstalled,
-        userId,
-    ])
+    }, [appRef, fetchModInfo])
 }

@@ -18,6 +18,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSentAddonMetrics = useRef('')
     const lastSendAt = useRef(0)
+    const trackInfoRequestedForUserRef = useRef<string | null>(null)
     const trackSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientTrackSending, false)
     const metricsSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientMetricsSending, false)
 
@@ -45,7 +46,10 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
         const unsubscribeTrackPlayedEnough = desktopApi.music.onTrackPlayedEnough(handleSendTrackPlayedEnough)
         const unsubscribeTrackInfo = desktopApi.music.onTrackInfo(handleTrackInfo)
-        desktopApi.music.requestTrackInfo()
+        if (trackInfoRequestedForUserRef.current !== user.id) {
+            trackInfoRequestedForUserRef.current = user.id
+            desktopApi.music.requestTrackInfo()
+        }
 
         return () => {
             unsubscribeTrackPlayedEnough()

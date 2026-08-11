@@ -20,7 +20,7 @@ interface RegisterServerIpcEventsOptions {
     sendDataToMusic: () => void
     sendExtensions: () => Promise<number>
     sendPremiumUserToClients: (args: any) => void
-    getCurrentTrack: () => void
+    getCurrentTrack: () => number
 }
 
 export const registerServerIpcEvents = ({
@@ -67,7 +67,9 @@ export const registerServerIpcEvents = ({
     })
 
     ipcMain.on(MainEvents.GET_TRACK_INFO, () => {
-        logger.http.log('GET_TRACK_INFO: returning current track...')
-        getCurrentTrack()
+        const recipients = getCurrentTrack()
+        if (recipients > 0) {
+            logger.http.log(`GET_TRACK_INFO: requested current track from ${recipients} music client(s)`)
+        }
     })
 }

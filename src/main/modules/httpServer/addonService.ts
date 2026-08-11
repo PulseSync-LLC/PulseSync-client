@@ -552,6 +552,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     }: DataToMusicOptions = {}) => {
         const io = getIo()
         if (!io) return
+        const recipients = getMusicRecipients(targetSocket)
+        if (!recipients.length) return
+
         const syncKey = targetSocket?.id || '__all__'
         const snapshot = readAddonStateSnapshot()
         const webHostSnapshot = readWebHostAddonsSnapshot()
@@ -562,12 +565,16 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             currentAddonStateHash.length > 0 &&
             currentAddonStateHash === desiredAddonStateHash
 
-        for (const socket of getMusicRecipients(targetSocket)) {
+        for (const socket of recipients) {
             if (!stateMatches) emitAddonStateSnapshot(socket, snapshot)
             else socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             if (supportsWebHostAddons(socket, webHostAddonProtocolVersion)) emitWebHostAddonsSnapshot(socket, webHostSnapshot)
         }
-        logger.http.log(stateMatches ? 'Addon state unchanged after READY' : 'Current addon state sent after READY')
+        logger.http.log(
+            stateMatches
+                ? `Addon state unchanged for ${recipients.length} music client(s)`
+                : `Current addon state sent to ${recipients.length} music client(s)`,
+        )
 
         const existingTimer = pendingDataSyncTimers.get(syncKey)
         if (existingTimer) {
@@ -583,14 +590,17 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     const getCurrentTrack = () => {
         const io = getIo()
-        if (!io) return
+        if (!io) return 0
 
+        let recipients = 0
         io.sockets.sockets.forEach(sock => {
             const socket = sock as any
             if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong) {
                 sock.emit(MainEvents.GET_TRACK_INFO)
+                recipients += 1
             }
         })
+        return recipients
     }
 
     const sendPremiumUserToClients = (args: any) => {
