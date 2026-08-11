@@ -106,9 +106,9 @@
     }
 }
 
-.btn_primary {
+.btnBase.btn_primary {
     background: var(--accent);
-    color: #ffffff;
+    color: var(--accent-foreground, #040404);
     box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-tertiary) 8%, transparent);
 
     &:not(:disabled):hover {
