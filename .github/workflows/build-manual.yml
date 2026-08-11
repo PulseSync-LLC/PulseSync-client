@@ -7,10 +7,6 @@ on:
         description: "Choose build branch"
         required: true
         default: "dev"
-      build_version:
-        description: "Exact desktop version override (optional)"
-        required: false
-        default: ""
       build_os:
         description: "Choose OS to build"
         required: true
@@ -132,7 +128,6 @@ jobs:
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
-          BUILD_VERSION: ${{ inputs.build_version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.s3_branch == 'dev' && '1' || '0' }}

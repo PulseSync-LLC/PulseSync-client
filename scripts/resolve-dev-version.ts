@@ -81,6 +81,7 @@ async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: R
 
     let continuationToken: string | undefined
     let maxSequence = 0
+    let foundPublishedSequence = false
     const seenVersions = new Set<string>()
 
     do {
@@ -106,12 +107,17 @@ async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: R
 
             const sequence = extractPrereleaseSequence(artifactVersion, baseVersion, channel)
             if (sequence !== null) {
+                foundPublishedSequence = true
                 maxSequence = Math.max(maxSequence, sequence)
             }
         }
 
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
     } while (continuationToken)
+
+    if (!foundPublishedSequence && baseVersion === '3.0.0' && branch === 'dev' && channel === 'dev') {
+        maxSequence = 5
+    }
 
     return `${baseVersion}-${channel}.${maxSequence + 1}`
 }

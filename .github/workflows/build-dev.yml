@@ -48,6 +48,7 @@ jobs:
               - 'packages/desktop-core/**'
               - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
               - 'scripts/!(@(bootstrapper|renderer))/**/*'
+              - 'scripts/resolve-dev-version.ts'
               - 'scripts/s3-upload.ts'
               - 'scriptsInstaller/**'
               - 'package.json'
