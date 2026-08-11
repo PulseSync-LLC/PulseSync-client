@@ -2,6 +2,7 @@ import React from 'react'
 import cn from 'clsx'
 import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
+import { Tooltip } from '@pulsesync/uikit/feedback'
 import { useTranslation } from 'react-i18next'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -52,6 +53,7 @@ export default function AddonCard({
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
+    const organizationLabel = t('extensions.organization.organizeAddon', { name: addon.name })
     const organizationItems: DropdownMenuItem[] = [
         {
             key: 'favorite',
@@ -132,14 +134,11 @@ export default function AddonCard({
                     menuClassName={extensionStylesV2.addonOrganizerMenu}
                     placement="right-start"
                 >
-                    <button
-                        type="button"
-                        className={extensionStylesV2.addonOrganizerButton}
-                        aria-label={t('extensions.organization.organizeAddon', { name: addon.name })}
-                        title={t('extensions.organization.organizeAddon', { name: addon.name })}
-                    >
-                        <MdMoreHoriz aria-hidden />
-                    </button>
+                    <Tooltip content={organizationLabel} position="right" delay={300} className={extensionStylesV2.addonOrganizerTooltip}>
+                        <button type="button" className={extensionStylesV2.addonOrganizerButton} aria-label={organizationLabel}>
+                            <MdMoreHoriz aria-hidden />
+                        </button>
+                    </Tooltip>
                 </DropdownMenu>
             </div>
         </div>
