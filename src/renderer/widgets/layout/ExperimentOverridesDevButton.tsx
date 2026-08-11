@@ -13,7 +13,7 @@ const ExperimentOverridesDevButton: React.FC = () => {
     return (
         <TooltipButton tooltipText={label} side="bottom" as="div" className={styles.devOverridesTrigger}>
             <button type="button" className={styles.headerIconButton} aria-label={label} onClick={() => openModal(Modals.EXPERIMENT_OVERRIDES_DEV)}>
-                <img src={staticAsset('assets/icons/v4/header-json.png')} alt="" aria-hidden="true" />
+                <img src={staticAsset('assets/icons/ui/header-json.svg')} alt="" aria-hidden="true" />
             </button>
         </TooltipButton>
     )

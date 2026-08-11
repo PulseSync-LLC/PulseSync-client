@@ -95,7 +95,7 @@
     padding: 5px 0;
 
     &:hover {
-        color: #abffde;
+    color: var(--success);
     }
 
     &.active {
@@ -125,7 +125,7 @@
     max-width: 400px;
     width: 100%;
     background-color: color-mix(in srgb, var(--surface-primary) 72%, transparent);
-    border: 1px solid #69739452;
+    border: 1px solid var(--border);
     border-radius: 10px;
     cursor: text;
     position: relative;
@@ -315,7 +315,7 @@
     height: fit-content;
 
     &:hover {
-        background: #2f323d;
+    background: var(--surface-elevated);
         outline: 4px solid var(--text-muted);
         box-shadow: 0px 0px 15px var(--text-muted) !important;
     }
@@ -348,7 +348,7 @@
 
 .userStatus {
     font-size: 14px;
-    color: #b6c7ff;
+    color: var(--text-secondary);
     display: -webkit-box;
     -webkit-line-clamp: 1;
     -webkit-box-orient: vertical;
@@ -443,7 +443,7 @@
     }
 
     &.active {
-        color: #1b311e;
+    color: var(--accent-foreground);
         background: var(--success);
         &:hover {
             color: color-mix(in srgb, var(--success) 8%, var(--surface-primary));

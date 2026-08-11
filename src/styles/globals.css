@@ -3,7 +3,7 @@
 :root {
     /* Legacy compatibility aliases. Exact fallbacks preserve bootstrap/preload. */
     --white: var(--ps-foreground, #f0f0f0);
-    --primary: #ffcc66;
+    --primary: var(--ps-warning, #ffcc66);
     --red: var(--ps-danger, #ed4245);
 
     --medium: var(--ps-surface-secondary, #131317);
@@ -13,7 +13,7 @@
     --gray: var(--ps-text-muted, #777);
     --grayer: var(--ps-surface-elevated, #25252d);
     --Main: var(--ps-background, #16181e);
-    --MainBG: var(--ps-background, #232631);
+    --MainBG: var(--ps-surface-secondary, #232631);
 
     --BorderColor: var(--ps-border, #363944);
     --BorderRadius: var(--ps-radius-sm, 8px);
@@ -28,14 +28,14 @@
     --NavigationIconDefaultSvgColor: var(--ps-text-secondary, #8f94a8);
 
     --downloadColor: var(--ps-success, #75ff9c);
-    --download: #2a3e3900;
-    --downloadH: #1b2e2a;
+    --download: color-mix(in srgb, var(--ps-success, #75ff9c) 0%, transparent);
+    --downloadH: color-mix(in srgb, var(--ps-success, #75ff9c) 16%, transparent);
 
     --panelsColor: var(--ps-surface-elevated, #292c36);
 
     --transition: cubic-bezier(0.45, 0.65, 0.395, 1) all 0.2s;
 
-    --online: #afffad;
+    --online: var(--ps-success, #afffad);
 }
 
 * {
@@ -99,10 +99,10 @@ body.devmark-border {
     border-radius: 10px;
     box-sizing: border-box;
     overflow: hidden;
-    background-color: #fff34c;
+    background-color: var(--development-build, #fff34c);
     position: fixed;
     inset: 0;
-    border: 3px solid #fff34c;
+    border: 3px solid var(--development-build, #fff34c);
 }
 
 .app-wrapper {
@@ -116,7 +116,7 @@ form {
 }
 
 :focus-visible {
-    outline: 1px double #ffffff;
+    outline: 1px double var(--ps-focus-ring, #ffffff);
 }
 
 ::-webkit-scrollbar {
@@ -217,7 +217,7 @@ form {
 
 [class*='markdownText'] {
     font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-    color: #e5e7eb;
+    color: var(--ps-text-primary, #e5e7eb);
     background: transparent;
     line-height: 1.7;
     padding: 24px;
@@ -229,12 +229,12 @@ form {
     font-weight: 700;
     margin: 32px 0 16px;
     line-height: 1.3;
-    color: #98ffd6;
+    color: var(--ps-text-primary, #98ffd6);
 }
 
 [class*='markdownText'] h1 {
     font-size: 2.25rem;
-    border-bottom: 2px solid #a1ffd998;
+    border-bottom: 2px solid var(--ps-border, #a1ffd998);
     padding-bottom: 6px;
 }
 
@@ -265,16 +265,16 @@ form {
 
 [class*='markdownText'] a {
     font-weight: 500;
-    color: #98ffd6;
+    color: var(--ps-text-primary, #98ffd6);
     text-decoration: none;
-    border-bottom: 1px dashed #98ffd6;
+    border-bottom: 1px dashed var(--ps-border-hover, #98ffd6);
     transition:
         color 0.2s,
         border-bottom-color 0.2s;
 }
 [class*='markdownText'] a:hover {
-    color: #ffffff;
-    border-bottom-color: #ffffff;
+    color: var(--ps-text-secondary, #ffffff);
+    border-bottom-color: var(--ps-text-secondary, #ffffff);
 }
 
 [class*='markdownText'] img {
@@ -286,11 +286,11 @@ form {
 }
 
 [class*='markdownText'] blockquote {
-    background: rgba(138, 174, 255, 0.1);
+    background: var(--ps-hover, rgba(138, 174, 255, 0.1));
     padding: 16px 20px;
     margin: 24px 0;
-    border-left: 4px solid #98ffd6;
-    color: #e7fff5;
+    border-left: 4px solid var(--ps-border-hover, #98ffd6);
+    color: var(--ps-text-secondary, #e7fff5);
     font-style: italic;
     border-radius: 4px;
 }
@@ -299,7 +299,7 @@ form {
 }
 
 [class*='markdownText'] code {
-    background: #3b4154;
+    background: var(--ps-surface-elevated, #3b4154);
     padding: 2px 4px;
     border-radius: 4px;
     font-family: 'Source Code Pro', monospace;
@@ -309,7 +309,7 @@ form {
 }
 
 [class*='markdownText'] pre {
-    background: #3b4154;
+    background: var(--ps-surface-elevated, #3b4154);
     padding: 16px;
     margin: 24px 0;
     border-radius: 6px;
@@ -320,7 +320,7 @@ form {
     white-space: pre;
     font-family: 'Source Code Pro', monospace;
     font-size: 0.9rem;
-    color: #f0f0f0;
+    color: var(--ps-text-primary, #f0f0f0);
     text-wrap: auto;
     font-weight: 500;
 }
@@ -329,7 +329,7 @@ form {
     width: 100%;
     border-collapse: collapse;
     margin: 24px 0;
-    background: rgba(255, 255, 255, 0.03);
+    background: var(--ps-hover, rgba(255, 255, 255, 0.03));
     border-radius: 6px;
     overflow: hidden;
 }
@@ -339,18 +339,18 @@ form {
     text-align: left;
 }
 [class*='markdownText'] th {
-    background: rgba(255, 255, 255, 0.08);
-    color: #e0e7ff;
+    background: var(--ps-active, rgba(255, 255, 255, 0.08));
+    color: var(--ps-text-primary, #e0e7ff);
     font-weight: 500;
     font-weight: 500;
 }
 [class*='markdownText'] tr:nth-child(even) {
-    background: rgba(255, 255, 255, 0.02);
+    background: var(--ps-hover, rgba(255, 255, 255, 0.02));
 }
 
 [class*='markdownText'] hr {
     border: none;
-    border-top: 1px solid rgba(255, 255, 255, 0.2);
+    border-top: 1px solid var(--ps-line, rgba(255, 255, 255, 0.2));
     margin: 32px 0;
 }
 
@@ -358,9 +358,9 @@ form {
     height: 6px;
 }
 [class*='markdownText'] pre::-webkit-scrollbar-thumb {
-    background: rgba(255, 255, 255, 0.2);
+    background: var(--ps-border-hover, rgba(255, 255, 255, 0.2));
     border-radius: 3px;
 }
 [class*='markdownText'] pre::-webkit-scrollbar-thumb:hover {
-    background: rgba(255, 255, 255, 0.4);
+    background: var(--ps-text-muted, rgba(255, 255, 255, 0.4));
 }

@@ -22,7 +22,7 @@
 .store {
     width: 100%;
     padding: 48px 0 34px;
-    color: #f9fafb;
+    color: var(--text-primary);
 }
 
 .store_header {
@@ -52,7 +52,7 @@
     font-family: 'Segoe UI';
     font-weight: 500;
     font-size: 16px;
-    color: #545d77;
+    color: var(--text-muted);
 }
 
 .store_toolbar {
@@ -101,7 +101,7 @@
     appearance: none;
     -webkit-appearance: none;
     outline: none;
-    color: #f8faff;
+    color: var(--text-primary);
     font-size: 15px;
     font-weight: 600;
     padding: 0;
@@ -219,7 +219,7 @@
 
 .store_sectionSubtitle {
     margin: 6px 0 0;
-    color: #aeb8d8;
+    color: var(--text-secondary);
     font-size: 18px;
     font-weight: 600;
 }

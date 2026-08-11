@@ -4,7 +4,7 @@
     display: flex;
     height: -webkit-fill-available;
     top: 60px;
-    border: 1px solid #687397;
+    border: 1px solid var(--border);
     box-shadow: 0px 0px 16.4px #000000;
     right: 30px;
     border-radius: 10px;
@@ -27,14 +27,14 @@
     height: 22px;
     border: none;
     background: transparent;
-    color: #c2c2c2;
+    color: var(--text-secondary);
     font-size: 18px;
     cursor: pointer;
     transition: color 0.2s;
     margin-left: auto;
 
     &:hover {
-        color: #fff;
+        color: var(--text-primary);
     }
 }
 
@@ -65,14 +65,14 @@
 
 .tabsHeader {
     justify-content: flex-start;
-    border-bottom: 1px solid #3e424c;
+    border-bottom: 1px solid var(--border);
     box-sizing: border-box;
     display: flex;
     flex-direction: row;
     align-items: center;
     padding: 8px 40px;
     gap: 14px;
-    background: #424757;
+    background: var(--surface-secondary);
     text-transform: lowercase;
 }
 
@@ -83,24 +83,24 @@
     cursor: pointer;
     font-weight: 500;
     font-size: 14px;
-    color: #a4aed3;
+    color: var(--text-secondary);
     border-radius: 6px;
     transition: var(--transition);
 
     &:hover {
-        background: #474e66;
+        background: var(--hover);
     }
 }
 
 .tabsHeader button.activeTab {
-    background: #537aff;
-    color: #ffffff;
+    background: var(--accent);
+    color: var(--accent-foreground);
 
     font-weight: 800;
     font-size: 14px;
     line-height: 140%;
 
-    color: #ffffff;
+    color: var(--accent-foreground);
 }
 
 .currentTabLabel {
@@ -116,7 +116,7 @@
     font-size: 24px;
     line-height: 140%;
 
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .modalContent {
@@ -181,11 +181,11 @@
     justify-content: center;
     align-items: flex-start;
     padding: 3px 8px;
-    background: #272a33c9;
+    background: color-mix(in srgb, var(--surface-elevated) 80%, transparent);
     font-weight: 600;
     font-size: 12px;
     line-height: 140%;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .levelBadge {
@@ -196,7 +196,7 @@
     height: 30px;
     font-size: 14px;
     font-weight: bold;
-    color: #fff;
+    color: var(--text-primary);
     background: linear-gradient(135deg, #ffcc00, #ff8800);
     border-radius: 50%;
     box-shadow: 0 0 8px rgba(255, 136, 0, 0.6);
@@ -233,7 +233,7 @@
     line-height: 110%;
     display: flex;
     gap: 5px;
-    color: #ffffff;
+    color: var(--text-primary);
 
     .userBadges {
         display: flex;
@@ -290,11 +290,11 @@
 }
 
 .buttonAddFriendWhite {
-    background: #ffffff;
-    color: var(--border-hover);
+    background: var(--accent);
+    color: var(--accent-foreground);
 
     &:hover {
-        background: var(--text-primary);
+        filter: brightness(0.85);
     }
     &:disabled {
         opacity: 0.5;
@@ -302,11 +302,11 @@
 }
 
 .buttonUnsubscribe {
-    background: #686ae0;
-    color: #ffffff;
+    background: var(--accent);
+    color: var(--accent-foreground);
 
     &:hover {
-        background: #5859b8;
+        filter: brightness(0.85);
     }
     &:disabled {
         opacity: 0.5;
@@ -314,11 +314,11 @@
 }
 
 .buttonRemoveFriend {
-    background: #e14677;
-    color: #ffffff;
+    background: var(--danger);
+    color: var(--text-primary);
 
     &:hover {
-        background: #ac395d;
+        filter: brightness(0.85);
     }
     &:disabled {
         opacity: 0.5;
@@ -335,15 +335,15 @@
     padding: 10px 15px;
     gap: 10px;
     width: fit-content;
-    background: #ffffff;
+    background: var(--accent);
     border-radius: 8px;
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;
-    color: var(--border-hover);
+    color: var(--accent-foreground);
 
     &:hover {
-        background: #d7d7d7;
+        filter: brightness(0.85);
     }
     &:disabled {
         opacity: 0.5;
@@ -359,15 +359,15 @@
     align-items: flex-start;
     padding: 10px 10px;
     gap: 10px;
-    background: var(--border-hover);
+    background: var(--surface-elevated);
     border-radius: 8px;
     font-weight: 700;
     font-size: 14px;
     line-height: 140%;
-    color: #b3bad4;
+    color: var(--text-secondary);
 
     &:hover {
-        background: #5b6070;
+        background: var(--hover);
     }
     &:disabled {
         opacity: 0.5;
@@ -400,7 +400,7 @@
     font-weight: 900;
     font-size: 18px;
     line-height: 140%;
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .descriptionHeader {
@@ -547,7 +547,7 @@
     right: 0;
     top: 0;
     bottom: 0;
-    color: white;
+    color: var(--text-primary);
     font-weight: 700;
 }
 
@@ -571,7 +571,7 @@
 .dot {
     width: 10px;
     height: 10px;
-    background: #ffffff;
+    background: var(--accent);
     border-radius: 50%;
     animation: bounce 0.6s infinite alternate;
 }

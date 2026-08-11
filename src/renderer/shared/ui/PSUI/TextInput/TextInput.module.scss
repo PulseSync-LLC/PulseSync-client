@@ -121,14 +121,14 @@
     display: flex;
     align-items: center;
     justify-content: space-between;
-    background: #494e65;
+    background: var(--surface-elevated);
     padding: 10px 16px;
     cursor: pointer;
     color: var(--text-secondary);
     transition: var(--transition);
 
     &:hover {
-        background: #383e51;
+    background: var(--surface-tertiary);
     }
 }
 
@@ -146,7 +146,7 @@
 
 .commandPreview {
     font-weight: 600;
-    color: #acc8ff;
+    color: var(--text-secondary);
 }
 
 @keyframes fadeInUp {

@@ -4,7 +4,7 @@
     --cfg-gap: 12px;
     --cfg-gap-lg: 20px;
     --cfg-accent: var(--accent);
-    --cfg-success: #63d69b;
+    --cfg-success: var(--success);
     --cfg-surface: var(--border);
     --cfg-surface-2: var(--border);
     --cfg-border: var(--border-hover);
@@ -54,7 +54,7 @@
     width: 28px;
     height: 28px;
     border-radius: 8px;
-    border: 1px solid #48516b;
+    border: 1px solid var(--border);
     background: var(--border-hover);
     color: var(--text-primary);
     cursor: pointer;
@@ -62,13 +62,13 @@
 }
 .iconBtn:hover {
     transform: translateY(-1px);
-    border-color: #5b6586;
+    border-color: var(--border-hover);
 }
 .warnBtn {
-    color: #f7d37b;
+    color: var(--warning);
 }
 .dangerBtn {
-    color: #ff8080;
+    color: var(--danger);
 }
 
 .section {

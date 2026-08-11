@@ -4,7 +4,7 @@
     border-radius: 8px;
     background: var(--Main);
     outline: 1px solid var(--BorderColor);
-    color: #ffffff;
+    color: var(--text-primary);
     font-family: Arial, sans-serif;
     position: absolute;
     left: 0;
@@ -31,7 +31,7 @@
 
             & > path {
                 animation: path 3s ease-in-out infinite;
-                box-shadow: #1b1f21 1px 1px;
+    box-shadow: var(--surface-tertiary) 1px 1px;
             }
         }
     }

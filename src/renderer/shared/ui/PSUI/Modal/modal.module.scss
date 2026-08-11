@@ -29,7 +29,7 @@
     }
 
     a {
-        color: #4ea8ff;
+    color: var(--text-primary);
         text-decoration: underline;
 
         &:hover {
@@ -85,6 +85,6 @@
 
     span {
         font-size: 11px;
-        color: #94a1c1;
+    color: var(--text-secondary);
     }
 }

@@ -19,11 +19,15 @@ import { desktopApi } from '@shared/desktop/desktopApi'
 
 interface LayoutProps {
     title: string
+    titleDetail?: {
+        label: string
+        icon?: string
+    }
     children: React.ReactNode
     goBack?: boolean
 }
 
-const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
+const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack }) => {
     const {
         user,
         app,
@@ -82,15 +86,15 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
     return (
         <HelmetProvider>
             <Helmet>
-                <title>{title + ' - PulseSync'}</title>
+                <title>{`${title}${titleDetail ? ` / ${titleDetail.label}` : ''} - PulseSync`}</title>
             </Helmet>
             <div className={pageStyles.children}>
-                <Header goBack={goBack} title={title} />
+                <Header goBack={goBack} title={title} titleDetail={titleDetail} />
                 <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
-                                <img src={staticAsset('assets/icons/v4/home.png')} alt="" aria-hidden="true" />
+                                <img src={staticAsset('assets/icons/ui/home.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/extensions"
@@ -98,7 +102,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <img src={staticAsset('assets/icons/v4/extensions.png')} alt="" aria-hidden="true" />
+                                <img src={staticAsset('assets/icons/ui/extensions.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/users"
@@ -106,7 +110,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled || (!isAutonomousMode && !usersPageEnabled)}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <img src={staticAsset('assets/icons/v4/users.png')} alt="" aria-hidden="true" />
+                                <img src={staticAsset('assets/icons/ui/users.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/store"
@@ -114,13 +118,13 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <img src={staticAsset('assets/icons/v4/store.png')} alt="" aria-hidden="true" />
+                                <img src={staticAsset('assets/icons/ui/store.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
                             {isUserDeveloper(user?.perms) && (
                                 <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
-                                    <img src={staticAsset('assets/icons/v4/settings.png')} alt="" aria-hidden="true" />
+                                    <img src={staticAsset('assets/icons/ui/settings.svg')} alt="" aria-hidden="true" />
                                 </NavButtonPulse>
                             )}
                             {updateAvailable && (
@@ -132,7 +136,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                         }}
                                         className={pageStyles.update_download}
                                     >
-                                        <img src={staticAsset('assets/icons/v4/download.png')} alt="" aria-hidden="true" />
+                                        <img src={staticAsset('assets/icons/ui/download.svg')} alt="" aria-hidden="true" />
                                     </button>
                                 </TooltipButton>
                             )}

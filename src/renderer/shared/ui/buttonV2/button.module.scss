@@ -17,20 +17,18 @@
     font-size: 14px;
     line-height: 140%;
 
-    color: #fff;
+    color: var(--accent-foreground);
 
     &:not(:disabled):hover {
-        background: #7192ff;
+        filter: brightness(0.85);
     }
 
     &:disabled {
-        background: #415eba;
-        color: #ffffff;
         cursor: default;
+        opacity: 0.48;
     }
 
     &:not(:disabled):active {
-        background: var(--accent);
-        color: #ffffff;
+        filter: brightness(0.72);
     }
 }
