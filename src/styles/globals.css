@@ -70,15 +70,15 @@ a.disabled {
 }
 
 a.active > button {
-    background: var(--text-primary);
+    background: var(--surface-elevated);
     border: none;
 
     & > svg {
-        fill: var(--background);
+        fill: var(--text-primary);
     }
 
     & > img {
-        filter: grayscale(1) brightness(0);
+        filter: grayscale(1) brightness(0) invert(1);
     }
 }
 

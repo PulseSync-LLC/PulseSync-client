@@ -20,6 +20,7 @@ button {
     will-change: transform, opacity;
     z-index: 9999;
     white-space: pre-line;
+    pointer-events: none;
     display: flex;
     flex-direction: column;
     justify-content: center;
