@@ -264,7 +264,7 @@
     &::before {
         content: '';
         position: absolute;
-        inset: 0 15px 0 44px;
+        inset: 0 5px 0 44px;
         z-index: 0;
         border-radius: 6px;
         background: transparent;
@@ -345,11 +345,13 @@
 }
 
 .addonType {
+    grid-column: 4;
     display: flex;
     align-items: center;
     justify-content: center;
     width: 24px;
     height: 24px;
+    transform: translateX(8px);
     color: var(--text-muted);
 
     img {
@@ -359,21 +361,23 @@
     }
 }
 
-.addonTrailing {
-    position: relative;
+.addonOrganizerSlot {
+    position: absolute;
+    top: 4px;
+    right: 6px;
     width: 24px;
     height: 24px;
-    transform: translateX(8px);
-}
-
-.addonType,
-.addonOrganizer {
-    position: absolute;
-    inset: 0;
+    opacity: 0;
     transition: var(--transition);
 }
 
-.addonOrganizer {
+.addonCardWithLegacyRestriction .addonType {
+    grid-column: 5;
+    grid-row: 1;
+}
+
+.addonCardWithLegacyRestriction:hover .addonType,
+.addonCardWithLegacyRestriction:focus-within .addonType {
     opacity: 0;
 }
 
@@ -406,13 +410,8 @@
     }
 }
 
-.addonCard:hover .addonType,
-.addonCard:focus-within .addonType {
-    opacity: 0;
-}
-
-.addonCard:hover .addonOrganizer,
-.addonCard:focus-within .addonOrganizer {
+.addonCard:hover .addonOrganizerSlot,
+.addonCard:focus-within .addonOrganizerSlot {
     opacity: 1;
 }
 

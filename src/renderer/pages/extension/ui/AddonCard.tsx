@@ -2,7 +2,6 @@ import React from 'react'
 import cn from 'clsx'
 import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
-import { Tooltip } from '@pulsesync/uikit/feedback'
 import { useTranslation } from 'react-i18next'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -12,6 +11,7 @@ import userContext from '@entities/user/model/context'
 import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 import { staticAsset } from '@shared/lib/staticAssets'
+import TooltipButton from '@shared/ui/tooltip_button'
 import type { DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
 
 type Props = {
@@ -90,7 +90,11 @@ export default function AddonCard({
     return (
         <div
             key={addon.directoryName}
-            className={cn(extensionStylesV2.addonCard, isActive && extensionStylesV2.addonCardSelected)}
+            className={cn(
+                extensionStylesV2.addonCard,
+                isActive && extensionStylesV2.addonCardSelected,
+                showLegacyRestriction && extensionStylesV2.addonCardWithLegacyRestriction,
+            )}
             onClick={() => onClick(addon)}
         >
             <div
@@ -121,24 +125,19 @@ export default function AddonCard({
             />
             <div className={extensionStylesV2.addonName}>{addon.name}</div>
             {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
-            <div className={extensionStylesV2.addonTrailing} onClick={event => event.stopPropagation()}>
-                <div className={extensionStylesV2.addonType} aria-hidden>
-                    <img
-                        src={staticAsset(addon.type === 'theme' ? 'assets/icons/ui/addon-type-sun.svg' : 'assets/icons/ui/addon-type-array.svg')}
-                        alt=""
-                    />
-                </div>
-                <DropdownMenu
-                    items={organizationItems}
-                    className={extensionStylesV2.addonOrganizer}
-                    menuClassName={extensionStylesV2.addonOrganizerMenu}
-                    placement="right-start"
-                >
-                    <Tooltip content={organizationLabel} position="right" delay={300} className={extensionStylesV2.addonOrganizerTooltip}>
+            <div className={extensionStylesV2.addonType} aria-hidden>
+                <img
+                    src={staticAsset(addon.type === 'theme' ? 'assets/icons/ui/addon-type-sun.svg' : 'assets/icons/ui/addon-type-array.svg')}
+                    alt=""
+                />
+            </div>
+            <div className={extensionStylesV2.addonOrganizerSlot} onClick={event => event.stopPropagation()}>
+                <DropdownMenu items={organizationItems} menuClassName={extensionStylesV2.addonOrganizerMenu} placement="right-start">
+                    <TooltipButton tooltipText={organizationLabel} side="right" as="div" className={extensionStylesV2.addonOrganizerTooltip}>
                         <button type="button" className={extensionStylesV2.addonOrganizerButton} aria-label={organizationLabel}>
                             <MdMoreHoriz aria-hidden />
                         </button>
-                    </Tooltip>
+                    </TooltipButton>
                 </DropdownMenu>
             </div>
         </div>

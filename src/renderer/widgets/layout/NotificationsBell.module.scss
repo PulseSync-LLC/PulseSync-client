@@ -150,13 +150,13 @@
 }
 
 .notificationItemUnread {
-    border-color: color-mix(in srgb, var(--border) 72%, var(--warning) 28%);
+    border-color: var(--border);
     background: color-mix(in srgb, var(--surface-secondary) 84%, var(--warning) 16%);
 }
 
 .notificationItemSuccess,
 .notificationItemUnreadSuccess {
-    border-color: color-mix(in srgb, var(--border) 74%, var(--success) 26%);
+    border-color: var(--border);
 }
 
 .notificationItemUnreadSuccess {
@@ -165,7 +165,7 @@
 
 .notificationItemError,
 .notificationItemUnreadError {
-    border-color: color-mix(in srgb, var(--border) 74%, var(--danger) 26%);
+    border-color: var(--border);
 }
 
 .notificationItemUnreadError {
@@ -174,7 +174,7 @@
 
 .notificationItemWarning,
 .notificationItemUnreadWarning {
-    border-color: color-mix(in srgb, var(--border) 74%, var(--warning) 26%);
+    border-color: var(--border);
 }
 
 .notificationItemUnreadWarning {
