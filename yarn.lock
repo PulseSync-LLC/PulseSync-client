@@ -33,10 +33,10 @@
     debug "^4.4.1"
     module-details-from-path "^1.0.4"
 
-"@apollo/client@^4.2.10":
-  version "4.2.10"
-  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-4.2.10.tgz#c833f16e097161ebc71ce05e6ce17003d6183a8a"
-  integrity sha512-SCHzOEcfInIN9DGZvlDR4F+1zd3954WAy+g8dKwi7mrI09Tdh6YzDH+eXbH0LNpB4de2Qyb53RVKe3Ljv5/bMg==
+"@apollo/client@^4.2.11":
+  version "4.2.11"
+  resolved "https://registry.yarnpkg.com/@apollo/client/-/client-4.2.11.tgz#778a930f43d8783ea7eed399c3d08f882b801c34"
+  integrity sha512-F8cS212Ju5PgRy9H7lHbwLbA5l7M4XhNq/oAOK4RHS7XIbd2Bj5PySzyc/S0EHf+dqUw9QD+i+Ie/JF2WRtoyA==
   dependencies:
     "@graphql-typed-document-node/core" "^3.1.1"
     "@wry/caches" "^1.0.0"
@@ -6304,6 +6304,11 @@ https-proxy-agent@^7.0.0:
   dependencies:
     agent-base "^7.1.2"
     debug "4"
+
+i18next-http-backend@^4.0.1:
+  version "4.0.1"
+  resolved "https://registry.yarnpkg.com/i18next-http-backend/-/i18next-http-backend-4.0.1.tgz#c94dff85c7a41b1db0c1eac3e004f744c15d1047"
+  integrity sha512-O+7MwPCJIKCu68vho8JtD1HF8QHyMPzoChIDFfYCrpaDqX6oq3RqASujnpKEdnNCEOb+kLMOHTNTcGKpj7B1BA==
 
 i18next@^26.3.6:
   version "26.3.6"

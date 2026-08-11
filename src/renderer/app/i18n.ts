@@ -1,8 +1,8 @@
 import i18next, { TOptions } from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import en from '../../locales/en/renderer.json'
-import ru from '../../locales/ru/renderer.json'
+import en from '../../locales/bundled/en/renderer.json'
+import ru from '../../locales/bundled/ru/renderer.json'
 
 const normalizeLocale = (locale?: string): string => {
     if (!locale) return 'ru'
@@ -44,13 +44,21 @@ const language = (() => {
     return normalizeSupportedLanguage(navigator.language)
 })()
 
+const remoteResources = (() => {
+    try {
+        return window.pulsesyncDesktop?.localization.getSnapshot()?.resources ?? null
+    } catch {
+        return null
+    }
+})()
+
 if (!i18next.isInitialized) {
     i18next.use(initReactI18next).init({
         lng: language,
         fallbackLng: 'ru',
         resources: {
-            en: { translation: en },
-            ru: { translation: ru },
+            en: { translation: remoteResources?.en ?? en },
+            ru: { translation: remoteResources?.ru ?? ru },
         },
         interpolation: {
             escapeValue: false,

@@ -10,6 +10,7 @@ type RendererChannel = (typeof RENDERER_CHANNELS)[number]
 type RendererManifest = {
     artifactSha256: string
     buildNumber: string
+    localizationUrl?: string
     requiresDesktopApi: string
     url: string
 }
@@ -146,7 +147,19 @@ function main(): void {
     }
 
     mirrorAppEntries(sourceApp, targetApp)
-    fs.writeFileSync(path.join(targetApp, 'desktop', 'manifest.json'), `${JSON.stringify({ ...manifest, url: pagesRendererUrl }, null, 4)}\n`, 'utf8')
+    fs.writeFileSync(
+        path.join(targetApp, 'desktop', 'manifest.json'),
+        `${JSON.stringify(
+            {
+                ...manifest,
+                url: pagesRendererUrl,
+                ...(manifest.localizationUrl ? { localizationUrl: `${pagesBaseUrl}/versions/${manifest.buildNumber}/locales` } : {}),
+            },
+            null,
+            4,
+        )}\n`,
+        'utf8',
+    )
     const removedVersions = pruneRendererVersions(targetApp, manifest.buildNumber, retainVersions)
     fs.writeFileSync(path.join(targetRoot, '.nojekyll'), '')
     fs.writeFileSync(path.join(targetRoot, 'CNAME'), `${PAGES_CUSTOM_DOMAIN}\n`, 'utf8')

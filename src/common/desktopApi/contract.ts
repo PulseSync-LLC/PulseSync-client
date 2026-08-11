@@ -1,5 +1,6 @@
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
+import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 export { DESKTOP_API_VERSION } from './version'
 
 export interface DesktopRuntimeInfo {
@@ -156,6 +157,9 @@ export interface PulseSyncDesktopApi {
     getRuntimeInfo(): Promise<DesktopRuntimeInfo>
     lifecycle: {
         ready(): void
+    }
+    localization: {
+        getSnapshot(): DesktopLocalizationSnapshot | null
     }
     window: {
         minimize(): void

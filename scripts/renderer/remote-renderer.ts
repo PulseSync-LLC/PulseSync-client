@@ -32,6 +32,7 @@ type RemoteRendererBuildOptions = {
 type RendererManifest = {
     artifactSha256?: string
     buildNumber: string
+    localizationUrl?: string
     requiresDesktopApi: string
     url: string
 }
@@ -95,6 +96,17 @@ function normalizeRendererHtmlOutput(buildOutDir: string): void {
 
     fs.renameSync(nestedHtmlPath, rootHtmlPath)
     fs.rmSync(path.join(buildOutDir, 'src'), { force: true, recursive: true })
+}
+
+function copyLocalizationResources(buildOutDir: string): void {
+    for (const language of ['en', 'ru']) {
+        for (const namespace of ['main', 'renderer']) {
+            const sourcePath = path.join(projectRoot, 'src', 'locales', language, `${namespace}.json`)
+            const destinationPath = path.join(buildOutDir, 'locales', language, `${namespace}.json`)
+            fs.mkdirSync(path.dirname(destinationPath), { recursive: true })
+            fs.copyFileSync(sourcePath, destinationPath)
+        }
+    }
 }
 
 function walkFiles(directory: string): string[] {
@@ -167,6 +179,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions, artifact
     const manifestDir = path.join(options.outRoot, 'desktop')
     const manifestPath = path.join(manifestDir, 'manifest.json')
     const rendererUrl = joinUrl(options.cdnBaseUrl, 'versions', options.buildNumber, 'index.html')
+    const localizationUrl = joinUrl(options.cdnBaseUrl, 'versions', options.buildNumber, 'locales')
     const manifestUrl = joinUrl(options.cdnBaseUrl, 'desktop', 'manifest.json')
 
     fs.rmSync(options.outRoot, { force: true, recursive: true })
@@ -183,6 +196,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions, artifact
         mode: 'production',
     })
     normalizeRendererHtmlOutput(buildOutDir)
+    copyLocalizationResources(buildOutDir)
     prepareRemoteRendererGlitchTipSourceMaps(buildOutDir)
     const artifactSha256 = artifactSha256Override ?? hashRendererArtifact(options.outRoot, manifestPath)
 
@@ -192,6 +206,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions, artifact
             {
                 buildNumber: options.buildNumber,
                 url: rendererUrl,
+                localizationUrl,
                 requiresDesktopApi: `^${DESKTOP_API_VERSION}`,
                 artifactSha256,
             },

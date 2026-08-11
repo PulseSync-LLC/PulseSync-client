@@ -119,6 +119,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     lifecycle: {
         ready: () => ipcRenderer.send(MainEvents.UI_READY),
     },
+    localization: {
+        getSnapshot: () => ipcRenderer.sendSync(MainEvents.GET_LOCALIZATION_SNAPSHOT) ?? null,
+    },
     window: {
         minimize: () => ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MINIMIZE),
         maximize: () => ipcRenderer.send(MainEvents.ELECTRON_WINDOW_MAXIMIZE),

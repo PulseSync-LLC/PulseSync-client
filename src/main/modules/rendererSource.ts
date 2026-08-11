@@ -22,6 +22,7 @@ type PublicRendererChannel = 'dev' | 'beta'
 
 export interface RemoteRendererManifest {
     buildNumber: string
+    localizationUrl?: string
     url: string
     requiresDesktopApi: string
 }
@@ -88,9 +89,11 @@ function parseManifest(value: unknown): RemoteRendererManifest | null {
     if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) return null
     if (typeof manifest.url !== 'string') return null
     if (typeof manifest.requiresDesktopApi !== 'string') return null
+    if (manifest.localizationUrl !== undefined && typeof manifest.localizationUrl !== 'string') return null
     return {
         buildNumber: manifest.buildNumber,
         url: manifest.url,
+        ...(manifest.localizationUrl ? { localizationUrl: manifest.localizationUrl } : {}),
         requiresDesktopApi: manifest.requiresDesktopApi,
     }
 }
@@ -123,6 +126,9 @@ async function resolveRendererSourceFromManifest(manifestUrl: string, allowDevRe
     if (!isAllowedRemoteRendererUrl(manifest.url, allowDevRemoteRenderer)) {
         rejectRemoteRenderer('Remote renderer URL is not allowlisted', { url: manifest.url })
     }
+    if (manifest.localizationUrl && !isAllowedRemoteRendererUrl(manifest.localizationUrl, allowDevRemoteRenderer)) {
+        rejectRemoteRenderer('Remote localization URL is not allowlisted', { url: manifest.localizationUrl })
+    }
 
     if (!isDesktopApiCompatible(manifest.requiresDesktopApi)) {
         rejectRemoteRenderer('Remote renderer requires incompatible desktop API', {
@@ -139,6 +145,13 @@ async function resolveRendererSourceFromManifest(manifestUrl: string, allowDevRe
         rejectRemoteRenderer('Remote renderer URL origin must match manifest origin', {
             manifestOrigin,
             rendererOrigin: origin,
+        })
+    }
+    const localizationOrigin = manifest.localizationUrl ? getUrlOrigin(manifest.localizationUrl) : null
+    if (manifest.localizationUrl && localizationOrigin !== manifestOrigin) {
+        rejectRemoteRenderer('Remote localization URL origin must match manifest origin', {
+            manifestOrigin,
+            localizationOrigin,
         })
     }
 

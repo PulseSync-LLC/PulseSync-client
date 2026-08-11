@@ -48,9 +48,11 @@ import { prestartCheck } from './main/startup/prestartCheck'
 import type { LaunchRequestEnvelopeV1 } from './main/modules/bootstrapper/contracts'
 import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './main/modules/updater/updater'
 import { migrateCompletedLaunchRequestIds, writeCompletedLaunchRequestIds } from './main/modules/bootstrap/launchCompletionStore'
+import { registerLocalizationIpc } from './main/modules/localization'
 
 const State = getState()
 initMainI18n(State.get('settings.language'))
+registerLocalizationIpc()
 
 if (isWindows()) {
     app.setAppUserModelId('pulsesync.app')
