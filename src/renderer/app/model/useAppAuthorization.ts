@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { useQuery } from '@apollo/client/react'
 import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
 
@@ -32,6 +32,7 @@ type Params = {
 export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, setUser, tRef, userId }: Params) {
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
+    const lastAuthStatusRef = useRef<string | null>(null)
 
     useEffect(() => {
         let mounted = true
@@ -76,6 +77,9 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
     const sendAuthStatus = useCallback((user?: Partial<UserInterface> | null) => {
         if (user?.id) {
+            const statusKey = JSON.stringify({ id: user.id, username: user.username, email: user.email })
+            if (lastAuthStatusRef.current === statusKey) return
+            lastAuthStatusRef.current = statusKey
             setRendererErrorTrackingUser({ id: user.id, email: user.email })
             desktopApi.auth.setStatus({
                 status: true,
@@ -88,6 +92,8 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             return
         }
 
+        if (lastAuthStatusRef.current === 'signed-out') return
+        lastAuthStatusRef.current = 'signed-out'
         setRendererErrorTrackingUser(null)
         desktopApi.auth.setStatus({ status: false })
     }, [])
