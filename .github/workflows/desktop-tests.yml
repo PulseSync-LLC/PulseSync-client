@@ -20,7 +20,7 @@ permissions:
 jobs:
   common:
     name: Common checks
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
 
     steps:
       - uses: actions/checkout@v6
@@ -65,8 +65,8 @@ jobs:
 
   macos-updater:
     name: macOS updater checks
-    if: ${{ inputs.build_os == 'all' || inputs.build_os == 'blacksmith-6vcpu-macos-26' || inputs.build_os == 'windows+macos' }}
-    runs-on: blacksmith-6vcpu-macos-26
+    if: ${{ inputs.build_os == 'all' || inputs.build_os == 'macos-26' || inputs.build_os == 'windows+macos' }}
+    runs-on: macos-26
 
     steps:
       - uses: actions/checkout@v6

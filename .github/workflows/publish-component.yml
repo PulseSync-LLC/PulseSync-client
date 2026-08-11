@@ -55,9 +55,9 @@ on:
         type: choice
         options:
           - all
-          - blacksmith-4vcpu-windows-2025
-          - blacksmith-4vcpu-ubuntu-2204
-          - blacksmith-6vcpu-macos-26
+          - windows-2025
+          - ubuntu-latest
+          - macos-26
         default: all
       release_mode:
         description: "Release target"
@@ -79,7 +79,7 @@ concurrency:
 jobs:
   prepare:
     name: Prepare component release
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.release.outputs.matrix }}
       prerelease: ${{ steps.release.outputs.prerelease }}
@@ -110,7 +110,7 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           if [[ "${{ inputs.build_os }}" == "all" ]]; then
-            matrix='["blacksmith-4vcpu-ubuntu-2204","blacksmith-4vcpu-windows-2025","blacksmith-6vcpu-macos-26"]'
+            matrix='["ubuntu-latest","windows-2025","macos-26"]'
           else
             matrix='["${{ inputs.build_os }}"]'
           fi
@@ -233,7 +233,7 @@ jobs:
   release:
     name: Publish component GitHub assets
     needs: [prepare, build]
-    runs-on: blacksmith-4vcpu-ubuntu-2204
+    runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     steps:
       - name: Checkout component release tooling
