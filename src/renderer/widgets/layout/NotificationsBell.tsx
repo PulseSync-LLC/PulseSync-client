@@ -1,6 +1,4 @@
 import React, { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import { IconButton } from '@pulsesync/uikit/actions'
-import { Tooltip } from '@pulsesync/uikit/feedback'
 import { AnimatePresence, motion } from 'framer-motion'
 import { MdDoneAll } from 'react-icons/md'
 import config from '@common/appConfig'
@@ -11,7 +9,9 @@ import { useModalContext } from '@app/providers/modal'
 import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
 import Loader from '@shared/ui/PSUI/Loader'
+import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
+import * as headerStyles from '@widgets/layout/header.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 
@@ -208,16 +208,22 @@ const NotificationsBell: React.FC = () => {
 
     return (
         <div className={styles.notificationTrigger} ref={rootRef}>
-            <Tooltip content={t('header.notifications.open')} position="bottom">
-                <IconButton variant="ghost" size="compact" aria-label={t('header.notifications.open')} onClick={() => setOpen(current => !current)}>
+            <TooltipButton tooltipText={t('header.notifications.open')} side="bottom" as="div" className={headerStyles.devOverridesTrigger}>
+                <button
+                    type="button"
+                    className={headerStyles.headerIconButton}
+                    aria-label={t('header.notifications.open')}
+                    aria-expanded={isOpen}
+                    onClick={() => setOpen(current => !current)}
+                >
                     <img
                         className={hasUnreadNotifications ? styles.headerBellIcon : `${styles.headerBellIcon} ${styles.headerBellIconIdle}`}
                         src={staticAsset(hasUnreadNotifications ? 'assets/icons/ui/header-bell.svg' : 'assets/icons/ui/header-bell-idle.svg')}
                         alt=""
                         aria-hidden="true"
                     />
-                </IconButton>
-            </Tooltip>
+                </button>
+            </TooltipButton>
 
             <AnimatePresence>
                 {isOpen && (
