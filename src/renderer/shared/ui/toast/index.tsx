@@ -48,10 +48,10 @@ let stackShown = false
 function ensureStack(opts?: ToastOptions) {
     if (stackShown) return
     toast.custom(() => <ToastStack />, {
+        ...opts,
         id: 'android-stack',
         duration: Infinity,
         position: 'top-center',
-        ...opts,
     })
     stackShown = true
 }
