@@ -33,8 +33,8 @@ class ErrorBoundary extends React.Component<
         })
     }
     copyToClipboard = (text: string) => {
-        navigator.clipboard
-            .writeText(text)
+        desktopApi.system
+            .writeClipboardText(text)
             .then(() => {
                 toast.custom('success', t('common.successTitle'), t('errors.copiedToClipboard'))
             })

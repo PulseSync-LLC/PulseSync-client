@@ -14,6 +14,8 @@
 }
 
 .leftSide {
+    --scrollbar-track-margin: 0px;
+
     flex: 0 0 var(--scrollWExtension);
     width: var(--scrollWExtension);
     height: var(--scrollHExtension);

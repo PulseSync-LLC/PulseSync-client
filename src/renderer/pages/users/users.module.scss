@@ -20,7 +20,7 @@
     overflow: overlay;
     width: var(--scrollWExtensionView);
     height: var(--scrollHExtensionView);
-    background: var(--border);
+    background: var(--background);
 }
 
 .containerFixInnerLocked {
@@ -55,7 +55,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-elevated) 67%, transparent) 0%, var(--border) 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--background) 38%, transparent) 0%, var(--background) 100%);
     z-index: 2;
     pointer-events: none;
 }
@@ -72,7 +72,7 @@
     font-weight: 900;
     font-size: 32px;
     line-height: 140%;
-    color: #ffffff;
+    color: var(--text-primary);
     margin: 0;
 }
 
@@ -85,7 +85,7 @@
 }
 
 .sortOption {
-    color: #ffffff;
+    color: var(--text-secondary);
     font-size: 16px;
     font-weight: 600;
     cursor: pointer;
@@ -95,11 +95,11 @@
     padding: 5px 0;
 
     &:hover {
-    color: var(--success);
+        color: var(--text-primary);
     }
 
     &.active {
-        color: var(--success);
+        color: var(--text-primary);
     }
 }
 
@@ -114,7 +114,7 @@
     bottom: 0;
     height: 4px;
     border-radius: 10px;
-    background: var(--success);
+    background: var(--text-primary);
     transition: var(--transition);
 }
 
@@ -124,13 +124,21 @@
     height: 48px;
     max-width: 400px;
     width: 100%;
-    background-color: color-mix(in srgb, var(--surface-primary) 72%, transparent);
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
     cursor: text;
     position: relative;
-    transition: border-color 0.2s;
+    transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
     overflow: hidden;
+
+    &:hover,
+    &:focus-within {
+        border-color: var(--border-hover);
+        background: var(--surface-tertiary);
+    }
 }
 
 .searchInput {
@@ -139,13 +147,14 @@
     border: none;
     background: transparent;
     border-radius: 12px 0 0 12px;
-    font-size: 20px;
+    font-size: 14px;
+    font-weight: 600;
     padding-left: 18px;
-    color: #ffffff;
+    color: var(--text-primary);
     outline: none;
 
     &::placeholder {
-        color: #ffffffcc;
+        color: var(--text-muted);
     }
 
     &:focus {
@@ -166,7 +175,7 @@
 
 .searchIcon {
     font-size: 24px;
-    color: #fff;
+    color: var(--text-muted);
 }
 
 .userNav {
@@ -263,7 +272,7 @@
     display: flex;
     flex-direction: column;
     padding: 15px 40px;
-    background: var(--border);
+    background: var(--background);
 }
 
 .userGrid {
@@ -315,7 +324,7 @@
     height: fit-content;
 
     &:hover {
-    background: var(--surface-elevated);
+        background: var(--surface-elevated);
         outline: 4px solid var(--text-muted);
         box-shadow: 0px 0px 15px var(--text-muted) !important;
     }
@@ -443,7 +452,7 @@
     }
 
     &.active {
-    color: var(--accent-foreground);
+        color: var(--accent-foreground);
         background: var(--success);
         &:hover {
             color: color-mix(in srgb, var(--success) 8%, var(--surface-primary));

@@ -79,8 +79,7 @@ export function useAppInitialization({
             ])
             appRef.current = hydratedApp
             detectedMusicVersionRef.current = (musicVersion as string | null | undefined) || null
-            const resolvedMusicVersion =
-                userIdRef.current === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : detectedMusicVersionRef.current
+            const resolvedMusicVersion = userIdRef.current === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : detectedMusicVersionRef.current
 
             setMusicInstalled(!!musicStatus)
             setMusicVersion(resolvedMusicVersion)

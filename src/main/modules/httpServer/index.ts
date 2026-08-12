@@ -98,10 +98,13 @@ const clearUserValidationTokenRefreshTimer = (): void => {
 
 const scheduleUserValidationTokenRefresh = (delayMs: number): void => {
     clearUserValidationTokenRefreshTimer()
-    userValidationTokenRefreshTimer = setTimeout(() => {
-        userValidationTokenRefreshTimer = null
-        if (authorized) void sendUserValidationToken()
-    }, Math.max(USER_VALIDATION_TOKEN_RETRY_DELAY_MS, delayMs))
+    userValidationTokenRefreshTimer = setTimeout(
+        () => {
+            userValidationTokenRefreshTimer = null
+            if (authorized) void sendUserValidationToken()
+        },
+        Math.max(USER_VALIDATION_TOKEN_RETRY_DELAY_MS, delayMs),
+    )
 }
 
 const sendUserValidationToken = async (targetSocket?: Socket): Promise<void> => {

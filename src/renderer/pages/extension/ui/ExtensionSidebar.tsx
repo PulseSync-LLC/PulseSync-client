@@ -129,22 +129,14 @@ export default function ExtensionSidebar({
         return (
             <span className={extensionStylesV2.addonGroupTitle}>
                 {isOpen ? (
-                    <img
-                        className={extensionStylesV2.addonGroupToggleIcon}
-                        src={staticAsset('assets/icons/ui/addon-group-category.svg')}
-                        alt=""
-                    />
+                    <img className={extensionStylesV2.addonGroupToggleIcon} src={staticAsset('assets/icons/ui/addon-group-category.svg')} alt="" />
                 ) : (
                     <MdChevronRight className={extensionStylesV2.addonGroupToggleIcon} aria-hidden />
                 )}
                 <span className={extensionStylesV2.addonGroupLabel}>{label}</span>
                 <span className={extensionStylesV2.addonGroupCount}>({count})</span>
                 {favorite ? (
-                    <img
-                        className={extensionStylesV2.addonGroupSemanticIcon}
-                        src={staticAsset('assets/icons/ui/addon-group-favorites.svg')}
-                        alt=""
-                    />
+                    <img className={extensionStylesV2.addonGroupSemanticIcon} src={staticAsset('assets/icons/ui/addon-group-favorites.svg')} alt="" />
                 ) : (
                     <MdFolder className={extensionStylesV2.addonGroupSemanticIcon} aria-hidden />
                 )}

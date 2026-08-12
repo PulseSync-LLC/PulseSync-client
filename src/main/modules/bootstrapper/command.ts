@@ -56,13 +56,7 @@ export function createBootstrapperCommandInvocation(
 ): BootstrapperCommandInvocation {
     return {
         command: options.launcher.command,
-        args: [
-            ...options.launcher.args,
-            options.command,
-            '--json',
-            ...(options.progressJson ? ['--progress-json'] : []),
-            ...(options.args ?? []),
-        ],
+        args: [...options.launcher.args, options.command, '--json', ...(options.progressJson ? ['--progress-json'] : []), ...(options.args ?? [])],
         launcherKind: options.launcher.kind,
         launcherSource: options.launcher.source,
     }

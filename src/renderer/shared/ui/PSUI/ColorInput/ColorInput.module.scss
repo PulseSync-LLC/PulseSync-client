@@ -133,7 +133,7 @@
     outline: 1px solid var(--border-hover);
     transition: var(--transition);
     &:hover {
-    outline-color: var(--focus-ring);
+        outline-color: var(--focus-ring);
     }
 }
 .slider:focus-visible {
@@ -242,7 +242,7 @@
         border-color: var(--border-hover);
     }
     &:hover .selectArrow {
-    color: var(--text-primary);
+        color: var(--text-primary);
         transform: translateY(-50%) rotate(180deg) scale(1.05);
     }
     &:focus-within .select {

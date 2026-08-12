@@ -150,6 +150,21 @@
         "removeRow": "Удалить строку",
         "resetToDefault": "Сбросить к эталону"
     },
+    "settingsModal": {
+        "emptyDescription": "Новые разделы настроек появятся здесь позже.",
+        "emptyTitle": "Настройки пока недоступны",
+        "title": "Настройки",
+        "developer": {
+            "category": "Для разработчиков",
+            "componentsTitle": "Тестирование UI",
+            "interfaceTitle": "Интерфейс",
+            "runtimeTitle": "Среда разработки",
+            "showDevFrameDescription": "Показывает жёлтую рамку, нижний отступ и отметку dev-сборки.",
+            "settingsTab": "Параметры",
+            "title": "Параметры разработчика",
+            "websocketDescription": "Управляет локальным websocket для отладки. Доступно только при локальном запуске."
+        }
+    },
     "contextMenu": {
         "boostyUrl": "Страница на Boosty",
         "appDirectory": "Директория приложения",
@@ -169,6 +184,8 @@
             "checkUpdates": "Проверить обновления",
             "collectLogs": "Собрать логи в архив",
             "logsReady": "Скоро открою папку",
+            "settings": "Настройки",
+            "showDevFrame": "Показывать рамку разработки",
             "title": "Система",
             "version": "Версия: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Статус вебсокета"
@@ -298,6 +315,7 @@
             "auth": "Авторизация",
             "extension": "Расширения",
             "joint": "Joint",
+            "store": "Каталог",
             "trackInfo": "TrackInfo",
             "users": "Пользователи"
         },

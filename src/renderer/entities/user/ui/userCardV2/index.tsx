@@ -174,7 +174,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                         <div
                             className={styles.statusText}
                             style={{
-                                color: isInactive(Number(user.lastOnline)) ? '#9885A9' : 'var(--statusColorProfile)',
+                                color: isInactive(Number(user.lastOnline)) ? 'var(--text-muted)' : 'var(--statusColorProfile)',
                             }}
                         >
                             {isInactive(Number(user.lastOnline))
@@ -184,7 +184,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                                   : t('userStatus.offline')}
                         </div>
                         {isInactive(Number(user.lastOnline)) ? (
-                            <MdNightsStay className={styles.statusIcon} style={{ color: '#9885A9' }} />
+                            <MdNightsStay className={styles.statusIcon} style={{ color: 'var(--text-muted)' }} />
                         ) : typedUser.status === 'online' ? (
                             <MdPower className={styles.statusIcon} />
                         ) : (

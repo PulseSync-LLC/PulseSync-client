@@ -59,6 +59,7 @@ const applySettingsPatch = (patch: DesktopSettingsPatch): void => {
         ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.autoUpdateStoreAddons', patch.autoUpdateStoreAddons)
     if (patch.closeAppInTray !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.closeAppInTray', patch.closeAppInTray)
     if (patch.devSocket !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.devSocket', patch.devSocket)
+    if (patch.showDevFrame !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.showDevFrame', patch.showDevFrame)
     if (patch.askSavePath !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.askSavePath', patch.askSavePath)
     if (patch.saveAsMp3 !== undefined) ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'settings.saveAsMp3', patch.saveAsMp3)
     if (patch.showModModalAfterInstall !== undefined)
@@ -181,6 +182,7 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         onPremiumTokenRequested: listener => subscribeVoid(RendererEvents.IS_PREMIUM_USER, listener),
     },
     system: {
+        writeClipboardText: text => ipcRenderer.invoke(MainEvents.WRITE_CLIPBOARD_TEXT, text),
         openExternal: request => ipcRenderer.send(MainEvents.OPEN_EXTERNAL, request.url),
         showNotification: request => ipcRenderer.send(MainEvents.SHOW_NOTIFICATION, request),
         getInfo: () => ipcRenderer.invoke(MainEvents.GET_SYSTEM_INFO),

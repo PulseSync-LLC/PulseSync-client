@@ -28,24 +28,13 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack }) => {
-    const {
-        user,
-        app,
-        setApp,
-        updateAvailable,
-        setUpdate,
-        modInfo,
-        modInfoFetched,
-        musicInstalled,
-        setMusicInstalled,
-        setMusicVersion,
-        isAutonomousMode,
-    } = useContext(userContext)
+    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
+        useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const navigate = useNavigate()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
-    const { isModUpdateAvailable, modInstallError, startUpdate, isUserDeveloper } = useLayoutInstallers({
+    const { isModUpdateAvailable, modInstallError, startUpdate } = useLayoutInstallers({
         app,
         modInfo,
         modInfoFetched,
@@ -76,12 +65,19 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
         },
         [Modals.BASIC_CONFIRMATION, navigate, openModal, t],
     )
+    const openSettings = useCallback(
+        (event: React.MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault()
+            openModal(Modals.SETTINGS)
+        },
+        [Modals.SETTINGS, openModal],
+    )
 
     if (!modInfoFetched) {
         return <Preloader />
     }
 
-    const isDevmark = app.info.devmark
+    const showDevFrame = app.info.devmark && app.settings.showDevFrame
 
     return (
         <HelmetProvider>
@@ -90,7 +86,7 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
             </Helmet>
             <div className={pageStyles.children}>
                 <Header goBack={goBack} title={title} titleDetail={titleDetail} />
-                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
+                <div className={pageStyles.main_window} style={showDevFrame ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
@@ -122,11 +118,9 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
-                            {isUserDeveloper(user?.perms) && (
-                                <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
-                                    <img src={staticAsset('assets/icons/ui/settings.svg')} alt="" aria-hidden="true" />
-                                </NavButtonPulse>
-                            )}
+                            <NavButtonPulse text={t('settingsModal.title')} onClick={openSettings}>
+                                <img src={staticAsset('assets/icons/ui/settings.svg')} alt="" aria-hidden="true" />
+                            </NavButtonPulse>
                             {updateAvailable && (
                                 <TooltipButton tooltipText={t('layout.installUpdateTooltip')} as={'div'}>
                                     <button

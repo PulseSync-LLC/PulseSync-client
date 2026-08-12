@@ -1,4 +1,4 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
+import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import logger from '../modules/logger'
 import path from 'path'
@@ -341,6 +341,16 @@ const registerWindowEvents = (): void => {
 }
 
 const registerSystemEvents = (window: BrowserWindow): void => {
+    ipcMain.handle(MainEvents.WRITE_CLIPBOARD_TEXT, (event, text: unknown) => {
+        if (event.sender.id !== window.webContents.id) {
+            throw new Error('Blocked clipboard write from an untrusted renderer')
+        }
+        if (typeof text !== 'string') {
+            throw new TypeError('Clipboard text must be a string')
+        }
+
+        clipboard.writeText(text)
+    })
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
     })

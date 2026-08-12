@@ -11,24 +11,26 @@
     will-change: opacity;
 }
 
-.modal {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    min-width: 600px;
-    max-width: 600px;
-    padding: 35px;
-    gap: 20px;
-    position: relative;
-    background: var(--surface-tertiary);
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.35),
-        0 0 0 1px var(--hover);
-    will-change: transform, opacity;
-    -webkit-font-smoothing: antialiased;
+@layer psui-base {
+    .modal {
+        display: flex;
+        flex-direction: column;
+        justify-content: center;
+        align-items: center;
+        min-width: 600px;
+        max-width: 600px;
+        padding: 35px;
+        gap: 20px;
+        position: relative;
+        background: var(--surface-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 10px;
+        box-shadow:
+            0 10px 30px rgba(0, 0, 0, 0.35),
+            0 0 0 1px var(--hover);
+        will-change: transform, opacity;
+        -webkit-font-smoothing: antialiased;
+    }
 }
 
 .textBlock {

@@ -35,14 +35,7 @@ import { runWhenUiReady } from './main/modules/uiReady'
 import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
 import { getAddonsRoot, resolveExistingDirectoryInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from './main/utils/addonPaths'
-import {
-    asarFilename,
-    musicPath,
-    selectedAddon,
-    setMusicPath,
-    setSelectedAddon,
-    setUpdated,
-} from './main/startup/runtimeState'
+import { asarFilename, musicPath, selectedAddon, setMusicPath, setSelectedAddon, setUpdated } from './main/startup/runtimeState'
 import { readBufResilient } from './main/utils/readBufResilient'
 import { prestartCheck } from './main/startup/prestartCheck'
 import type { LaunchRequestEnvelopeV1 } from './main/modules/bootstrapper/contracts'
@@ -640,7 +633,7 @@ ipcMain.handle(
     MainEvents.ADDON_FILE_OPEN_DIALOG,
     async (_event, request?: { defaultPath?: string; filters?: Electron.FileFilter[]; metadata?: boolean }) => {
         const addonsRoot = getAddonsRoot()
-        const defaultPath = request?.defaultPath ? resolvePathInsideBase(addonsRoot, resolveInputPath(request.defaultPath)) ?? undefined : undefined
+        const defaultPath = request?.defaultPath ? (resolvePathInsideBase(addonsRoot, resolveInputPath(request.defaultPath)) ?? undefined) : undefined
         const { canceled, filePaths } = await dialog.showOpenDialog({
             properties: ['openFile'],
             filters: request?.filters,

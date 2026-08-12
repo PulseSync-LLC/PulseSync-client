@@ -14,6 +14,7 @@ const settingsInitials: SettingsInterface = {
         askSavePath: false,
         saveAsMp3: false,
         devSocket: false,
+        showDevFrame: true,
         showModModalAfterInstall: true,
         language: 'ru',
         modSavePath: '',

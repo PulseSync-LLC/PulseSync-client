@@ -254,7 +254,17 @@ export function useLayoutInstallers({
             unsubscribeDownloadFailure()
             ;(window as any).__listenersAdded = false
         }
-    }, [getModInstallErrorText, modals.LINUX_PERMISSIONS_MODAL, modals.MOD_CHANGELOG, openModal, readInstalledModSnapshot, setApp, setMusicInstalled, setMusicVersion, t])
+    }, [
+        getModInstallErrorText,
+        modals.LINUX_PERMISSIONS_MODAL,
+        modals.MOD_CHANGELOG,
+        openModal,
+        readInstalledModSnapshot,
+        setApp,
+        setMusicInstalled,
+        setMusicVersion,
+        t,
+    ])
 
     const startUpdate = useCallback(async () => {
         const runtimeInfo = await desktopApi.getRuntimeInfo()
@@ -328,7 +338,7 @@ export function useLayoutInstallers({
     }, [app.mod.installed, app.mod.version, isUpdating, modInfo, modInfoFetched, startUpdate, t])
 
     useEffect(() => {
-        if (app.info.devmark) {
+        if (app.info.devmark && app.settings.showDevFrame) {
             document.body.classList.add('devmark-border')
         } else {
             document.body.classList.remove('devmark-border')
@@ -336,7 +346,7 @@ export function useLayoutInstallers({
         return () => {
             document.body.classList.remove('devmark-border')
         }
-    }, [app.info.devmark])
+    }, [app.info.devmark, app.settings.showDevFrame])
 
     return {
         isModUpdateAvailable,

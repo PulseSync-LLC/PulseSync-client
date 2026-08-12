@@ -145,11 +145,7 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
     const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
     const csp = buildRemoteRendererContentSecurityPolicy(allowDevRemoteRenderer, `http://127.0.0.1:${config.MAIN_PORT}`)
     const apiOrigins = Array.from(
-        new Set(
-            [config.SERVER_URL, config.SERVER_v2_URL]
-                .map(rawUrl => getUrlOrigin(rawUrl))
-                .filter((origin): origin is string => Boolean(origin)),
-        ),
+        new Set([config.SERVER_URL, config.SERVER_v2_URL].map(rawUrl => getUrlOrigin(rawUrl)).filter((origin): origin is string => Boolean(origin))),
     )
     const apiUrlPatterns = apiOrigins.map(origin => getRemoteRendererUrlPattern(origin))
     const apiCorsRequestHeaders = new Map<number, string>()
@@ -157,7 +153,7 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
         ? {
               'Cache-Control': ['no-store'],
               Pragma: ['no-cache'],
-        }
+          }
         : {}
 
     window.webContents.session.webRequest.onBeforeSendHeaders({ urls: apiUrlPatterns }, (details, callback) => {
@@ -166,7 +162,8 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
 
         const requestOrigin = details.requestHeaders.Origin || details.requestHeaders.origin
         if (requestOrigin === activeRemoteOrigin) {
-            const requestedHeaders = details.requestHeaders['Access-Control-Request-Headers'] || details.requestHeaders['access-control-request-headers']
+            const requestedHeaders =
+                details.requestHeaders['Access-Control-Request-Headers'] || details.requestHeaders['access-control-request-headers']
             if (typeof requestedHeaders === 'string' && requestedHeaders.trim()) {
                 apiCorsRequestHeaders.set(details.id, requestedHeaders)
             }
@@ -175,43 +172,46 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
         callback({ requestHeaders: details.requestHeaders })
     })
 
-    window.webContents.session.webRequest.onHeadersReceived({ urls: [getRemoteRendererUrlPattern(activeRemoteOrigin), ...apiUrlPatterns] }, (details, callback) => {
-        const detailsOrigin = getUrlOrigin(details.url)
-        const isRemoteRendererResponse = detailsOrigin === activeRemoteOrigin
-        const isApiResponse = Boolean(detailsOrigin && apiOrigins.includes(detailsOrigin))
+    window.webContents.session.webRequest.onHeadersReceived(
+        { urls: [getRemoteRendererUrlPattern(activeRemoteOrigin), ...apiUrlPatterns] },
+        (details, callback) => {
+            const detailsOrigin = getUrlOrigin(details.url)
+            const isRemoteRendererResponse = detailsOrigin === activeRemoteOrigin
+            const isApiResponse = Boolean(detailsOrigin && apiOrigins.includes(detailsOrigin))
 
-        if (!isRemoteRendererResponse && !isApiResponse) {
-            callback({ responseHeaders: details.responseHeaders })
-            return
-        }
+            if (!isRemoteRendererResponse && !isApiResponse) {
+                callback({ responseHeaders: details.responseHeaders })
+                return
+            }
 
-        const corsHeaders: Record<string, string[]> = isApiResponse
-            ? {
-                  'Access-Control-Allow-Origin': [activeRemoteOrigin],
-                  'Access-Control-Allow-Credentials': ['true'],
-                  'Access-Control-Allow-Methods': ['GET, POST, PUT, PATCH, DELETE, OPTIONS'],
-                  'Access-Control-Allow-Headers': [apiCorsRequestHeaders.get(details.id) || 'Authorization, Content-Type, Accept'],
-                  Vary: ['Origin, Access-Control-Request-Headers'],
-              }
-            : {}
-        apiCorsRequestHeaders.delete(details.id)
+            const corsHeaders: Record<string, string[]> = isApiResponse
+                ? {
+                      'Access-Control-Allow-Origin': [activeRemoteOrigin],
+                      'Access-Control-Allow-Credentials': ['true'],
+                      'Access-Control-Allow-Methods': ['GET, POST, PUT, PATCH, DELETE, OPTIONS'],
+                      'Access-Control-Allow-Headers': [apiCorsRequestHeaders.get(details.id) || 'Authorization, Content-Type, Accept'],
+                      Vary: ['Origin, Access-Control-Request-Headers'],
+                  }
+                : {}
+            apiCorsRequestHeaders.delete(details.id)
 
-        callback({
-            responseHeaders: withOverriddenResponseHeaders(details.responseHeaders, {
-                ...corsHeaders,
-                ...(isRemoteRendererResponse
-                    ? {
-                          ...devCacheHeaders,
-                          'Content-Security-Policy': [csp],
-                          'Cross-Origin-Opener-Policy': ['same-origin'],
-                          'Referrer-Policy': ['no-referrer'],
-                          'X-Content-Type-Options': ['nosniff'],
-                          'X-Frame-Options': ['DENY'],
-                      }
-                    : {}),
-            }),
-        })
-    })
+            callback({
+                responseHeaders: withOverriddenResponseHeaders(details.responseHeaders, {
+                    ...corsHeaders,
+                    ...(isRemoteRendererResponse
+                        ? {
+                              ...devCacheHeaders,
+                              'Content-Security-Policy': [csp],
+                              'Cross-Origin-Opener-Policy': ['same-origin'],
+                              'Referrer-Policy': ['no-referrer'],
+                              'X-Content-Type-Options': ['nosniff'],
+                              'X-Frame-Options': ['DENY'],
+                          }
+                        : {}),
+                }),
+            })
+        },
+    )
     logger.main.info('Remote renderer response headers enforced', { origin: activeRemoteOrigin })
 }
 

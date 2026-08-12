@@ -44,6 +44,7 @@ export interface DesktopSettingsPatch {
     autoUpdateStoreAddons?: boolean
     closeAppInTray?: boolean
     devSocket?: boolean
+    showDevFrame?: boolean
     askSavePath?: boolean
     saveAsMp3?: boolean
     showModModalAfterInstall?: boolean
@@ -209,6 +210,7 @@ export interface PulseSyncDesktopApi {
         onPremiumTokenRequested(listener: () => void): DesktopUnsubscribe
     }
     system: {
+        writeClipboardText(text: string): Promise<void>
         openExternal(request: DesktopOpenExternalRequest): void
         showNotification(request: DesktopNotificationRequest): void
         getInfo(): Promise<unknown>

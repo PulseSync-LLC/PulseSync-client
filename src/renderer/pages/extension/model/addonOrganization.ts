@@ -18,9 +18,7 @@ export function normalizeAddonOrganization(value: unknown): DesktopAddonOrganiza
     const source = readRecord(value)
     if (!source) return EMPTY_ADDON_ORGANIZATION
 
-    const favoriteAddonIds = Array.from(
-        new Set((Array.isArray(source.favoriteAddonIds) ? source.favoriteAddonIds : []).map(readId).filter(Boolean)),
-    )
+    const favoriteAddonIds = Array.from(new Set((Array.isArray(source.favoriteAddonIds) ? source.favoriteAddonIds : []).map(readId).filter(Boolean)))
     const seenCategoryIds = new Set<string>()
     const categories: DesktopAddonOrganizationCategory[] = []
 
@@ -77,11 +75,7 @@ export function createAddonCategory(organization: DesktopAddonOrganization, name
     }
 }
 
-export function assignAddonCategory(
-    organization: DesktopAddonOrganization,
-    addonId: string,
-    categoryId: string | null,
-): DesktopAddonOrganization {
+export function assignAddonCategory(organization: DesktopAddonOrganization, addonId: string, categoryId: string | null): DesktopAddonOrganization {
     const normalizedAddonId = readId(addonId)
     const normalizedCategoryId = readId(categoryId)
     if (!normalizedAddonId) return organization

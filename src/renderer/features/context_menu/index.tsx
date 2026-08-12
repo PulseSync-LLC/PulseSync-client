@@ -30,7 +30,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
     const widgetDownloadToastIdRef = useRef<string | null>(null)
     const [updateSource, setUpdateSourceState] = React.useState<UpdateSource>('backend')
     const [updateStatus, setUpdateStatus] = React.useState<UpdateStatus>('IDLE')
-    const [desktopRuntime, setDesktopRuntime] = React.useState({ isLinux: false, isDev: false })
+    const [desktopRuntime, setDesktopRuntime] = React.useState({ isLinux: false })
     const subscriptionPageEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.WebSubscriptionsPage, false)
 
     const openUpdateModal = () => {
@@ -39,6 +39,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
 
     const openUpdateChannelModal = () => {
         openModal(Modals.UPDATE_CHANNEL_OVERRIDE)
+    }
+
+    const openSettings = () => {
+        openModal(Modals.SETTINGS)
     }
 
     const openAppDirectory = () => {
@@ -231,7 +235,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         try {
             const widgetPath = await desktopApi.widgets.getObsPath()
             if (widgetPath) {
-                await navigator.clipboard.writeText(widgetPath)
+                await desktopApi.system.writeClipboardText(widgetPath)
                 toast.custom('success', t('common.doneTitle'), t('obsWidget.pathCopied'))
             } else {
                 toast.custom('error', t('common.errorTitle'), t('obsWidget.pathFetchError'))
@@ -280,10 +284,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                 void desktopApi.settings.updatePreferences({ hardwareAcceleration: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.restartRequired'))
                 break
-            case 'devSocket':
-                void desktopApi.settings.updatePreferences({ devSocket: status })
-                toast.custom('success', t('common.doneTitle'), t('settings.websocketStatusChanged'))
-                break
             case 'showModModalAfterInstall':
                 void desktopApi.settings.updatePreferences({ showModModalAfterInstall: status })
                 toast.custom('success', t('common.doneTitle'), t('settings.toggles.showModChangelog', { status: statusLabel }))
@@ -326,9 +326,6 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
                     break
                 case 'hardwareAcceleration':
                     updatedSettings.hardwareAcceleration = status
-                    break
-                case 'devSocket':
-                    updatedSettings.devSocket = status
                     break
                 case 'showModModalAfterInstall':
                     updatedSettings.showModModalAfterInstall = status
@@ -408,7 +405,7 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         let mounted = true
         desktopApi.getRuntimeInfo().then(runtimeInfo => {
             if (!mounted) return
-            setDesktopRuntime({ isLinux: runtimeInfo.isLinux, isDev: runtimeInfo.isDev })
+            setDesktopRuntime({ isLinux: runtimeInfo.isLinux })
         })
         return () => {
             mounted = false
@@ -448,10 +445,10 @@ const ContextMenu: React.FC<ContextMenuProps> = ({ modalRef }) => {
         deleteMod,
         downloadObsWidget,
         isAutonomousMode,
-        isDevRuntime: desktopRuntime.isDev,
         isLinux: desktopRuntime.isLinux,
         openAppDirectory,
         openBoostyUrl,
+        openSettings,
         openObsWidgetDirectory,
         openSubscriptionPage,
         subscriptionPageEnabled,
