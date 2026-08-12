@@ -62,7 +62,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, app, setUser, isAutonomousMode } = useContext(userContext)
-    const isDevmark = app.info.devmark
+    const isDevmark = app.info.devmark && app.settings.showDevFrame
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
     const updateModalRef = useRef<{

@@ -7,9 +7,7 @@ interface SelectDefaultExtensionTabOptions {
     shouldOpenRelationsByDefault?: boolean
 }
 
-export const selectDefaultExtensionTab = ({
-    shouldOpenRelationsByDefault = false,
-}: SelectDefaultExtensionTabOptions): ActiveTab => {
+export const selectDefaultExtensionTab = ({ shouldOpenRelationsByDefault = false }: SelectDefaultExtensionTabOptions): ActiveTab => {
     if (shouldOpenRelationsByDefault) {
         return RELATIONS_TAB
     }

@@ -5,6 +5,12 @@
 
 .scrollContent {
     overflow-y: overlay;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        width: 0;
+        height: 0;
+    }
 }
 
 .scrollbarTrack {
@@ -14,7 +20,7 @@
     right: 0;
     width: 0px;
     padding: 0 5px;
-    margin: 0 5px;
+    margin: 0 var(--scrollbar-track-margin, 5px);
     display: flex;
     height: -webkit-fill-available;
     background-color: #00000000;

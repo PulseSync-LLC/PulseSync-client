@@ -83,10 +83,10 @@ type Params = {
     deleteMod: (event: any) => void
     downloadObsWidget: () => void
     isAutonomousMode: boolean
-    isDevRuntime: boolean
     isLinux: boolean
     openAppDirectory: () => void
     openBoostyUrl: () => void
+    openSettings: () => void
     openObsWidgetDirectory: () => void
     openSubscriptionPage: () => void
     subscriptionPageEnabled: boolean
@@ -119,10 +119,10 @@ export function buildContextMenuSections({
     deleteMod,
     downloadObsWidget,
     isAutonomousMode,
-    isDevRuntime,
     isLinux,
     openAppDirectory,
     openBoostyUrl,
+    openSettings,
     openObsWidgetDirectory,
     openSubscriptionPage,
     subscriptionPageEnabled,
@@ -293,16 +293,10 @@ export function buildContextMenuSections({
                 label: t('contextMenu.misc.collectLogs'),
                 onClick: collectLogs,
             },
-            createToggleButton(
-                t('contextMenu.misc.websocketStatus'),
-                app.settings.devSocket,
-                () => {
-                    toggleSetting('devSocket', !app.settings.devSocket)
-                },
-                true,
-                false,
-                isDevRuntime,
-            ),
+            {
+                label: t('contextMenu.misc.settings'),
+                onClick: openSettings,
+            },
             {
                 label: t('contextMenu.appDirectory'),
                 onClick: openAppDirectory,
@@ -326,13 +320,11 @@ export function renderContextMenuSections(buttonConfigs: SectionConfig[]) {
                     )}
                     {section.buttons && (
                         <div className={menuStyles.showButtons}>
-                            {section.buttons
-                                ?.filter(Boolean)
-                                .map((button, i) => (
-                                    <button key={i} className={menuStyles.contextButton} onClick={button.onClick} disabled={button.disabled}>
-                                        {button.label}
-                                    </button>
-                                ))}
+                            {section.buttons?.filter(Boolean).map((button, i) => (
+                                <button key={i} className={menuStyles.contextButton} onClick={button.onClick} disabled={button.disabled}>
+                                    {button.label}
+                                </button>
+                            ))}
                         </div>
                     )}
                 </div>

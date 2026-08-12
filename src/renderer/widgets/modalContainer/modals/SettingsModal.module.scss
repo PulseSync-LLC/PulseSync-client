@@ -1,0 +1,281 @@
+.modal.modal {
+    width: min(760px, calc(100vw - 32px));
+    min-width: min(760px, calc(100vw - 32px));
+    max-width: min(760px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    gap: 0;
+    align-items: stretch;
+    overflow: hidden;
+    background: var(--background);
+    border-radius: 16px;
+}
+
+.modalHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-height: 58px;
+    padding: 12px 16px 12px 22px;
+    box-sizing: border-box;
+    background: var(--surface-secondary);
+    border-bottom: 1px solid var(--border);
+}
+
+.modalTitle {
+    color: var(--text-primary);
+    font-size: 19px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.closeButton {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    padding: 0;
+    border: 1px solid var(--border);
+    border-radius: 50%;
+    background: var(--surface-tertiary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        border-color 0.15s ease,
+        background 0.15s ease;
+
+    &:hover {
+        color: var(--text-primary);
+        border-color: var(--border-hover);
+        background: var(--surface-elevated);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+}
+
+.settingsShell {
+    display: grid;
+    grid-template-columns: 210px minmax(0, 1fr);
+    flex: 1 1 auto;
+    min-height: 0;
+    max-height: calc(100vh - 90px);
+}
+
+.sidebar {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    min-width: 0;
+    padding: 18px 10px;
+    background: var(--surface-secondary);
+    border-right: 1px solid var(--border);
+}
+
+.sidebarTitle {
+    padding: 0 10px 8px;
+    color: var(--text-muted);
+    font-size: 11px;
+    font-weight: 800;
+    line-height: 1.2;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.sidebarItem {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+    min-height: 38px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 8px;
+    background: transparent;
+    color: var(--text-secondary);
+    font-size: 14px;
+    font-weight: 700;
+    text-align: left;
+    cursor: pointer;
+    transition:
+        color 0.15s ease,
+        background 0.15s ease;
+
+    &:hover {
+        color: var(--text-primary);
+        background: var(--hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+    }
+}
+
+.sidebarItemActive,
+.sidebarItemActive:hover {
+    background: var(--active);
+    color: var(--text-primary);
+}
+
+.content {
+    min-width: 0;
+    padding: 24px 26px 28px;
+    overflow-y: auto;
+}
+
+.contentHeader {
+    margin-bottom: 22px;
+}
+
+.contentTitle {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 22px;
+    font-weight: 800;
+    line-height: 1.2;
+}
+
+.settingsGroup {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+
+    & + & {
+        margin-top: 18px;
+    }
+}
+
+.groupTitle {
+    color: var(--text-muted);
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.3;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.settingRow {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 18px;
+    min-height: 76px;
+    padding: 14px 16px;
+    box-sizing: border-box;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.settingCopy {
+    min-width: 0;
+}
+
+.settingTitle {
+    margin-bottom: 5px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 1.3;
+}
+
+.settingDescription {
+    max-width: 430px;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+}
+
+.settingsCheckbox {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 20px;
+    height: 20px;
+    flex: 0 0 20px;
+    padding: 0;
+    border: 1px solid var(--border-hover);
+    border-radius: 5px;
+    background: var(--surface-elevated);
+    color: var(--accent-foreground);
+    cursor: pointer;
+    transition:
+        border-color 0.15s ease,
+        background 0.15s ease;
+
+    &:hover {
+        border-color: var(--text-muted);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+}
+
+.settingsCheckboxChecked {
+    border-color: var(--accent);
+    background: var(--accent);
+}
+
+.toolsLoading {
+    display: grid;
+    place-items: center;
+    min-height: 260px;
+}
+
+.emptyState {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 260px;
+    text-align: center;
+}
+
+.emptyTitle {
+    margin-bottom: 6px;
+    color: var(--text-primary);
+    font-size: 18px;
+    font-weight: 800;
+}
+
+.emptyDescription {
+    max-width: 360px;
+    color: var(--text-secondary);
+    font-size: 14px;
+    line-height: 1.5;
+}
+
+@media (max-width: 700px) {
+    .settingsShell {
+        grid-template-columns: 1fr;
+    }
+
+    .sidebar {
+        padding: 10px;
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .sidebarTitle {
+        display: none;
+    }
+
+    .content {
+        padding: 24px 20px;
+    }
+
+    .settingRow {
+        grid-template-columns: 1fr;
+        gap: 14px;
+    }
+}

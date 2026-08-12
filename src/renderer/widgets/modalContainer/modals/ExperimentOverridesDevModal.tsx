@@ -9,6 +9,7 @@ import { useModalContext } from '@app/providers/modal'
 import { useTranslation } from 'react-i18next'
 import { IoCloseSharp } from 'react-icons/io5'
 import { MdContentCopy } from 'react-icons/md'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import * as styles from '@widgets/modalContainer/modals/ExperimentOverridesDevModal.module.scss'
 
 type OverrideDraft = {
@@ -188,7 +189,7 @@ const ExperimentOverridesDevModal: React.FC = () => {
         }
 
         try {
-            await navigator.clipboard.writeText(selectedExperiment.key)
+            await desktopApi.system.writeClipboardText(selectedExperiment.key)
             toast.custom('success', t('common.successTitleShort'), t('header.devOverrides.copyNameSuccess'))
         } catch {
             toast.custom('error', t('common.errorTitleShort'), t('header.devOverrides.copyNameError'))

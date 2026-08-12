@@ -1,19 +1,32 @@
 .container {
+    --user-card-surface: var(--surface-secondary);
+
     display: flex;
     flex-direction: column;
     width: -webkit-fill-available;
     height: 150px;
-    padding: 2px;
     box-sizing: border-box;
     overflow: hidden;
-    background: color-mix(in srgb, var(--background) 80%, transparent);
-    border-radius: 10px;
+    background: var(--user-card-surface);
+    border: 1px solid var(--border);
+    border-radius: 16px;
     cursor: pointer;
-    transition: var(--transition);
+    transition:
+        transform 0.18s ease,
+        border-color 0.18s ease,
+        background 0.18s ease;
     animation: fadeInUp 0.4s ease-out forwards;
 
     &:hover {
-        background: var(--hover);
+        --user-card-surface: var(--surface-tertiary);
+
+        transform: translateY(-2px);
+        border-color: var(--border-hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
     }
 }
 
@@ -63,7 +76,7 @@
     padding: 10px;
     gap: 10px;
     flex: 1;
-    border-radius: 9px;
+    border-radius: 15px 15px 0 0;
     position: relative;
     overflow: hidden;
 }
@@ -86,7 +99,12 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(0deg, var(--border) 0%, color-mix(in srgb, var(--border) 30%, transparent) 100%);
+    background: linear-gradient(
+        0deg,
+        var(--user-card-surface) 0%,
+        color-mix(in srgb, var(--user-card-surface) 72%, transparent) 42%,
+        color-mix(in srgb, var(--background) 18%, transparent) 100%
+    );
     z-index: 1;
     pointer-events: none;
 }
@@ -94,7 +112,8 @@
 .userAvatar {
     width: 60px;
     height: 60px;
-    border-radius: 9px;
+    border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
+    border-radius: 12px;
     object-fit: cover;
     position: relative;
     z-index: 2;
@@ -137,6 +156,10 @@
     line-height: 110%;
     color: var(--text-primary);
     height: 20px;
+    max-width: 100%;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 }
 
 .bottomSection {
@@ -146,11 +169,13 @@
     padding: 3px 10px;
     gap: 10px;
     height: 26px;
+    background: var(--user-card-surface);
+    border-top: 1px solid var(--line);
 }
 
 .statusText {
     font-family: 'Nunito', sans-serif;
-    font-weight: 800;
+    font-weight: 700;
     font-size: 12px;
     line-height: 110%;
     color: var(--statusColorProfile);

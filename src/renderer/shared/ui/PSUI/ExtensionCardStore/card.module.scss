@@ -71,7 +71,12 @@
     height: 100%;
     z-index: 1;
     pointer-events: none;
-    background: linear-gradient(0deg, color-mix(in srgb, var(--surface-elevated) 95%, transparent) 0%, color-mix(in srgb, var(--surface-elevated) 70%, transparent) 40%, color-mix(in srgb, var(--surface-elevated) 40%, transparent) 100%);
+    background: linear-gradient(
+        0deg,
+        color-mix(in srgb, var(--surface-elevated) 95%, transparent) 0%,
+        color-mix(in srgb, var(--surface-elevated) 70%, transparent) 40%,
+        color-mix(in srgb, var(--surface-elevated) 40%, transparent) 100%
+    );
 }
 
 .card_with_image_bg {
@@ -94,7 +99,12 @@
 }
 
 .card_theme_wave {
-    background: linear-gradient(0deg, #151826 0%, color-mix(in srgb, var(--surface-primary) 90%, transparent) 40%, color-mix(in srgb, var(--background) 40%, transparent) 100%),
+    background: linear-gradient(
+            0deg,
+            #151826 0%,
+            color-mix(in srgb, var(--surface-primary) 90%, transparent) 40%,
+            color-mix(in srgb, var(--background) 40%, transparent) 100%
+        ),
         radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.9), transparent 55%),
         radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--success) 85%, transparent), transparent 55%),
         radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.9), transparent 55%), #050816;

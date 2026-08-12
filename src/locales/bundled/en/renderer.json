@@ -150,6 +150,21 @@
         "removeRow": "Remove row",
         "resetToDefault": "Reset to default"
     },
+    "settingsModal": {
+        "emptyDescription": "New settings sections will appear here later.",
+        "emptyTitle": "No settings available yet",
+        "title": "Settings",
+        "developer": {
+            "category": "Developer tools",
+            "componentsTitle": "UI testing",
+            "interfaceTitle": "Interface",
+            "runtimeTitle": "Development runtime",
+            "showDevFrameDescription": "Shows the yellow frame, bottom spacing, and development build label.",
+            "settingsTab": "Preferences",
+            "title": "Developer preferences",
+            "websocketDescription": "Controls the local debugging websocket. Available only during local development."
+        }
+    },
     "contextMenu": {
         "boostyUrl": "Page on Boosty",
         "appDirectory": "App directory",
@@ -169,6 +184,8 @@
             "checkUpdates": "Check for updates",
             "collectLogs": "Collect logs archive",
             "logsReady": "Opening the folder soon",
+            "settings": "Settings",
+            "showDevFrame": "Show development frame",
             "title": "System",
             "version": "Version: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Websocket status"
@@ -298,6 +315,7 @@
             "auth": "Auth",
             "extension": "Extensions",
             "joint": "Joint",
+            "store": "Catalog",
             "trackInfo": "TrackInfo",
             "users": "Users"
         },

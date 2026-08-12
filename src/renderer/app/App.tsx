@@ -1,4 +1,5 @@
 import React from 'react'
+import { Toaster } from 'react-hot-toast'
 import AppPage from '@app/AppShell'
 import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
 import client from '@shared/api/apolloClient'
@@ -14,14 +15,28 @@ function App() {
     }
 
     return (
-        <ErrorBoundary>
-            <ApolloProvider client={client}>
-                <ModalProvider>
-                    <ModalContainer />
-                    <AppPage />
-                </ModalProvider>
-            </ApolloProvider>
-        </ErrorBoundary>
+        <>
+            <Toaster
+                position="top-center"
+                reverseOrder={false}
+                containerStyle={{
+                    zIndex: 100050,
+                }}
+                toastOptions={{
+                    style: {
+                        zIndex: 100050,
+                    },
+                }}
+            />
+            <ErrorBoundary>
+                <ApolloProvider client={client}>
+                    <ModalProvider>
+                        <ModalContainer />
+                        <AppPage />
+                    </ModalProvider>
+                </ApolloProvider>
+            </ErrorBoundary>
+        </>
     )
 }
 

@@ -69,6 +69,11 @@ const schema = {
                 description: t('main.storage.settings.devSocket'),
                 default: true,
             },
+            showDevFrame: {
+                type: 'boolean',
+                description: 'Show the development build frame',
+                default: true,
+            },
             askSavePath: {
                 type: 'boolean',
                 description: t('main.storage.settings.askSavePath'),
@@ -136,6 +141,7 @@ const schema = {
             'autoUpdateStoreAddons',
             'closeAppInTray',
             'devSocket',
+            'showDevFrame',
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
@@ -158,6 +164,7 @@ const schema = {
             autoUpdateStoreAddons: true,
             closeAppInTray: false,
             devSocket: true,
+            showDevFrame: true,
             askSavePath: false,
             saveAsMp3: false,
             showModModalAfterInstall: true,

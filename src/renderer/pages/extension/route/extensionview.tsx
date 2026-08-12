@@ -144,24 +144,24 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     showMetadataTab={canEditMetadata}
                 />
                 <Scrollbar className={s.detailScroll} classNameInner={s.detailScrollInner}>
-                <div className={s.extensionContent}>
-                    <TabContent
-                        key={addon.path}
-                        active={activeTab}
-                        docs={docs}
-                        configExists={configExists}
-                        config={config}
-                        editConfig={editConfig}
-                        configApi={configApi}
-                        editMode={editMode}
-                        addon={addon}
-                        addonRelationsEnabled={addonRelationsEnabled}
-                        relationLabels={relationLabels}
-                        canEditMetadata={canEditMetadata}
-                        publicationReleases={publicationReleases}
-                    />
-                </div>
-            </Scrollbar>
+                    <div className={s.extensionContent}>
+                        <TabContent
+                            key={addon.path}
+                            active={activeTab}
+                            docs={docs}
+                            configExists={configExists}
+                            config={config}
+                            editConfig={editConfig}
+                            configApi={configApi}
+                            editMode={editMode}
+                            addon={addon}
+                            addonRelationsEnabled={addonRelationsEnabled}
+                            relationLabels={relationLabels}
+                            canEditMetadata={canEditMetadata}
+                            publicationReleases={publicationReleases}
+                        />
+                    </div>
+                </Scrollbar>
             </div>
         </div>
     )

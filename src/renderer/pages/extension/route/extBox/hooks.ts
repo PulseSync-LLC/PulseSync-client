@@ -234,7 +234,6 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
                 }
             }
         })()
-
         ;(async () => {
             const { config, exists } = await requestAddonConfig(addon, cacheKey)
             if (generation === cacheGeneration) {

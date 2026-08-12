@@ -67,6 +67,7 @@ export const desktopApi = {
         onPremiumTokenRequested: (listener: () => void) => requireDesktopApi().auth.onPremiumTokenRequested(listener),
     },
     system: {
+        writeClipboardText: (text: string) => requireDesktopApi().system.writeClipboardText(text),
         openExternal: (url: string) => requireDesktopApi().system.openExternal({ url }),
         showNotification: (payload: Parameters<PulseSyncDesktopApi['system']['showNotification']>[0]) =>
             requireDesktopApi().system.showNotification(payload),
@@ -129,8 +130,7 @@ export const desktopApi = {
         installStore: (request: Parameters<PulseSyncDesktopApi['addons']['installStore']>[0]) => requireDesktopApi().addons.installStore(request),
         packageArchive: (request: Parameters<PulseSyncDesktopApi['addons']['packageArchive']>[0]) =>
             requireDesktopApi().addons.packageArchive(request),
-        exportArchive: (request: Parameters<PulseSyncDesktopApi['addons']['exportArchive']>[0]) =>
-            requireDesktopApi().addons.exportArchive(request),
+        exportArchive: (request: Parameters<PulseSyncDesktopApi['addons']['exportArchive']>[0]) => requireDesktopApi().addons.exportArchive(request),
         deleteDirectory: (path: string) => requireDesktopApi().addons.deleteDirectory(path),
         openDirectory: (directoryName: string) => requireDesktopApi().addons.openDirectory(directoryName),
         openRootDirectory: () => requireDesktopApi().addons.openRootDirectory(),

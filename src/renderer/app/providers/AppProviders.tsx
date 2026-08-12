@@ -1,6 +1,5 @@
 import React, { useCallback, useMemo } from 'react'
 import { RouterProvider } from 'react-router'
-import { Toaster } from 'react-hot-toast'
 import { CssVarsProvider } from '@mui/joy'
 import { SkeletonTheme } from 'react-loading-skeleton'
 
@@ -13,6 +12,7 @@ import { ExperimentsProvider } from '@app/providers/experiments'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import Preloader from '@widgets/preloader'
 import ExperimentOverridesDevModal from '@widgets/modalContainer/modals/ExperimentOverridesDevModal'
+import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import type { AppProvidersProps } from '@app/AppShell.types'
 import PlayerProvider from '@app/providers/PlayerProvider'
@@ -126,23 +126,12 @@ export default function AppProviders({
 
     return (
         <div className="app-wrapper">
-            <Toaster
-                position="top-center"
-                reverseOrder={false}
-                containerStyle={{
-                    zIndex: 100050,
-                }}
-                toastOptions={{
-                    style: {
-                        zIndex: 100050,
-                    },
-                }}
-            />
             <UserContext.Provider value={userContextValue}>
                 <NewsProvider key={user.id} enabled={!loading}>
                     <ExperimentsProvider userId={user.id}>
                         <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
                         <ExperimentOverridesDevModal />
+                        <SettingsModal onNavigate={path => void router.navigate(path)} />
                         <UpdateChannelOverrideModal />
                         <NotificationsProvider value={notificationsValue}>
                             <PlayerProvider>

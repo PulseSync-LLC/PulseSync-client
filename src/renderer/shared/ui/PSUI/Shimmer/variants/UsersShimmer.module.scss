@@ -12,10 +12,10 @@
 }
 
 .card {
-    @include shimmer.surface(#00000033);
+    @include shimmer.surface(var(--surface-secondary));
     height: 150px;
-    border-radius: 10px;
-    padding: 2px;
+    border: 1px solid var(--border);
+    border-radius: 16px;
     display: flex;
     flex-direction: column;
     box-sizing: border-box;
@@ -29,7 +29,7 @@
     flex: 1;
     padding: 10px;
     overflow: hidden;
-    border-radius: 9px;
+    border-radius: 15px 15px 0 0;
 }
 
 .banner {
@@ -43,14 +43,14 @@
     position: absolute;
     inset: 0;
     z-index: 1;
-    background: linear-gradient(0deg, var(--border) 0%, color-mix(in srgb, var(--border) 30%, transparent) 100%);
+    background: linear-gradient(0deg, var(--surface-secondary) 0%, color-mix(in srgb, var(--surface-secondary) 72%, transparent) 100%);
 }
 
 .avatar {
     @include shimmer.surface;
     width: 60px;
     height: 60px;
-    border-radius: 9px;
+    border-radius: 12px;
     z-index: 2;
     flex: 0 0 auto;
 }
@@ -92,6 +92,7 @@
     gap: 10px;
     height: 26px;
     padding: 3px 10px;
+    border-top: 1px solid var(--line);
 }
 
 .statusLine {

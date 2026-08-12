@@ -9,6 +9,7 @@ export interface Settings {
     autoUpdateStoreAddons: boolean
     closeAppInTray: boolean
     devSocket: boolean
+    showDevFrame: boolean
     askSavePath: boolean
     saveAsMp3: boolean
     showModModalAfterInstall: boolean
