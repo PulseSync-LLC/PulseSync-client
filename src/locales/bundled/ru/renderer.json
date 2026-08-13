@@ -151,9 +151,25 @@
         "resetToDefault": "Сбросить к эталону"
     },
     "settingsModal": {
+        "application": "Приложение",
+        "actions": {
+            "changelog": "Список изменений",
+            "title": "Действия"
+        },
+        "category": "Разделы",
         "emptyDescription": "Новые разделы настроек появятся здесь позже.",
         "emptyTitle": "Настройки пока недоступны",
+        "sections": {
+            "general": "Основные",
+            "integrations": "Компоненты"
+        },
+        "status": {
+            "installed": "Установлено",
+            "notInstalled": "Не установлено"
+        },
+        "subscription": "Подписка",
         "title": "Настройки",
+        "updateSource": "Источник обновлений",
         "developer": {
             "category": "Для разработчиков",
             "componentsTitle": "Тестирование UI",

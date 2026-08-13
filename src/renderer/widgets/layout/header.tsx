@@ -1,5 +1,4 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import cn from 'clsx'
 
 import Minus from '@shared/assets/icons/minus.svg'
 import Minimize from '@shared/assets/icons/minimize.svg'
@@ -7,7 +6,6 @@ import Maximize from '@shared/assets/icons/maximize.svg'
 import Close from '@shared/assets/icons/close.svg'
 
 import userContext from '@entities/user/model/context'
-import ContextMenu from '@features/context_menu'
 import * as styles from '@widgets/layout/header.module.scss'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import rendererHttpClient from '@shared/api/http/client'
@@ -59,17 +57,11 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const [avatarProgress, setAvatarProgress] = useState(-1)
     const [bannerProgress, setBannerProgress] = useState(-1)
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
-    const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, app, setUser, isAutonomousMode } = useContext(userContext)
     const isDevmark = app.info.devmark && app.settings.showDevFrame
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
-    const updateModalRef = useRef<{
-        openUpdateModal: () => void
-        closeUpdateModal: () => void
-    }>(null)
-
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const isAppChangelogModalOpen = isModalOpen(Modals.APP_CHANGELOG)
     const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
@@ -88,14 +80,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
     const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
-    updateModalRef.current = { openUpdateModal: openAppChangelogModal, closeUpdateModal: closeAppChangelogModal }
-    const toggleMenu = useCallback(() => {
-        setIsUserCardOpen(false)
-        setIsMenuOpen(current => !current)
-    }, [])
-
     const toggleUserContainer = useCallback(() => {
-        setIsMenuOpen(false)
         setIsUserCardOpen(current => !current)
     }, [])
     const openLogin = useCallback(() => {
@@ -110,21 +95,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
         await nav('/home', { replace: true })
     }, [nav, setUser])
     const isAuthFlowRoute = location.pathname === '/auth' || location.pathname === '/auth/callback'
-
-    useEffect(() => {
-        const handlePointerDown = (event: PointerEvent) => {
-            const target = event.target as Node
-
-            if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
-                setIsMenuOpen(false)
-            }
-        }
-
-        document.addEventListener('pointerdown', handlePointerDown)
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown)
-        }
-    }, [isMenuOpen])
 
     useEffect(() => {
         if (!isUserCardOpen) return
@@ -410,7 +380,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                         {/*        <MdSettings size={22} />*/}
                         {/*    </button>*/}
                         {/*</TooltipButton>*/}
-                        <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu}>
+                        <div className={styles.logoplace}>
                             <span>{title ?? 'PulseSync'}</span>
                             {titleDetail ? (
                                 <>
@@ -419,8 +389,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                                     <span>{titleDetail.label}</span>
                                 </>
                             ) : null}
-                        </button>
-                        <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
+                        </div>
                     </div>
                     <div className={styles.event_container}>
                         {isDevmark && (
