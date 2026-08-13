@@ -123,35 +123,20 @@
 }
 
 .ymItem {
-    background: conic-gradient(
-            from 0deg at 100% 100%,
-            #fed42b -1.26deg,
-            rgba(0, 0, 0, 0.31) 8.08deg,
-            #fed42b 358.74deg,
-            rgba(0, 0, 0, 0.31) 368.08deg
-        ),
+    background:
+        conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .modItem {
-    background: conic-gradient(
-            from 0deg at 100% 100%,
-            #5865f2 -1.26deg,
-            rgba(0, 0, 0, 0.31) 8.08deg,
-            #5865f2 358.74deg,
-            rgba(0, 0, 0, 0.31) 368.08deg
-        ),
+    background:
+        conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .clientItem {
-    background: conic-gradient(
-            from 0deg at 100% 100%,
-            #3e6aff -1.26deg,
-            rgba(0, 0, 0, 0.31) 8.08deg,
-            #3e6aff 358.74deg,
-            rgba(0, 0, 0, 0.31) 368.08deg
-        ),
+    background:
+        conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
@@ -465,7 +450,8 @@
 .newsListItemMediaFallback {
     position: absolute;
     inset: 0;
-    background: radial-gradient(circle at top right, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 30%),
+    background:
+        radial-gradient(circle at top right, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 30%),
         linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-tertiary) 55%, var(--surface-secondary) 100%);
 }
 
@@ -600,7 +586,8 @@
     align-items: center;
     justify-content: center;
     text-align: center;
-    background: radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%),
+    background:
+        radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%),
         color-mix(in srgb, var(--surface-elevated) 76%, transparent);
     border: 1px solid color-mix(in srgb, var(--text-secondary) 24%, transparent);
 }
@@ -634,16 +621,33 @@
     }
 }
 
+.newsSkeletonState {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    flex-direction: column;
+    gap: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+
+    &::-webkit-scrollbar {
+        display: none;
+    }
+}
+
 .newsSkeletonFeatured,
 .newsSkeletonItem {
     overflow: hidden;
-    border-radius: 18px;
-    background: color-mix(in srgb, var(--surface-elevated) 88%, transparent);
-    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
+    border-radius: 16px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
 }
 
 .newsSkeletonFeatured {
     display: flex;
+    flex: 0 0 auto;
     width: 100%;
     flex-direction: column;
 }
@@ -666,27 +670,27 @@
 }
 
 .newsSkeletonImage {
-    height: 220px;
-    min-height: 220px;
+    height: 182px;
+    min-height: 182px;
 }
 
 .newsSkeletonContent,
 .newsSkeletonItemContent {
     display: flex;
     flex-direction: column;
-    gap: 10px;
-    padding: 16px;
+    gap: 8px;
+    padding: 20px;
 }
 
 .newsSkeletonMeta {
     width: 140px;
-    height: 12px;
+    height: 16px;
     border-radius: 999px;
 }
 
 .newsSkeletonTitle {
     width: 76%;
-    height: 28px;
+    height: 26px;
     border-radius: 10px;
 }
 
@@ -698,15 +702,15 @@
 
 .newsSkeletonDescriptionShort {
     width: 64%;
-    height: 14px;
+    height: 16px;
     border-radius: 8px;
 }
 
 .newsSkeletonList {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
-    margin-top: 14px;
+    display: flex;
+    flex: 0 0 auto;
+    flex-direction: column;
+    gap: 10px;
     width: 100%;
 }
 
@@ -716,13 +720,14 @@
 }
 
 .newsSkeletonThumb {
-    min-height: 156px;
+    height: 117px;
+    min-height: 117px;
     border-radius: 0;
 }
 
 .newsSkeletonItemTitle {
     width: 72%;
-    height: 20px;
+    height: 26px;
     border-radius: 8px;
 }
 
