@@ -151,9 +151,25 @@
         "resetToDefault": "Reset to default"
     },
     "settingsModal": {
+        "application": "Application",
+        "actions": {
+            "changelog": "Changelog",
+            "title": "Actions"
+        },
+        "category": "Sections",
         "emptyDescription": "New settings sections will appear here later.",
         "emptyTitle": "No settings available yet",
+        "sections": {
+            "general": "General",
+            "integrations": "Components"
+        },
+        "status": {
+            "installed": "Installed",
+            "notInstalled": "Not installed"
+        },
+        "subscription": "Subscription",
         "title": "Settings",
+        "updateSource": "Update source",
         "developer": {
             "category": "Developer tools",
             "componentsTitle": "UI testing",

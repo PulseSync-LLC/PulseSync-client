@@ -53,10 +53,6 @@
                 gap: 4px;
                 cursor: pointer;
 
-                &:hover {
-                    background: var(--surface-elevated);
-                }
-
                 &:disabled {
                     opacity: 0.5;
                     background: transparent;
