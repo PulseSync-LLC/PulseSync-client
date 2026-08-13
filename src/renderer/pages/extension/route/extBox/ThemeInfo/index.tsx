@@ -7,6 +7,7 @@ import AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import Button from '@shared/ui/buttonV2'
 import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
+import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 import config from '@common/appConfig'
@@ -43,21 +44,26 @@ interface Props {
 }
 
 function useResolvedImage(url: string | null, fallback: string | null) {
-    const [resolved, setResolved] = useState<string | null>(fallback)
+    const [state, setState] = useState<{
+        loading: boolean
+        resolved: string | null
+        source: string | null
+    }>(() => ({ loading: Boolean(url), resolved: url ? null : fallback, source: url }))
 
     useEffect(() => {
         if (!url) {
-            setResolved(fallback)
+            setState({ loading: false, resolved: fallback, source: null })
             return
         }
 
         let active = true
+        setState({ loading: true, resolved: null, source: url })
         const img = new Image()
         img.onload = () => {
-            if (active) setResolved(url)
+            if (active) setState({ loading: false, resolved: url, source: url })
         }
         img.onerror = () => {
-            if (active) setResolved(fallback)
+            if (active) setState({ loading: false, resolved: fallback, source: url })
         }
         img.src = url
 
@@ -66,7 +72,11 @@ function useResolvedImage(url: string | null, fallback: string | null) {
         }
     }, [url, fallback])
 
-    return resolved
+    if (state.source !== url) {
+        return { loading: Boolean(url), resolved: url ? null : fallback }
+    }
+
+    return state
 }
 
 function normalizeAuthorNames(author: AddonInterface['author']): string[] {
@@ -135,12 +145,15 @@ const ThemeInfo: React.FC<Props> = ({
     }, [addon.banner, addon.directoryName, isMac])
 
     const logoSource = useMemo(() => {
-        if (!addon.libraryLogo || (isMac && isGif(addon.libraryLogo))) return null
-        return getAssetUrl(addon.libraryLogo)
-    }, [addon.directoryName, addon.libraryLogo, isMac])
+        const logoFile = addon.libraryLogo?.trim() || addon.image?.trim()
+        if (!logoFile || (isMac && isGif(logoFile))) return null
+        if (/^(https?:\/\/|data:)/i.test(logoFile)) return logoFile
+        return getAssetUrl(logoFile)
+    }, [addon.directoryName, addon.image, addon.libraryLogo, isMac])
 
-    const bannerUrl = useResolvedImage(bannerSource, fallbackBanner)
-    const logoUrl = useResolvedImage(logoSource, null)
+    const { loading: bannerLoading, resolved: bannerUrl } = useResolvedImage(bannerSource, fallbackBanner)
+    const { loading: logoLoading, resolved: logoUrl } = useResolvedImage(logoSource, null)
+    const hasLogo = logoLoading || Boolean(logoUrl)
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
@@ -193,12 +206,20 @@ const ThemeInfo: React.FC<Props> = ({
     ]
     return (
         <div className={s.summary}>
-            <div className={s.themeInfo} style={{ backgroundImage: `url(${bannerUrl})` }} />
+            <div className={s.themeInfo} style={bannerUrl ? { backgroundImage: `url(${bannerUrl})` } : undefined}>
+                {bannerLoading ? <Skeleton width="100%" height="100%" borderRadius={12} className={s.mediaSkeleton} /> : null}
+            </div>
 
-            <div className={s.identityRow}>
-                <button className={s.libraryLogo} onClick={() => nav(`/${encodeURIComponent(addon.directoryName)}`)} aria-label={addon.name}>
-                    {logoUrl ? <img className={s.libraryLogoImg} src={logoUrl} alt="" /> : <span className={s.libraryLogoText}>{addon.name}</span>}
-                </button>
+            <div className={cn(s.identityRow, !hasLogo && s.identityRowWithoutLogo)}>
+                {hasLogo ? (
+                    <button className={s.libraryLogo} onClick={() => nav(`/${encodeURIComponent(addon.directoryName)}`)} aria-label={addon.name}>
+                        {logoLoading ? (
+                            <Skeleton width="100%" height="100%" borderRadius={11} className={s.mediaSkeleton} />
+                        ) : logoUrl ? (
+                            <img className={s.libraryLogoImg} src={logoUrl} alt="" />
+                        ) : null}
+                    </button>
+                ) : null}
 
                 <div className={s.actions}>
                     {hasStoreUpdate ? (

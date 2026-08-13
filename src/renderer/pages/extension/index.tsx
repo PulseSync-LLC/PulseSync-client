@@ -185,7 +185,6 @@ export default function ExtensionPage() {
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
-
     const loadedRef = useRef(false)
 
     const commitAddonOrganization = useCallback(
@@ -1286,6 +1285,7 @@ export default function ExtensionPage() {
                 <ExtensionSidebar
                     addons={mergedAddons}
                     addonOrganization={addonOrganization}
+                    addonImagesReady={isLoaded}
                     containerRef={containerRef}
                     currentTheme={currentTheme}
                     enabledScripts={enabledScripts}

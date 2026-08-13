@@ -18,6 +18,11 @@
     background-size: cover;
 }
 
+.mediaSkeleton {
+    display: block;
+    pointer-events: none;
+}
+
 .identityRow {
     display: flex;
     align-items: flex-end;
@@ -25,6 +30,10 @@
     min-height: 68px;
     gap: 12px;
     padding: 0 14px;
+}
+
+.identityRowWithoutLogo {
+    justify-content: flex-end;
 }
 
 .libraryLogo {
@@ -47,18 +56,6 @@
     width: 100%;
     height: 100%;
     object-fit: cover;
-}
-
-.libraryLogoText {
-    display: -webkit-box;
-    padding: 10px;
-    overflow: hidden;
-    font-size: 13px;
-    font-weight: 800;
-    line-height: 1.15;
-    text-align: center;
-    -webkit-box-orient: vertical;
-    -webkit-line-clamp: 3;
 }
 
 .actions {
