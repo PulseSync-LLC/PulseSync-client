@@ -395,6 +395,7 @@
         },
         "organization": {
             "addFavorite": "Добавить в избранное",
+            "addedToFavorites": "«{{name}}» добавлен в избранное",
             "categoryInvalid": "Введите уникальное название категории",
             "categoryNameLabel": "Название категории",
             "categoryNamePlaceholder": "Например, Оформление",
@@ -404,6 +405,7 @@
             "deleteCategoryConfirm": "Удалить категорию «{{name}}»? Аддоны останутся установленными и перейдут в раздел без категории.",
             "deleteCategoryTitle": "Удаление категории",
             "moveToCategory": "Переместить в категорию",
+            "movedToCategory": "«{{name}}» перемещён в «{{category}}»",
             "organizeAddon": "Организовать аддон {{name}}",
             "removeFavorite": "Убрать из избранного",
             "saveFailed": "Не удалось сохранить организацию аддонов",

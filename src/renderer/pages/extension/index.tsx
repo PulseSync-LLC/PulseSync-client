@@ -769,6 +769,13 @@ export default function ExtensionPage() {
         [commitAddonOrganization],
     )
 
+    const handleMoveAddon = useCallback(
+        (addon: Addon, categoryId: string | null, favorite: boolean) => {
+            commitAddonOrganization(current => assignAddonCategory(setAddonFavorite(current, addon.id, favorite), addon.id, categoryId))
+        },
+        [commitAddonOrganization],
+    )
+
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
 
     const selectedAddonMissingDependencies = useMemo(
@@ -1296,6 +1303,7 @@ export default function ExtensionPage() {
                     onOpenAddonsDirectory={handleOpenAddonsDirectory}
                     onReloadAddons={handleReloadAddons}
                     onSearchChange={handleSearchChange}
+                    onMoveAddon={handleMoveAddon}
                     onSortChange={handleSortChange}
                     onFiltersOpenChange={setShowFilters}
                     onOptionMenuOpenChange={setOptionMenu}

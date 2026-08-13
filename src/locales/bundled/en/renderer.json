@@ -395,6 +395,7 @@
         },
         "organization": {
             "addFavorite": "Add to favorites",
+            "addedToFavorites": "“{{name}}” added to favorites",
             "categoryInvalid": "Enter a unique category name",
             "categoryNameLabel": "Category name",
             "categoryNamePlaceholder": "For example, Appearance",
@@ -404,6 +405,7 @@
             "deleteCategoryConfirm": "Delete the “{{name}}” category? Its addons will remain installed and move to Uncategorized.",
             "deleteCategoryTitle": "Delete category",
             "moveToCategory": "Move to category",
+            "movedToCategory": "“{{name}}” moved to “{{category}}”",
             "organizeAddon": "Organize {{name}}",
             "removeFavorite": "Remove from favorites",
             "saveFailed": "Failed to save addon organization",
