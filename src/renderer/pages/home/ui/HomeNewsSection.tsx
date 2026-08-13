@@ -109,7 +109,7 @@ export default function HomeNewsSection() {
     const renderState = () => {
         if (loading) {
             return (
-                <div className={styles.newsState} aria-hidden="true" style={{ justifyContent: 'start' }}>
+                <div className={styles.newsSkeletonState} aria-hidden="true">
                     <div className={styles.newsSkeletonFeatured}>
                         <div className={styles.newsSkeletonImage} />
                         <div className={styles.newsSkeletonContent}>
@@ -126,6 +126,7 @@ export default function HomeNewsSection() {
                                 <div className={styles.newsSkeletonItemContent}>
                                     <div className={styles.newsSkeletonMeta} />
                                     <div className={styles.newsSkeletonItemTitle} />
+                                    <div className={styles.newsSkeletonDescription} />
                                     <div className={styles.newsSkeletonDescriptionShort} />
                                 </div>
                             </div>
