@@ -353,11 +353,34 @@
     color: var(--success);
 }
 
+.addonImageFrame {
+    position: relative;
+    width: 22px;
+    height: 22px;
+    flex: 0 0 22px;
+    overflow: hidden;
+    border-radius: 4px;
+    background: var(--surface-tertiary);
+}
+
+.addonImageSkeleton {
+    position: absolute;
+    inset: 0;
+}
+
 .addonImage {
+    position: absolute;
+    inset: 0;
     width: 22px;
     height: 22px;
     border-radius: 4px;
     object-fit: cover;
+    opacity: 0;
+    transition: opacity 0.16s ease;
+}
+
+.addonImageVisible {
+    opacity: 1;
 }
 
 .addonName {

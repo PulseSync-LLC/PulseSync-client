@@ -1,6 +1,7 @@
 import React from 'react'
 import cn from 'clsx'
 import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
+import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import { useTranslation } from 'react-i18next'
 
@@ -22,6 +23,7 @@ type Props = {
     enabledScripts: string[]
     fallbackAddonImage: string
     getImagePath: (addon: Addon) => string
+    imageReady: boolean
     isActive: boolean
     isDragging: boolean
     isFavorite: boolean
@@ -34,6 +36,40 @@ type Props = {
     onSetFavorite: (addon: Addon, favorite: boolean) => void
 }
 
+type AddonImageProps = {
+    alt: string
+    fallbackSrc: string
+    ready: boolean
+    src: string
+}
+
+function AddonImage({ alt, fallbackSrc, ready, src }: AddonImageProps) {
+    const [resolvedSrc, setResolvedSrc] = React.useState(src)
+    const [loaded, setLoaded] = React.useState(false)
+
+    return (
+        <span className={extensionStylesV2.addonImageFrame}>
+            {!ready || !loaded ? <Skeleton width={22} height={22} borderRadius={4} className={extensionStylesV2.addonImageSkeleton} /> : null}
+            <img
+                src={resolvedSrc}
+                alt={alt}
+                className={cn(extensionStylesV2.addonImage, ready && loaded && extensionStylesV2.addonImageVisible)}
+                loading="lazy"
+                onLoad={() => setLoaded(true)}
+                onError={() => {
+                    if (resolvedSrc === fallbackSrc) {
+                        setLoaded(true)
+                        return
+                    }
+
+                    setLoaded(false)
+                    setResolvedSrc(fallbackSrc)
+                }}
+            />
+        </span>
+    )
+}
+
 export default function AddonCard({
     addon,
     categories,
@@ -42,6 +78,7 @@ export default function AddonCard({
     enabledScripts,
     fallbackAddonImage,
     getImagePath,
+    imageReady,
     isActive,
     isDragging,
     isFavorite,
@@ -59,6 +96,7 @@ export default function AddonCard({
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
+    const imagePath = getImagePath(addon)
     const organizationLabel = t('extensions.organization.organizeAddon', { name: addon.name })
     const organizationItems: DropdownMenuItem[] = [
         {
@@ -124,15 +162,7 @@ export default function AddonCard({
             >
                 <MdCheckCircle size={18} />
             </div>
-            <img
-                src={getImagePath(addon)}
-                alt={addon.name}
-                className={extensionStylesV2.addonImage}
-                loading="lazy"
-                onError={event => {
-                    event.currentTarget.src = fallbackAddonImage
-                }}
-            />
+            <AddonImage key={imagePath} src={imagePath} fallbackSrc={fallbackAddonImage} alt={addon.name} ready={imageReady} />
             <div className={extensionStylesV2.addonName}>{addon.name}</div>
             {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
             <div className={extensionStylesV2.addonType} aria-hidden>

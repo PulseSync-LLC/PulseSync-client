@@ -20,6 +20,7 @@ const DRAG_OPEN_DELAY_MS = 550
 
 type Props = {
     addonOrganization: DesktopAddonOrganization
+    addonImagesReady: boolean
     addons: Addon[]
     containerRef: React.RefObject<HTMLDivElement | null>
     currentTheme: string
@@ -67,6 +68,7 @@ function getActiveFiltersCount(type: AddonTypeFilter, sort: SortKey, selectedTag
 
 export default function ExtensionSidebar({
     addonOrganization,
+    addonImagesReady,
     addons,
     containerRef,
     currentTheme,
@@ -249,6 +251,7 @@ export default function ExtensionSidebar({
             enabledScripts={enabledScripts}
             fallbackAddonImage={fallbackAddonImage}
             getImagePath={getImagePath}
+            imageReady={addonImagesReady}
             isActive={selectedAddon?.directoryName === addon.directoryName}
             isDragging={draggingAddonId === addon.id}
             isFavorite={favoriteIds.has(addon.id)}
