@@ -13,6 +13,10 @@ import AddonCard from '@pages/extension/ui/AddonCard'
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 import type { AddonTypeFilter, SortKey } from '@pages/extension/model/addonCatalog'
 import { staticAsset } from '@shared/lib/staticAssets'
+import toast from '@shared/ui/toast'
+
+const ADDON_DRAG_TYPE = 'application/x-pulsesync-addon-id'
+const DRAG_OPEN_DELAY_MS = 550
 
 type Props = {
     addonOrganization: DesktopAddonOrganization
@@ -35,6 +39,7 @@ type Props = {
     onOptionMenuOpenChange: (open: boolean) => void
     onReloadAddons: () => void
     onSearchChange: (event: React.ChangeEvent<HTMLInputElement>) => void
+    onMoveAddon: (addon: Addon, categoryId: string | null, favorite: boolean) => void
     onSetAddonFavorite: (addon: Addon, favorite: boolean) => void
     onSortChange: (option: SortKey) => void
     optionButtonRef: React.RefObject<HTMLButtonElement | null>
@@ -81,6 +86,7 @@ export default function ExtensionSidebar({
     onOptionMenuOpenChange,
     onReloadAddons,
     onSearchChange,
+    onMoveAddon,
     onSetAddonFavorite,
     onSortChange,
     optionButtonRef,
@@ -104,7 +110,19 @@ export default function ExtensionSidebar({
     const activeFiltersCount = getActiveFiltersCount(type, sort, selectedTags, selectedCreators)
     const [openGroups, setOpenGroups] = React.useState<string[]>(['favorites', 'uncategorized'])
     const [createCategoryOpen, setCreateCategoryOpen] = React.useState(false)
+    const [draggingAddonId, setDraggingAddonId] = React.useState<string | null>(null)
+    const [dropTargetKey, setDropTargetKey] = React.useState<string | null>(null)
     const knownCategoryIdsRef = React.useRef<Set<string>>(new Set())
+    const dragOpenTimerRef = React.useRef<number | null>(null)
+    const pendingOpenKeyRef = React.useRef<string | null>(null)
+
+    const clearDragOpenTimer = React.useCallback(() => {
+        if (dragOpenTimerRef.current !== null) window.clearTimeout(dragOpenTimerRef.current)
+        dragOpenTimerRef.current = null
+        pendingOpenKeyRef.current = null
+    }, [])
+
+    React.useEffect(() => clearDragOpenTimer, [clearDragOpenTimer])
 
     React.useEffect(() => {
         const categoryIds = new Set(addonOrganization.categories.map(category => category.id))
@@ -123,11 +141,88 @@ export default function ExtensionSidebar({
     const favoriteAddons = addons.filter(addon => favoriteIds.has(addon.id))
     const uncategorizedAddons = addons.filter(addon => !addonOrganization.categoryByAddonId[addon.id])
 
+    const scheduleGroupOpen = (key: string) => {
+        if (openGroups.includes(key) || pendingOpenKeyRef.current === key) return
+        clearDragOpenTimer()
+        pendingOpenKeyRef.current = key
+        dragOpenTimerRef.current = window.setTimeout(() => {
+            setOpenGroups(current => (current.includes(key) ? current : [...current, key]))
+            dragOpenTimerRef.current = null
+            pendingOpenKeyRef.current = null
+        }, DRAG_OPEN_DELAY_MS)
+    }
+
+    const finishDrag = () => {
+        clearDragOpenTimer()
+        setDraggingAddonId(null)
+        setDropTargetKey(null)
+    }
+
+    const showDropToast = (addon: Addon, message: string) =>
+        toast.custom('success', t('common.doneTitle'), message, { id: `addon-organization-drop:${addon.id}` })
+
+    const getDraggedAddon = (event: React.DragEvent) => {
+        const addonId = event.dataTransfer.getData(ADDON_DRAG_TYPE) || event.dataTransfer.getData('text/plain') || draggingAddonId
+        return addons.find(addon => addon.id === addonId) ?? null
+    }
+
+    const handleDrop = (key: string, event: React.DragEvent) => {
+        event.preventDefault()
+        event.stopPropagation()
+        const addon = getDraggedAddon(event)
+        finishDrag()
+        if (!addon) return
+
+        if (key === 'favorites') {
+            if (favoriteIds.has(addon.id)) return
+            const previousCategoryId = addonOrganization.categoryByAddonId[addon.id] ?? null
+            onMoveAddon(addon, previousCategoryId, true)
+            showDropToast(addon, t('extensions.organization.addedToFavorites', { name: addon.name }))
+            return
+        }
+
+        const previousCategoryId = addonOrganization.categoryByAddonId[addon.id] ?? null
+        const wasFavorite = favoriteIds.has(addon.id)
+        const categoryId = key === 'uncategorized' ? null : key.slice('category:'.length)
+        if (previousCategoryId === categoryId && !wasFavorite) return
+        const categoryLabel =
+            categoryId === null
+                ? t('extensions.organization.uncategorized')
+                : (addonOrganization.categories.find(category => category.id === categoryId)?.name ?? t('extensions.organization.uncategorized'))
+
+        onMoveAddon(addon, categoryId, false)
+        showDropToast(addon, t('extensions.organization.movedToCategory', { name: addon.name, category: categoryLabel }))
+    }
+
+    const getDropHandlers = (key: string) => ({
+        onDragEnter: (event: React.DragEvent) => {
+            event.preventDefault()
+            setDropTargetKey(key)
+            scheduleGroupOpen(key)
+        },
+        onDragOver: (event: React.DragEvent) => {
+            event.preventDefault()
+            event.dataTransfer.dropEffect = key === 'favorites' ? 'copy' : 'move'
+            if (dropTargetKey !== key) setDropTargetKey(key)
+            scheduleGroupOpen(key)
+        },
+        onDragLeave: (event: React.DragEvent) => {
+            const nextTarget = event.relatedTarget
+            if (nextTarget instanceof Node && event.currentTarget.contains(nextTarget)) return
+            if (dropTargetKey === key) setDropTargetKey(null)
+            if (pendingOpenKeyRef.current === key) clearDragOpenTimer()
+        },
+        onDrop: (event: React.DragEvent) => handleDrop(key, event),
+    })
+
     const createGroupTitle = (key: string, label: string, count: number, favorite = false) => {
         const isOpen = openGroups.includes(key)
 
         return (
-            <span className={extensionStylesV2.addonGroupTitle}>
+            <span
+                className={cn(extensionStylesV2.addonGroupTitle, dropTargetKey === key && extensionStylesV2.addonGroupDropTarget)}
+                {...getDropHandlers(key)}
+            >
                 {isOpen ? (
                     <img className={extensionStylesV2.addonGroupToggleIcon} src={staticAsset('assets/icons/ui/addon-group-category.svg')} alt="" />
                 ) : (
@@ -155,10 +250,18 @@ export default function ExtensionSidebar({
             fallbackAddonImage={fallbackAddonImage}
             getImagePath={getImagePath}
             isActive={selectedAddon?.directoryName === addon.directoryName}
+            isDragging={draggingAddonId === addon.id}
             isFavorite={favoriteIds.has(addon.id)}
             onAssignCategory={onAssignAddonCategory}
             onClick={onAddonClick}
             onDisable={onDisableAddon}
+            onDragEnd={finishDrag}
+            onDragStart={(draggedAddon, event) => {
+                event.dataTransfer.effectAllowed = 'copyMove'
+                event.dataTransfer.setData(ADDON_DRAG_TYPE, draggedAddon.id)
+                event.dataTransfer.setData('text/plain', draggedAddon.id)
+                setDraggingAddonId(draggedAddon.id)
+            }}
             onEnable={onEnableAddon}
             onSetFavorite={onSetAddonFavorite}
         />
@@ -170,7 +273,7 @@ export default function ExtensionSidebar({
             key,
             title: createGroupTitle(key, label, groupAddons.length, favorite),
             content: (
-                <div className={extensionStylesV2.addonGroupCards} aria-hidden={!isOpen} inert={!isOpen}>
+                <div className={extensionStylesV2.addonGroupCards} aria-hidden={!isOpen} inert={!isOpen} {...getDropHandlers(key)}>
                     {groupAddons.map(renderAddonCard)}
                 </div>
             ),

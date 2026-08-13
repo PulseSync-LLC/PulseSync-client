@@ -217,6 +217,19 @@
     font-size: 14px;
     font-weight: 700;
     line-height: 19px;
+    transition: var(--transition);
+}
+
+.addonGroupDropTarget {
+    border-radius: 7px;
+    background: color-mix(in srgb, var(--accent) 14%, transparent);
+    outline: 1px solid color-mix(in srgb, var(--accent) 52%, transparent);
+    outline-offset: -1px;
+}
+
+.addonGroupTitle.addonGroupDropTarget {
+    margin: 0 -6px;
+    padding: 3px 6px;
 }
 
 .addonGroupToggleIcon,
@@ -290,6 +303,18 @@
         outline: 2px solid var(--accent);
         outline-offset: -2px;
     }
+}
+
+.addonCard[draggable='true'] {
+    cursor: grab;
+
+    &:active {
+        cursor: grabbing;
+    }
+}
+
+.addonCardDragging {
+    opacity: 0.42;
 }
 
 .addonCardSelected {

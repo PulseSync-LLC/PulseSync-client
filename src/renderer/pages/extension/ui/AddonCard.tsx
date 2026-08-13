@@ -23,10 +23,13 @@ type Props = {
     fallbackAddonImage: string
     getImagePath: (addon: Addon) => string
     isActive: boolean
+    isDragging: boolean
     isFavorite: boolean
     onAssignCategory: (addon: Addon, categoryId: string | null) => void
     onClick: (addon: Addon) => void
     onDisable: (addon: Addon) => void
+    onDragEnd: () => void
+    onDragStart: (addon: Addon, event: React.DragEvent<HTMLDivElement>) => void
     onEnable: (addon: Addon) => void
     onSetFavorite: (addon: Addon, favorite: boolean) => void
 }
@@ -40,10 +43,13 @@ export default function AddonCard({
     fallbackAddonImage,
     getImagePath,
     isActive,
+    isDragging,
     isFavorite,
     onAssignCategory,
     onClick,
     onDisable,
+    onDragEnd,
+    onDragStart,
     onEnable,
     onSetFavorite,
 }: Props) {
@@ -90,12 +96,16 @@ export default function AddonCard({
     return (
         <div
             key={addon.directoryName}
+            draggable
             className={cn(
                 extensionStylesV2.addonCard,
                 isActive && extensionStylesV2.addonCardSelected,
+                isDragging && extensionStylesV2.addonCardDragging,
                 showLegacyRestriction && extensionStylesV2.addonCardWithLegacyRestriction,
             )}
             onClick={() => onClick(addon)}
+            onDragStart={event => onDragStart(addon, event)}
+            onDragEnd={onDragEnd}
         >
             <div
                 className={cn(
