@@ -83,6 +83,9 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const toggleUserContainer = useCallback(() => {
         setIsUserCardOpen(current => !current)
     }, [])
+    const showSettingsMovedNotice = useCallback(() => {
+        toast.custom('info', t('settingsModal.movedHint'), undefined, { id: 'settings-location-hint' })
+    }, [t])
     const openLogin = useCallback(() => {
         void nav('/auth')
     }, [nav])
@@ -380,7 +383,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                         {/*        <MdSettings size={22} />*/}
                         {/*    </button>*/}
                         {/*</TooltipButton>*/}
-                        <div className={styles.logoplace}>
+                        <button type="button" className={styles.logoplace} onClick={showSettingsMovedNotice}>
                             <span>{title ?? 'PulseSync'}</span>
                             {titleDetail ? (
                                 <>
@@ -389,7 +392,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                                     <span>{titleDetail.label}</span>
                                 </>
                             ) : null}
-                        </div>
+                        </button>
                     </div>
                     <div className={styles.event_container}>
                         {isDevmark && (
