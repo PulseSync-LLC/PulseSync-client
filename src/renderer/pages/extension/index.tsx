@@ -117,6 +117,32 @@ function withDisplayRelease(addon: StoreAddon): StoreAddon {
     }
 }
 
+function findMatchingStoreAddon(addon: Addon | null | undefined, candidates: StoreAddon[]): StoreAddon | null {
+    if (!addon) {
+        return null
+    }
+
+    const linkedAddonId = addon.storeAddonId?.trim()
+    if (linkedAddonId) {
+        const linkedAddon = candidates.find(candidate => candidate.id === linkedAddonId)
+        if (linkedAddon) {
+            return withDisplayRelease(linkedAddon)
+        }
+    }
+
+    const addonName = addon.name.trim().toLowerCase()
+    const addonVersion = addon.version?.trim().toLowerCase()
+    const matches = candidates
+        .filter(candidate => candidate.type === addon.type && candidate.name.trim().toLowerCase() === addonName)
+        .map(withDisplayRelease)
+
+    return (
+        matches.find(candidate => candidate.currentRelease?.version.trim().toLowerCase() === addonVersion) ||
+        matches.sort((a, b) => getStoreAddonReleaseTimestamp(b.currentRelease) - getStoreAddonReleaseTimestamp(a.currentRelease))[0] ||
+        null
+    )
+}
+
 function readEnabledScriptsState(rawValue: unknown): string[] {
     if (typeof rawValue === 'string') {
         return rawValue
@@ -827,19 +853,12 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedAddonAuthors, storePublishingEnabled, user])
 
     const selectedPublication = useMemo(() => {
-        if (!selectedAddon) return null
-
-        const addonName = selectedAddon.name.trim().toLowerCase()
-        const exactVersion = selectedAddon.version?.trim().toLowerCase()
-
-        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName).map(withDisplayRelease)
-        if (!sameName.length) return null
-
-        return (
-            sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
-            sameName.sort((a, b) => getStoreAddonReleaseTimestamp(b.currentRelease) - getStoreAddonReleaseTimestamp(a.currentRelease))[0]
-        )
+        return findMatchingStoreAddon(selectedAddon, storePublications)
     }, [selectedAddon, storePublications])
+
+    const selectedCatalogPublication = useMemo(() => {
+        return findMatchingStoreAddon(selectedAddon, storeCatalog)
+    }, [selectedAddon, storeCatalog])
 
     const selectedStoreUpdate = useMemo(() => {
         if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
@@ -855,16 +874,8 @@ export default function ExtensionPage() {
     }, [selectedAddon, storeCatalog])
 
     const selectedPublishedAddon = useMemo(() => {
-        if (!selectedAddon) {
-            return null
-        }
-
-        if (selectedAddon.installSource === 'store' && selectedAddon.storeAddonId) {
-            return storeCatalog.find(item => item.id === selectedAddon.storeAddonId) ?? null
-        }
-
-        return selectedPublication
-    }, [selectedAddon, selectedPublication, storeCatalog])
+        return selectedPublication ?? selectedCatalogPublication
+    }, [selectedCatalogPublication, selectedPublication])
 
     const visiblePublicationReleases = useMemo(() => {
         if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
@@ -904,7 +915,7 @@ export default function ExtensionPage() {
         }
 
         if (!selectedPublication) {
-            return 'publish'
+            return selectedCatalogPublication ? 'none' : 'publish'
         }
 
         const localVersion = selectedAddon.version?.trim().toLowerCase()
@@ -924,7 +935,7 @@ export default function ExtensionPage() {
         }
 
         return 'none'
-    }, [selectedAddon, selectedAddonIsRestrictedLegacy, selectedPublication])
+    }, [selectedAddon, selectedAddonIsRestrictedLegacy, selectedCatalogPublication, selectedPublication])
 
     const handleSubmitAddon = useCallback(
         async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
@@ -1062,7 +1073,7 @@ export default function ExtensionPage() {
         }
 
         setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
-            publication: selectedPublication ?? null,
+            publication: selectedPublishedAddon ?? null,
             publicationBusy,
             githubUrlText: publicationGithubUrlText,
             onPublish: handlePublishAddon ?? null,
@@ -1075,7 +1086,7 @@ export default function ExtensionPage() {
         isPublicationModalOpen,
         publicationBusy,
         publicationGithubUrlText,
-        selectedPublication,
+        selectedPublishedAddon,
         setModalState,
     ])
 
@@ -1347,7 +1358,7 @@ export default function ExtensionPage() {
                                     onStoreUpdate={() => {
                                         void handleStoreAddonUpdate()
                                     }}
-                                    publication={selectedPublication}
+                                    publication={selectedPublishedAddon}
                                     publicationReleases={visiblePublicationReleases}
                                     publicationChangelogText={publicationChangelogText}
                                     publicationGithubUrlText={publicationGithubUrlText}
