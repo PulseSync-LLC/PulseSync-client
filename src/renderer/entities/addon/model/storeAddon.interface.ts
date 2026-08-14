@@ -26,6 +26,9 @@ export interface StoreAddon {
     name: string
     type: StoreAddonKind
     downloadCount: number
+    ratingAverage: number
+    ratingCount: number
+    myRating?: number | null
     currentRelease?: StoreAddonRelease | null
     releases?: StoreAddonRelease[] | null
     submittedById?: string | null

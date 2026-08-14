@@ -78,6 +78,10 @@
     width: 141px;
 }
 
+.catalogTabs button:nth-of-type(3) {
+    width: 174px;
+}
+
 .catalogTabs :global([class*='_tabIndicator_']) {
     top: 0;
     bottom: 0;
