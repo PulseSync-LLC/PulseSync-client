@@ -2,213 +2,414 @@
 
 .shell {
     @include shimmer.shell;
-}
-
-.grid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 0.47fr));
-    grid-auto-rows: auto;
-    column-gap: 16px;
-    row-gap: 16px;
-    align-items: stretch;
-    justify-content: center;
-    max-width: 1200px;
-    margin: 0 auto;
     width: 100%;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .card {
-    @include shimmer.surface(
-        linear-gradient(
-            180deg,
-            color-mix(in srgb, var(--surface-elevated) 94%, transparent) 0%,
-            color-mix(in srgb, var(--surface-tertiary) 98%, transparent) 100%
-        )
-    );
-    position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    height: 100%;
-    min-height: 238px;
-    align-self: stretch;
-    padding: 52px 14px 14px;
-    gap: 12px;
+    @include shimmer.surface(var(--surface-secondary));
     box-sizing: border-box;
     width: 100%;
-    border-radius: 10px;
-    overflow: hidden;
-    box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
-    outline: 2px solid transparent;
-}
-
-.headerRow {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    right: 14px;
-    display: flex;
+    min-height: 111px;
+    padding: 15px 30px;
+    display: grid;
+    grid-template-columns: 81px minmax(0, 1fr) 145px;
     align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    z-index: 2;
-}
-
-.badges {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    align-items: center;
-    min-width: 0;
-}
-
-.badge {
-    @include shimmer.surface;
-    width: 56px;
-    height: 22px;
+    gap: 15px;
     border-radius: 6px;
-}
-
-.badgeSmall {
-    @include shimmer.surface;
-    width: 46px;
-    height: 22px;
-    border-radius: 6px;
-}
-
-.headerMeta {
-    @include shimmer.text-surface(var(--active));
-    width: 78px;
-    height: 22px;
-    flex: 0 0 auto;
-}
-
-.content {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-    min-width: 0;
-    z-index: 2;
-}
-
-.titleRow {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    min-width: 0;
-}
-
-.title {
-    @include shimmer.text-surface(rgba(239, 242, 255, 0.18));
-    width: 62%;
-    max-width: 240px;
-    height: 22px;
-    flex: 1 1 auto;
-}
-
-.version {
-    @include shimmer.text-surface(var(--active));
-    width: 54px;
-    height: 25px;
-    flex: 0 0 auto;
-}
-
-.main {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    gap: 14px;
-    min-width: 0;
 }
 
 .icon {
     @include shimmer.surface;
-    width: 72px;
-    height: 72px;
-    border-radius: 14px;
-    flex: 0 0 auto;
-    outline: 3px solid var(--hover);
-    box-shadow: 0 12px 25px color-mix(in srgb, var(--surface-primary) 45%, transparent);
+    width: 81px;
+    height: 81px;
+    border-radius: 12px;
 }
 
-.text {
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
+.copy {
     min-width: 0;
-    flex: 1 1 auto;
-}
-
-.subtitle {
     display: flex;
     flex-direction: column;
-    gap: 6px;
+    gap: 7px;
 }
 
+.titleRow,
 .meta {
     display: flex;
     align-items: center;
-    flex-wrap: wrap;
-    gap: 6px;
-    min-width: 0;
+    gap: 5px;
 }
 
-.authorsLabel {
-    @include shimmer.text-surface(rgba(176, 185, 216, 0.18));
-    width: 52px;
-    height: 10px;
-    flex: 0 0 auto;
+.title {
+    @include shimmer.text-surface;
+    width: min(44%, 220px);
+    height: 18px;
 }
 
-.authorsValue {
-    width: min(100%, 130px);
+.version {
+    @include shimmer.surface;
+    width: 58px;
+    height: 24px;
+    border-radius: 20px;
 }
 
-.downloads {
-    @include shimmer.text-surface(color-mix(in srgb, var(--text-primary) 16%, transparent));
-    width: 116px;
-    height: 11px;
-    margin-top: 2px;
+.description {
+    @include shimmer.text-surface;
+    width: min(76%, 520px);
+    height: 12px;
+}
+
+.meta > div {
+    @include shimmer.surface;
+    width: 66px;
+    height: 24px;
+    border-radius: 6px;
 }
 
 .button {
     @include shimmer.surface;
-    align-self: end;
-    flex: 0 0 154px;
-    min-width: 154px;
+    width: 145px;
     height: 52px;
-    border-radius: 10px;
-    z-index: 2;
-    margin-bottom: 10px;
+    border-radius: 6px;
 }
 
-@media (max-width: 640px) {
+.catalogShell {
+    @include shimmer.shell;
+    width: 100%;
+    gap: 0;
+}
+
+.heroTopline {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.heroIdentity {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.heroAvatar,
+.heroBadge,
+.heroBadgeSmall,
+.heroAction,
+.heroMedia,
+.heroPills > div,
+.heroLink,
+.pager > div,
+.sectionActions > div,
+.posterCard,
+.posterBanner,
+.posterIcon,
+.posterButton,
+.posterMeta > div {
+    @include shimmer.surface;
+}
+
+.heroAvatar {
+    width: 30px;
+    height: 30px;
+    flex: 0 0 auto;
+    border-radius: 6px;
+}
+
+.heroTitle,
+.heroDescription > div,
+.heroGroupTitle,
+.sectionTitle,
+.sectionTitleWide,
+.posterTitle,
+.posterDescription {
+    @include shimmer.text-surface;
+}
+
+.heroTitle {
+    width: 135px;
+    height: 22px;
+}
+
+.heroBadge {
+    width: 62px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.heroBadgeSmall {
+    width: 48px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.heroAction {
+    width: 115px;
+    height: 30px;
+    flex: 0 0 115px;
+    border-radius: 6px;
+}
+
+.heroBody {
+    min-height: 378px;
+    margin-top: 15px;
+    display: grid;
+    grid-template-columns: minmax(300px, 432px) minmax(0, 1fr);
+    gap: 15px;
+}
+
+.heroCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+}
+
+.heroDescription {
+    width: 100%;
+    min-height: 32px;
+    margin-bottom: 15px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.heroDescription > div {
+    width: 94%;
+    height: 10px;
+}
+
+.heroDescription > div:last-child {
+    width: 72%;
+}
+
+.heroGroup {
+    width: 100%;
+    min-height: 75px;
+    margin-bottom: 15px;
+}
+
+.heroGroupTitle {
+    width: 62px;
+    height: 12px;
+    margin-bottom: 7px;
+}
+
+.heroPills {
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.heroPills > div {
+    width: 72px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.heroPills > div:nth-child(2) {
+    width: 88px;
+}
+
+.heroPills > div:nth-child(3) {
+    width: 56px;
+}
+
+.heroLink {
+    width: 180px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+.heroMedia {
+    min-width: 0;
+    height: 378px;
+    border-radius: 10px;
+    background: var(--surface-secondary);
+}
+
+.pager {
+    height: 30px;
+    margin: 15px 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.pager > div {
+    width: 15px;
+    height: 30px;
+    border-radius: 6px;
+}
+
+.pager > .pagerArrow,
+.pager > .pagerActive {
+    width: 30px;
+}
+
+.catalogSection {
+    width: 100%;
+    margin-top: 15px;
+}
+
+.sectionHeader {
+    min-height: 30px;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 16px;
+}
+
+.sectionTitle {
+    width: 165px;
+    height: 22px;
+}
+
+.sectionTitleWide {
+    width: 235px;
+    height: 22px;
+}
+
+.sectionActions {
+    display: flex;
+    gap: 5px;
+}
+
+.sectionActions > div {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+}
+
+.posterRail {
+    width: calc(100% + 25px);
+    display: flex;
+    gap: 10px;
+    overflow: hidden;
+    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
+    mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
+}
+
+.posterCard {
+    box-sizing: border-box;
+    width: min(460px, calc(100vw - 48px));
+    min-width: min(460px, calc(100vw - 48px));
+    height: 402px;
+    padding: 5px;
+    border-radius: 6px;
+    background: var(--surface-secondary);
+}
+
+.posterVisual {
+    position: relative;
+    height: 227px;
+}
+
+.posterBanner {
+    width: 100%;
+    height: 171px;
+    border-radius: 6px;
+}
+
+.posterIcon {
+    position: absolute;
+    left: 25px;
+    bottom: 0;
+    width: 100px;
+    height: 100px;
+    border-radius: 12px;
+}
+
+.posterButton {
+    position: absolute;
+    left: 141px;
+    bottom: 0;
+    width: 123px;
+    height: 40px;
+    border-radius: 6px;
+}
+
+.posterCopy {
+    padding: 15px 25px 10px;
+}
+
+.posterTitle {
+    width: 190px;
+    height: 28px;
+}
+
+.posterDescription {
+    width: 88%;
+    height: 12px;
+    margin-top: 8px;
+}
+
+.posterMeta {
+    height: 53px;
+    margin-top: 13px;
+    display: flex;
+    flex-wrap: wrap;
+    align-content: flex-start;
+    gap: 5px;
+}
+
+.posterMeta > div {
+    width: 66px;
+    height: 24px;
+    border-radius: 6px;
+}
+
+@media (max-width: 760px) {
     .card {
-        grid-template-columns: minmax(0, 1fr);
-        padding: 48px 12px 12px;
-        max-width: 100%;
+        min-height: 126px;
+        padding: 14px;
+        grid-template-columns: 60px minmax(0, 1fr);
+    }
+
+    .icon {
+        width: 60px;
+        height: 60px;
     }
 
     .button {
-        justify-self: stretch;
-        flex-basis: 140px;
-        min-width: 140px;
-        height: 48px;
-        margin-bottom: 0;
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 40px;
     }
 
-    .headerRow {
-        top: 12px;
-        left: 12px;
-        right: 12px;
+    .heroTopline {
+        align-items: flex-start;
+        flex-direction: column;
     }
 
-    .title {
-        width: 74%;
+    .heroIdentity {
+        flex-wrap: wrap;
     }
 
-    .version {
-        width: 50px;
+    .heroAction {
+        width: 100%;
+    }
+
+    .heroBody {
+        grid-template-columns: minmax(0, 1fr);
+    }
+
+    .heroCopy {
+        order: 2;
+    }
+
+    .heroMedia {
+        order: 1;
+        height: 220px;
+    }
+
+    .posterRail {
+        width: 100%;
     }
 }

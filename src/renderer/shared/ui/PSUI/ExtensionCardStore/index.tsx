@@ -1,8 +1,21 @@
 import React, { useEffect, useRef, useState } from 'react'
 import cn from 'clsx'
-import { MdDeleteForever, MdVerifiedUser } from 'react-icons/md'
+import {
+    MdCheck,
+    MdDataArray,
+    MdDeleteForever,
+    MdDownload,
+    MdLabel,
+    MdLanguage,
+    MdLightMode,
+    MdSchedule,
+    MdStar,
+    MdVerifiedUser,
+} from 'react-icons/md'
+import { Badge } from '@pulsesync/uikit/data-display'
 import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 import { t } from '@app/i18n'
+import { staticAsset } from '@shared/lib/staticAssets'
 import TooltipButton from '@shared/ui/tooltip_button'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
@@ -11,11 +24,13 @@ type ExtensionStatus = 'accepted' | 'active' | 'deprecated' | 'pending' | 'rejec
 type ExtensionType = 'css' | 'js' | 'both'
 type DownloadVariant = 'default' | 'installed' | 'remove'
 type AddonKind = 'theme' | 'script' | 'web-addon'
+type StoreCardVariant = 'poster' | 'list'
+
+const fallbackPosterBanner = staticAsset('assets/images/no_themeBackground.png')
 
 export interface ExtensionCardStoreProps {
     title: string
     subtitle: string
-    version: string
     authors: string[]
     downloads?: string
     topRightMeta?: string
@@ -32,146 +47,22 @@ export interface ExtensionCardStoreProps {
     usesOfficialTemplate?: boolean
     onDownloadClick?: () => void
     onAuthorClick?: (author: string) => void
+    onClick?: () => void
     downloadLabel?: string
     downloadDisabled?: boolean
     downloadInstalled?: boolean
     downloadVariant?: DownloadVariant
     isPreInstalled?: boolean
     animationsEnabledRef?: React.MutableRefObject<boolean>
+    variant?: StoreCardVariant
 }
-
-const DownloadIcon = () => (
-    <svg className={st.download_icon} width={20} height={20} viewBox="0 0 16 16" aria-hidden="true">
-        <path
-            d="M8 1.5C8.41421 1.5 8.75 1.83579 8.75 2.25V8.378L10.9586 6.16935C11.2515 5.87645 11.7263 5.87645 12.0192 6.16935C12.3121 6.46225 12.3121 6.93712 12.0192 7.23L8.53033 10.7189C8.23744 11.0118 7.76256 11.0118 7.46967 10.7189L3.98076 7.23C3.68787 6.93712 3.68787 6.46225 3.98076 6.16935C4.27365 5.87645 4.74853 5.87645 5.04142 6.16935L7.25 8.378V2.25C7.25 1.83579 7.58579 1.5 8 1.5Z"
-            fill="currentColor"
-        />
-        <path
-            d="M3 11.75C2.58579 11.75 2.25 12.0858 2.25 12.5C2.25 12.9142 2.58579 13.25 3 13.25H13C13.4142 13.25 13.75 12.9142 13.75 12.5C13.75 12.0858 13.4142 11.75 13 11.75H3Z"
-            fill="currentColor"
-        />
-    </svg>
-)
-
-const InstalledIcon = () => (
-    <svg className={st.download_icon} width={20} height={20} viewBox="0 0 16 16" aria-hidden="true">
-        <path
-            d="M12.7803 4.21967C13.0732 4.51256 13.0732 4.98744 12.7803 5.28033L7.28033 10.7803C6.98744 11.0732 6.51256 11.0732 6.21967 10.7803L3.21967 7.78033C2.92678 7.48744 2.92678 7.01256 3.21967 6.71967C3.51256 6.42678 3.98744 6.42678 4.28033 6.71967L6.75 9.18934L11.7197 4.21967C12.0126 3.92678 12.4874 3.92678 12.7803 4.21967Z"
-            fill="currentColor"
-        />
-    </svg>
-)
-
-const CompactDownloadIcon = () => (
-    <svg className={st.header_meta_icon} width={14} height={14} viewBox="0 0 16 16" aria-hidden="true">
-        <path
-            d="M8 1.5C8.41421 1.5 8.75 1.83579 8.75 2.25V8.378L10.9586 6.16935C11.2515 5.87645 11.7263 5.87645 12.0192 6.16935C12.3121 6.46225 12.3121 6.93712 12.0192 7.23L8.53033 10.7189C8.23744 11.0118 7.76256 11.0118 7.46967 10.7189L3.98076 7.23C3.68787 6.93712 3.68787 6.46225 3.98076 6.16935C4.27365 5.87645 4.74853 5.87645 5.04142 6.16935L7.25 8.378V2.25C7.25 1.83579 7.58579 1.5 8 1.5Z"
-            fill="currentColor"
-        />
-        <path
-            d="M3 11.75C2.58579 11.75 2.25 12.0858 2.25 12.5C2.25 12.9142 2.58579 13.25 3 13.25H13C13.4142 13.25 13.75 12.9142 13.75 12.5C13.75 12.0858 13.4142 11.75 13 11.75H3Z"
-            fill="currentColor"
-        />
-    </svg>
-)
-
-const KindBadge: React.FC<{ kind: AddonKind }> = ({ kind }) => {
-    const text = t(`store.kind.${kind}`)
-    const className = kind === 'theme' ? st.badge_theme : st.badge_script
-    return <div className={[st.card_badge, className].join(' ')}>{text}</div>
-}
-
-const ReleaseStatusBadge: React.FC<{ status: ExtensionStatus }> = ({ status }) => {
-    const text = t(`store.status.${status}`)
-    const className =
-        status === 'pending'
-            ? st.badge_pending
-            : status === 'rejected'
-              ? st.badge_rejected
-              : status === 'deprecated'
-                ? st.badge_deprecated
-                : st.badge_active
-
-    return <div className={[st.card_badge, className].join(' ')}>{text}</div>
-}
-
-const TypeBadge: React.FC<{ type: ExtensionType }> = ({ type }) => {
-    let text = ''
-    let typeClass = ''
-    switch (type) {
-        case 'css':
-            text = t('store.type.css')
-            typeClass = st.badge_css
-            break
-        case 'js':
-            text = t('store.type.js')
-            typeClass = st.badge_js
-            break
-        case 'both':
-            text = t('store.type.both')
-            typeClass = st.badge_both
-            break
-        default:
-            return null
-    }
-    return <div className={[st.card_badge, typeClass].join(' ')}>{text}</div>
-}
-
-const normalizeTagKey = (tag: string) => tag.trim().toLowerCase().replace(/[-_]+/g, ' ')
-
-const isWarningTag = (tag: string) => {
-    const normalized = normalizeTagKey(tag)
-    return normalized === 'low quality' || normalized === 'unstable'
-}
-
-const StoreTagBadges: React.FC<{ tags: string[] }> = ({ tags }) => {
-    const normalizedTags = Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).sort((left, right) => {
-        const leftWarning = isWarningTag(left)
-        const rightWarning = isWarningTag(right)
-        if (leftWarning === rightWarning) return 0
-        return leftWarning ? -1 : 1
-    })
-    const visibleTags = normalizedTags.slice(0, 3)
-    const hiddenCount = Math.max(0, normalizedTags.length - visibleTags.length)
-
-    return (
-        <>
-            {visibleTags.map(tag => (
-                <div key={tag} className={cn(st.card_badge, st.badge_tag, isWarningTag(tag) && st.badge_warningTag)}>
-                    {tag}
-                </div>
-            ))}
-            {hiddenCount > 0 ? <div className={cn(st.card_badge, st.badge_tag)}>+{hiddenCount}</div> : null}
-        </>
-    )
-}
-
-const TrustBadges: React.FC<{ usedAiDuringDevelopment?: boolean }> = ({ usedAiDuringDevelopment }) => (
-    <>
-        {usedAiDuringDevelopment ? (
-            <TooltipButton as="span" className={st.aiTooltipTrigger} tooltipText={t('store.badges.aiUsageTooltip')} side="bottom">
-                <span className={cn(st.card_badge, st.badge_aiUsage)}>{t('store.badges.aiUsage')}</span>
-            </TooltipButton>
-        ) : null}
-    </>
-)
-
-const ExtensionIcon: React.FC<{ imageSrc?: string }> = ({ imageSrc }) => (
-    <div className={st.card_icon}>
-        {imageSrc ? <img src={imageSrc} alt="Icon" className={st.card_icon_image} /> : <div className={st.card_icon_placeholder} />}
-    </div>
-)
 
 type VisibilityState = {
     isIntersecting: boolean
     shouldAnimate: boolean
 }
 
-const useIntersectionObserver = (
-    ref: React.RefObject<HTMLElement | null>,
-    animationsEnabledRef?: React.MutableRefObject<boolean>,
-    options?: IntersectionObserverInit,
-) => {
+const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, animationsEnabledRef?: React.MutableRefObject<boolean>) => {
     const [visibilityState, setVisibilityState] = useState<VisibilityState>({
         isIntersecting: false,
         shouldAnimate: animationsEnabledRef?.current ?? true,
@@ -179,165 +70,197 @@ const useIntersectionObserver = (
 
     useEffect(() => {
         if (!ref.current) return
+        if (typeof IntersectionObserver === 'undefined') {
+            setVisibilityState({ isIntersecting: true, shouldAnimate: false })
+            return
+        }
 
         const observer = new IntersectionObserver(
             ([entry]) => {
-                setVisibilityState(prevState => {
-                    if (entry.isIntersecting) {
-                        const nextState = {
-                            isIntersecting: true,
-                            shouldAnimate: animationsEnabledRef?.current ?? true,
-                        }
+                if (!entry.isIntersecting) {
+                    setVisibilityState(current => (current.isIntersecting ? { ...current, isIntersecting: false } : current))
+                    return
+                }
 
-                        if (prevState.isIntersecting === nextState.isIntersecting && prevState.shouldAnimate === nextState.shouldAnimate) {
-                            return prevState
-                        }
-
-                        return nextState
-                    }
-
-                    if (!prevState.isIntersecting) return prevState
-
-                    return {
-                        ...prevState,
-                        isIntersecting: false,
-                    }
+                setVisibilityState({
+                    isIntersecting: true,
+                    shouldAnimate: animationsEnabledRef?.current ?? true,
                 })
             },
-            {
-                ...options,
-                rootMargin: '50%',
-            },
+            { threshold: 0.05, rootMargin: '50%' },
         )
 
         observer.observe(ref.current)
         return () => observer.disconnect()
-    }, [animationsEnabledRef, ref, options])
+    }, [animationsEnabledRef, ref])
 
     return visibilityState
+}
+
+const getKindLabel = (kind?: AddonKind) => (kind ? t(`store.kind.${kind}`) : '')
+const getKindIcon = (kind: AddonKind) => (kind === 'theme' ? <MdLightMode /> : kind === 'script' ? <MdDataArray /> : <MdLanguage />)
+const getKindVariant = (kind: AddonKind): 'success' | 'warning' | 'info' => (kind === 'theme' ? 'info' : kind === 'script' ? 'warning' : 'success')
+const getKindToneClass = (kind: AddonKind) => (kind === 'theme' ? st.toneInfo : kind === 'script' ? st.toneWarning : st.toneSuccess)
+
+const getStatusVariant = (status: ExtensionStatus): 'success' | 'danger' | 'warning' | 'info' | 'neutral' => {
+    if (status === 'pending') return 'warning'
+    if (status === 'rejected' || status === 'deprecated') return 'danger'
+    return 'success'
 }
 
 const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     title,
     subtitle,
-    version,
     authors,
     downloads,
     topRightMeta,
-    theme = 'purple',
-    size = 'default',
     iconImage,
     backgroundImage,
     className,
     status,
-    type,
     kind,
     tags = [],
     usedAiDuringDevelopment = false,
     usesOfficialTemplate = false,
     onAuthorClick,
+    onClick,
     onDownloadClick,
     downloadLabel,
     downloadDisabled = false,
     downloadInstalled = false,
     downloadVariant = 'default',
     animationsEnabledRef,
+    variant = 'list',
 }) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, { threshold: 0.1 })
-    const themeClass = theme === 'red' ? st.card_theme_red : theme === 'wave' ? st.card_theme_wave : st.card_theme_purple
-    const sizeClass = size === 'large' ? st.card_large : ''
-    const hasTopBadges = tags.length > 0 || usedAiDuringDevelopment
-    const rootClassName = [
-        st.card,
-        backgroundImage ? st.card_with_image_bg : themeClass,
-        hasTopBadges ? st.card_with_tags : '',
-        sizeClass,
-        className ? className : '',
-    ]
-        .filter(Boolean)
-        .join(' ')
-
-    const backgroundStyle = backgroundImage ? { backgroundImage: `url(${backgroundImage})` } : {}
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef)
+    const visibleTags = Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).slice(0, variant === 'poster' ? 2 : 1)
 
     return (
-        <div ref={containerRef} className={st.card_mount} aria-hidden={!visibilityState.isIntersecting}>
+        <div ref={containerRef} className={cn(st.cardMount, variant === 'poster' ? st.cardMountPoster : st.cardMountList)}>
             {visibilityState.isIntersecting ? (
-                <article className={cn(rootClassName, !visibilityState.shouldAnimate && st.softFadeIn)} style={backgroundStyle}>
-                    {backgroundImage && <div className={st.card_overlay} />}
-
-                    <div className={st.card_header_row}>
-                        <div className={st.card_header_badges}>
-                            {status && <ReleaseStatusBadge status={status} />}
-                            {kind && <KindBadge kind={kind} />}
-                            {type && <TypeBadge type={type} />}
-                            <TrustBadges usedAiDuringDevelopment={usedAiDuringDevelopment} />
-                            {tags.length > 0 && <StoreTagBadges tags={tags} />}
+                <article
+                    className={cn(
+                        st.card,
+                        variant === 'poster' ? st.posterCard : st.listCard,
+                        !visibilityState.shouldAnimate && st.softFadeIn,
+                        onClick && st.cardClickable,
+                        className,
+                    )}
+                    onClick={event => {
+                        if (!onClick) return
+                        if (event.target instanceof Element && event.target.closest('button, a')) return
+                        onClick()
+                    }}
+                    onKeyDown={event => {
+                        if (!onClick || event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return
+                        event.preventDefault()
+                        onClick()
+                    }}
+                    role={onClick ? 'button' : undefined}
+                    tabIndex={onClick ? 0 : undefined}
+                    aria-label={onClick ? title : undefined}
+                >
+                    {variant === 'poster' ? (
+                        <div className={st.posterMedia}>
+                            <img
+                                src={backgroundImage || fallbackPosterBanner}
+                                alt=""
+                                className={st.posterBanner}
+                                onError={event => {
+                                    event.currentTarget.onerror = null
+                                    event.currentTarget.src = fallbackPosterBanner
+                                }}
+                            />
+                            {iconImage ? <img src={iconImage} alt="" className={st.posterIcon} /> : <span className={st.posterIconFallback} />}
+                            <button
+                                type="button"
+                                className={cn(st.posterAction, downloadVariant === 'remove' && st.removeAction)}
+                                onClick={onDownloadClick}
+                                disabled={downloadDisabled}
+                            >
+                                {downloadVariant === 'remove' ? <MdDeleteForever /> : downloadInstalled ? <MdCheck /> : <MdDownload />}
+                                {downloadLabel || t('store.download')}
+                            </button>
                         </div>
-                        {topRightMeta ? (
-                            <div className={st.card_header_meta}>
-                                <CompactDownloadIcon />
-                                <span>{topRightMeta}</span>
-                            </div>
-                        ) : null}
-                    </div>
+                    ) : iconImage ? (
+                        <img src={iconImage} alt="" className={st.listIcon} />
+                    ) : (
+                        <span className={st.listIconFallback} />
+                    )}
 
-                    <div className={st.card_content}>
-                        <div className={st.card_title_row}>
-                            <h3 className={st.card_title}>{title}</h3>
-                            {usesOfficialTemplate ? (
-                                <MdVerifiedUser className={st.card_title_verified} aria-label={t('store.badges.officialTemplate')} />
+                    <div className={st.cardCopy}>
+                        <div className={st.titleRow}>
+                            <h3>{title}</h3>
+                            {usesOfficialTemplate ? <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} /> : null}
+                        </div>
+                        <p>{subtitle}</p>
+                        <div className={st.metaRow}>
+                            {status ? (
+                                <Badge uppercase={false} size="md" variant={getStatusVariant(status)} className={st.metaBadge}>
+                                    {t(`store.status.${status}`)}
+                                </Badge>
                             ) : null}
-                            <span className={st.card_title_version}>{version}</span>
-                        </div>
-
-                        <div className={st.card_main}>
-                            <div className={st.card_icon_wrapper}>
-                                <ExtensionIcon imageSrc={iconImage} />
-                            </div>
-
-                            <div className={st.card_text}>
-                                <p className={st.card_subtitle}>{subtitle}</p>
-
-                                <div className={st.card_meta}>
-                                    <span className={st.card_authors}>
-                                        <span className={st.card_authors_label}>Авторы:</span>
-                                        {authors.map(author => (
-                                            <span key={author} className={st.card_author_item}>
-                                                <button type="button" className={st.card_author_link} onClick={() => onAuthorClick?.(author)}>
-                                                    {author}
-                                                </button>
-                                            </span>
-                                        ))}
-                                    </span>
-                                </div>
-
-                                {downloads ? <div className={st.card_downloads}>{downloads}</div> : null}
-                            </div>
+                            {kind ? (
+                                <Badge
+                                    uppercase={false}
+                                    size="md"
+                                    variant={getKindVariant(kind)}
+                                    icon={getKindIcon(kind)}
+                                    className={cn(st.metaBadge, getKindToneClass(kind))}
+                                >
+                                    {getKindLabel(kind)}
+                                </Badge>
+                            ) : null}
+                            {visibleTags.map(tag => (
+                                <Badge key={tag} uppercase={false} size="md" icon={<MdLabel />} className={cn(st.metaBadge, st.neutralBadge)}>
+                                    {tag}
+                                </Badge>
+                            ))}
+                            {authors.map((author, index) => (
+                                <button key={`${author}:${index}`} type="button" className={st.authorButton} onClick={() => onAuthorClick?.(author)}>
+                                    <Badge
+                                        uppercase={false}
+                                        size="md"
+                                        variant="info"
+                                        className={cn(st.authorBadge, index === 0 ? st.toneInfo : st.neutralBadge)}
+                                    >
+                                        <span aria-hidden="true" />
+                                        {author}
+                                    </Badge>
+                                </button>
+                            ))}
+                            {topRightMeta ? (
+                                <Badge uppercase={false} size="md" icon={<MdDownload />} className={cn(st.metaBadge, st.neutralBadge)}>
+                                    {topRightMeta}
+                                </Badge>
+                            ) : null}
+                            {downloads ? (
+                                <Badge uppercase={false} size="md" icon={<MdSchedule />} className={cn(st.metaBadge, st.neutralBadge)}>
+                                    {downloads}
+                                </Badge>
+                            ) : null}
+                            {usedAiDuringDevelopment ? (
+                                <TooltipButton as="span" className={st.aiTooltip} tooltipText={t('store.badges.aiUsageTooltip')} side="bottom">
+                                    <Badge uppercase={false} size="md" variant="warning" icon={<MdStar />} className={st.metaBadge}>
+                                        {t('store.badges.aiUsage')}
+                                    </Badge>
+                                </TooltipButton>
+                            ) : null}
                         </div>
                     </div>
 
-                    <button
-                        type="button"
-                        className={cn(
-                            st.download_button,
-                            downloadInstalled && st.download_button_installed,
-                            downloadVariant === 'remove' && st.download_button_remove,
-                        )}
-                        onClick={onDownloadClick}
-                        disabled={downloadDisabled}
-                    >
-                        <span className={st.download_content}>
-                            {downloadVariant === 'remove' ? (
-                                <MdDeleteForever className={st.download_icon} size={20} />
-                            ) : downloadInstalled ? (
-                                <InstalledIcon />
-                            ) : (
-                                <DownloadIcon />
-                            )}
-                            <span className={st.download_count}>{downloadLabel || t('store.download')}</span>
-                        </span>
-                    </button>
+                    {variant === 'list' ? (
+                        <button
+                            type="button"
+                            className={cn(st.listAction, downloadVariant === 'remove' && st.removeAction)}
+                            onClick={onDownloadClick}
+                            disabled={downloadDisabled}
+                        >
+                            {downloadVariant === 'remove' ? <MdDeleteForever /> : downloadInstalled ? <MdCheck /> : <MdDownload />}
+                            {downloadLabel || t('store.download')}
+                        </button>
+                    ) : null}
                 </article>
             ) : null}
         </div>
