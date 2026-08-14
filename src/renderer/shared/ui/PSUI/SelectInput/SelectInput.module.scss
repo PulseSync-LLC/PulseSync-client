@@ -10,12 +10,23 @@
     gap: 6px;
     padding: 10px 16px;
     width: -webkit-fill-available;
-    background: var(--border);
+    border: 1px solid var(--border);
+    background: var(--surface-secondary);
     border-radius: 8px;
-    outline: transparent solid 2px;
-    transition: var(--transition);
+    outline: none;
+    transition:
+        background-color var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+
     &:hover {
-        outline: var(--text-secondary) solid 2px;
+        border-color: var(--border-hover);
+        background: var(--surface-tertiary);
+    }
+
+    &:focus-visible {
+        border-color: var(--accent-muted);
+        box-shadow: 0 0 0 2px var(--focus-ring);
     }
 }
 
@@ -27,7 +38,7 @@
     font-weight: 400;
     font-size: 12px;
     line-height: 140%;
-    color: #ffffff;
+    color: var(--text-primary);
     display: flex;
     gap: 5px;
     align-items: center;
@@ -36,7 +47,7 @@
 .value {
     font-weight: 500;
     font-size: 18px;
-    color: var(--text-secondary);
+    color: var(--text-primary);
     transition: var(--transition);
 }
 .placeholder {
@@ -59,7 +70,7 @@
     z-index: 10000;
     display: flex;
     flex-direction: column;
-    background: var(--border);
+    background: var(--surface-elevated);
     border: 1px solid var(--border-hover);
     border-radius: 12px;
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
@@ -117,7 +128,7 @@
 
     &:hover,
     &.hover {
-        background: var(--border);
+        background: var(--surface-tertiary);
         border-color: var(--border-hover);
     }
 }
@@ -129,9 +140,9 @@
 }
 
 .active {
-    background: var(--border);
-    border-color: var(--text-secondary);
-    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-secondary) 15%, transparent);
+    background: var(--surface-tertiary);
+    border-color: var(--accent-muted);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-muted) 24%, transparent);
 }
 
 .valueLine {
