@@ -53,6 +53,8 @@ type AddonRatingSummary = {
     myRating: number | null
 }
 
+const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
+
 function formatAge(value: string, locale: string): string {
     const timestamp = new Date(value).getTime()
     if (Number.isNaN(timestamp)) return value
@@ -304,10 +306,23 @@ export default function StorePage() {
 
     const featuredAddons = popularAddons.slice(0, 5)
     const featuredAddon = featuredAddons[featuredIndex] ?? featuredAddons[0] ?? null
+    const featuredLeftColor = featuredAddon?.currentRelease?.bannerLeftColor?.trim() || ''
+    const featuredRightColor = featuredAddon?.currentRelease?.bannerRightColor?.trim() || ''
     const shouldRenderCards = visibleAddons.length > 0
     const hasSearchOrFilter = Boolean(debouncedSearchQuery)
     const activeLoading = catalogTab === 'main' ? loading : ownAddonsLoading
     const shouldShowPendingSection = catalogTab === 'main' && isDeveloperUser && (pendingAddons.length > 0 || Boolean(debouncedSearchQuery))
+
+    useEffect(() => {
+        const container = scrollContainerRef.current
+        if (!container) return
+
+        if (featuredLeftColor) container.style.setProperty('--catalog-edge-left', featuredLeftColor)
+        else container.style.removeProperty('--catalog-edge-left')
+
+        if (featuredRightColor) container.style.setProperty('--catalog-edge-right', featuredRightColor)
+        else container.style.removeProperty('--catalog-edge-right')
+    }, [featuredLeftColor, featuredRightColor])
 
     useEffect(() => {
         setFeaturedIndex(current => (featuredAddons.length ? Math.min(current, featuredAddons.length - 1) : 0))
@@ -482,7 +497,8 @@ export default function StorePage() {
         const installedAddon = installedStoreAddons.get(addon.id)
         const isInstalled = Boolean(installedAddon)
         const hasDownloadUrl = Boolean(release.downloadUrl?.trim())
-        const image = release.bannerUrl || undefined
+        const hasBanner = Boolean(release.bannerUrl?.trim())
+        const image = hasBanner ? release.bannerUrl! : fallbackBanner
         const releaseTags = release.tags || []
         const kindBadgeIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
         const kindBadgeVariant = addon.type === 'theme' ? 'info' : addon.type === 'script' ? 'warning' : 'success'
@@ -583,7 +599,18 @@ export default function StorePage() {
                             </div>
                         ) : null}
                     </div>
-                    <div className={st.featuredMedia}>{image ? <img src={image} alt="" /> : null}</div>
+                    <div className={st.featuredMedia}>
+                        <img
+                            src={image}
+                            alt=""
+                            className={cn(!hasBanner && st.featuredMediaFallback)}
+                            onError={event => {
+                                event.currentTarget.onerror = null
+                                event.currentTarget.src = fallbackBanner
+                                event.currentTarget.classList.add(st.featuredMediaFallback)
+                            }}
+                        />
+                    </div>
                 </div>
             </section>
         )

@@ -24,8 +24,11 @@ export default gql`
                 usesOfficialTemplate
                 avatarUrl
                 bannerUrl
+                bannerLeftColor
+                bannerRightColor
                 downloadUrl
                 approvedAt
+                assetsPurgedAt
                 status
                 moderationNote
                 createdAt
