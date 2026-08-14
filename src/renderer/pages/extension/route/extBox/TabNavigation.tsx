@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+import cn from 'clsx'
 import { MdFactCheck } from 'react-icons/md'
 import { ActiveTab, DESCRIPTION_TAB, DocTab, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
@@ -31,7 +32,9 @@ const TabNavigation: React.FC<Props> = ({
 }) => {
     const { t } = useTranslation()
     const rootRef = useRef<HTMLDivElement>(null)
+    const resizeAnimationFrameRef = useRef<number | null>(null)
     const [indicator, setIndicator] = useState({ left: 0, width: 0 })
+    const [indicatorResizing, setIndicatorResizing] = useState(false)
     const bookIcon = staticAsset('assets/icons/ui/tab-book.svg')
     const metadataIcon = staticAsset('assets/icons/ui/tab-metadata.svg')
     const settingsIcon = staticAsset('assets/icons/ui/tab-settings.svg')
@@ -43,7 +46,7 @@ const TabNavigation: React.FC<Props> = ({
     const tabs: TabItem[] = [
         { title: t('extensions.tabs.description'), value: DESCRIPTION_TAB, icon: <img src={bookIcon} alt="" /> },
         { title: t('extensions.tabs.settings'), value: 'Settings', icon: <img src={settingsIcon} alt="" /> },
-        { title: licenseTitle, value: LICENSE_TAB, icon: <img src={bookIcon} alt="" /> },
+        ...(licenseDoc ? [{ title: licenseTitle, value: LICENSE_TAB, icon: <img src={bookIcon} alt="" /> }] : []),
         ...(changelogDoc
             ? [{ title: changelogDoc.title, value: changelogDoc.value || changelogDoc.title, icon: <img src={bookIcon} alt="" /> }]
             : hasPublicationChangelog
@@ -71,12 +74,25 @@ const TabNavigation: React.FC<Props> = ({
         const list = rootRef.current?.querySelector<HTMLElement>('[role="tablist"]')
         if (!list) return
 
-        const observer = new ResizeObserver(updateIndicator)
+        const observer = new ResizeObserver(() => {
+            setIndicatorResizing(true)
+            updateIndicator()
+
+            if (resizeAnimationFrameRef.current !== null) cancelAnimationFrame(resizeAnimationFrameRef.current)
+            resizeAnimationFrameRef.current = requestAnimationFrame(() => {
+                resizeAnimationFrameRef.current = requestAnimationFrame(() => {
+                    resizeAnimationFrameRef.current = null
+                    setIndicatorResizing(false)
+                })
+            })
+        })
         observer.observe(list)
         list.addEventListener('scroll', updateIndicator, { passive: true })
         return () => {
             observer.disconnect()
             list.removeEventListener('scroll', updateIndicator)
+            if (resizeAnimationFrameRef.current !== null) cancelAnimationFrame(resizeAnimationFrameRef.current)
+            resizeAnimationFrameRef.current = null
         }
     }, [updateIndicator])
 
@@ -85,7 +101,7 @@ const TabNavigation: React.FC<Props> = ({
             <Tabs value={active} onChange={value => onChange(value as ActiveTab)} className={s.tabs}>
                 <TabList className={s.list}>
                     <span
-                        className={s.indicator}
+                        className={cn(s.indicator, indicatorResizing && s.indicatorResizing)}
                         style={{ width: indicator.width, transform: `translateX(${indicator.left}px)`, opacity: indicator.width > 0 ? 1 : 0 }}
                     />
                     {tabs.map(tab => (
