@@ -64,16 +64,20 @@ const ChangesBar: React.FC<Props> = ({ open, text, onReset, onSave, saving: savi
         >
             <div className={css.changesText}>{displayText}</div>
 
-            {onReset && (
-                <button className={css.linkBtn} type="button" onClick={onReset} disabled={saving}>
-                    {t('common.reset')}
-                </button>
-            )}
+            {(onReset || onSave) && (
+                <div className={css.actions}>
+                    {onReset && (
+                        <button className={css.linkBtn} type="button" onClick={onReset} disabled={saving}>
+                            {t('common.reset')}
+                        </button>
+                    )}
 
-            {onSave && (
-                <button className={css.saveBtn} type="button" onClick={doSave} disabled={saving || disabledSave}>
-                    {saving ? t('changes.saving') : t('changes.saveChanges')}
-                </button>
+                    {onSave && (
+                        <button className={css.saveBtn} type="button" onClick={doSave} disabled={saving || disabledSave}>
+                            {saving ? t('changes.saving') : t('changes.saveChanges')}
+                        </button>
+                    )}
+                </div>
             )}
         </div>
     )

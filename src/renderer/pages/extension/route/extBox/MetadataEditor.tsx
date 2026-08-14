@@ -805,6 +805,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                 <div className={`${css.metaWide} ${css.metaSplit}`}>
                     <div className={css.metaMainColumn}>
                         <TextInput
+                            className={css.metadataField}
                             name="meta-name"
                             label={t('metadata.labels.name')}
                             value={draft.name}
@@ -815,7 +816,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             label={t('metadata.labels.description')}
                             value={draft.description}
                             onChange={value => setField('description', value)}
-                            className={css.metaDescription}
+                            className={`${css.metadataField} ${css.metaDescription}`}
                         />
                     </div>
 
@@ -907,6 +908,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                         <div className={css.metaSideRow}>
                             <SelectInput
+                                className={css.metadataField}
                                 label={t('metadata.labels.type')}
                                 value={draft.type}
                                 options={ADDON_TYPES.map(type => ({ value: type, label: type }))}
@@ -914,6 +916,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             />
 
                             <TextInput
+                                className={css.metadataField}
                                 name="meta-version"
                                 label={t('metadata.labels.version')}
                                 value={draft.version}
@@ -929,13 +932,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     label={t('metadata.labels.tags')}
                     value={tagsAsString}
                     onChange={setTagsFromString}
-                    className={css.metaWide}
+                    className={`${css.metadataField} ${css.metaWide}`}
                     description={t('metadata.examples.tags')}
                 />
 
                 <div className={`${css.metaWide} ${css.assetGrid}`}>
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.image')}
                             value={draft.image}
                             onChange={value => setField('image', value)}
@@ -949,6 +953,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.banner')}
                             value={draft.banner}
                             onChange={value => setField('banner', value)}
@@ -962,6 +967,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.libraryLogo')}
                             value={draft.libraryLogo ?? ''}
                             onChange={value => setField('libraryLogo', value)}
@@ -974,6 +980,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     </div>
 
                     <FileInput
+                        className={css.metadataField}
                         label={t('metadata.labels.css')}
                         value={draft.css}
                         onChange={value => setField('css', value)}
@@ -985,7 +992,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     />
 
                     <FileInput
-                        className={css.assetWide}
+                        className={`${css.metadataField} ${css.assetWide}`}
                         label={t('metadata.labels.script')}
                         value={draft.script}
                         onChange={value => setField('script', value)}
