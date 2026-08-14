@@ -1,24 +1,33 @@
-import React, { lazy, Suspense, useCallback, useContext, useEffect, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useState } from 'react'
 import { IoCheckmarkSharp, IoCloseSharp } from 'react-icons/io5'
-import { MdChevronRight, MdCode, MdExtension, MdInfoOutline, MdInsights, MdLink, MdSettings, MdSystemUpdateAlt, MdWidgets } from 'react-icons/md'
+import {
+    MdChevronRight,
+    MdCode,
+    MdExtension,
+    MdInfoOutline,
+    MdInsights,
+    MdLink,
+    MdScience,
+    MdSettings,
+    MdSystemUpdateAlt,
+    MdWidgets,
+} from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
 import { isDev } from '@common/appConfig'
 import userContext from '@entities/user/model/context'
-import type { DeveloperToolsSection } from '@features/developerTools/DeveloperToolsPanel'
+import DeveloperToolsPanel, { type DeveloperToolsSection } from '@features/developerTools/DeveloperToolsPanel'
+import ExperimentOverridesPanel from '@features/developerTools/ExperimentOverridesPanel'
 import { useSettingsActions } from '@features/settings/model/useSettingsActions'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 import * as styles from '@widgets/modalContainer/modals/SettingsModal.module.scss'
 
-const DeveloperToolsPanel = lazy(() => import('@features/developerTools/DeveloperToolsPanel'))
-
 type DeveloperSetting = 'devSocket' | 'showDevFrame'
 type GeneralSettingsSection = 'general' | 'integrations' | 'updates' | 'system'
-type SettingsSection = GeneralSettingsSection | 'developer' | DeveloperToolsSection
+type SettingsSection = GeneralSettingsSection | 'developer' | 'experiments' | DeveloperToolsSection
 
 interface SettingsCheckboxProps {
     checked: boolean
@@ -63,13 +72,14 @@ const SettingsRow: React.FC<SettingsRowProps> = ({ children, description, title 
 
 const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
     const { t } = useTranslation()
-    const { app, setApp, user } = useContext(userContext)
+    const { app, setApp, user, isAutonomousMode } = useContext(userContext)
     const { Modals, isModalOpen, closeModal } = useModalContext()
     const [isLocalDev, setIsLocalDev] = useState(false)
     const [activeSection, setActiveSection] = useState<SettingsSection>('general')
 
     const isOpen = isModalOpen(Modals.SETTINGS)
     const hasDeveloperSection = user?.perms === 'developer' || isDev
+    const canOverrideExperiments = user?.perms === 'developer' && !isAutonomousMode
     const actions = useSettingsActions(isOpen)
 
     useEffect(() => {
@@ -88,8 +98,10 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
     useEffect(() => {
         if (!hasDeveloperSection && !['general', 'integrations', 'updates', 'system'].includes(activeSection)) {
             setActiveSection('general')
+        } else if (activeSection === 'experiments' && !canOverrideExperiments) {
+            setActiveSection(hasDeveloperSection ? 'developer' : 'general')
         }
-    }, [activeSection, hasDeveloperSection])
+    }, [activeSection, canOverrideExperiments, hasDeveloperSection])
 
     const handleClose = useCallback(() => {
         closeModal(Modals.SETTINGS)
@@ -340,17 +352,11 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
         if (activeSection === 'system') return renderSystem()
         if (activeSection === 'developer') return renderDeveloper()
 
-        return (
-            <Suspense
-                fallback={
-                    <div className={styles.toolsLoading}>
-                        <Loader variant="panel" />
-                    </div>
-                }
-            >
-                <DeveloperToolsPanel section={activeSection} onNavigate={handleNavigate} />
-            </Suspense>
-        )
+        if (activeSection === 'experiments') {
+            return <ExperimentOverridesPanel />
+        }
+
+        return <DeveloperToolsPanel section={activeSection} onNavigate={handleNavigate} />
     }
 
     return (
@@ -379,6 +385,7 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
                         <>
                             <div className={`${styles.sidebarTitle} ${styles.sidebarTitleSpaced}`}>{t('settingsModal.developer.category')}</div>
                             {sidebarItem('developer', <MdCode size={18} />, t('settingsModal.developer.settingsTab'))}
+                            {canOverrideExperiments && sidebarItem('experiments', <MdScience size={18} />, t('header.devOverrides.title'))}
                             {sidebarItem('metrics', <MdInsights size={18} />, t('dev.sections.metrics'))}
                             {sidebarItem('components', <MdWidgets size={18} />, t('settingsModal.developer.componentsTitle'))}
                             {sidebarItem('navigation', <MdLink size={18} />, t('dev.sections.navigation'))}

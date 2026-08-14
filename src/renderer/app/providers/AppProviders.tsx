@@ -11,7 +11,6 @@ import { useSocketContext } from '@app/providers/socket'
 import { ExperimentsProvider } from '@app/providers/experiments'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import Preloader from '@widgets/preloader'
-import ExperimentOverridesDevModal from '@widgets/modalContainer/modals/ExperimentOverridesDevModal'
 import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import type { AppProvidersProps } from '@app/AppShell.types'
@@ -130,7 +129,6 @@ export default function AppProviders({
                 <NewsProvider key={user.id} enabled={!loading}>
                     <ExperimentsProvider userId={user.id}>
                         <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
-                        <ExperimentOverridesDevModal />
                         <SettingsModal onNavigate={path => void router.navigate(path)} />
                         <UpdateChannelOverrideModal />
                         <NotificationsProvider value={notificationsValue}>

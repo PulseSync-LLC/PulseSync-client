@@ -22,7 +22,6 @@ import { useModalContext } from '@app/providers/modal'
 import playerContext from '@entities/track/model/player.context'
 import { MdSettings } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
-import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
 import SubscriptionGiveawaysButton from '@widgets/layout/SubscriptionGiveawaysButton'
@@ -83,9 +82,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const toggleUserContainer = useCallback(() => {
         setIsUserCardOpen(current => !current)
     }, [])
-    const showSettingsMovedNotice = useCallback(() => {
-        toast.custom('info', t('settingsModal.movedHint'), undefined, { id: 'settings-location-hint' })
-    }, [t])
+    const openSettings = useCallback(() => openModal(Modals.SETTINGS), [Modals.SETTINGS, openModal])
     const openLogin = useCallback(() => {
         void nav('/auth')
     }, [nav])
@@ -383,7 +380,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                         {/*        <MdSettings size={22} />*/}
                         {/*    </button>*/}
                         {/*</TooltipButton>*/}
-                        <button type="button" className={styles.logoplace} onClick={showSettingsMovedNotice}>
+                        <button type="button" className={styles.logoplace} onClick={openSettings}>
                             <span>{title ?? 'PulseSync'}</span>
                             {titleDetail ? (
                                 <>
@@ -402,7 +399,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                             {!isAutonomousMode ? (
                                 <>
                                     <UpdateChannelOverrideButton />
-                                    {user.perms === 'developer' && <ExperimentOverridesDevButton />}
                                     <SubscriptionGiveawaysButton />
                                     <NotificationsBell />
                                     <div
