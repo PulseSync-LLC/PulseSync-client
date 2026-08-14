@@ -20,7 +20,6 @@ import rendererHttpClient from '@shared/api/http/client'
 import AddonUploadModal, { type UploadStep } from '@shared/ui/PSUI/AddonUploadModal'
 import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 import * as styles from '@features/developerTools/DeveloperToolsPanel.module.scss'
 
@@ -302,7 +301,15 @@ const DeveloperToolsPanel: React.FC<DeveloperToolsPanelProps> = ({ section, onNa
                 <div className={styles.chartCard}>
                     {loading ? (
                         <div className={styles.chartState}>
-                            <Loader variant="panel" />
+                            <div className={styles.chartShimmer} aria-hidden="true">
+                                <div className={styles.chartShimmerGrid} />
+                                <div className={styles.chartShimmerArea} />
+                                <div className={styles.chartShimmerLabels}>
+                                    {Array.from({ length: 6 }, (_, index) => (
+                                        <span key={index} />
+                                    ))}
+                                </div>
+                            </div>
                         </div>
                     ) : formattedStats.length ? (
                         <div className={styles.chartWrapper}>

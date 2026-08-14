@@ -1,6 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 import { fetchDetailedExperiments } from '@entities/experiment/api/experiments'
 import { useExperiments } from '@app/providers/experiments'
@@ -236,8 +235,38 @@ const ExperimentOverridesDevModal: React.FC = () => {
             }
         >
             {loading || detailedLoading ? (
-                <div className={styles.empty}>
-                    <Loader variant="panel" />
+                <div className={styles.modalShimmer} aria-hidden="true">
+                    <div className={styles.modalShimmerList}>
+                        {Array.from({ length: 5 }, (_, index) => (
+                            <div key={index} className={styles.modalShimmerItem}>
+                                <span className={styles.modalShimmerItemTitle} />
+                                <div className={styles.modalShimmerChips}>
+                                    <span />
+                                    <span />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
+                    <div className={styles.modalShimmerForm}>
+                        <div className={styles.modalShimmerHeading}>
+                            <span className={styles.modalShimmerTitle} />
+                            <span className={styles.modalShimmerAction} />
+                        </div>
+                        <div className={styles.modalShimmerChips}>
+                            <span />
+                        </div>
+                        <div className={styles.modalShimmerSection}>
+                            <span className={styles.modalShimmerLabel} />
+                            <span className={styles.modalShimmerGroup} />
+                            <span className={styles.modalShimmerGroup} />
+                        </div>
+                        <div className={styles.modalShimmerSection}>
+                            <span className={styles.modalShimmerLabel} />
+                            <span className={styles.modalShimmerInput} />
+                            <span className={styles.modalShimmerLabel} />
+                            <span className={styles.modalShimmerTextarea} />
+                        </div>
+                    </div>
                 </div>
             ) : detailedError ? (
                 <div className={styles.empty}>{detailedError || t('common.fetchFailed')}</div>

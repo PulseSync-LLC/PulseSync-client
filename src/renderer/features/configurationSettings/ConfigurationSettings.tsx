@@ -255,6 +255,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <ButtonInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             defaultValue={it.value}
@@ -277,6 +278,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <BufferedColorInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={it.value}
@@ -303,6 +305,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <SelectInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={String(it.value)}
@@ -325,6 +328,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <BufferedSliderInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             min={it.min}
@@ -356,6 +360,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <FileInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={current}
@@ -379,6 +384,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <TextInput
+                            className={css.controlCard}
                             name={it.id}
                             label={it.name}
                             description={it.description}
