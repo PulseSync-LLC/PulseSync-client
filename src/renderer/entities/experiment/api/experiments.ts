@@ -19,6 +19,9 @@ type RawDetailedExperimentEntry = {
     groups?: unknown
 }
 
+let detailedExperimentsCache: DesktopDetailedExperiment[] | null = null
+let detailedExperimentsRequest: Promise<DesktopDetailedExperiment[]> | null = null
+
 function isRecord(value: unknown): value is Record<string, unknown> {
     return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -121,13 +124,27 @@ export async function fetchExperiments(): Promise<DesktopExperiment[]> {
 }
 
 export async function fetchDetailedExperiments(): Promise<DesktopDetailedExperiment[]> {
-    const response = await rendererHttpClient.get<unknown>('/experiments/detailed', {
-        auth: true,
-    })
-
-    if (!response.ok) {
-        throw new Error(`Failed to fetch detailed experiments (${response.status})`)
+    if (detailedExperimentsCache) {
+        return detailedExperimentsCache
     }
 
-    return normalizeDetailedExperiments(response.data)
+    if (!detailedExperimentsRequest) {
+        detailedExperimentsRequest = rendererHttpClient
+            .get<unknown>('/experiments/detailed', {
+                auth: true,
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error(`Failed to fetch detailed experiments (${response.status})`)
+                }
+
+                detailedExperimentsCache = normalizeDetailedExperiments(response.data)
+                return detailedExperimentsCache
+            })
+            .finally(() => {
+                detailedExperimentsRequest = null
+            })
+    }
+
+    return detailedExperimentsRequest
 }
