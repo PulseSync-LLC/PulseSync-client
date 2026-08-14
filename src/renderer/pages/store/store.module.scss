@@ -13,8 +13,8 @@
     height: var(--scrollHStore);
     overflow: overlay;
     background:
-        radial-gradient(ellipse 38% 32% at 0 0, #524714 0%, rgb(82 71 20 / 0%) 100%),
-        radial-gradient(ellipse 38% 34% at 100% 0, #4c1a20 0%, rgb(76 26 32 / 0%) 100%), #040404;
+        radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
+        radial-gradient(ellipse 38% 34% at 100% 0, color-mix(in srgb, var(--catalog-edge-right, #040404) 58%, #040404) 0%, transparent 100%), #040404;
 }
 
 .containerFixInnerLocked {
@@ -409,6 +409,10 @@
     height: 100%;
     display: block;
     object-fit: cover;
+}
+
+.featuredMedia img.featuredMediaFallback {
+    filter: brightness(0.45) saturate(0.7);
 }
 
 .pagerDots {
