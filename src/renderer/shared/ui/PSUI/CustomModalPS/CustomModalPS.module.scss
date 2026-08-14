@@ -33,27 +33,51 @@
     }
 }
 
+// Keep the base modal responsive without outranking modal-specific classes.
+:where(.modal) {
+    width: min(600px, calc(100vw - 32px));
+    min-width: 0;
+    max-width: min(600px, calc(100vw - 32px));
+    max-height: calc(100vh - 32px);
+    box-sizing: border-box;
+    align-items: stretch;
+    justify-content: flex-start;
+    padding: 24px;
+    gap: 16px;
+    overflow-x: hidden;
+    overflow-y: auto;
+}
+
+:where(.modal) > * {
+    min-width: 0;
+    max-width: 100%;
+}
+
 .textBlock {
     width: 100%;
 }
 
 .title {
+    width: 100%;
+    min-width: 0;
     font-family: 'Nunito';
     font-style: normal;
     font-weight: 800;
-    font-size: 30px;
-    line-height: 140%;
-    color: #ffffff;
+    font-size: 22px;
+    line-height: 1.25;
+    color: var(--text-primary);
+    overflow-wrap: anywhere;
 }
 
 .description {
     margin: 0 0 8px 0;
-    color: #ffffff;
+    color: var(--text-primary);
     align-self: stretch;
     overflow-wrap: anywhere;
     word-break: break-word;
     white-space: pre-line;
-    font-size: 18px;
+    font-size: 15px;
+    line-height: 1.45;
 }
 
 .subText {
@@ -72,15 +96,16 @@
 
 .buttonsHorizontal {
     grid-template-columns: repeat(auto-fit, minmax(0, 1fr));
-    width: -webkit-fill-available;
+    width: 100%;
 }
 
 .buttonsVertical {
     grid-template-columns: 1fr;
-    width: -webkit-fill-available;
+    width: 100%;
 }
 
 .btnBase {
+    min-width: 0;
     border: 0;
     align-items: center;
     border-radius: 8px;

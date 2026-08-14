@@ -31,7 +31,7 @@ export let mainWindow: BrowserWindow
 export let inSleepMode = false
 let isAppQuitting = false
 
-const minMain = { width: 1157, height: 750 }
+const minMain = { width: 1400, height: 850 }
 
 app.on('before-quit', () => {
     isAppQuitting = true
