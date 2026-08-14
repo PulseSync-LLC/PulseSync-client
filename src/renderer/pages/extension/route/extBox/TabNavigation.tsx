@@ -33,6 +33,7 @@ const TabNavigation: React.FC<Props> = ({
     const rootRef = useRef<HTMLDivElement>(null)
     const [indicator, setIndicator] = useState({ left: 0, width: 0 })
     const bookIcon = staticAsset('assets/icons/ui/tab-book.svg')
+    const metadataIcon = staticAsset('assets/icons/ui/tab-metadata.svg')
     const settingsIcon = staticAsset('assets/icons/ui/tab-settings.svg')
     const licenseDoc = docs.find(doc => /license|licence/i.test(doc.value || doc.title))
     const licenseHeading = licenseDoc?.content.match(/^\s*#*\s*([^\r\n]*licen[cs]e[^\r\n]*)/im)?.[1]?.trim()
@@ -49,7 +50,7 @@ const TabNavigation: React.FC<Props> = ({
               ? [{ title: t('extensions.tabs.changelog'), value: PUBLICATION_CHANGELOG_TAB, icon: <img src={bookIcon} alt="" /> }]
               : []),
         ...(hasRelations ? [{ title: t('extensions.tabs.relations'), value: RELATIONS_TAB, icon: <MdFactCheck size={19} /> }] : []),
-        ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata' }] : []),
+        ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata', icon: <img src={metadataIcon} alt="" /> }] : []),
     ]
 
     const updateIndicator = useCallback(() => {

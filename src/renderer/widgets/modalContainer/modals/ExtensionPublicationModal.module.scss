@@ -1,22 +1,94 @@
 .publicationModal {
     min-width: 0;
-    width: min(640px, calc(100vw - 32px));
-    max-width: 640px;
+    width: min(720px, calc(100vw - 32px));
+    max-width: 720px;
     align-items: stretch;
-    padding: 28px;
-    gap: 22px;
+    padding: 20px;
+    gap: 16px;
+}
+
+.publicationModalReadonly {
+    width: min(520px, calc(100vw - 32px));
+    max-width: 520px;
 }
 
 .body {
+    width: 100%;
     display: flex;
     flex-direction: column;
-    gap: 18px;
+    gap: 16px;
+}
+
+.bodyReadonly {
+    gap: 14px;
+}
+
+.summaryPane,
+.formPane {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.summaryPane {
+    width: 100%;
+    align-self: stretch;
+    box-sizing: border-box;
+    gap: 14px;
+    padding: 0;
+}
+
+.formPane {
+    gap: 14px;
+    padding: 16px 0 0;
+    border-top: 1px solid var(--border);
 }
 
 .header {
     display: flex;
     flex-direction: column;
     gap: 12px;
+}
+
+.headerTop {
+    min-height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.statusLine {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.closeButton {
+    width: 32px;
+    height: 32px;
+    flex: 0 0 32px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    border: 0;
+    border-radius: 8px;
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+
+    &:hover {
+        background: var(--border-hover);
+        color: var(--text-primary);
+    }
+
+    svg {
+        width: 18px;
+        height: 18px;
+    }
 }
 
 .eyebrow {
@@ -30,8 +102,7 @@
 .headlineRow {
     display: flex;
     align-items: flex-start;
-    justify-content: space-between;
-    gap: 16px;
+    gap: 12px;
 }
 
 .identity {
@@ -43,8 +114,8 @@
 
 .addonName {
     margin: 0;
-    font-size: 28px;
-    line-height: 1.05;
+    font-size: 26px;
+    line-height: 1.1;
     font-weight: 900;
     color: var(--text-primary);
 }
@@ -65,24 +136,25 @@
 }
 
 .infoGrid {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 12px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
 }
 
 .infoCard,
 .noteCard,
-.cooldownCard {
+.cooldownCard,
+.fieldGroup {
     display: flex;
     flex-direction: column;
     gap: 8px;
-    padding: 0;
 }
 
 .noteCard,
 .cooldownCard {
-    gap: 10px;
-    padding-top: 2px;
+    gap: 6px;
+    padding-top: 14px;
+    border-top: 1px solid var(--border);
 }
 
 .cooldownCard {
@@ -112,16 +184,17 @@
     line-height: 1.55;
     color: var(--text-primary);
     white-space: pre-wrap;
+    overflow-wrap: anywhere;
 }
 
 .changelogInput {
     width: 100%;
-    min-height: 118px;
+    min-height: 150px;
     resize: vertical;
     padding: 14px 16px;
-    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--surface-primary) 42%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-secondary);
     color: var(--text-primary);
     font: inherit;
     line-height: 1.5;
@@ -139,9 +212,9 @@
 .githubInput {
     width: 100%;
     padding: 14px 16px;
-    border: 1px solid color-mix(in srgb, var(--text-secondary) 20%, transparent);
-    border-radius: 14px;
-    background: color-mix(in srgb, var(--surface-primary) 42%, transparent);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    background: var(--surface-secondary);
     color: var(--text-primary);
     font: inherit;
     line-height: 1.5;
@@ -161,11 +234,11 @@
     align-items: flex-start;
     gap: 12px;
     width: 100%;
-    padding: 12px 14px;
-    border: 1px solid color-mix(in srgb, var(--text-secondary) 14%, transparent);
+    padding: 11px 12px;
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--hover);
-    font-size: 14px;
+    background: var(--surface-secondary);
+    font-size: 13px;
     font-weight: 600;
     line-height: 1.45;
     color: var(--text-primary);
@@ -178,6 +251,12 @@
     input {
         display: none;
     }
+}
+
+.agreements {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
 }
 
 .rulesCheckboxMark {
@@ -257,7 +336,7 @@
     align-items: center;
     width: fit-content;
     flex: 0 0 auto;
-    padding: 8px 12px;
+    padding: 7px 10px;
     border-radius: 999px;
     font-size: 13px;
     font-weight: 800;
@@ -284,22 +363,13 @@
     color: var(--text-primary);
 }
 
-@media (max-width: 640px) {
+@media (max-width: 760px) {
     .publicationModal {
         width: min(100%, calc(100vw - 24px));
-        padding: 22px;
+        padding: 18px;
     }
 
-    .headlineRow {
-        flex-direction: column;
-        align-items: flex-start;
-    }
-
-    .addonName {
-        font-size: 24px;
-    }
-
-    .infoGrid {
-        grid-template-columns: 1fr;
+    .changelogInput {
+        min-height: 132px;
     }
 }

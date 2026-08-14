@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import cn from 'clsx'
+import { MdClose } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
@@ -156,127 +157,139 @@ const ExtensionPublicationModal: React.FC = () => {
 
     return (
         <CustomModalPS
-            className={styles.publicationModal}
+            className={cn(styles.publicationModal, !isEditingMode && styles.publicationModalReadonly)}
             isOpen={isPublicationModalOpen}
             onClose={handleClose}
-            buttons={[
-                {
-                    text: t('common.cancel'),
-                    onClick: handleClose,
-                    variant: 'secondary',
-                    disabled: publicationBusy,
-                },
-                ...(primaryButton ? [primaryButton] : []),
-            ]}
+            buttons={
+                isEditingMode
+                    ? [
+                          {
+                              text: t('common.cancel'),
+                              onClick: handleClose,
+                              variant: 'secondary',
+                              disabled: publicationBusy,
+                          },
+                          ...(primaryButton ? [primaryButton] : []),
+                      ]
+                    : []
+            }
         >
-            <div className={styles.body}>
-                <div className={styles.header}>
-                    <span className={styles.eyebrow}>{t('extensions.publication.modalTitle')}</span>
-                    <div className={styles.headlineRow}>
-                        <div className={styles.identity}>
-                            <h2 className={styles.addonName}>{addon?.name || t('store.unknownAddon')}</h2>
-                            <p className={styles.authors}>
-                                <span className={styles.authorsLabel}>{t('extensions.meta.authors')}</span>
-                                <span>{authorsDisplay || t('common.emDash')}</span>
-                            </p>
+            <div className={cn(styles.body, !isEditingMode && styles.bodyReadonly)}>
+                <div className={styles.summaryPane}>
+                    <div className={styles.header}>
+                        <div className={styles.headerTop}>
+                            <div className={styles.statusLine}>
+                                <span className={styles.eyebrow}>{t('extensions.publication.modalTitle')}</span>
+                                <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
+                            </div>
+                            {!isEditingMode ? (
+                                <button type="button" className={styles.closeButton} onClick={handleClose} aria-label={t('common.done')}>
+                                    <MdClose aria-hidden="true" />
+                                </button>
+                            ) : null}
                         </div>
-
-                        <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
+                        <div className={styles.headlineRow}>
+                            <div className={styles.identity}>
+                                <h2 className={styles.addonName}>{addon?.name || t('store.unknownAddon')}</h2>
+                                <p className={styles.authors}>
+                                    <span className={styles.authorsLabel}>{t('extensions.meta.authors')}</span>
+                                    <span>{authorsDisplay || t('common.emDash')}</span>
+                                </p>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div className={styles.infoGrid}>
-                    <div className={styles.infoCard}>
-                        <span className={styles.label}>{t('extensions.meta.version')}</span>
-                        <span className={styles.value}>{addon?.version || publicationRelease?.version || t('common.emDash')}</span>
-                    </div>
-                    {publicationDate ? (
+                    <div className={styles.infoGrid}>
                         <div className={styles.infoCard}>
-                            <span className={styles.label}>{t('extensions.meta.updated')}</span>
-                            <span className={styles.value}>{publicationDate}</span>
+                            <span className={styles.label}>{t('extensions.meta.version')}</span>
+                            <span className={styles.value}>{addon?.version || publicationRelease?.version || t('common.emDash')}</span>
+                        </div>
+                        {publicationDate ? (
+                            <div className={styles.infoCard}>
+                                <span className={styles.label}>{t('extensions.meta.updated')}</span>
+                                <span className={styles.value}>{publicationDate}</span>
+                            </div>
+                        ) : null}
+                    </div>
+
+                    {publicationRelease?.moderationNote ? (
+                        <div className={styles.noteCard}>
+                            <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
+                            <span className={styles.subValue}>{publicationRelease.moderationNote}</span>
+                        </div>
+                    ) : null}
+
+                    {republishAvailableAt ? (
+                        <div className={styles.cooldownCard}>
+                            <span className={styles.label}>{t('extensions.publication.cooldownLabel')}</span>
+                            <span className={styles.subValue}>{t('extensions.publication.cooldownMessage', { date: republishAvailableAt })}</span>
                         </div>
                     ) : null}
                 </div>
 
-                {publicationRelease?.moderationNote ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
-                        <span className={styles.subValue}>{publicationRelease.moderationNote}</span>
-                    </div>
-                ) : publicationDate ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>{t('extensions.meta.updated')}</span>
-                        <span className={styles.subValue}>{t('extensions.publication.statusDate', { date: publicationDate })}</span>
-                    </div>
-                ) : null}
-
-                {republishAvailableAt ? (
-                    <div className={styles.cooldownCard}>
-                        <span className={styles.label}>{t('extensions.publication.cooldownLabel')}</span>
-                        <span className={styles.subValue}>{t('extensions.publication.cooldownMessage', { date: republishAvailableAt })}</span>
-                    </div>
-                ) : null}
-
-                {shouldShowGithubField ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>
-                            {t('extensions.publication.githubUrlLabel')} {!isUpdateMode ? <span className={styles.requiredMark}>*</span> : null}
-                        </span>
-                        {primaryButton ? (
-                            <input
-                                className={styles.githubInput}
-                                type="url"
-                                value={githubUrlText}
-                                onChange={event => handleGithubUrlChange(event.target.value)}
-                                placeholder={t('extensions.publication.githubUrlPlaceholder')}
-                            />
-                        ) : publicationRelease?.githubUrl ? (
-                            <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
-                                {publicationRelease.githubUrl}
-                            </a>
-                        ) : (
-                            <span className={styles.subValue}>{t('common.emDash')}</span>
-                        )}
-                    </div>
-                ) : null}
-
-                {primaryButton ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>
-                            {t('extensions.publication.changelogLabel')} <span className={styles.requiredMark}>*</span>
-                        </span>
-                        <textarea
-                            className={styles.changelogInput}
-                            value={changelogText}
-                            onChange={event => handleChangelogChange(event.target.value)}
-                            placeholder={t('extensions.publication.changelogPlaceholder')}
-                            rows={5}
-                        />
-                    </div>
-                ) : null}
-
-                {primaryButton && requiresRulesAgreement ? (
-                    <>
-                        <PublicationCheckbox checked={rulesAccepted} onChange={setRulesAccepted}>
-                            <>
-                                {t('extensions.publication.rulesAgreementPrefix')}{' '}
-                                <a
-                                    className={styles.rulesLink}
-                                    href={ADDON_PUBLISHING_RULES_URL}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={event => event.stopPropagation()}
-                                >
-                                    {t('extensions.publication.rulesAgreementLink')}
+                <div className={styles.formPane}>
+                    {shouldShowGithubField ? (
+                        <div className={styles.fieldGroup}>
+                            <span className={styles.label}>
+                                {t('extensions.publication.githubUrlLabel')}{' '}
+                                {primaryButton && !isUpdateMode ? <span className={styles.requiredMark}>*</span> : null}
+                            </span>
+                            {primaryButton ? (
+                                <input
+                                    className={styles.githubInput}
+                                    type="url"
+                                    value={githubUrlText}
+                                    onChange={event => handleGithubUrlChange(event.target.value)}
+                                    placeholder={t('extensions.publication.githubUrlPlaceholder')}
+                                />
+                            ) : publicationRelease?.githubUrl ? (
+                                <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
+                                    {publicationRelease.githubUrl}
                                 </a>
-                            </>
-                        </PublicationCheckbox>
+                            ) : (
+                                <span className={styles.subValue}>{t('common.emDash')}</span>
+                            )}
+                        </div>
+                    ) : null}
 
-                        <PublicationCheckbox checked={usedAiDuringDevelopment} onChange={setUsedAiDuringDevelopment}>
-                            {t('extensions.publication.aiUsageLabel')}
-                        </PublicationCheckbox>
-                    </>
-                ) : null}
+                    {primaryButton ? (
+                        <div className={styles.fieldGroup}>
+                            <span className={styles.label}>
+                                {t('extensions.publication.changelogLabel')} <span className={styles.requiredMark}>*</span>
+                            </span>
+                            <textarea
+                                className={styles.changelogInput}
+                                value={changelogText}
+                                onChange={event => handleChangelogChange(event.target.value)}
+                                placeholder={t('extensions.publication.changelogPlaceholder')}
+                                rows={6}
+                            />
+                        </div>
+                    ) : null}
+
+                    {primaryButton && requiresRulesAgreement ? (
+                        <div className={styles.agreements}>
+                            <PublicationCheckbox checked={rulesAccepted} onChange={setRulesAccepted}>
+                                <>
+                                    {t('extensions.publication.rulesAgreementPrefix')}{' '}
+                                    <a
+                                        className={styles.rulesLink}
+                                        href={ADDON_PUBLISHING_RULES_URL}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={event => event.stopPropagation()}
+                                    >
+                                        {t('extensions.publication.rulesAgreementLink')}
+                                    </a>
+                                </>
+                            </PublicationCheckbox>
+
+                            <PublicationCheckbox checked={usedAiDuringDevelopment} onChange={setUsedAiDuringDevelopment}>
+                                {t('extensions.publication.aiUsageLabel')}
+                            </PublicationCheckbox>
+                        </div>
+                    ) : null}
+                </div>
             </div>
         </CustomModalPS>
     )
