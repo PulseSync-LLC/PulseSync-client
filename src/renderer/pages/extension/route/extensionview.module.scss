@@ -99,44 +99,6 @@
     gap: 14px;
 }
 
-.markdownContent,
-.markdownText {
-    width: 100%;
-    min-width: 0;
-    color: var(--text-secondary);
-    font-size: 15px;
-    line-height: 1.5;
-
-    h1,
-    h2,
-    h3,
-    h4 {
-        color: var(--text-primary);
-    }
-
-    img {
-        display: block;
-        max-width: 100%;
-        height: auto;
-        border-radius: 12px;
-    }
-
-    pre,
-    table {
-        max-width: 100%;
-        overflow-x: auto;
-    }
-}
-
-.markdownImage {
-    display: block;
-    width: 100%;
-    max-width: 100%;
-    height: auto;
-    object-fit: contain;
-    border-radius: 12px;
-}
-
 .changelogPanel,
 .changelogList,
 .changelogItem {
@@ -371,56 +333,6 @@
 
             & > div {
                 width: -webkit-fill-available;
-            }
-
-            .markdownText {
-                padding: 0;
-                margin: 0;
-                width: 100%;
-                max-width: 100%;
-                min-width: 0;
-                overflow-x: hidden;
-                * {
-                    user-select: text !important;
-                    max-width: 100%;
-                }
-                img {
-                    max-width: 100%;
-                    height: auto;
-                    display: block;
-                }
-                .markdownImage {
-                    max-width: 100%;
-                    width: 100%;
-                    height: auto;
-                    display: block;
-                    object-fit: contain;
-                }
-                pre {
-                    width: 100%;
-                    max-width: 100%;
-                    min-width: 0;
-                    overflow-x: auto;
-                    overflow-y: hidden;
-                    box-sizing: border-box;
-                    white-space: pre;
-                }
-                code {
-                    word-break: break-word;
-                    overflow-wrap: anywhere;
-                }
-                pre code {
-                    display: block;
-                    min-width: max-content;
-                    word-break: normal;
-                    overflow-wrap: normal;
-                }
-                table {
-                    display: block;
-                    width: 100%;
-                    max-width: 100%;
-                    overflow-x: auto;
-                }
             }
         }
     }
