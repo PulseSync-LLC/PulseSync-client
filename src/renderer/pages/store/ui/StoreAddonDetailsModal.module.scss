@@ -1,0 +1,443 @@
+.modal.modal {
+    width: min(1200px, calc(100vw - 32px));
+    max-width: min(1200px, calc(100vw - 32px));
+    height: min(720px, calc(100vh - 32px));
+    max-height: calc(100vh - 32px);
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+}
+
+.modalLayout {
+    width: 100%;
+    height: 100%;
+    min-height: 0;
+    display: grid;
+    grid-template-columns: 460px minmax(0, 1fr);
+}
+
+.summaryPane {
+    min-width: 0;
+    min-height: 0;
+    overflow-y: auto;
+    border-right: 1px solid var(--border);
+}
+
+.detailPane {
+    min-width: 0;
+    min-height: 0;
+    display: flex;
+    flex-direction: column;
+}
+
+.modalTabsRoot {
+    width: calc(100% - 48px);
+    margin: 15px 24px 0;
+    flex: 0 0 auto;
+}
+
+.modalTabs {
+    width: 100%;
+    height: 43px;
+    min-height: 43px;
+    padding: 0;
+    background: var(--surface-secondary);
+}
+
+.modalTabs button {
+    width: 50%;
+    height: 43px;
+    min-height: 43px;
+    padding: 0;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    box-sizing: border-box;
+    border-radius: 8px;
+    font-size: 14px;
+    font-weight: 700;
+    line-height: 19px;
+}
+
+.modalTabs :global([class*='_tabIndicator_']) {
+    top: 0;
+    bottom: 0;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+
+.summary {
+    width: 100%;
+    padding: 16px;
+    display: flex;
+    flex-direction: column;
+    box-sizing: border-box;
+    color: var(--text-primary);
+}
+
+.detailContent {
+    min-width: 0;
+    min-height: 0;
+    flex: 1 1 auto;
+    padding: 15px 24px 32px;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.descriptionPanel {
+    color: var(--text-secondary);
+    font-size: 15px;
+    line-height: 1.5;
+}
+
+.descriptionPanel > p {
+    margin: 0;
+}
+
+.banner {
+    width: 100%;
+    aspect-ratio: 2.42 / 1;
+    overflow: hidden;
+    border-radius: 12px;
+    background: var(--surface-elevated);
+}
+
+.banner img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.identityRow {
+    min-height: 68px;
+    padding: 0 14px;
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 12px;
+}
+
+.identityRowWithoutLogo {
+    justify-content: flex-end;
+}
+
+.libraryLogo {
+    width: 104px;
+    height: 104px;
+    flex: 0 0 104px;
+    margin-top: -48px;
+    overflow: hidden;
+    border: 6px solid var(--surface-tertiary);
+    border-radius: 17px;
+    background: var(--surface-tertiary);
+}
+
+.libraryLogo img {
+    width: 100%;
+    height: 100%;
+    display: block;
+    object-fit: cover;
+}
+
+.actions {
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    gap: 6px;
+    padding-bottom: 2px;
+}
+
+.actionButton,
+.closeButton {
+    height: 46px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 7px;
+    border: 0;
+    border-radius: 10px;
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 14px;
+    font-weight: 700;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.actionButton {
+    min-width: 140px;
+    padding: 0 20px;
+}
+
+.actionButton svg,
+.closeButton svg {
+    width: 18px;
+    height: 18px;
+}
+
+.actionButton:disabled {
+    cursor: default;
+    opacity: 0.48;
+}
+
+.installAction {
+    background: color-mix(in srgb, var(--success) 18%, var(--surface-elevated));
+    color: var(--success);
+}
+
+.dangerAction {
+    background: color-mix(in srgb, var(--danger) 18%, var(--surface-elevated));
+    color: var(--danger);
+}
+
+.closeButton {
+    width: 46px;
+    flex: 0 0 46px;
+    padding: 0;
+    background: var(--surface-elevated);
+}
+
+.installAction:hover:not(:disabled),
+.dangerAction:hover:not(:disabled),
+.closeButton:hover {
+    background: var(--border-hover);
+}
+
+.copy {
+    padding: 14px 14px 0;
+}
+
+.headingRow {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.headingRow h1 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 28px;
+    font-weight: 800;
+    line-height: 1.15;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.verified {
+    width: 20px;
+    height: 20px;
+    flex: 0 0 auto;
+    color: var(--accent);
+}
+
+.copy p {
+    margin: 7px 0 0;
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.4;
+}
+
+.metadata {
+    padding: 18px 14px 0;
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.metaItem {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 5px;
+}
+
+.metaLabel,
+.metaValue {
+    overflow: hidden;
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.metaLabel {
+    color: var(--text-primary);
+    font-weight: 700;
+}
+
+.metaValue {
+    color: var(--text-secondary);
+    font-weight: 500;
+}
+
+.section {
+    padding: 15px 14px 0;
+    display: flex;
+    flex-direction: column;
+    gap: 7px;
+}
+
+.section h2 {
+    margin: 0;
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 800;
+}
+
+.authorRow,
+.tagRow {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 5px;
+}
+
+.authorButton,
+.githubButton {
+    min-height: 24px;
+    padding: 4px 9px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    border: 0;
+    border-radius: 6px;
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+    cursor: pointer;
+    transition: var(--transition);
+}
+
+.authorButton > span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--text-primary);
+}
+
+.authorButton:first-child {
+    color: #198cff;
+}
+
+.authorButton:first-child > span {
+    background: #198cff;
+}
+
+.githubButton {
+    align-self: flex-start;
+}
+
+.githubButton svg {
+    width: 16px;
+    height: 16px;
+}
+
+.authorButton:hover,
+.githubButton:hover {
+    background: var(--border-hover);
+}
+
+.tagChip {
+    min-height: 24px;
+    padding: 4px 9px;
+    display: inline-flex;
+    align-items: center;
+    border-radius: 6px;
+    background: var(--surface-elevated);
+    color: var(--text-primary);
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1;
+}
+
+.changelogSection {
+    margin-top: 22px;
+}
+
+.changelogSection h2 {
+    margin: 0 0 8px;
+    color: var(--text-primary);
+    font-size: 14px;
+    font-weight: 800;
+}
+
+.changelog {
+    padding: 12px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    overflow-y: auto;
+    border-radius: 8px;
+    background: var(--surface-secondary);
+    color: var(--text-secondary);
+    font-size: 12px;
+    line-height: 1.45;
+    white-space: pre-wrap;
+}
+
+.readmePanel {
+    min-height: 100%;
+}
+
+.readmeState {
+    min-height: 100%;
+    display: grid;
+    place-items: center;
+    color: var(--text-secondary);
+}
+
+@media (max-width: 900px) {
+    .modal.modal {
+        height: calc(100vh - 32px);
+    }
+
+    .modalLayout {
+        grid-template-columns: 1fr;
+        grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+    }
+
+    .summaryPane {
+        border-right: 0;
+        border-bottom: 1px solid var(--border);
+    }
+
+    .summary {
+        padding: 12px;
+    }
+
+    .identityRow {
+        padding-inline: 8px;
+    }
+
+    .libraryLogo {
+        width: 84px;
+        height: 84px;
+        flex-basis: 84px;
+        margin-top: -38px;
+    }
+
+    .metadata {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .copy,
+    .metadata,
+    .section {
+        padding-inline: 8px;
+    }
+
+    .modalTabsRoot {
+        width: calc(100% - 24px);
+        margin-inline: 12px;
+    }
+
+    .detailContent {
+        padding-inline: 12px;
+    }
+}

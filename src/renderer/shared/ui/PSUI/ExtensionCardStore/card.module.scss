@@ -1,52 +1,46 @@
-.card_mount {
+.cardMount {
+    flex: 0 0 auto;
+    min-width: 0;
+}
+
+.cardMountList {
     width: 100%;
-    min-height: 238px;
-    height: 100%;
+    min-height: 111px;
+}
+
+.cardMountPoster {
+    width: min(460px, calc(100vw - 48px));
+    min-height: 402px;
 }
 
 .card {
     position: relative;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: end;
-    height: 100%;
-    min-height: 220px;
-    align-self: stretch;
-    padding: 52px 14px 14px;
-    gap: 12px;
     box-sizing: border-box;
     width: 100%;
-    border-radius: 10px;
     overflow: hidden;
-
-    font-family:
-        'Segoe UI',
-        system-ui,
-        -apple-system,
-        BlinkMacSystemFont,
-        'Segoe UI Variable',
-        'SF Pro Text',
-        sans-serif;
+    border-radius: 6px;
+    background: var(--surface-secondary);
     color: var(--text-primary);
+    animation: cardEnter 0.28s ease-out both;
+}
 
-    box-shadow: 0 0px 52px 3px rgba(0, 0, 0, 0);
-    outline: 2px solid transparent;
-    transition: var(--transition);
-    animation: fadeInUp 0.4s ease-out forwards;
+.cardClickable {
+    cursor: pointer;
 
-    background-size: cover;
-    background-position: center;
-    background-repeat: no-repeat;
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+    }
 }
 
 .softFadeIn {
-    animation: fadeInSoft 0.28s ease-out forwards;
+    animation-name: cardFade;
 }
 
-@keyframes fadeInUp {
+@keyframes cardEnter {
     from {
         opacity: 0;
-        transform: translateY(20px);
+        transform: translateY(8px);
     }
     to {
         opacity: 1;
@@ -54,7 +48,7 @@
     }
 }
 
-@keyframes fadeInSoft {
+@keyframes cardFade {
     from {
         opacity: 0;
     }
@@ -63,566 +57,290 @@
     }
 }
 
-.card_overlay {
-    position: absolute;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    z-index: 1;
-    pointer-events: none;
-    background: linear-gradient(
-        0deg,
-        color-mix(in srgb, var(--surface-elevated) 95%, transparent) 0%,
-        color-mix(in srgb, var(--surface-elevated) 70%, transparent) 40%,
-        color-mix(in srgb, var(--surface-elevated) 40%, transparent) 100%
-    );
-}
-
-.card_with_image_bg {
-    background-color: var(--surface-secondary);
-    padding: 72px 14px 14px;
-}
-
-.card_with_tags {
-    padding-top: 72px;
-}
-
-.card_theme_purple {
-    background: linear-gradient(0deg, #252735 0%, rgba(48, 51, 70, 0.85) 39.42%, rgba(54, 58, 78, 0.3) 100%),
-        radial-gradient(circle at 50% 0%, rgba(180, 148, 255, 0.9), transparent 55%), var(--surface-secondary);
-}
-
-.card_theme_red {
-    background: linear-gradient(0deg, #342328 0%, rgba(67, 36, 33, 0.9) 40%, rgba(75, 34, 30, 0.3) 100%),
-        radial-gradient(circle at 40% 0%, rgba(255, 132, 100, 0.95), transparent 55%), #2b2226;
-}
-
-.card_theme_wave {
-    background: linear-gradient(
-            0deg,
-            #151826 0%,
-            color-mix(in srgb, var(--surface-primary) 90%, transparent) 40%,
-            color-mix(in srgb, var(--background) 40%, transparent) 100%
-        ),
-        radial-gradient(circle at 0% 100%, rgba(249, 115, 22, 0.9), transparent 55%),
-        radial-gradient(circle at 50% 0%, color-mix(in srgb, var(--success) 85%, transparent), transparent 55%),
-        radial-gradient(circle at 100% 0%, rgba(56, 189, 248, 0.9), transparent 55%), #050816;
-}
-
-.card_large {
-    max-width: none;
-}
-
-.card_content {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-    min-width: 0;
-    z-index: 2;
-}
-
-.card_main {
-    display: flex;
-    flex-direction: row;
+.listCard {
+    min-height: 111px;
+    display: grid;
+    grid-template-columns: 81px minmax(0, 1fr) 145px;
     align-items: center;
-    padding: 0;
-    gap: 14px;
-    min-width: 0;
+    gap: 15px;
+    padding: 15px 30px;
 }
 
-.card_icon_wrapper {
-    flex: 0 0 auto;
-}
-
-.card_icon {
-    width: 72px;
-    height: 72px;
-    border-radius: 14px;
-    background: transparent;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 12px 25px color-mix(in srgb, var(--surface-primary) 70%, transparent);
-    overflow: hidden;
-    outline: 3px solid rgb(255 255 255 / 5%);
-    box-sizing: border-box;
-}
-
-.card_icon_placeholder {
-    width: 100%;
-    height: 100%;
-    background: linear-gradient(135deg, #a855f7 0%, #ec4899 50%, #f97316 100%);
-}
-
-.card_icon_image {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
+.listIcon,
+.listIconFallback {
+    width: 81px;
+    height: 81px;
     display: block;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--surface-tertiary);
 }
 
-.card_text {
-    flex: 1 1 auto;
-    min-width: 0;
+.posterCard {
+    min-height: 402px;
     display: flex;
     flex-direction: column;
-    align-items: flex-start;
-    gap: 2px;
+    padding: 5px;
+    background: var(--surface-secondary);
 }
 
-.card_title_row {
-    width: 100%;
-    display: flex;
-    align-items: center;
-    justify-content: flex-start;
-    gap: 8px;
-    min-width: 0;
-}
-
-.card_title {
-    margin: 0;
-    min-width: 0;
-    font-weight: 700;
-    font-size: 22px;
-    line-height: 110%;
-    color: var(--text-primary);
-
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-
-    user-select: text;
-}
-
-.card_title_version {
-    flex: 0 0 auto;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 25px;
-    padding: 0 8px;
-    border-radius: 999px;
-    background: var(--active);
-    color: #d4dcf6;
-    font-size: 14px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-
-    user-select: text;
-}
-
-.card_title_verified {
-    flex: 0 0 auto;
-    width: 20px;
-    height: 20px;
-    color: #8fd4ff;
-    filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.45));
-}
-
-.card_subtitle {
-    margin: 0;
-    font-weight: 400;
-    font-size: 13px;
-    line-height: 1.15;
-    color: #c7d2fb;
-
-    max-width: 100%;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    text-shadow: 1px 1px 3px rgba(0, 0, 0, 0.5);
-
-    user-select: text;
-}
-
-.card_meta {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-    padding: 0;
-    gap: 4px 6px;
-    margin-top: 1px;
-
-    font-size: 12px;
-    line-height: 110%;
-    color: var(--text-secondary);
-}
-
-.card_authors {
-    display: flex;
-    align-items: center;
-    flex-wrap: wrap;
-    column-gap: 8px;
-    row-gap: 4px;
-    min-width: 0;
-}
-
-.card_authors_label {
-    color: var(--text-secondary);
-    font-weight: 600;
-    white-space: nowrap;
-}
-
-.card_author_item {
-    display: inline-flex;
-    align-items: center;
-    white-space: nowrap;
-}
-
-.card_author_link {
-    padding: 0;
-    margin: 0;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
-    font: inherit;
-    line-height: 1.2;
-    cursor: pointer;
-    text-decoration: underline;
-    text-underline-offset: 2px;
-}
-
-.card_author_link:hover {
-    color: #ffffff;
-}
-
-.card_downloads {
-    margin-top: 4px;
-    font-size: 11px;
-    color: #d6def8;
-}
-
-.download_button {
+.posterMedia {
     position: relative;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    flex: 0 0 154px;
-    padding: 0 18px;
-    margin-bottom: 10px;
-    min-width: 154px;
-    height: 52px;
-    box-sizing: border-box;
-    background: rgba(168, 255, 102, 0.15);
-    border-radius: 10px;
-    border: none;
-    cursor: pointer;
-    z-index: 2;
-    color: var(--success);
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1;
-    white-space: nowrap;
+    height: 227px;
+    flex: 0 0 227px;
+    border-radius: 6px;
+    overflow: hidden;
+    background: var(--surface-secondary);
+}
 
+.posterBanner {
+    width: 100%;
+    height: 171px;
+    display: block;
+    border-radius: 6px;
+    object-fit: cover;
+}
+
+.posterIcon,
+.posterIconFallback {
+    position: absolute;
+    left: 25px;
+    bottom: 0;
+    width: 100px;
+    height: 100px;
+    display: block;
+    border-radius: 12px;
+    object-fit: cover;
+    background: var(--surface-tertiary);
+}
+
+.posterAction,
+.listAction {
+    box-sizing: border-box;
+    border: 0;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    color: var(--success);
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+    cursor: pointer;
     transition:
         background 0.15s ease,
-        transform 0.15s ease,
-        box-shadow 0.15s ease,
         color 0.15s ease;
 
+    &:hover:not(:disabled) {
+        background: var(--success);
+        color: var(--background);
+    }
+
     &:disabled {
-        opacity: 1;
+        opacity: 0.5;
         cursor: default;
     }
 }
 
-.download_button:hover:not(:disabled) {
-    background: rgb(168 255 102);
-    color: #000000;
+.posterAction {
+    position: absolute;
+    left: 141px;
+    bottom: 0;
+    width: 123px;
+    height: 40px;
+    padding: 0 18px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
 }
 
-.download_button:active:not(:disabled) {
-    transform: translateY(0);
-    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.4);
+.listAction {
+    width: 145px;
+    height: 52px;
+    padding: 0 15px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: 6px;
+    font-size: 16px;
 }
 
-.download_icon {
-    width: 20px;
-    height: 20px;
-    display: block;
+.posterAction svg {
+    width: 16px;
+    height: 16px;
+}
+
+.listAction svg {
+    width: 22px;
+    height: 22px;
+}
+
+.removeAction {
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+    color: var(--danger);
+
+    &:hover:not(:disabled) {
+        background: var(--danger);
+        color: var(--text-primary);
+    }
+}
+
+.posterCard .cardCopy {
+    padding: 15px 25px 10px;
+}
+
+.cardCopy {
+    min-width: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+}
+
+.titleRow {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+}
+
+.titleRow h3 {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-primary);
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 22px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.posterCard .titleRow h3 {
+    font-size: 28px;
+    line-height: 38px;
+}
+
+.cardCopy > p {
+    min-width: 0;
+    margin: 0;
+    overflow: hidden;
+    color: var(--text-secondary);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.posterCard .cardCopy > p {
+    min-height: 32px;
+    display: -webkit-box;
+    white-space: normal;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+}
+
+.metaRow {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+    margin-top: 13px;
+    overflow: hidden;
+}
+
+.posterCard .metaRow {
+    height: 53px;
+    flex-wrap: wrap;
+    align-content: flex-start;
+}
+
+.metaRow > * {
     flex: 0 0 auto;
 }
 
-.download_count {
-    font-weight: 700;
-    font-size: 14px;
-    line-height: 1;
-    font-variant-numeric: tabular-nums;
+.verified {
+    width: 18px;
+    height: 18px;
+    flex: 0 0 auto;
+    color: var(--ps-accent, var(--accent));
 }
 
-.download_content {
-    position: relative;
-    z-index: 3;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: center;
-    gap: 8px;
-    transition: color 0.15s ease;
+.authorButton {
+    padding: 0;
+    border: 0;
+    background: transparent;
+    cursor: pointer;
 }
 
-.download_button_installed {
-    background: color-mix(in srgb, var(--success) 12%, transparent);
-    color: var(--success);
-    border: 1px solid color-mix(in srgb, var(--success) 12%, transparent);
-
-    &:disabled {
-        background: color-mix(in srgb, var(--success) 12%, transparent);
-        color: var(--success);
-        border: 1px solid color-mix(in srgb, var(--success) 12%, transparent);
-    }
+.authorBadge,
+.metaBadge {
+    padding: 4px 7px;
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
 }
 
-.download_button_remove {
-    background: color-mix(in srgb, var(--danger) 14%, transparent);
-    color: var(--danger);
-    border: 1px solid color-mix(in srgb, var(--danger) 16%, transparent);
-
-    &:hover:not(:disabled) {
-        background: rgba(239, 68, 68, 0.22);
-        color: var(--danger);
-    }
-
-    &:disabled {
-        background: color-mix(in srgb, var(--danger) 14%, transparent);
-        color: var(--danger);
-        border: 1px solid color-mix(in srgb, var(--danger) 16%, transparent);
-    }
+.neutralBadge {
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    color: var(--text-primary);
 }
 
-.button_downloading {
-    background: #ffd166;
-    color: #000000;
-    cursor: default;
-    box-shadow: none;
-    pointer-events: none;
+.toneSuccess {
+    background: color-mix(in srgb, var(--ps-success, var(--success)) 15%, transparent);
+    color: var(--ps-success, var(--success));
 }
 
-.download_progress_bar {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    background-color: rgb(255 194 102 / 16%);
-    transition: width 0.3s linear;
-    z-index: 2;
+.toneWarning {
+    background: color-mix(in srgb, var(--ps-warning, var(--warning)) 15%, transparent);
+    color: var(--ps-warning, var(--warning));
 }
 
-.button_installing {
-    background: #7657ff;
-    color: #ffffff;
-    cursor: default;
-    pointer-events: none;
-    box-shadow: none;
-    animation: pulse-install 1.5s infinite alternate;
+.toneInfo {
+    background: color-mix(in srgb, var(--ps-info, #44aaff) 15%, transparent);
+    color: var(--ps-info, #44aaff);
 }
 
-@keyframes pulse-install {
-    0% {
-        box-shadow: 0 0 0 0 rgba(56, 189, 248, 0.4);
-    }
-    100% {
-        box-shadow: 0 0 0 8px rgba(56, 189, 248, 0);
-    }
+.authorBadge > span {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: currentColor;
 }
 
-.button_installed {
-    cursor: default;
-    pointer-events: none;
-    background: var(--success);
-    color: black;
+.metaBadge svg {
+    width: 16px;
+    height: 16px;
 }
 
-.spinner {
-    animation: spin 1s linear infinite;
+.aiTooltip {
+    display: inline-flex;
 }
 
-@keyframes spin {
-    from {
-        transform: rotate(0deg);
-    }
-    to {
-        transform: rotate(360deg);
-    }
-}
-
-.spinner_path {
-    opacity: 0.8;
-}
-
-.card_header_row {
-    position: absolute;
-    top: 14px;
-    left: 14px;
-    right: 14px;
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 8px;
-    z-index: 2;
-}
-
-@media (max-width: 640px) {
-    .card {
-        grid-template-columns: minmax(0, 1fr);
-        padding: 48px 12px 12px;
-        max-width: 100%;
+@media (max-width: 760px) {
+    .listCard {
+        grid-template-columns: 60px minmax(0, 1fr);
+        min-height: 126px;
+        padding: 14px;
     }
 
-    .card_with_image_bg {
-        padding: 62px 12px 12px;
+    .cardMountList {
+        min-height: 126px;
     }
 
-    .card_with_tags {
-        padding-top: 62px;
+    .listIcon,
+    .listIconFallback {
+        width: 60px;
+        height: 60px;
     }
 
-    .download_button {
-        justify-self: stretch;
-        flex-basis: 140px;
-        min-width: 140px;
-        height: 48px;
-        padding: 0 14px;
-    }
-
-    .download_count {
+    .listAction {
+        grid-column: 1 / -1;
+        width: 100%;
+        height: 40px;
         font-size: 13px;
     }
 
-    .card_title_row {
-        flex-wrap: wrap;
-        align-items: flex-start;
-        gap: 4px 8px;
+    .metaRow {
+        margin-top: 8px;
     }
-
-    .card_header_row {
-        top: 12px;
-        left: 12px;
-        right: 12px;
-    }
-
-    .card_header_meta {
-        font-size: 10px;
-        padding: 4px 8px;
-    }
-}
-
-.card_header_badges {
-    display: flex;
-    gap: 6px;
-    flex-wrap: wrap;
-    align-items: center;
-    min-width: 0;
-}
-
-.card_header_meta {
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    min-height: 22px;
-    padding: 0 9px;
-    box-sizing: border-box;
-    border-radius: 999px;
-    background: color-mix(in srgb, var(--background) 28%, transparent);
-    border: 1px solid var(--hover);
-    color: rgba(239, 242, 255, 0.92);
-    font-size: 10px;
-    font-weight: 700;
-    line-height: 1;
-    white-space: nowrap;
-    letter-spacing: 0.02em;
-    backdrop-filter: blur(6px);
-    box-shadow: 0 2px 8px rgba(0, 0, 0, 0.14);
-    flex: 0 0 auto;
-}
-
-.header_meta_icon {
-    width: 12px;
-    height: 12px;
-    display: block;
-    flex: 0 0 auto;
-    opacity: 0.8;
-}
-
-.card_badge {
-    display: inline-flex;
-    align-items: center;
-    min-height: 22px;
-    box-sizing: border-box;
-    padding: 4px 8px;
-    border-radius: 6px;
-    font-size: 11px;
-    font-weight: 800;
-    text-transform: uppercase;
-    line-height: 1;
-    color: #ffffff;
-    opacity: 0.9;
-    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-}
-
-.badge_active {
-    background-color: var(--success);
-    color: black;
-}
-
-.badge_theme {
-    background-color: var(--success);
-    color: black;
-}
-
-.badge_script {
-    background-color: #60a5fa;
-    color: #08111f;
-}
-
-.badge_deprecated {
-    background-color: #ef4444;
-}
-
-.badge_pending {
-    background-color: var(--warning);
-    color: var(--surface-tertiary);
-}
-
-.badge_rejected {
-    background-color: #dc2626;
-}
-
-.badge_css {
-    background-color: #1d4ed8;
-}
-
-.badge_js {
-    background-color: #f0db4f;
-    color: black;
-}
-
-.badge_both {
-    background-color: #9333ea;
-}
-
-.badge_tag {
-    background: rgba(17, 24, 39, 0.74);
-    border: 1px solid var(--active);
-    color: #dbeafe;
-}
-
-.badge_warningTag {
-    background: var(--warning);
-    color: var(--surface-tertiary);
-}
-
-.aiTooltipTrigger {
-    display: inline-flex;
-}
-
-.badge_aiUsage {
-    background: #7dd3fc;
-    color: #082f49;
 }

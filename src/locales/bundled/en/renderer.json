@@ -272,7 +272,7 @@
         "title": "Manage"
     },
     "dev": {
-        "addonPlaceholder": "NAME",
+        "addonPlaceholder": "Example Addon",
         "badge": "DEV",
         "cards": {
             "form": {
@@ -1226,6 +1226,19 @@
         "websocketStatusChanged": "Websocket status changed"
     },
     "store": {
+        "catalog": {
+            "main": "Home",
+            "myAddons": "My add-ons",
+            "search": "Search",
+            "authors": "Authors",
+            "tags": "Tags",
+            "links": "Links",
+            "openGithub": "Open GitHub page",
+            "newAddons": "New add-ons",
+            "recentlyUpdated": "Recently updated",
+            "previous": "Previous add-ons",
+            "next": "Next add-ons"
+        },
         "download": "Download",
         "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",

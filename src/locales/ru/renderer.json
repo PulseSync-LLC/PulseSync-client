@@ -272,7 +272,7 @@
         "title": "Управление"
     },
     "dev": {
-        "addonPlaceholder": "НАЗВАНИЕ",
+        "addonPlaceholder": "Пример аддона",
         "badge": "DEV",
         "cards": {
             "form": {
@@ -1226,6 +1226,19 @@
         "websocketStatusChanged": "Статус вебсокета изменен"
     },
     "store": {
+        "catalog": {
+            "main": "Главная",
+            "myAddons": "Мои аддоны",
+            "search": "Поиск",
+            "authors": "Авторы",
+            "tags": "Теги",
+            "links": "Ссылки",
+            "openGithub": "Открыть страницу GitHub",
+            "newAddons": "Новые аддоны",
+            "recentlyUpdated": "Недавно обновлённые",
+            "previous": "Предыдущие аддоны",
+            "next": "Следующие аддоны"
+        },
         "download": "Скачать",
         "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",

@@ -157,11 +157,19 @@ const ThemeInfo: React.FC<Props> = ({
 
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
+    const storeAddonId = String(publication?.id || addon.storeAddonId || '').trim()
+    const canOpenStorePublication = canAccessStore && Boolean(storeAddonId)
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
     const openLegacyAddonMigrationModal = useLegacyAddonMigrationModal()
     const resolvedGithubUrl = (publication?.currentRelease?.githubUrl || publicationGithubUrlText || '').trim()
     const hasGithubUrl = Boolean(resolvedGithubUrl)
+    const openStorePublication = () => {
+        if (!storeAddonId) return
+        nav('/store', {
+            state: publication?.currentRelease ? { openAddon: publication, openAddonId: storeAddonId } : { openAddonId: storeAddonId },
+        })
+    }
     const openPublication = () => {
         if (showLegacyRestriction) {
             openLegacyAddonMigrationModal()
@@ -307,12 +315,12 @@ const ThemeInfo: React.FC<Props> = ({
                 </section>
             )}
 
-            {(canAccessStore || hasGithubUrl) && (
+            {(canOpenStorePublication || hasGithubUrl) && (
                 <section className={s.section}>
                     <h2>{t('extensions.linksTitle')}</h2>
                     <div className={s.linkList}>
-                        {canAccessStore ? (
-                            <Button className={s.linkButton} onClick={() => nav('/store')}>
+                        {canOpenStorePublication ? (
+                            <Button className={s.linkButton} onClick={openStorePublication}>
                                 <MdStoreMallDirectory size={16} /> {t('extensions.actions.openStore')}
                             </Button>
                         ) : null}

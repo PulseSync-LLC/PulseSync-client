@@ -6,6 +6,7 @@ export default gql`
             id
             name
             type
+            downloadCount
             submittedById
             submittedByUsername
             submittedByNickname
@@ -21,6 +22,7 @@ export default gql`
                 avatarUrl
                 bannerUrl
                 downloadUrl
+                githubUrl
                 approvedAt
                 status
                 moderationNote
@@ -39,6 +41,7 @@ export default gql`
                 avatarUrl
                 bannerUrl
                 downloadUrl
+                githubUrl
                 approvedAt
                 status
                 moderationNote
