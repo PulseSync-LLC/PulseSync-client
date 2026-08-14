@@ -7,12 +7,16 @@
 }
 
 .root {
+    container-name: metadata-editor;
+    container-type: inline-size;
     display: flex;
     flex-direction: column;
     gap: 14px;
     color: var(--cfg-text);
-    width: -webkit-fill-available;
-    padding: 14px 40px;
+    width: 100%;
+    min-width: 0;
+    padding: 14px 24px;
+    box-sizing: border-box;
 }
 
 .alert {
@@ -53,6 +57,7 @@
     gap: 12px;
     grid-template-columns: repeat(2, minmax(240px, 1fr));
     align-items: start;
+    min-width: 0;
 }
 
 .metaWide {
@@ -70,6 +75,7 @@
 .metaSideColumn {
     display: grid;
     gap: 12px;
+    min-width: 0;
 }
 
 .metaSideRow {
@@ -88,19 +94,51 @@
     line-height: 1.35;
 }
 
+.metadataField {
+    box-sizing: border-box;
+    min-width: 0;
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    outline-color: transparent;
+    box-shadow: none;
+}
+
+.metadataField:hover {
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+    outline-color: transparent;
+}
+
+.metadataField:focus-within {
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    outline-color: transparent;
+    box-shadow: 0 0 0 2px var(--focus-ring);
+}
+
 .authorField {
     display: grid;
     gap: 4px;
     min-width: 0;
     padding: 10px 16px;
-    background: var(--border);
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
     border-radius: 8px;
     outline: transparent solid 2px;
     transition: var(--transition);
 }
 
 .authorField:hover {
-    outline: var(--text-secondary) solid 2px;
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+    outline-color: transparent;
+}
+
+.authorField:focus-within {
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    outline-color: transparent;
+    box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .authorFieldLabel {
@@ -160,9 +198,9 @@
     z-index: 12;
     display: flex;
     flex-direction: column;
-    border: 1px solid var(--border-hover);
+    border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--border);
+    background: var(--surface-elevated);
     box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
     padding: 6px;
     overflow: hidden;
@@ -226,7 +264,9 @@
 }
 
 .listEditorButton {
+    box-sizing: border-box;
     min-width: 140px;
+    max-width: 100%;
     padding: 10px 14px;
     border: 1px solid var(--border-hover);
     border-radius: 10px;
@@ -273,7 +313,8 @@
 }
 
 .listEditorModal {
-    max-width: 1040px !important;
+    min-width: min(760px, calc(100vw - 32px)) !important;
+    max-width: min(760px, calc(100vw - 32px)) !important;
 }
 
 .relationsModal {
@@ -399,13 +440,13 @@
 }
 
 .authorSearchOption:hover {
-    background: var(--border);
+    background: var(--surface-tertiary);
     border-color: var(--border-hover);
 }
 
 .authorSearchOptionSelected {
-    background: var(--border);
-    border-color: var(--text-secondary);
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
     box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-secondary) 15%, transparent);
 }
 
@@ -599,7 +640,39 @@
     height: 56px;
 }
 
+@container metadata-editor (max-width: 720px) {
+    .metaGrid,
+    .metaSplit,
+    .assetGrid,
+    .listSummaryRow {
+        grid-template-columns: 1fr;
+    }
+
+    .metaWide,
+    .assetWide {
+        grid-column: auto;
+    }
+
+    .listEditorHeader {
+        grid-template-columns: 1fr;
+    }
+
+    .listEditorButton {
+        width: 100%;
+    }
+}
+
+@container metadata-editor (max-width: 440px) {
+    .metaSideRow {
+        grid-template-columns: 1fr;
+    }
+}
+
 @media (max-width: 920px) {
+    .root {
+        padding: 14px 16px;
+    }
+
     .metaGrid,
     .listSummaryRow,
     .listEditorModalBody {
