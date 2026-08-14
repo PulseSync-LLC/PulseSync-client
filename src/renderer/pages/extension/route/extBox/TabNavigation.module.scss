@@ -1,9 +1,16 @@
 .root {
+    position: relative;
+    width: 100%;
+    min-width: 0;
+}
+
+.tabs {
     width: 100%;
     min-width: 0;
 }
 
 .list {
+    position: relative;
     width: 100%;
     min-width: 0;
     box-sizing: border-box;
@@ -13,9 +20,30 @@
     &::-webkit-scrollbar {
         display: none;
     }
+
+    :global([class*='_tabIndicator_']) {
+        display: none;
+    }
+}
+
+.indicator {
+    position: absolute;
+    z-index: 0;
+    top: 4px;
+    bottom: 4px;
+    left: 0;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    pointer-events: none;
+    transition:
+        width 0.22s ease,
+        transform 0.22s ease,
+        opacity 0.12s ease;
 }
 
 .tab {
+    position: relative;
+    z-index: 1;
     display: inline-flex;
     flex: 1 1 0;
     align-items: center;
