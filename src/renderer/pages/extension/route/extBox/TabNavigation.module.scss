@@ -41,6 +41,10 @@
         opacity 0.12s ease;
 }
 
+.indicatorResizing {
+    transition: none;
+}
+
 .tab {
     position: relative;
     z-index: 1;

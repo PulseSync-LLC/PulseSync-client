@@ -365,7 +365,7 @@ const TabContent: React.FC<Props> = ({
             : active === LICENSE_TAB
               ? docs.find(d => /license|licence|mit/i.test(d.value || d.title))
               : docs.find(d => (d.value || d.title) === active)
-    if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
+    if (!doc) return null
 
     return (
         <div className={styles.galleryContainer}>
