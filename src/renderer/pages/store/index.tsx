@@ -290,7 +290,7 @@ export default function StorePage() {
     )
 
     const visibleAddons = useMemo(() => {
-        const source = catalogTab === 'main' ? addons : ownAddons
+        const source = catalogTab === 'main' ? addons : catalogTab === 'moderation' ? pendingAddons : ownAddons
         const targetStatus = catalogTab === 'moderation' ? 'pending' : 'accepted'
         const relevantAddons = source.filter(addon => addon.currentRelease?.status === targetStatus)
         const normalizedSearch = debouncedSearchQuery.toLocaleLowerCase()
@@ -302,7 +302,7 @@ export default function StorePage() {
                 .filter(Boolean)
                 .some(value => value!.toLocaleLowerCase().includes(normalizedSearch))
         })
-    }, [addons, catalogTab, debouncedSearchQuery, ownAddons])
+    }, [addons, catalogTab, debouncedSearchQuery, ownAddons, pendingAddons])
 
     const featuredAddons = popularAddons.slice(0, 5)
     const featuredAddon = featuredAddons[featuredIndex] ?? featuredAddons[0] ?? null
@@ -311,7 +311,6 @@ export default function StorePage() {
     const shouldRenderCards = visibleAddons.length > 0
     const hasSearchOrFilter = Boolean(debouncedSearchQuery)
     const activeLoading = catalogTab === 'main' ? loading : ownAddonsLoading
-    const shouldShowPendingSection = catalogTab === 'main' && isDeveloperUser && (pendingAddons.length > 0 || Boolean(debouncedSearchQuery))
 
     useEffect(() => {
         const container = scrollContainerRef.current
@@ -739,24 +738,6 @@ export default function StorePage() {
                         </div>
 
                         {content}
-
-                        {shouldShowPendingSection ? (
-                            <section className={st.catalogSection}>
-                                <header className={st.sectionHeader}>
-                                    <div>
-                                        <h2>{t('store.pendingSectionTitle')}</h2>
-                                        <p>{t('store.pendingSectionSubtitle')}</p>
-                                    </div>
-                                </header>
-                                {pendingAddons.length ? (
-                                    <div className={st.storeList}>
-                                        {pendingAddons.map(addon => renderStoreCard(addon, 'list', { forceStatus: 'pending' }))}
-                                    </div>
-                                ) : (
-                                    <div className={st.storeState}>{t('store.pendingEmpty')}</div>
-                                )}
-                            </section>
-                        ) : null}
                     </main>
                 </Scrollbar>
                 <StoreAddonDetailsModal

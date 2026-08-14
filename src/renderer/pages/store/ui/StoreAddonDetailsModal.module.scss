@@ -59,6 +59,10 @@
     line-height: 19px;
 }
 
+.modalTabs button:only-of-type {
+    width: 100%;
+}
+
 .modalTabs :global([class*='_tabIndicator_']) {
     top: 0;
     bottom: 0;
