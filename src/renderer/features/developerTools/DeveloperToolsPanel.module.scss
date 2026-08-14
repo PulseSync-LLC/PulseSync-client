@@ -1,3 +1,5 @@
+@use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
+
 .panel {
     min-width: 0;
 }
@@ -202,6 +204,43 @@
     height: 220px;
     color: var(--text-secondary);
     font-size: 12px;
+}
+
+.chartShimmer {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    overflow: hidden;
+}
+
+.chartShimmerGrid {
+    position: absolute;
+    inset: 8px 0 28px;
+    background: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px 25%);
+    opacity: 0.55;
+}
+
+.chartShimmerArea {
+    @include shimmer.surface(color-mix(in srgb, var(--accent) 16%, transparent));
+    position: absolute;
+    inset: 24px 0 28px;
+    clip-path: polygon(0 82%, 13% 62%, 27% 70%, 42% 35%, 57% 52%, 73% 18%, 87% 40%, 100% 8%, 100% 100%, 0 100%);
+}
+
+.chartShimmerLabels {
+    position: absolute;
+    right: 0;
+    bottom: 3px;
+    left: 0;
+    display: flex;
+    justify-content: space-between;
+    gap: 18px;
+
+    span {
+        @include shimmer.text-surface;
+        width: 42px;
+        height: 8px;
+    }
 }
 
 .toolList {

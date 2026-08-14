@@ -80,6 +80,18 @@
     padding: 2px;
 }
 
+.root .controlCard {
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    outline: none;
+}
+
+.root .controlCard:hover {
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+    outline: none;
+}
+
 .title {
     margin: 4px 0 6px;
     font-weight: 700;
