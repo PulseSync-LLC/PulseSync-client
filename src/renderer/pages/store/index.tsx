@@ -26,6 +26,7 @@ import { useModalContext } from '@app/providers/modal'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import StoreAddonDetailsModal from '@pages/store/ui/StoreAddonDetailsModal'
+import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -39,11 +40,17 @@ type OwnStoreAddonsQuery = {
     getOwnStoreAddons: StoreAddon[]
 }
 
-type CatalogTab = 'main' | 'owned'
+type CatalogTab = 'main' | 'owned' | 'moderation'
 
 type StoreRouteState = {
     openAddon?: StoreAddon
     openAddonId?: string
+}
+
+type AddonRatingSummary = {
+    average: number
+    count: number
+    myRating: number | null
 }
 
 function formatAge(value: string, locale: string): string {
@@ -64,6 +71,7 @@ export default function StorePage() {
     const { Modals, openModal, setModalState } = useModalContext()
     const [addons, setAddons] = useState<StoreAddon[]>([])
     const [newAddons, setNewAddons] = useState<StoreAddon[]>([])
+    const [popularAddons, setPopularAddons] = useState<StoreAddon[]>([])
     const [ownAddons, setOwnAddons] = useState<StoreAddon[]>([])
     const [pendingAddons, setPendingAddons] = useState<StoreAddon[]>([])
     const [catalogTab, setCatalogTab] = useState<CatalogTab>('main')
@@ -85,19 +93,38 @@ export default function StorePage() {
     const isDeveloperUser = user?.perms === 'developer' || isDev
     const routeState = location.state as StoreRouteState | null
 
+    const handleRatingChange = useCallback((addonId: string, summary: AddonRatingSummary) => {
+        const updateAddon = (addon: StoreAddon): StoreAddon =>
+            addon.id === addonId
+                ? {
+                      ...addon,
+                      myRating: summary.myRating,
+                      ratingAverage: summary.average,
+                      ratingCount: summary.count,
+                  }
+                : addon
+
+        setAddons(current => current.map(updateAddon))
+        setNewAddons(current => current.map(updateAddon))
+        setPopularAddons(current => current.map(updateAddon))
+        setOwnAddons(current => current.map(updateAddon))
+        setPendingAddons(current => current.map(updateAddon))
+        setSelectedAddon(current => (current ? updateAddon(current) : current))
+    }, [])
+
     useEffect(() => {
         const requestedAddonId = String(routeState?.openAddon?.id || routeState?.openAddonId || '').trim()
         if (!requestedAddonId) return
 
         const routeAddon = routeState?.openAddon?.currentRelease
             ? routeState.openAddon
-            : [...addons, ...newAddons, ...ownAddons, ...pendingAddons].find(addon => addon.id === requestedAddonId)
+            : [...addons, ...newAddons, ...popularAddons, ...ownAddons, ...pendingAddons].find(addon => addon.id === requestedAddonId)
         if (!routeAddon?.currentRelease) return
 
         setCatalogTab('main')
         setSelectedAddon(routeAddon)
         navigate('/store', { replace: true, state: null })
-    }, [addons, navigate, newAddons, ownAddons, pendingAddons, routeState])
+    }, [addons, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState])
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 250)
@@ -115,7 +142,7 @@ export default function StorePage() {
         const loadAddons = async () => {
             setLoading(true)
             try {
-                const [response, newAddonsResponse] = await Promise.all([
+                const [response, newAddonsResponse, popularAddonsResponse] = await Promise.all([
                     apolloClient.query<StoreAddonsQuery>({
                         query: GetStoreAddonsQuery,
                         variables: {
@@ -135,6 +162,17 @@ export default function StorePage() {
                         },
                         fetchPolicy: 'no-cache',
                     }),
+                    apolloClient.query<StoreAddonsQuery>({
+                        query: GetStoreAddonsQuery,
+                        variables: {
+                            page: 1,
+                            pageSize: 5,
+                            search: debouncedSearchQuery || undefined,
+                            sortBy: 'downloads',
+                            sortOrder: 'desc',
+                        },
+                        fetchPolicy: 'no-cache',
+                    }),
                 ])
 
                 if (!active) return
@@ -144,11 +182,18 @@ export default function StorePage() {
                         addon => addon.currentRelease?.status === 'accepted',
                     ),
                 )
+                setPopularAddons(
+                    (Array.isArray(popularAddonsResponse.data?.getStoreAddons?.addons)
+                        ? popularAddonsResponse.data.getStoreAddons.addons
+                        : []
+                    ).filter(addon => addon.currentRelease?.status === 'accepted'),
+                )
             } catch (error) {
                 console.error('[Store] failed to load addons', error)
                 if (active) {
                     setAddons([])
                     setNewAddons([])
+                    setPopularAddons([])
                 }
             } finally {
                 if (active) setLoading(false)
@@ -243,12 +288,13 @@ export default function StorePage() {
     )
 
     const visibleAddons = useMemo(() => {
-        const source = catalogTab === 'owned' ? ownAddons : addons
-        const publishedAddons = source.filter(addon => addon.currentRelease?.status === 'accepted')
+        const source = catalogTab === 'main' ? addons : ownAddons
+        const targetStatus = catalogTab === 'moderation' ? 'pending' : 'accepted'
+        const relevantAddons = source.filter(addon => addon.currentRelease?.status === targetStatus)
         const normalizedSearch = debouncedSearchQuery.toLocaleLowerCase()
-        if (!normalizedSearch || catalogTab === 'main') return publishedAddons
+        if (!normalizedSearch || catalogTab === 'main') return relevantAddons
 
-        return publishedAddons.filter(addon => {
+        return relevantAddons.filter(addon => {
             const release = addon.currentRelease
             return [addon.name, release?.description, ...(release?.authors || []), ...(release?.tags || [])]
                 .filter(Boolean)
@@ -256,11 +302,11 @@ export default function StorePage() {
         })
     }, [addons, catalogTab, debouncedSearchQuery, ownAddons])
 
-    const featuredAddons = visibleAddons.slice(0, 5)
+    const featuredAddons = popularAddons.slice(0, 5)
     const featuredAddon = featuredAddons[featuredIndex] ?? featuredAddons[0] ?? null
     const shouldRenderCards = visibleAddons.length > 0
     const hasSearchOrFilter = Boolean(debouncedSearchQuery)
-    const activeLoading = catalogTab === 'owned' ? ownAddonsLoading : loading
+    const activeLoading = catalogTab === 'main' ? loading : ownAddonsLoading
     const shouldShowPendingSection = catalogTab === 'main' && isDeveloperUser && (pendingAddons.length > 0 || Boolean(debouncedSearchQuery))
 
     useEffect(() => {
@@ -352,6 +398,8 @@ export default function StorePage() {
                     status={options?.forceStatus}
                     downloads={formatAge(release.approvedAt || release.updatedAt, i18n.language)}
                     topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
+                    ratingAverage={addon.ratingAverage}
+                    ratingCount={addon.ratingCount}
                     kind={addon.type}
                     tags={release.tags || []}
                     usedAiDuringDevelopment={release.usedAiDuringDevelopment}
@@ -460,6 +508,7 @@ export default function StorePage() {
                     <div className={st.featuredIdentity}>
                         {release.avatarUrl ? <img src={release.avatarUrl} alt="" className={st.featuredAvatar} /> : null}
                         <h1 className={st.featuredTitle}>{addon.name}</h1>
+                        <AddonRatingBadge average={addon.ratingAverage} count={addon.ratingCount} />
                         <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdInventory2 />}>
                             {`v${release.version}`}
                         </Badge>
@@ -545,13 +594,20 @@ export default function StorePage() {
             <StoreShimmer count={6} variant={catalogTab === 'main' ? 'catalog' : 'list'} />
         </div>
     ) : !visibleAddons.length ? (
-        <div className={st.storeState}>{t(hasSearchOrFilter ? 'store.noResults' : 'store.empty')}</div>
-    ) : catalogTab === 'owned' ? (
+        <div className={st.storeState}>
+            {t(hasSearchOrFilter ? 'store.noResults' : catalogTab === 'moderation' ? 'store.pendingEmpty' : 'store.empty')}
+        </div>
+    ) : catalogTab !== 'main' ? (
         <section className={st.catalogSection}>
             <header className={st.sectionHeader}>
-                <h2>{t('store.catalog.myAddons')}</h2>
+                <div>
+                    <h2>{t(catalogTab === 'moderation' ? 'store.pendingSectionTitle' : 'store.catalog.myAddons')}</h2>
+                    {catalogTab === 'moderation' ? <p>{t('store.pendingSectionSubtitle')}</p> : null}
+                </div>
             </header>
-            <div className={st.storeList}>{visibleAddons.map(addon => renderStoreCard(addon, 'list'))}</div>
+            <div className={st.storeList}>
+                {visibleAddons.map(addon => renderStoreCard(addon, 'list', catalogTab === 'moderation' ? { forceStatus: 'pending' } : undefined))}
+            </div>
         </section>
     ) : (
         <>
@@ -576,7 +632,7 @@ export default function StorePage() {
                             setFeaturedDirection(index >= featuredIndex ? 1 : -1)
                             setFeaturedIndex(index)
                         }}
-                        aria-label={`${t('store.catalog.newAddons')} ${index + 1}`}
+                        aria-label={addon.name}
                         aria-current={index === featuredIndex ? 'true' : undefined}
                     />
                 ))}
@@ -641,6 +697,7 @@ export default function StorePage() {
                                 <TabList className={st.catalogTabs}>
                                     <Tab value="main">{t('store.catalog.main')}</Tab>
                                     <Tab value="owned">{t('store.catalog.myAddons')}</Tab>
+                                    <Tab value="moderation">{t('store.catalog.moderation')}</Tab>
                                 </TabList>
                             </Tabs>
                             <div className={st.catalogSearchSlot}>
@@ -702,6 +759,7 @@ export default function StorePage() {
                         setSelectedAddon(null)
                         navigate(`/profile/${encodeURIComponent(author)}`)
                     }}
+                    onRatingChange={handleRatingChange}
                     onClose={() => setSelectedAddon(null)}
                 />
             </>

@@ -6,6 +6,10 @@ export default gql`
             id
             name
             type
+            downloadCount
+            ratingAverage
+            ratingCount
+            myRating
             submittedById
             submittedByUsername
             submittedByNickname

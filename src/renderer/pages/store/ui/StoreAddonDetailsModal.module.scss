@@ -272,6 +272,76 @@
     font-weight: 500;
 }
 
+.ratingSection {
+    padding: 15px 14px 0;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    gap: 10px;
+}
+
+.ratingSummary {
+    min-width: 0;
+    display: flex;
+    align-items: center;
+    gap: 7px;
+}
+
+.ratingSummary span {
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 16px;
+    white-space: nowrap;
+}
+
+.ratingSummary .ratingPrompt {
+    color: var(--text-primary);
+    font-size: 12px;
+    font-weight: 700;
+}
+
+.ratingStars {
+    display: flex;
+    align-items: center;
+    gap: 1px;
+}
+
+.ratingStars button {
+    width: 24px;
+    height: 24px;
+    padding: 0;
+    display: grid;
+    place-items: center;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: var(--text-muted);
+    cursor: pointer;
+    transition:
+        background-color 140ms ease,
+        transform 140ms ease;
+}
+
+.ratingStars button:hover,
+.ratingStars button:focus-visible,
+.ratingStars button.ratingStarActive {
+    background: color-mix(in srgb, var(--rating) 15%, transparent);
+    color: var(--rating);
+    transform: translateY(-1px);
+    outline: none;
+}
+
+.ratingStars button:disabled {
+    cursor: wait;
+    opacity: 0.6;
+    transform: none;
+}
+
+.ratingStars svg {
+    width: 16px;
+    height: 16px;
+}
+
 .section {
     padding: 15px 14px 0;
     display: flex;
@@ -428,6 +498,7 @@
 
     .copy,
     .metadata,
+    .ratingSection,
     .section {
         padding-inline: 8px;
     }

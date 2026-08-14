@@ -1,0 +1,17 @@
+.badge.badge {
+    min-height: 24px;
+    padding: 4px 7px;
+    gap: 6px;
+    border-radius: 6px;
+    background: color-mix(in srgb, var(--rating) 15%, transparent);
+    color: var(--rating);
+    font-size: 12px;
+    font-weight: 600;
+    line-height: 16px;
+}
+
+.badge.badge svg {
+    width: 16px;
+    height: 16px;
+    flex: 0 0 16px;
+}

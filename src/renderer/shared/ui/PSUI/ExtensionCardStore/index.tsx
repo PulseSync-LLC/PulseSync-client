@@ -17,6 +17,7 @@ import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 import { t } from '@app/i18n'
 import { staticAsset } from '@shared/lib/staticAssets'
 import TooltipButton from '@shared/ui/tooltip_button'
+import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
@@ -34,6 +35,8 @@ export interface ExtensionCardStoreProps {
     authors: string[]
     downloads?: string
     topRightMeta?: string
+    ratingAverage?: number
+    ratingCount?: number
     theme?: ExtensionTheme
     size?: ExtensionCardSize
     iconImage?: string
@@ -114,6 +117,8 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     authors,
     downloads,
     topRightMeta,
+    ratingAverage = 0,
+    ratingCount,
     iconImage,
     backgroundImage,
     className,
@@ -196,6 +201,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         </div>
                         <p>{subtitle}</p>
                         <div className={st.metaRow}>
+                            {ratingCount !== undefined ? <AddonRatingBadge average={ratingAverage} count={ratingCount} /> : null}
                             {status ? (
                                 <Badge uppercase={false} size="md" variant={getStatusVariant(status)} className={st.metaBadge}>
                                     {t(`store.status.${status}`)}

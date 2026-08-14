@@ -1229,6 +1229,7 @@
         "catalog": {
             "main": "Home",
             "myAddons": "My add-ons",
+            "moderation": "In moderation",
             "search": "Search",
             "authors": "Authors",
             "tags": "Tags",
@@ -1238,6 +1239,13 @@
             "recentlyUpdated": "Recently updated",
             "previous": "Previous add-ons",
             "next": "Next add-ons"
+        },
+        "rating": {
+            "title": "Rating",
+            "average": "Average",
+            "votes": "Ratings: {{count}}",
+            "set": "Rate {{rating}} out of 5",
+            "failed": "Failed to save rating"
         },
         "download": "Download",
         "loading": "Loading store add-ons...",
