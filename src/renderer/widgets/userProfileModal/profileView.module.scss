@@ -1,0 +1,18 @@
+.scrollArea {
+    height: -webkit-fill-available;
+    width: -webkit-fill-available;
+    overflow: overlay;
+}
+
+.scrollAreaInner {
+    display: flex;
+    flex-direction: column;
+    min-height: 100%;
+}
+
+.content {
+    flex: 1;
+    min-height: 0;
+    overflow: auto;
+    background: var(--surface-primary);
+}

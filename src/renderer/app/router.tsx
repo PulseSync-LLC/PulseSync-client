@@ -14,7 +14,6 @@ const UsersPage = lazy(() => import('@pages/users'))
 const ExtensionPage = lazy(() => import('@pages/extension'))
 const JointPage = lazy(() => import('@pages/joint'))
 const StorePage = lazy(() => import('@pages/store'))
-const ProfilePage = lazy(() => import('@pages/profile/[username]'))
 
 function withErrorBoundary(node: React.ReactNode) {
     return (
@@ -92,13 +91,5 @@ export function createAppRouter() {
         },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
-        {
-            path: '/profile/:profileName',
-            element: withErrorBoundary(
-                <RequireAuthorized>
-                    <ProfilePage />
-                </RequireAuthorized>,
-            ),
-        },
     ])
 }

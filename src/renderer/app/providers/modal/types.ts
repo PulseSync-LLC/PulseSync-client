@@ -35,6 +35,9 @@ export type ModalAdditionalStateMap = {
         confirmVariant?: 'primary' | 'danger'
         onConfirm?: (() => void) | null
     }
+    [Modals.USER_PROFILE]: {
+        profileName: string
+    }
 }
 
 type EmptyObject = {}

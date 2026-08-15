@@ -1,40 +1,30 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
 import { useQuery } from '@apollo/client/react'
+import { useTranslation } from 'react-i18next'
 
 import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
 import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
 import userInitials from '@entities/user/model/user.initials'
-
-import PageLayout from '@widgets/layout/PageLayout'
+import type { ExtendedUser } from '@entities/user/model/extendUser.interface'
+import userContext from '@entities/user/model/context'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-
+import { isProfileSlugForUser } from '@shared/lib/profileSlug'
 import ProfileTab from '@widgets/userProfileModal/tabs/ProfileTab'
 import FriendsTab from '@widgets/userProfileModal/tabs/FriendsTab'
 import SettingsTab from '@widgets/userProfileModal/tabs/SettingsTab'
+import * as styles from '@widgets/userProfileModal/profileView.module.scss'
 
-import * as styles from '@pages/profile/profilePage.module.scss'
-import { MdPeopleOutline, MdPersonOutline, MdSettings } from 'react-icons/md'
-import { ExtendedUser } from '@entities/user/model/extendUser.interface'
-import userContext from '@entities/user/model/context'
-import { useTranslation } from 'react-i18next'
-import { getProfileSlug, isProfileSlugForUser } from '@shared/lib/profileSlug'
+type ProfileViewProps = {
+    profileName: string
+}
 
-const ProfilePage: React.FC = () => {
-    const { profileName: raw } = useParams()
-    const navigate = useNavigate()
-    const profileName = decodeURIComponent(raw || '')
+export default function ProfileView({ profileName }: ProfileViewProps) {
     const { user, allAchievements, socketConnected } = useContext(userContext)
     const { t } = useTranslation()
+    const [activeTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
-    const [activeTab, setActiveTab] = useState<'profile' | 'friends' | 'settings'>('profile')
-
-    const isSelf = useMemo(() => {
-        return isProfileSlugForUser(profileName, user)
-    }, [profileName, user])
-
+    const isSelf = useMemo(() => isProfileSlugForUser(profileName, user), [profileName, user])
     const queryDoc = useMemo(() => (isSelf ? getMeProfileQuery : getUserProfileQuery), [isSelf])
-
     const variables = useMemo(() => (isSelf ? undefined : { name: profileName }), [isSelf, profileName])
 
     const { data, loading, error, refetch } = useQuery<any>(queryDoc, {
@@ -77,9 +67,7 @@ const ProfilePage: React.FC = () => {
     }, [isSelf, liveAchievementsSignature, loading, payload?.id, refetch, variables])
 
     const livePayload: ExtendedUser | null = useMemo(() => {
-        if (!payload || !isSelf || user.id === '-1' || payload.id !== user.id) {
-            return payload
-        }
+        if (!payload || !isSelf || user.id === '-1' || payload.id !== user.id) return payload
 
         const hasLiveAchievementData =
             (Array.isArray(user.userAchievements) && user.userAchievements.length > 0) || Number(user.levelInfoV2?.totalPoints || 0) > 0
@@ -106,7 +94,7 @@ const ProfilePage: React.FC = () => {
         }
     }, [isSelf, payload, socketConnected, user])
 
-    const userProfile: ExtendedUser = useMemo<ExtendedUser>(() => {
+    const userProfile = useMemo<ExtendedUser>(() => {
         if (!livePayload) return userInitials
         return {
             ...livePayload,
@@ -120,67 +108,17 @@ const ProfilePage: React.FC = () => {
         if (error) return error.message || t('profile.errors.loadFailed')
         if (!loading && profileName && !payload) return t('profile.errors.userNotFound')
         return null
-    }, [error, loading, payload, t, profileName])
-
-    const displayName = useMemo(() => getProfileSlug(livePayload) || profileName, [livePayload, profileName])
-
-    const onEscPress = useCallback(
-        (e: KeyboardEvent) => {
-            if (e.key === 'Escape') navigate(-1)
-        },
-        [navigate],
-    )
-
-    useEffect(() => {
-        document.addEventListener('keydown', onEscPress, true)
-        return () => document.removeEventListener('keydown', onEscPress, true)
-    }, [onEscPress])
-
-    const renderTabTitle = useCallback(() => {
-        if (activeTab === 'profile')
-            return (
-                <>
-                    <MdPersonOutline size={34} />
-                    <span>{t('profile.tabs.profileWithName', { username: displayName })}</span>
-                </>
-            )
-        if (activeTab === 'friends')
-            return (
-                <>
-                    <MdPeopleOutline size={34} />
-                    <span>{t('profile.tabs.friendsWithName', { username: displayName })}</span>
-                </>
-            )
-        if (activeTab === 'settings')
-            return (
-                <>
-                    <MdSettings size={34} />
-                    <span>{t('profile.tabs.settings')}</span>
-                </>
-            )
-        return null
-    }, [activeTab, displayName, t])
+    }, [error, loading, payload, profileName, t])
 
     return (
-        <PageLayout title={t('profile.pageTitle')}>
-            <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
-                {/*<div className={styles.tabs}>{renderTabTitle()}</div>*/}
-                {/* <div className={styles.tabs}>
-                <button onClick={() => setActiveTab('profile')}  className={activeTab === 'profile'  ? styles.activeTab : ''}>Профиль</button>
-                <button onClick={() => setActiveTab('friends')}  className={activeTab === 'friends'  ? styles.activeTab : ''}>Друзья</button>
-                <button onClick={() => setActiveTab('settings')} className={activeTab === 'settings' ? styles.activeTab : ''}>Настройки</button>
-              </div> */}
-
-                <div className={styles.content}>
-                    {activeTab === 'profile' && (
-                        <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} profileName={profileName} />
-                    )}
-                    {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
-                    {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
-                </div>
-            </Scrollbar>
-        </PageLayout>
+        <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollAreaInner}>
+            <div className={styles.content}>
+                {activeTab === 'profile' && (
+                    <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} profileName={profileName} />
+                )}
+                {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
+                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
+            </div>
+        </Scrollbar>
     )
 }
-
-export default ProfilePage
