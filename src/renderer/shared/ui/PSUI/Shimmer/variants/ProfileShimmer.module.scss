@@ -2,29 +2,30 @@
 
 .shell {
     width: 100%;
+    min-height: 100%;
     display: flex;
     flex-direction: column;
     gap: 0;
-    background: transparent;
+    background: var(--surface-primary);
 }
 
 .statusBar {
-    @include shimmer.surface(#a2ff58);
-    height: 32px;
+    height: 36px;
     display: flex;
     align-items: center;
     justify-content: space-between;
-    padding: 0 14px 0 18px;
+    padding: 0 64px 0 40px;
+    background: var(--surface-tertiary);
 }
 
 .statusText {
-    @include shimmer.text-surface(color-mix(in srgb, var(--success) 22%, transparent));
+    @include shimmer.text-surface;
     width: 320px;
     height: 14px;
 }
 
 .statusIcon {
-    @include shimmer.surface(color-mix(in srgb, var(--success) 22%, transparent));
+    @include shimmer.surface;
     width: 18px;
     height: 18px;
     border-radius: 4px;
@@ -32,13 +33,12 @@
 
 .banner {
     @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 14%, transparent));
-    height: 350px;
-    min-height: 350px;
-    padding: 15px 40px;
+    height: clamp(250px, 28vh, 320px);
+    padding: 20px 40px;
     display: flex;
     flex-direction: column;
     justify-content: flex-end;
-    gap: 15px;
+    gap: 12px;
 }
 
 .profileMetaContainer {
@@ -140,12 +140,13 @@
 }
 
 .section {
-    @include shimmer.surface(var(--border));
+    flex: 1;
     min-height: 240px;
-    padding: 10px 40px;
+    padding: 20px 40px 32px;
     display: flex;
     flex-direction: column;
     gap: 15px;
+    background: var(--surface-primary);
 }
 
 .sectionHeader {
@@ -167,13 +168,14 @@
 }
 
 .progressCard {
-    @include shimmer.surface;
     min-height: 96px;
-    border-radius: 18px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     padding: 8px 12px 12px;
     display: flex;
     flex-direction: column;
     gap: 8px;
+    background: var(--surface-secondary);
 }
 
 .progressHeader {
@@ -195,10 +197,10 @@
 }
 
 .progressBar {
-    @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 50%, transparent));
     position: relative;
     height: 45px;
     border-radius: 8px;
+    background: var(--surface-tertiary);
 }
 
 .progressFill {
@@ -252,13 +254,14 @@
 }
 
 .achievementRow {
-    @include shimmer.surface(var(--border-hover));
-    height: 58px;
-    border-radius: 8px;
+    min-height: 82px;
+    border: 1px solid var(--border);
+    border-radius: 12px;
     display: flex;
     align-items: center;
     gap: 14px;
-    padding: 0 10px;
+    padding: 10px 16px;
+    background: var(--surface-secondary);
 }
 
 .achievementThumb {
@@ -293,4 +296,71 @@
     width: 28px;
     height: 28px;
     border-radius: 999px;
+}
+
+.achievementFooter {
+    display: flex;
+    gap: 8px;
+    margin-top: 2px;
+}
+
+.achievementPill,
+.achievementPillShort {
+    @include shimmer.surface;
+    width: 86px;
+    height: 20px;
+    border-radius: 8px;
+}
+
+.achievementPillShort {
+    width: 58px;
+}
+
+@media (max-width: 1200px) {
+    .statusBar {
+        padding-left: 24px;
+    }
+
+    .banner {
+        height: clamp(230px, 27vh, 280px);
+        padding-inline: 24px;
+    }
+
+    .section {
+        padding-inline: 24px;
+    }
+}
+
+@media (max-width: 760px) {
+    .statusBar {
+        padding-left: 16px;
+    }
+
+    .statusText {
+        width: min(240px, 70%);
+    }
+
+    .banner {
+        height: auto;
+        min-height: 260px;
+        padding: 56px 16px 20px;
+    }
+
+    .profileMetaContainer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .buttons {
+        width: auto;
+    }
+
+    .section {
+        padding: 16px;
+    }
+
+    .achievementRow {
+        padding: 10px 12px;
+    }
 }

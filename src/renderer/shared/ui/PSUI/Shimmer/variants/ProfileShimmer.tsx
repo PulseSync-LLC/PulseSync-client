@@ -61,6 +61,10 @@ export default function ProfileShimmer() {
                             <div className={styles.achievementContent}>
                                 <div className={styles.achievementTitle} />
                                 <div className={styles.achievementSubtitle} />
+                                <div className={styles.achievementFooter}>
+                                    <div className={styles.achievementPill} />
+                                    <div className={styles.achievementPillShort} />
+                                </div>
                             </div>
                             <div className={styles.achievementMeta} />
                         </div>
