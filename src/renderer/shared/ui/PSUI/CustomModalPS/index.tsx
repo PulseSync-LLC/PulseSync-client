@@ -15,7 +15,9 @@ export interface ModalButton {
 
 export interface CustomModalPSProps {
     className?: string
+    backdropClassName?: string
     isOpen: boolean
+    inline?: boolean
     allowNoChoice?: boolean
     onClose: () => void
     title?: ReactNode
@@ -56,7 +58,9 @@ const modalVariants = {
 
 const CustomModalPS: React.FC<CustomModalPSProps> = ({
     className,
+    backdropClassName,
     isOpen,
+    inline = false,
     onClose,
     title,
     text,
@@ -135,12 +139,12 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({
         )
     }
 
-    return ReactDOM.createPortal(
+    const modal = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
                     key="backdrop"
-                    className={styles.backdrop}
+                    className={cn(styles.backdrop, backdropClassName)}
                     variants={backdropVariants}
                     initial="hidden"
                     animate="visible"
@@ -180,9 +184,10 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>,
-        document.body,
+        </AnimatePresence>
     )
+
+    return inline ? modal : ReactDOM.createPortal(modal, document.body)
 }
 
 export default CustomModalPS

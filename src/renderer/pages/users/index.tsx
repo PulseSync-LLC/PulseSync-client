@@ -1,7 +1,6 @@
 import PageLayout from '@widgets/layout/PageLayout'
 import * as s from '@pages/users/users.module.scss'
 import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
-import { useNavigate } from 'react-router-dom'
 import cn from 'clsx'
 import UserInterface from '@entities/user/model/user.interface'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
@@ -17,7 +16,7 @@ import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
 import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
 import type { SortState, UserGridMetrics } from '@pages/users/model/userList'
 import { SORT_FIELDS, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH, getUserGridMetrics, sortUsers } from '@pages/users/model/userList'
-import { getProfileSlug } from '@shared/lib/profileSlug'
+import { useModalContext } from '@app/providers/modal'
 
 export default function UsersPage() {
     const INITIAL_SHIMMER_FADE_MS = 180
@@ -54,17 +53,15 @@ export default function UsersPage() {
         sorting,
         search: '',
     })
-    const nav = useNavigate()
     const { t } = useTranslation()
+    const { Modals, openModal } = useModalContext()
     const [gridMetrics, setGridMetrics] = useState<UserGridMetrics | null>(null)
 
     const openProfile = useCallback(
-        (u: any) => {
-            const name: string | undefined = typeof u === 'string' ? u : getProfileSlug(u)
-            if (!name) return
-            nav(`/profile/${encodeURIComponent(name)}`)
+        (profileName: string) => {
+            if (profileName) openModal(Modals.USER_PROFILE, { profileName })
         },
-        [nav],
+        [Modals.USER_PROFILE, openModal],
     )
 
     const setSortRef =

@@ -435,13 +435,13 @@ export default function StorePage() {
                     }
                     onDownloadClick={() => void handleStoreAddonAction(addon, release, installedStoreAddon)}
                     onAuthorClick={author => {
-                        if (author) navigate(`/profile/${encodeURIComponent(author)}`)
+                        if (author) openModal(Modals.USER_PROFILE, { profileName: author })
                     }}
                     onClick={() => setSelectedAddon(addon)}
                 />
             )
         },
-        [handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, navigate, t],
+        [Modals.USER_PROFILE, handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, openModal, t],
     )
 
     const clearInitialShimmerTimers = useCallback(() => {
@@ -556,7 +556,7 @@ export default function StorePage() {
                                         key={`${author}:${index}`}
                                         type="button"
                                         className={cn(st.authorBadge, index === 0 ? st.toneInfo : st.neutralBadge)}
-                                        onClick={() => author && navigate(`/profile/${encodeURIComponent(author)}`)}
+                                        onClick={() => author && openModal(Modals.USER_PROFILE, { profileName: author })}
                                     >
                                         <span aria-hidden="true" />
                                         {author}
@@ -765,7 +765,7 @@ export default function StorePage() {
                     }}
                     onAuthorClick={author => {
                         setSelectedAddon(null)
-                        navigate(`/profile/${encodeURIComponent(author)}`)
+                        openModal(Modals.USER_PROFILE, { profileName: author })
                     }}
                     onRatingChange={handleRatingChange}
                     onClose={() => setSelectedAddon(null)}

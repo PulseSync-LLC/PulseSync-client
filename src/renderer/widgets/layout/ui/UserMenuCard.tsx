@@ -1,7 +1,7 @@
 import React, { CSSProperties } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
 
+import { useModalContext } from '@app/providers/modal'
 import UserInterface from '@entities/user/model/user.interface'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import TooltipButton from '@shared/ui/tooltip_button'
@@ -23,7 +23,7 @@ type Props = {
 }
 
 export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInputRef, bannerProgress, isOpen, logout, onClose, t, user }: Props) {
-    const nav = useNavigate()
+    const { Modals, openModal } = useModalContext()
     const profileSlug = getProfileSlug(user)
     const visibleBadges = getUserBadgesWithSubscription(user)
 
@@ -91,7 +91,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                     <div className={styles.user_info}>
                         <div
                             onClick={() => {
-                                nav(`/profile/${encodeURIComponent(profileSlug)}`)
+                                openModal(Modals.USER_PROFILE, { profileName: profileSlug })
                                 onClose()
                             }}
                             key={user.username}
@@ -106,7 +106,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
             <div className={styles.user_menu_buttons}>
                 <button
                     onClick={() => {
-                        nav(`/profile/${encodeURIComponent(profileSlug)}`)
+                        openModal(Modals.USER_PROFILE, { profileName: profileSlug })
                         onClose()
                     }}
                     key={user.id}

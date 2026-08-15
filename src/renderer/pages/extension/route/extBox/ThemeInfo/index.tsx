@@ -285,7 +285,7 @@ const ThemeInfo: React.FC<Props> = ({
                 <h2>{t('extensions.meta.authors')}</h2>
                 <div className={s.chipList}>
                     {authorNames.map(author => (
-                        <button key={author} className={s.authorChip} onClick={() => nav(`/profile/${encodeURIComponent(author)}`)}>
+                        <button key={author} className={s.authorChip} onClick={() => openModal(Modals.USER_PROFILE, { profileName: author })}>
                             <span /> {author}
                         </button>
                     ))}

@@ -31,6 +31,7 @@ const initialModalsState: ModalsState = {
     [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
     [Modals.SUBSCRIPTION_GIVEAWAYS]: { isOpen: false },
     [Modals.BASIC_CONFIRMATION]: { isOpen: false, title: '', description: '', confirmLabel: undefined, onConfirm: undefined },
+    [Modals.USER_PROFILE]: { isOpen: false, profileName: '' },
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({

@@ -5,8 +5,9 @@
     padding: 8px 12px 12px;
     gap: 8px;
     width: 100%;
-    background: var(--border-hover);
-    border-radius: 14px;
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
 
     .level_header {
         display: flex;
@@ -28,7 +29,7 @@
         padding: 4px;
         gap: 10px;
         isolation: isolate;
-        background: color-mix(in srgb, var(--text-secondary) 50%, transparent);
+        background: var(--surface-tertiary);
         //outline: 4px solid color-mix(in srgb, var(--text-secondary) 50%, transparent);
         border-radius: 8px;
 
@@ -55,7 +56,7 @@
             z-index: 1;
 
             .level_box {
-                color: white;
+                color: var(--text-primary);
                 font-size: 14px;
                 font-weight: bold;
                 display: flex;
@@ -74,7 +75,7 @@
                 font-size: 14px;
                 line-height: 140%;
 
-                color: var(--accent-foreground);
+                color: var(--text-primary);
             }
         }
     }

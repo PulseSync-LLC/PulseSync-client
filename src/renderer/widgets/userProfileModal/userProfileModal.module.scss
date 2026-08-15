@@ -125,7 +125,6 @@
 
 .profileMetaContainer {
     width: 100%;
-
     display: flex;
     flex-direction: row;
     align-items: center;
@@ -134,13 +133,13 @@
 
 .bannerBackground {
     width: 100%;
-    height: 350px;
+    height: clamp(250px, 28vh, 320px);
     position: relative;
     display: flex;
     flex-direction: column;
-    gap: 15px;
+    gap: 12px;
     align-items: flex-end;
-    padding: 15px 40px;
+    padding: 20px 40px;
     justify-content: flex-end;
     overflow: hidden;
 }
@@ -163,7 +162,7 @@
     right: 0;
     bottom: 0;
     left: 0;
-    background: linear-gradient(180deg, transparent 0%, var(--border) 100%);
+    background: linear-gradient(180deg, color-mix(in srgb, var(--surface-primary) 12%, transparent) 0%, var(--surface-primary) 100%);
     z-index: 1;
     pointer-events: none;
 }
@@ -380,7 +379,8 @@
     display: flex;
     flex-direction: row;
     align-items: center;
-    padding: 6px 40px;
+    min-height: 36px;
+    padding: 6px 64px 6px 40px;
     gap: 8px;
     font-weight: 700;
     font-size: 15px;
@@ -414,11 +414,10 @@
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    padding: 10px 40px;
+    padding: 20px 40px 32px;
     gap: 15px;
     width: 100%;
-    background: var(--border);
-    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
+    background: var(--surface-primary);
 }
 
 .userPageDown {
@@ -431,47 +430,49 @@
 
 .warning {
     display: flex;
-    width: 100%;
-    background: transparent;
+    align-self: stretch;
+    width: auto;
+    background: color-mix(in srgb, var(--warning) 8%, var(--surface-secondary));
     justify-content: center;
-    padding: 20px 40px;
-    margin: 0 20px;
+    padding: 14px 20px 14px 36px;
+    margin: 20px 40px 0;
     font-weight: 700;
     color: var(--warning);
     z-index: 2;
-    border-radius: 14px;
+    border: 1px solid color-mix(in srgb, var(--warning) 28%, var(--border));
+    border-radius: 12px;
     position: relative;
     overflow: hidden;
     flex-direction: column;
 
     .title {
-        font-size: 20px;
+        font-size: 16px;
         display: flex;
         align-items: center;
         gap: 10px;
-        margin-bottom: 10px;
+        margin-bottom: 6px;
     }
 
     .description {
-        font-size: 16px;
+        font-size: 14px;
         font-weight: 400;
         line-height: 1.5;
     }
 
     .warnDot {
         position: absolute;
-        left: 16px;
-        width: 10px;
-        height: 10px;
+        left: 14px;
+        width: 8px;
+        height: 8px;
         background-color: var(--warning);
         border-radius: 50%;
     }
 
     .pulsingDot {
         position: absolute;
-        left: 13px;
-        width: 16px;
-        height: 16px;
+        left: 11px;
+        width: 14px;
+        height: 14px;
         background-color: var(--warning);
         border-radius: 50%;
         animation: pulse 2s cubic-bezier(0.175, 0.885, 0.32, 1.275) infinite;
@@ -525,11 +526,62 @@
     position: relative;
     display: flex;
     flex-direction: column;
-    background: var(--border-hover);
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
     border-radius: 8px;
     padding: 10px 15px;
     gap: 10px;
     width: 100%;
+}
+
+@media (max-width: 1200px) {
+    .bannerBackground {
+        height: clamp(230px, 27vh, 280px);
+        padding-inline: 24px;
+    }
+
+    .userStatusInfo {
+        padding-left: 24px;
+    }
+
+    .warning {
+        margin-inline: 24px;
+    }
+
+    .achievementsSection {
+        padding-inline: 24px;
+    }
+}
+
+@media (max-width: 760px) {
+    .profileMetaContainer {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 16px;
+    }
+
+    .bannerBackground {
+        height: auto;
+        min-height: 260px;
+        padding: 56px 16px 20px;
+    }
+
+    .userButtons {
+        width: auto;
+    }
+
+    .userStatusInfo {
+        padding-left: 16px;
+        font-size: 13px;
+    }
+
+    .warning {
+        margin: 16px 16px 0;
+    }
+
+    .achievementsSection {
+        padding: 16px;
+    }
 }
 
 .loadingContainer {
