@@ -111,8 +111,9 @@ export function useLayoutInstallers({
 
         const serverVer = clean(serverRaw)
         const localVer = clean(app.mod?.version)
+
         setIsModUpdateAvailable(musicInstalled && (!hasInstalledMod || semver.gt(serverVer, localVer)))
-    }, [clean, hasInstalledMod, modInfo, musicInstalled])
+    }, [app.mod.version, clean, hasInstalledMod, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return
