@@ -210,7 +210,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const [loadingModChanges, setLoadingModChanges] = useState(false)
     const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
-    const [isMac, setIsMac] = useState(false)
+    const [isMac, setIsMac] = useState(() => navigator.platform.toLowerCase().includes('mac'))
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
     const modChangesLoadedKeyRef = useRef<string | null>(null)

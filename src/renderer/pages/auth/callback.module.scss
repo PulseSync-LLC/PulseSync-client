@@ -1,12 +1,16 @@
 .main_window {
     display: flex;
-    width: -webkit-fill-available;
+    left: 0;
+    right: 0;
     bottom: 0;
     justify-content: center;
     position: absolute;
-    top: 50px;
+    top: 48px;
     align-items: center;
     padding: 0 60px;
+    box-sizing: border-box;
+    overflow: hidden;
+    background: #050505;
 
     > div {
         // max-width: 1157px;

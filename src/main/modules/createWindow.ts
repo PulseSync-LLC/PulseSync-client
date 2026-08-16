@@ -304,7 +304,7 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
         minWidth: minMain.width,
         minHeight: minMain.height,
         titleBarStyle: 'hidden',
-        trafficLightPosition: { x: 15, y: 20 },
+        trafficLightPosition: { x: 15, y: 18 },
         icon,
         webPreferences: {
             preload: getMainWindowPreloadPath(),

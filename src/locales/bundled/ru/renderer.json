@@ -81,18 +81,13 @@
         "hardwareIdentityWarning": "Не удалось подтвердить HWID клиента. Некоторые функции могут быть ограничены.",
         "discordAuth": "Авторизация",
         "failedToFetchUser": "Не удалось получить данные пользователя. Пожалуйста, войдите снова.",
-        "images": {
-            "flatCylinder": "Плоский цилиндр",
-            "icosahedron": "Икосаэдр",
-            "pyramid": "Пирамида",
-            "thorusKnot": "Тороидальный узел"
-        },
         "pendingAuth": "Ожидание авторизации",
         "pleaseLoginAgain": "Пожалуйста, войдите снова.",
         "readTermsError": "Ошибка чтения файла:",
         "sessionExpired": "Ваша сессия истекла. Пожалуйста, войдите снова.",
         "sessionExpiredTitle": "Ошибка",
         "termsLink": "Соглашением об использовании программы",
+        "title": "Авторизация",
         "unknownAuthError": "Неизвестная ошибка авторизации."
     },
     "addons": {

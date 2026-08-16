@@ -85,6 +85,8 @@ a.active > button {
 body {
     display: flex;
     background: var(--Main);
+    box-sizing: border-box;
+    overflow: hidden;
     padding: 0;
     margin: 0;
     flex-direction: column;
@@ -97,12 +99,17 @@ body {
 
 body.devmark-border {
     border-radius: 10px;
-    box-sizing: border-box;
-    overflow: hidden;
-    background-color: var(--development-build, #fff34c);
+}
+
+body.devmark-border::after {
+    content: '';
     position: fixed;
     inset: 0;
+    z-index: 2147483647;
+    box-sizing: border-box;
     border: 3px solid var(--development-build, #fff34c);
+    border-radius: 10px;
+    pointer-events: none;
 }
 
 .app-wrapper {
