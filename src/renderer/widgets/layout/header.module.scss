@@ -688,6 +688,12 @@
     }
 }
 
+.nav_bar.mac {
+    .fix_size .app_menu {
+        padding-left: 72px;
+    }
+}
+
 .hoverUpload {
     cursor: pointer;
     transition: var(--transition);

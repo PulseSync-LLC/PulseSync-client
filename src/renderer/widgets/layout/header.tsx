@@ -369,7 +369,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 modChangesInfo={modChangesInfo}
                 modError={modError}
             />
-            <header ref={containerRef} className={styles.nav_bar}>
+            <header ref={containerRef} className={`${styles.nav_bar} ${isMac ? styles.mac : ''}`}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
                         <div className={styles.railLogoSlot} aria-hidden="true">

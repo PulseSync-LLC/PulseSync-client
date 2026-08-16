@@ -337,17 +337,6 @@ export function useLayoutInstallers({
         }
     }, [app.mod.installed, app.mod.version, isUpdating, modInfo, modInfoFetched, startUpdate, t])
 
-    useEffect(() => {
-        if (app.info.devmark && app.settings.showDevFrame) {
-            document.body.classList.add('devmark-border')
-        } else {
-            document.body.classList.remove('devmark-border')
-        }
-        return () => {
-            document.body.classList.remove('devmark-border')
-        }
-    }, [app.info.devmark, app.settings.showDevFrame])
-
     return {
         isModUpdateAvailable,
         modInstallError,
