@@ -45,11 +45,12 @@ export function useLayoutInstallers({
     const [isUpdating, setIsUpdating] = useState(false)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [modInstallError, setModInstallError] = useState<{ details: string; showProxyHint: boolean; title: string } | null>(null)
+    const hasInstalledMod = Boolean(app.mod.installed && app.mod.version)
 
     const downloadToastIdRef = useRef<string | null>(null)
     const appRef = useRef(app)
     const modInfoRef = useRef(modInfo)
-    const currentModActionRef = useRef<'install' | 'update'>(app.mod.installed ? 'update' : 'install')
+    const currentModActionRef = useRef<'install' | 'update'>(hasInstalledMod ? 'update' : 'install')
 
     const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
 
@@ -110,15 +111,16 @@ export function useLayoutInstallers({
 
         const serverVer = clean(serverRaw)
         const localVer = clean(app.mod?.version)
-        setIsModUpdateAvailable(musicInstalled && (!app.mod.installed || semver.gt(serverVer, localVer)))
-    }, [app.mod.installed, app.mod.version, clean, modInfo, musicInstalled])
+        setIsModUpdateAvailable(musicInstalled && (!hasInstalledMod || semver.gt(serverVer, localVer)))
+    }, [clean, hasInstalledMod, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
         const handleModInstallStarted = (data?: { isUpdate?: boolean }) => {
-            const isUpdate = typeof data?.isUpdate === 'boolean' ? data.isUpdate : appRef.current.mod.installed
+            const wasInstalled = Boolean(appRef.current.mod.installed && appRef.current.mod.version)
+            const isUpdate = (typeof data?.isUpdate === 'boolean' ? data.isUpdate : wasInstalled) && wasInstalled
             currentModActionRef.current = isUpdate ? 'update' : 'install'
             setIsUpdating(true)
             setModInstallError(null)
@@ -163,9 +165,32 @@ export function useLayoutInstallers({
 
         const handleSuccess = async (data: any) => {
             const installedMod = await readInstalledModSnapshot()
-            const installedEntry = modInfoRef.current.find(mod => mod.modVersion === installedMod.version)
             setModInstallError(null)
             const isUpdate = currentModActionRef.current === 'update'
+
+            if (!installedMod.installed || !installedMod.version) {
+                const title = t('common.somethingWrongTitle')
+                const details = t('layout.modInstallUpdateError')
+
+                if (downloadToastIdRef.current) {
+                    toast.update(downloadToastIdRef.current, {
+                        kind: 'error',
+                        title,
+                        msg: details,
+                        sticky: false,
+                        duration: 15000,
+                        value: 0,
+                    })
+                    downloadToastIdRef.current = null
+                } else {
+                    toast.custom('error', title, details)
+                }
+
+                setIsUpdating(false)
+                return
+            }
+
+            const installedEntry = modInfoRef.current.find(mod => mod.modVersion === installedMod.version)
 
             if (downloadToastIdRef.current) {
                 toast.custom(
@@ -181,12 +206,6 @@ export function useLayoutInstallers({
                     data.message || (isUpdate ? t('layout.modUpdateSuccess') : t('layout.modInstallSuccess')),
                     t('common.doneTitle'),
                 )
-            }
-
-            if (!installedMod.installed || !installedMod.version) {
-                toast.custom('error', t('common.somethingWrongTitle'), t('layout.modInstallUpdateError'))
-                setIsUpdating(false)
-                return
             }
 
             setApp(prevApp => ({
@@ -280,23 +299,23 @@ export function useLayoutInstallers({
             toast.custom(
                 'error',
                 t('common.errorTitle'),
-                app.mod.installed ? t('layout.modUpdateAlreadyRunning') : t('layout.modInstallAlreadyRunning'),
+                hasInstalledMod ? t('layout.modUpdateAlreadyRunning') : t('layout.modInstallAlreadyRunning'),
             )
             return
         }
         if (modInfo.length === 0) {
             toast.custom(
                 'error',
-                app.mod.installed ? t('layout.noModUpdatesAvailable') : t('layout.noModInstallsAvailable'),
-                app.mod.installed ? t('layout.modUpdateLoadError') : t('layout.modInstallErrorTitle'),
+                hasInstalledMod ? t('layout.noModUpdatesAvailable') : t('layout.noModInstallsAvailable'),
+                hasInstalledMod ? t('layout.modUpdateLoadError') : t('layout.modInstallErrorTitle'),
             )
             return
         }
 
         setIsUpdating(true)
         setModInstallError(null)
-        currentModActionRef.current = app.mod.installed ? 'update' : 'install'
-        const id = toast.custom('loading', app.mod.installed ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'), {
+        currentModActionRef.current = hasInstalledMod ? 'update' : 'install'
+        const id = toast.custom('loading', hasInstalledMod ? t('layout.modUpdateStart') : t('layout.modInstallStart'), t('common.pleaseWait'), {
             id: MOD_DOWNLOAD_TOAST_ID,
             duration: Infinity,
         })
@@ -316,7 +335,7 @@ export function useLayoutInstallers({
             shouldReinstall,
             source: source || 'backend',
         })
-    }, [app.mod.installed, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t])
+    }, [hasInstalledMod, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t])
 
     useEffect(() => {
         if (!modInfoFetched || modInfo.length === 0 || isUpdating || !app.mod.installed || !app.mod.version) return
