@@ -13,6 +13,11 @@
     background: #050505;
 }
 
+:global(body.devmark-border) .main_window {
+    bottom: 20px;
+    border-radius: 0 0 7px 7px;
+}
+
 /* ===== Space Background ===== */
 .spaceBackground {
     position: absolute;

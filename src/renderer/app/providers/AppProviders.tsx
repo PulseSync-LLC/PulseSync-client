@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo } from 'react'
+import React, { useCallback, useEffect, useMemo } from 'react'
 import { RouterProvider } from 'react-router'
 import { CssVarsProvider } from '@mui/joy'
 import { SkeletonTheme } from 'react-loading-skeleton'
@@ -50,6 +50,15 @@ export default function AppProviders({
     onLegacyAddonRestrictionsChange,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
+
+    useEffect(() => {
+        const showDevFrame = app.info.devmark && app.settings.showDevFrame
+        document.body.classList.toggle('devmark-border', showDevFrame)
+
+        return () => {
+            document.body.classList.remove('devmark-border')
+        }
+    }, [app.info.devmark, app.settings.showDevFrame])
 
     const setAppWithSocket = useCallback(
         (updater: SettingsUpdater) => {
