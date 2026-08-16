@@ -6,7 +6,6 @@ import { MdChevronLeft, MdChevronRight, MdDataArray, MdDownload, MdInventory2, M
 import { SearchBox } from '@pulsesync/uikit/inputs'
 import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
 import { Badge } from '@pulsesync/uikit/data-display'
-import { isDev } from '@common/appConfig'
 import PageLayout from '@widgets/layout/PageLayout'
 import * as st from '@pages/store/store.module.scss'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
@@ -92,7 +91,7 @@ export default function StorePage() {
     const shimmerFadeRafRef = useRef<number | null>(null)
     const scrollContainerRef = useRef<HTMLDivElement>(null)
     const newAddonsRef = useRef<HTMLDivElement>(null)
-    const isDeveloperUser = user?.perms === 'developer' || isDev
+    const isDeveloperUser = user?.perms === 'developer'
     const routeState = location.state as StoreRouteState | null
 
     const handleRatingChange = useCallback((addonId: string, summary: AddonRatingSummary) => {
@@ -723,7 +722,7 @@ export default function StorePage() {
                                 <TabList className={st.catalogTabs}>
                                     <Tab value="main">{t('store.catalog.main')}</Tab>
                                     <Tab value="owned">{t('store.catalog.myAddons')}</Tab>
-                                    <Tab value="moderation">{t('store.catalog.moderation')}</Tab>
+                                    {isDeveloperUser && <Tab value="moderation">{t('store.catalog.moderation')}</Tab>}
                                 </TabList>
                             </Tabs>
                             <div className={st.catalogSearchSlot}>
