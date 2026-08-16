@@ -81,18 +81,13 @@
         "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
         "failedToFetchUser": "Failed to fetch user data. Please log in again.",
-        "images": {
-            "flatCylinder": "Flat Cylinder",
-            "icosahedron": "Icosahedron",
-            "pyramid": "Pyramid",
-            "thorusKnot": "Torus Knot"
-        },
         "pendingAuth": "Waiting for authorization",
         "pleaseLoginAgain": "Please log in again.",
         "readTermsError": "Failed to read file:",
         "sessionExpired": "Your session has expired. Please log in again.",
         "sessionExpiredTitle": "Error",
         "termsLink": "the Terms of Use",
+        "title": "Authorization",
         "unknownAuthError": "Unknown authorization error."
     },
     "addons": {

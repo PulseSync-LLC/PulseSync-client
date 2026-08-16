@@ -54,7 +54,7 @@ export default function AuthPage() {
 
     return (
         <>
-            <Header />
+            <Header title={t('auth.title')} />
             <div className={pageStyles.main_window}>
                 {/* Space Background */}
                 <div className={pageStyles.spaceBackground}>

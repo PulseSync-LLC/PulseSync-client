@@ -39,7 +39,7 @@ export default function CallbackPage() {
 
     return (
         <>
-            <Header />
+            <Header title={t('auth.title')} />
             <div className={pageStyles.main_window}>
                 <div>
                     <div className={pageStyles.container}>

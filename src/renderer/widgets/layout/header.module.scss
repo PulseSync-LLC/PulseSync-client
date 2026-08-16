@@ -782,8 +782,10 @@
 
 .loginButton {
     -webkit-app-region: no-drag;
+    width: 94px;
     padding: 8px 18px;
     align-items: center;
+    justify-content: center;
     border-radius: 10px;
 }
 
