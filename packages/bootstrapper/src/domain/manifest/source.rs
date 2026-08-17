@@ -110,7 +110,7 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
     let releases = releases
         .as_array()
         .ok_or("GitHub releases response must be an array")?;
-    let want_prerelease = matches!(fallback.channel.as_str(), "alpha" | "dev");
+    let want_prerelease = fallback.channel == "dev";
     let asset_name = if fallback.hybrid {
         format!("desktop-update-hybrid-{}.json", fallback.dist)
     } else {

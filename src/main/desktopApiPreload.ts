@@ -140,7 +140,7 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         getBuildChannel: () => ipcRenderer.invoke(MainEvents.GET_BUILD_CHANNEL),
         getEffectiveChannel: () => ipcRenderer.invoke(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL),
         getChannelOverride: () => ipcRenderer.invoke(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE),
-        setChannelOverride: channel => ipcRenderer.invoke(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, channel),
+        setChannelOverride: request => ipcRenderer.invoke(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, request),
         getSource: () => ipcRenderer.invoke(MainEvents.GET_UPDATE_SOURCE),
         setSource: source => ipcRenderer.invoke(MainEvents.SET_UPDATE_SOURCE, source),
         getClientChangelog: () => ipcRenderer.invoke(MainEvents.GET_CLIENT_CHANGELOG),

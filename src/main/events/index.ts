@@ -39,6 +39,7 @@ import { isUiReady, markUiReady } from '../modules/uiReady'
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
 import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
+import type { DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
 import { nativeGetHardwareIdentity } from '../modules/nativeModules'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
@@ -393,9 +394,12 @@ const registerSystemEvents = (window: BrowserWindow): void => {
             createdAt: toUnixSeconds(release.published_at),
         }))
     })
-    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
+    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, request: DesktopSetUpdateChannelOverrideRequest | string | null) => {
+        const isLegacyRequest = typeof request === 'string' || request === null
+        const channel = isLegacyRequest ? request : request.channel
+        const allowDevToBetaSwitch = !isLegacyRequest && request.allowDevToBetaSwitch === true
         const previousEffectiveChannel = getEffectiveUpdateChannel()
-        const nextOverride = setUpdateChannelOverride(channel)
+        const nextOverride = setUpdateChannelOverride(channel, allowDevToBetaSwitch)
         const nextEffectiveChannel = getEffectiveUpdateChannel()
 
         if (previousEffectiveChannel !== nextEffectiveChannel) {

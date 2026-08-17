@@ -163,6 +163,15 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
                 {toggleRow(t('contextMenu.appSettings.hardwareAcceleration'), app.settings.hardwareAcceleration, 'hardwareAcceleration')}
                 {toggleRow(t('contextMenu.appSettings.autoUpdateStoreAddons'), app.settings.autoUpdateStoreAddons, 'autoUpdateStoreAddons')}
                 {toggleRow(t('contextMenu.appSettings.deletePextAfterImport'), app.settings.deletePextAfterImport, 'deletePextAfterImport')}
+                {app.info.devmark && (
+                    <SettingsRow title={t('contextMenu.misc.showDevFrame')} description={t('settingsModal.developer.showDevFrameDescription')}>
+                        <SettingsCheckbox
+                            checked={app.settings.showDevFrame}
+                            label={t('contextMenu.misc.showDevFrame')}
+                            onChange={checked => updateDeveloperSetting('showDevFrame', checked)}
+                        />
+                    </SettingsRow>
+                )}
             </section>
             <section className={styles.settingsGroup}>
                 <div className={styles.groupTitle}>{t('contextMenu.windowSettings.title')}</div>
@@ -320,16 +329,6 @@ const SettingsModal: React.FC<SettingsModalProps> = ({ onNavigate }) => {
             <div className={styles.contentHeader}>
                 <h2 className={styles.contentTitle}>{t('settingsModal.developer.title')}</h2>
             </div>
-            <section className={styles.settingsGroup}>
-                <div className={styles.groupTitle}>{t('settingsModal.developer.interfaceTitle')}</div>
-                <SettingsRow title={t('contextMenu.misc.showDevFrame')} description={t('settingsModal.developer.showDevFrameDescription')}>
-                    <SettingsCheckbox
-                        checked={app.settings.showDevFrame}
-                        label={t('contextMenu.misc.showDevFrame')}
-                        onChange={checked => updateDeveloperSetting('showDevFrame', checked)}
-                    />
-                </SettingsRow>
-            </section>
             {isLocalDev && (
                 <section className={styles.settingsGroup}>
                     <div className={styles.groupTitle}>{t('settingsModal.developer.runtimeTitle')}</div>

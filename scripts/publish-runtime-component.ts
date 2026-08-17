@@ -216,7 +216,7 @@ async function main(): Promise<void> {
     const parsedMetadataVersion = Number(metadataVersion)
     const dist = getDist()
     if (!COMPONENTS.includes(component)) throw new Error(`Unsupported runtime component: ${component}`)
-    if (!['alpha', 'beta', 'dev'].includes(channel)) throw new Error(`Unsupported update channel: ${channel}`)
+    if (!['beta', 'dev'].includes(channel)) throw new Error(`Unsupported update channel: ${channel}`)
     if (!/^\d+$/u.test(metadataVersion) || !Number.isSafeInteger(parsedMetadataVersion) || parsedMetadataVersion <= 0) {
         throw new Error(`Invalid metadata version: ${metadataVersion}`)
     }

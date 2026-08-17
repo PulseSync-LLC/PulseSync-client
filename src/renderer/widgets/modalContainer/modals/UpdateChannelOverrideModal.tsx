@@ -7,8 +7,9 @@ import { useTranslation } from 'react-i18next'
 import { IoCloseSharp } from 'react-icons/io5'
 import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideModal.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
-type UpdateChannel = 'beta' | 'alpha' | 'dev'
+type UpdateChannel = 'beta' | 'dev'
 type ChannelSelection = UpdateChannel | 'default'
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
@@ -27,6 +28,7 @@ const EMPTY_STATE: ChannelStateResponse = {
 const UpdateChannelOverrideModal: React.FC = () => {
     const { t } = useTranslation()
     const { Modals, isModalOpen, closeModal } = useModalContext()
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const [channelState, setChannelState] = useState<ChannelStateResponse>(EMPTY_STATE)
     const [selection, setSelection] = useState<ChannelSelection>('default')
     const [loading, setLoading] = useState(false)
@@ -35,6 +37,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
     const isOpen = isModalOpen(Modals.UPDATE_CHANNEL_OVERRIDE)
     const isSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
+    const allowDevToBetaSwitch = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientDevToBetaSwitch, false)
 
     const loadState = useCallback(async () => {
         setLoading(true)
@@ -114,10 +117,6 @@ const UpdateChannelOverrideModal: React.FC = () => {
                 label: t('header.updateChannel.optionBeta'),
             },
             {
-                value: 'alpha',
-                label: t('header.updateChannel.optionAlpha'),
-            },
-            {
                 value: 'dev',
                 label: t('header.updateChannel.optionDev'),
             },
@@ -134,7 +133,10 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
         try {
             const overrideChannel = selection === 'default' || selection === channelState.buildChannel ? null : selection
-            const nextState = (await desktopApi.updates.setChannelOverride(overrideChannel)) as ChannelStateResponse
+            const nextState = (await desktopApi.updates.setChannelOverride({
+                channel: overrideChannel,
+                allowDevToBetaSwitch,
+            })) as ChannelStateResponse
 
             setChannelState(nextState)
             setSelection(nextState.overrideChannel ?? 'default')
@@ -150,11 +152,12 @@ const UpdateChannelOverrideModal: React.FC = () => {
         } finally {
             setSaving(false)
         }
-    }, [channelState.buildChannel, handleClose, selection, t])
+    }, [allowDevToBetaSwitch, channelState.buildChannel, handleClose, selection, t])
 
     const overrideLabel = channelState.overrideChannel ?? t('header.updateChannel.noOverride')
     const hasOverride = channelState.overrideChannel !== null
     const nextChannel = selection === 'default' ? channelState.buildChannel : selection
+    const isSwitchForbidden = !allowDevToBetaSwitch && channelState.effectiveChannel === 'dev' && nextChannel === 'beta'
     const isUnchangedSelection =
         (selection === 'default' && channelState.overrideChannel === null) || (selection !== 'default' && selection === channelState.overrideChannel)
     const summaryParts = [
@@ -190,7 +193,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
                         void handleSave()
                     },
                     variant: 'primary',
-                    disabled: loading || saving || isSwitchBlocked || isUnchangedSelection,
+                    disabled: loading || saving || isSwitchBlocked || isSwitchForbidden || isUnchangedSelection,
                 },
             ]}
         >
@@ -199,6 +202,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
                 {isSwitchBlocked && <div className={styles.hint}>{t('header.updateChannel.busy')}</div>}
                 {updateStatus === 'DOWNLOADED' && <div className={styles.hint}>{t('header.updateChannel.downloadedHint')}</div>}
+                {isSwitchForbidden && <div className={styles.hint}>{t('header.updateChannel.switchDisabled')}</div>}
 
                 <div className={styles.fieldWrap}>
                     <SelectInput
@@ -211,10 +215,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
                 </div>
 
                 {!isSwitchBlocked && selection !== 'default' && (
-                    <div className={styles.hint}>
-                        {t('header.updateChannel.nextChannel', { channel: nextChannel })}
-                        {selection === 'beta' && channelState.effectiveChannel !== 'beta' ? ` ${t('header.updateChannel.hint')}` : ''}
-                    </div>
+                    <div className={styles.hint}>{t('header.updateChannel.nextChannel', { channel: nextChannel })}</div>
                 )}
             </div>
         </CustomModalPS>

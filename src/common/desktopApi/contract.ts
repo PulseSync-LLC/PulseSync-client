@@ -63,6 +63,11 @@ export interface DesktopCheckUpdateRequest {
     manual?: boolean
 }
 
+export interface DesktopSetUpdateChannelOverrideRequest {
+    channel: string | null
+    allowDevToBetaSwitch: boolean
+}
+
 export interface DesktopUpdateAvailablePayload {
     kind: 'client' | 'renderer'
     version: string
@@ -179,7 +184,7 @@ export interface PulseSyncDesktopApi {
         getBuildChannel(): Promise<string>
         getEffectiveChannel(): Promise<string>
         getChannelOverride(): Promise<string | null>
-        setChannelOverride(channel: string | null): Promise<unknown>
+        setChannelOverride(request: DesktopSetUpdateChannelOverrideRequest): Promise<unknown>
         getSource(): Promise<string>
         setSource(source: string | null): Promise<unknown>
         getClientChangelog(): Promise<unknown>

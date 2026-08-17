@@ -35,7 +35,8 @@ export const desktopApi = {
         getBuildChannel: () => requireDesktopApi().updates.getBuildChannel(),
         getEffectiveChannel: () => requireDesktopApi().updates.getEffectiveChannel(),
         getChannelOverride: () => requireDesktopApi().updates.getChannelOverride(),
-        setChannelOverride: (channel: string | null) => requireDesktopApi().updates.setChannelOverride(channel),
+        setChannelOverride: (request: Parameters<PulseSyncDesktopApi['updates']['setChannelOverride']>[0]) =>
+            requireDesktopApi().updates.setChannelOverride(request),
         getSource: () => requireDesktopApi().updates.getSource(),
         setSource: (source: string | null) => requireDesktopApi().updates.setSource(source),
         getClientChangelog: () => requireDesktopApi().updates.getClientChangelog(),
