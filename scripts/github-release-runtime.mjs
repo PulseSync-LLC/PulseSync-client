@@ -253,7 +253,7 @@ async function fetchJson(url, label) {
 }
 
 async function findPreviousGitHubManifest(repository, channel, manifestName, currentTag) {
-    const wantPrerelease = channel === 'alpha' || channel === 'dev'
+    const wantPrerelease = channel === 'dev'
     for (let page = 1; page <= 10; page += 1) {
         const releases = await fetchJson(`https://api.github.com/repos/${repository}/releases?per_page=100&page=${page}`, 'GitHub releases')
         if (!Array.isArray(releases)) throw new Error('GitHub releases response is invalid')
@@ -325,7 +325,7 @@ async function prepareComponentRelease(args) {
     const channel = requiredArg(args, '--channel').toLowerCase()
     const dist = requiredArg(args, '--dist').toLowerCase()
     const component = requiredArg(args, '--component')
-    if (!['alpha', 'beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
+    if (!['beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
     if (!/^(?:win32|linux|darwin)-[a-z0-9_-]+$/u.test(dist)) throw new Error(`Invalid component release dist: ${dist}`)
     if (!['desktopCore', 'artifactWorker', 'pulsesyncNative', 'bootstrapper'].includes(component)) {
         throw new Error(`Unsupported runtime component: ${component}`)
@@ -391,7 +391,7 @@ async function checkComponentBase(args) {
     const channel = requiredArg(args, '--channel').toLowerCase()
     const dist = requiredArg(args, '--dist').toLowerCase()
     const tag = requiredArg(args, '--tag')
-    if (!['alpha', 'beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
+    if (!['beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
     const name = dist.startsWith('darwin-') ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
     const previous = await findPreviousGitHubManifest(repository, channel, name, tag)
     if (!previous.manifest.targets[dist]) throw new Error(`Previous GitHub manifest has no target: ${dist}`)

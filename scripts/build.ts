@@ -54,9 +54,7 @@ if (publishIndex !== -1) {
         if (/^[a-z0-9][a-z0-9-]*$/u.test(candidate)) {
             publishBranch = candidate
         } else {
-            console.error(
-                chalk.red(`[ERROR] Invalid publish branch "${candidate}". Use only letters, numbers, and dashes (e.g. beta, alpha, dev, tests).`),
-            )
+            console.error(chalk.red(`[ERROR] Invalid publish branch "${candidate}". Use only letters, numbers, and dashes (e.g. beta, dev, tests).`))
             process.exit(1)
         }
     } else {
@@ -370,7 +368,7 @@ function setConfigDevFalse(branch?: string) {
     const configPath = path.resolve(__dirname, '../src/common/appConfig.ts')
     let content = fs.readFileSync(configPath, 'utf-8')
     content = content.replace(/export const isDev\s*=\s*.*$/m, 'export const isDev = false')
-    const keepDevmark = branch === 'alpha' || branch === 'dev'
+    const keepDevmark = branch === 'dev'
     if (!keepDevmark) {
         content = content.replace(/export const isDevmark\s*=\s*.*$/m, 'export const isDevmark = false')
     }

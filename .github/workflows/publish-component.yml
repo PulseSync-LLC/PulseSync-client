@@ -36,7 +36,6 @@ on:
         type: choice
         options:
           - dev
-          - alpha
           - beta
         default: dev
       component:

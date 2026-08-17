@@ -1,6 +1,6 @@
 [package]
 name = "pulsesync-bootstrapper"
-version = "0.3.21"
+version = "0.3.22"
 edition = "2024"
 publish = false
 

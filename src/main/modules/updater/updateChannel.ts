@@ -1,7 +1,7 @@
 import config, { branch as buildBranch } from '@common/appConfig'
 import { readBootstrapSettings, writeBootstrapSettings } from '../bootstrap/bootstrapSettings'
 
-export const UPDATE_CHANNELS = ['beta', 'alpha', 'dev'] as const
+export const UPDATE_CHANNELS = ['beta', 'dev'] as const
 
 export type UpdateChannel = (typeof UPDATE_CHANNELS)[number]
 
@@ -22,19 +22,20 @@ export function getUpdateChannelOverride(): UpdateChannel | null {
     return normalizeUpdateChannel(readBootstrapSettings().updateChannelOverride)
 }
 
-export function setUpdateChannelOverride(channel: unknown): UpdateChannel | null {
+export function setUpdateChannelOverride(channel: unknown, allowDevToBetaSwitch = false): UpdateChannel | null {
     const nextOverride = normalizeUpdateChannel(channel)
+    const nextEffectiveChannel = nextOverride ?? getBuildUpdateChannel()
+
+    if (!allowDevToBetaSwitch && getEffectiveUpdateChannel() === 'dev' && nextEffectiveChannel !== 'dev') {
+        throw new Error('Switching from the dev update channel to beta is not allowed')
+    }
+
     writeBootstrapSettings({ updateChannelOverride: nextOverride ?? '' })
     return nextOverride
 }
 
 export function getEffectiveUpdateChannel(): UpdateChannel {
     return getUpdateChannelOverride() ?? getBuildUpdateChannel()
-}
-
-export function shouldAllowDowngradeForCurrentChannel(): boolean {
-    const overrideChannel = getUpdateChannelOverride()
-    return overrideChannel !== null && overrideChannel !== getBuildUpdateChannel()
 }
 
 export function getUpdateFeedUrl(channel: UpdateChannel): string {

@@ -42,7 +42,7 @@ pub fn prepare_update(
     options: PrepareUpdateOptions,
     reporter: &dyn InstallProgressReporter,
 ) -> std::result::Result<PrepareUpdateResult, UpdateWorkflowError> {
-    if !matches!(options.channel.as_str(), "beta" | "alpha" | "dev")
+    if !matches!(options.channel.as_str(), "beta" | "dev")
         || !input_segment_is_safe(&options.dist)
         || !input_segment_is_safe(&options.github_owner)
         || !input_segment_is_safe(&options.github_repo)

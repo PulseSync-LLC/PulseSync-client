@@ -17,7 +17,7 @@ export type PrepareDesktopUpdateOptions = {
     activeLeaseId: string
     appExecutable: string
     appExecutableName?: string
-    channel: 'beta' | 'alpha' | 'dev'
+    channel: 'beta' | 'dev'
     dist: string
     githubOwner?: string
     githubRepo?: string

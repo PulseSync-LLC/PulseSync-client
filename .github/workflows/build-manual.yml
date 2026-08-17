@@ -29,7 +29,7 @@ on:
         type: boolean
         default: false
       s3_branch:
-        description: "Subpath under prefix (e.g. 'tests', 'beta', 'alpha', 'dev')"
+        description: "Subpath under prefix (e.g. 'tests', 'beta', 'dev')"
         required: true
         default: "tests"
       publish_renderer:
