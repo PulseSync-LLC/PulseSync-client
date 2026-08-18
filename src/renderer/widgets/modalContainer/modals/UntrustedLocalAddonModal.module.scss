@@ -1,39 +1,52 @@
 .modal {
-    min-width: 0;
-    width: min(560px, calc(100vw - 32px));
-    max-width: 560px;
-    align-items: stretch;
-    padding: 28px;
     gap: 18px;
+
+    align-items: stretch;
+
+    width: min(560px, calc(100vw - 32px));
+    min-width: 0;
+    max-width: 560px;
+
+    padding: 28px;
 }
 
 .body {
     display: flex;
+
     flex-direction: column;
+
     gap: 14px;
 }
 
 .eyebrow {
     font-size: 12px;
     font-weight: 800;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
+
     color: var(--danger);
+
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .title {
     margin: 0;
+
     font-size: 28px;
-    line-height: 1.05;
     font-weight: 900;
+
+    line-height: 1.05;
+
     color: var(--text-primary);
 }
 
 .description,
 .caption {
     margin: 0;
+
     font-size: 15px;
+
     line-height: 1.55;
+
     color: var(--text-primary);
 }
 
@@ -41,9 +54,10 @@
     color: var(--text-secondary);
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
     .modal {
         width: min(100%, calc(100vw - 24px));
+
         padding: 22px;
     }
 

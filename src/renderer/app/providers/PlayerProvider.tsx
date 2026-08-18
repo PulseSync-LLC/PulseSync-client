@@ -1,15 +1,16 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 
-import trackInitials from '@entities/track/model/track.initials'
-import PlayerContext from '@entities/track/model/player.context'
-import UserContext from '@entities/user/model/context'
-import { Track } from '@entities/track/model/track.interface'
-import { areTracksEqual, normalizeTrack } from '@shared/lib/utils'
-import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
-import type { PlayerProps } from '@app/AppShell.types'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import PlayerContext from '@entities/track/model/player.context'
+import trackInitials from '@entities/track/model/track.initials'
+import UserContext from '@entities/user/model/context'
+import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { areTracksEqual, normalizeTrack } from '@shared/lib/utils'
+
+import type { PlayerProps } from '@app/AppShell.types'
+import type { Track } from '@entities/track/model/track.interface'
 
 export default function PlayerProvider({ children }: PlayerProps) {
     const { user, socket, socketConnected, emitGateway, addons } = useContext(UserContext)

@@ -1,63 +1,88 @@
 .nav_bar {
-    display: flex;
-    justify-content: center;
-    color: var(--color1);
-    height: 48px;
-    -webkit-app-region: drag;
-    padding: 0;
-    width: -webkit-fill-available;
     z-index: 9997;
+
+    display: flex;
+
+    justify-content: center;
+
+    width: -webkit-fill-available;
+    height: 48px;
+
+    padding: 0;
+
+    color: var(--color1);
+
     background-color: var(--surface-primary);
     border-radius: 10px 10px 0 0;
+    -webkit-app-region: drag;
 
     .fix_size {
-        width: 100%;
         display: flex;
-        justify-content: space-between;
+
         align-items: center;
+        justify-content: space-between;
+
+        width: 100%;
 
         .app_menu {
             display: flex;
-            align-items: center;
+
             gap: 0;
 
+            align-items: center;
+
             .railLogoSlot {
-                width: 54px;
-                height: 48px;
                 display: flex;
+
                 flex: 0 0 54px;
+
                 align-items: center;
                 justify-content: center;
+
+                width: 54px;
+                height: 48px;
 
                 .railLogo {
                     width: 32px;
                     height: 32px;
+
                     object-fit: contain;
                 }
             }
 
             .settingsTooltip {
                 display: flex;
+
                 align-items: center;
-                -webkit-app-region: no-drag;
+
                 cursor: default;
+                -webkit-app-region: no-drag;
             }
 
             .settingsButton {
-                transition: var(--transition);
                 display: flex;
+
                 flex-direction: row;
-                align-items: center;
-                padding: 10px 10px;
-                border-radius: 28px;
+
                 gap: 4px;
+
+                align-items: center;
+
+                padding: 10px;
+
                 cursor: pointer;
 
+                border-radius: 28px;
+
+                transition: var(--transition);
+
                 &:disabled {
-                    opacity: 0.5;
-                    background: transparent;
-                    cursor: default;
                     pointer-events: none;
+                    cursor: default;
+
+                    background: transparent;
+
+                    opacity: 0.5;
 
                     &:hover {
                         background: var(--surface-elevated);
@@ -66,15 +91,22 @@
             }
 
             .logoplace {
+                display: flex;
+
+                gap: 8px;
+
+                align-items: center;
+
                 min-height: 30px;
+
                 padding: 0 8px;
                 margin-left: 0;
-                border-radius: 6px;
-                display: flex;
-                align-items: center;
-                gap: 8px;
-                transition: var(--transition);
+
                 cursor: pointer;
+
+                border-radius: 6px;
+
+                transition: var(--transition);
 
                 &:hover {
                     background: var(--surface-elevated);
@@ -82,11 +114,13 @@
 
                 .false {
                     transform: rotate(0deg);
+
                     transition: var(--transition);
                 }
 
                 .true {
                     transform: rotate(180deg);
+
                     transition: var(--transition);
                 }
 
@@ -97,8 +131,9 @@
                 }
 
                 span {
-                    font-weight: 700;
                     font-size: 14px;
+                    font-weight: 700;
+
                     line-height: 140%;
 
                     color: var(--HeaderBarTextColor);
@@ -109,11 +144,14 @@
                 }
 
                 .breadcrumbIcon {
+                    flex: 0 0 19px;
+
                     width: 19px;
                     height: 19px;
-                    flex: 0 0 19px;
-                    border-radius: 6px;
+
                     object-fit: cover;
+
+                    border-radius: 6px;
                 }
             }
 
@@ -122,14 +160,18 @@
             }
 
             button {
-                cursor: pointer;
-                -webkit-app-region: no-drag;
-                background: none;
-                border: none;
                 font-size: 15px;
                 font-weight: 500;
+
                 color: var(--HeaderBarTextColor);
+
                 text-align: left;
+
+                cursor: pointer;
+
+                background: none;
+                border: none;
+                -webkit-app-region: no-drag;
 
                 &:hover {
                     color: white;
@@ -139,34 +181,48 @@
 
         .event_container {
             display: flex;
+
             flex-direction: row;
-            justify-content: flex-end;
+
             align-items: center;
+            justify-content: flex-end;
 
             width: fit-content;
             height: 100%;
 
             .menu {
-                height: 100%;
                 position: relative;
+
                 display: flex;
-                align-items: center;
+
                 gap: 10px;
+
+                align-items: center;
+
+                height: 100%;
+
                 margin-right: 5px;
+
                 .rpcStatus {
-                    cursor: pointer;
                     position: relative;
-                    -webkit-app-region: no-drag;
-                    transition: var(--transition);
 
                     display: flex;
+
                     flex-direction: row;
-                    align-items: center;
-                    padding: 4px 14px 4px 4px;
+
                     gap: 7px;
+
+                    align-items: center;
+
+                    padding: 4px 14px 4px 4px;
+
+                    cursor: pointer;
 
                     background: var(--surface-elevated);
                     border-radius: 8px;
+
+                    transition: var(--transition);
+                    -webkit-app-region: no-drag;
 
                     &:hover {
                         background: var(--surface-tertiary);
@@ -174,62 +230,81 @@
 
                     & > .imageDetail {
                         position: relative;
+
                         display: flex;
 
                         & > .image {
-                            display: flex;
-                            box-sizing: border-box;
+                            z-index: 0;
 
-                            --size: 30px;
-                            width: var(--size);
-                            height: var(--size);
-                            border-radius: 4px;
+                            box-sizing: border-box;
+                            display: flex;
 
                             flex: none;
-                            order: 0;
                             flex-grow: 0;
-                            z-index: 0;
+
+                            order: 0;
+
+                            width: var(--size);
+                            height: var(--size);
+
+                            border-radius: 4px;
+
+                            --size: 30px;
                         }
                     }
 
                     & > .rpcDetail {
                         display: flex;
+
                         flex-direction: column;
-                        justify-content: center;
-                        align-items: flex-start;
-                        padding: 0px;
+
                         gap: 2px;
 
-                        font-weight: 500;
+                        align-items: flex-start;
+                        justify-content: center;
+
+                        padding: 0;
+
                         font-size: 14px;
+                        font-weight: 500;
+
                         line-height: 16px;
 
                         & > .rpcTitle {
+                            flex: none;
+
                             min-width: 59px;
                             max-width: 135px;
 
-                            font-weight: 900;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+
                             font-size: 12px;
+                            font-weight: 900;
+
                             line-height: 110%;
 
                             color: var(--text-primary);
-                            text-overflow: ellipsis;
-                            flex: none;
-                            overflow: hidden;
+
                             white-space: nowrap;
                         }
+
                         & > .rpcAuthor {
+                            flex: none;
+
                             min-width: 59px;
                             max-width: 135px;
 
-                            font-weight: 500;
+                            overflow: hidden;
+                            text-overflow: ellipsis;
+
                             font-size: 10px;
+                            font-weight: 500;
+
                             line-height: 110%;
 
                             color: var(--text-primary);
-                            text-overflow: ellipsis;
-                            flex: none;
-                            overflow: hidden;
+
                             white-space: nowrap;
                         }
                     }
@@ -240,32 +315,44 @@
                     top: calc(100% + 10px);
                     right: 0;
                     z-index: 99997;
-                    width: 340px;
+
                     display: flex;
+
                     flex-direction: column;
+
                     align-items: flex-start;
-                    border-radius: 8px;
-                    padding: 16px 16px 0 16px;
+
+                    width: 340px;
                     height: 400px;
+
+                    padding: 16px 16px 0;
+
                     overflow: hidden;
-                    box-shadow: #0000009c 1px 2px 20px 1px;
+
                     background: var(--border);
+                    border-radius: 8px;
+                    box-shadow: #0000009c 1px 2px 20px 1px;
 
                     &::after {
-                        height: 18px;
                         position: absolute;
-                        content: '';
-                        bottom: 361px;
                         right: 0;
+                        bottom: 361px;
                         left: 0;
-                        background: linear-gradient(180deg, var(--border) 38%, transparent 100%);
                         z-index: 1;
+
+                        height: 18px;
+
                         pointer-events: none;
+
+                        content: '';
+
+                        background: linear-gradient(180deg, var(--border) 38%, transparent 100%);
                     }
 
                     & > .titleRpc {
-                        font-weight: 900;
                         font-size: 18px;
+                        font-weight: 900;
+
                         line-height: 140%;
 
                         color: var(--text-primary);
@@ -273,83 +360,114 @@
 
                     & > .settingsContainer {
                         display: flex;
+
                         flex-direction: column;
-                        align-items: flex-start;
-                        padding: 10px 0px 16px 0px;
+
                         gap: 15px;
+
+                        align-items: flex-start;
+
                         height: -webkit-fill-available;
-                        overflow: overlay;
+
+                        padding: 10px 0 16px;
+
+                        overflow: auto;
 
                         & > .options {
-                            width: -webkit-fill-available;
-                            padding: 0 1px;
-                            gap: 8px;
                             display: flex;
+
                             flex-direction: column;
+
+                            gap: 8px;
+
+                            width: -webkit-fill-available;
+
+                            padding: 0 1px;
                         }
                     }
                 }
 
                 .user_container {
-                    cursor: pointer;
                     position: relative;
-                    -webkit-app-region: no-drag;
-                    transition: var(--transition);
+
                     display: flex;
-                    width: 52px;
+
                     flex: 0 0 52px;
+
                     align-items: center;
+
+                    width: 52px;
+
                     padding: 0;
+
                     color: var(--statusColor);
+
+                    cursor: pointer;
+
                     background: transparent;
                     border-radius: 12px;
+
+                    transition: var(--transition);
+                    -webkit-app-region: no-drag;
 
                     &:hover {
                         background: transparent;
 
                         .avatar {
                             border-color: var(--border-hover);
+
                             opacity: 0.85;
                         }
                     }
 
                     & > .user_avatar {
                         position: relative;
+
                         display: flex;
 
                         & > .avatar {
-                            display: flex;
-                            box-sizing: border-box;
-
-                            --size: 38px;
-                            width: var(--size);
-                            height: var(--size);
-                            border-radius: 8px;
-                            border: none;
-                            transition: var(--transition);
-
-                            flex: none;
-                            order: 0;
-                            flex-grow: 0;
                             z-index: 0;
 
+                            box-sizing: border-box;
+                            display: flex;
+
+                            flex: none;
+                            flex-grow: 0;
+
+                            order: 0;
+
+                            width: var(--size);
+                            height: var(--size);
+
                             object-fit: cover;
+
+                            border: none;
+                            border-radius: 8px;
+
+                            transition: var(--transition);
+
+                            --size: 38px;
                         }
 
                         & > .status {
                             position: absolute;
-                            right: -9px;
                             top: 6px;
+                            right: -9px;
+
+                            display: flex;
+
                             width: 4px;
                             height: 26px;
-                            display: flex;
+
                             padding: 0;
-                            border-radius: 39px;
+
                             background: transparent;
+                            border-radius: 39px;
 
                             & > .dot {
                                 width: 4px;
                                 height: 26px;
+
                                 background: var(--statusColor);
                                 border-radius: 999px;
                             }
@@ -361,255 +479,325 @@
                     position: absolute;
                     top: calc(100% + 6px);
                     right: 0;
+                    z-index: 99997;
+
+                    box-sizing: border-box;
                     display: flex;
+
+                    flex: 0 0 280px;
                     flex-direction: column;
+
                     align-items: flex-start;
+
                     width: 280px;
                     min-width: 280px;
                     max-width: 280px;
-                    flex: 0 0 280px;
-                    box-sizing: border-box;
+
+                    overflow: hidden;
+
                     background: var(--surface-primary);
                     border: 1px solid var(--border);
                     border-radius: var(--ps-radius-md);
-                    overflow: hidden;
-                    z-index: 99997;
-                    box-shadow: 0 12px 40px rgba(0, 0, 0, 0.35);
+                    box-shadow: 0 12px 40px rgb(0, 0, 0, 0.35);
+
                     transform-origin: top right;
                     -webkit-app-region: no-drag;
 
                     & > .user_alert {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-start;
-                        padding: 10px 15px;
-                        gap: 2px;
-                        width: 100%;
                         box-sizing: border-box;
+                        display: flex;
+
+                        flex-direction: column;
+
+                        gap: 2px;
+
+                        align-items: flex-start;
+
+                        width: 100%;
+
+                        padding: 10px 15px;
 
                         background: var(--warning);
 
                         & > .alert_info {
                             width: 100%;
-                            font-weight: 800;
+                            max-width: 360px;
+
                             font-size: 14px;
+                            font-weight: 800;
+
                             line-height: 16px;
-                            text-align: center;
 
                             color: var(--surface-tertiary);
-                            max-width: 360px;
+
+                            text-align: center;
                         }
+
                         & > .alert_reson {
                             width: 100%;
-                            font-weight: 600;
+                            max-width: 360px;
+
                             font-size: 12px;
+                            font-weight: 600;
+
                             line-height: 15px;
-                            text-align: center;
 
                             color: var(--surface-tertiary);
-                            max-width: 360px;
+
+                            text-align: center;
                         }
                     }
 
                     & > .user_info {
-                        transition: var(--transition);
                         position: relative;
+
                         display: flex;
+
                         flex-direction: column;
+
                         align-items: flex-start;
-                        padding: 0px;
+
                         width: 100%;
+
+                        padding: 0;
+
+                        transition: var(--transition);
 
                         & > .user_banner {
                             position: relative;
+                            z-index: 0;
+
+                            flex: none;
+                            flex-grow: 0;
+
+                            align-self: stretch;
+
+                            order: 0;
+
                             width: 100%;
                             height: 100px;
 
-                            flex: none;
-                            order: 0;
-                            align-self: stretch;
-                            flex-grow: 0;
-                            z-index: 0;
-                            object-fit: cover;
-                            background-size: cover;
-                            background-position: 50% 50%;
                             overflow: hidden;
+
+                            object-fit: cover;
+
+                            background-position: 50% 50%;
+                            background-size: cover;
 
                             & > .banner_image {
                                 position: absolute;
-                                top: 0;
-                                right: 0;
-                                bottom: 0;
-                                left: 0;
+                                inset: 0;
+                                z-index: 0;
+
                                 width: 100%;
                                 height: 100%;
+
                                 object-fit: cover;
-                                z-index: 0;
                             }
 
                             & > .banner_gradient {
                                 position: absolute;
-                                top: 0;
-                                right: 0;
-                                bottom: 0;
-                                left: 0;
-                                background: linear-gradient(180deg, rgba(0, 0, 0, 0.3) 0%, rgba(0, 0, 0, 0.8) 100%);
+                                inset: 0;
                                 z-index: 1;
+
                                 pointer-events: none;
+
+                                background: linear-gradient(180deg, rgb(0, 0, 0, 0.3) 0%, rgb(0, 0, 0, 0.8) 100%);
                             }
 
                             & > .banner_overlay {
                                 position: absolute;
                                 top: 0;
                                 left: 0;
-                                height: 4px;
-                                background: var(--accent);
-                                width: 0%;
                                 z-index: 2;
+
+                                width: 0%;
+                                height: 4px;
+
                                 pointer-events: none;
+
+                                background: var(--accent);
 
                                 & > .banner_loader {
                                     width: var(--progress);
                                     height: 100%;
+
                                     background: var(--accent);
+
                                     transition: width 0.3s linear;
                                 }
                             }
 
                             & > .hoverUpload {
-                                border-radius: 0;
                                 z-index: 2;
+
+                                border-radius: 0;
                             }
 
                             & > .badges_container {
-                                -webkit-app-region: no-drag;
+                                position: absolute;
+                                top: 10px;
+                                right: 12px;
+                                z-index: 2;
+
                                 display: flex;
+
                                 flex-direction: row;
+
+                                gap: 3px;
+
                                 align-items: center;
+
                                 max-width: 164px;
+
+                                padding: 3px;
+
                                 overflow: hidden;
+
                                 background: color-mix(in srgb, var(--surface-primary) 74%, transparent 26%);
                                 border: 1px solid color-mix(in srgb, var(--border) 74%, transparent 26%);
                                 border-radius: 8px;
-                                position: absolute;
-                                right: 12px;
-                                top: 10px;
-                                padding: 3px;
-                                gap: 3px;
-                                z-index: 2;
+                                -webkit-app-region: no-drag;
                             }
                         }
 
                         & > .user_avatar {
-                            display: flex;
                             position: absolute;
-                            left: 20px;
                             top: 88px;
+                            left: 20px;
                             z-index: 1;
 
+                            display: flex;
+
                             & > .overlay {
+                                position: absolute;
+                                inset: -3px;
+                                z-index: 2;
+
                                 display: flex;
+
                                 align-items: center;
                                 justify-content: center;
-                                position: absolute;
-                                top: -3px;
-                                left: -3px;
-                                right: -3px;
-                                bottom: -3px;
-                                border-radius: 14px;
-                                outline: 2px solid var(--background);
-                                z-index: 2;
+
                                 pointer-events: none;
+                                outline: 2px solid var(--background);
+
+                                border-radius: 14px;
 
                                 & > .loader {
                                     position: absolute;
                                     top: 0;
                                     left: 0;
+                                    z-index: 3;
+
                                     width: 100%;
                                     height: 100%;
-                                    border-radius: 14px;
+
                                     background: conic-gradient(
                                         color-mix(in srgb, var(--accent) 58%, transparent) 0% var(--progress),
                                         transparent var(--progress) 100%
                                     );
-
-                                    z-index: 3;
+                                    border-radius: 14px;
                                 }
                             }
 
                             & > .avatar {
-                                display: flex;
-                                box-sizing: border-box;
+                                z-index: 0;
 
-                                --size: 72px;
+                                box-sizing: border-box;
+                                display: flex;
+
+                                flex: none;
+                                flex-grow: 0;
+
+                                order: 0;
+
                                 width: var(--size);
                                 height: var(--size);
-                                border-radius: 14px;
 
                                 outline: 4px solid var(--background);
 
-                                flex: none;
-                                order: 0;
-                                flex-grow: 0;
-                                z-index: 0;
-
                                 object-fit: cover;
+
+                                border-radius: 14px;
+
+                                --size: 72px;
                             }
 
                             & > .status {
-                                pointer-events: none;
                                 position: absolute;
-                                bottom: -2px;
                                 right: -5px;
-                                outline: 4px solid var(--background);
-                                border-radius: 50%;
+                                bottom: -2px;
                                 z-index: 2;
+
+                                pointer-events: none;
+                                outline: 4px solid var(--background);
+
+                                border-radius: 50%;
 
                                 & > .dot {
                                     width: 14px;
                                     height: 14px;
-                                    border-radius: 100%;
+
                                     background: var(--statusColor);
+                                    border-radius: 100%;
                                 }
                             }
                         }
 
                         & > .user_details {
-                            display: flex;
-                            flex-direction: column;
-                            justify-content: center;
-                            align-items: flex-start;
-                            min-height: 64px;
-                            padding: 14px 20px 12px 104px;
-                            gap: 10px;
-                            width: 100%;
-                            box-sizing: border-box;
                             position: relative;
+
+                            box-sizing: border-box;
+                            display: flex;
+
+                            flex-direction: column;
+
+                            gap: 10px;
+
+                            align-items: flex-start;
+                            justify-content: center;
+
+                            width: 100%;
+                            min-height: 64px;
+
+                            padding: 14px 20px 12px 104px;
+
                             isolation: isolate;
 
                             & > .user_info {
                                 display: flex;
+
                                 flex-direction: column;
-                                justify-content: center;
-                                align-items: flex-start;
-                                padding: 0px;
+
                                 gap: 1px;
 
+                                align-items: flex-start;
+                                justify-content: center;
+
+                                padding: 0;
+
                                 & > .username {
-                                    cursor: pointer;
-                                    font-weight: 900;
                                     font-size: 18px;
+                                    font-weight: 900;
+
                                     line-height: 110%;
+
                                     color: var(--text-primary);
+
+                                    cursor: pointer;
 
                                     &:hover {
                                         text-decoration: underline;
                                     }
                                 }
+
                                 & > .usertag {
-                                    font-weight: 700;
                                     font-size: 14px;
+                                    font-weight: 700;
+
                                     line-height: 110%;
+
                                     color: var(--text-secondary);
                                 }
                             }
@@ -617,38 +805,52 @@
                     }
 
                     & > .user_menu_buttons {
-                        display: flex;
-                        flex-direction: column;
-                        align-items: flex-start;
-                        padding: 0 0 8px;
-                        width: 100%;
                         box-sizing: border-box;
+                        display: flex;
+
+                        flex-direction: column;
+
+                        align-items: flex-start;
+
+                        width: 100%;
+
+                        padding: 0 0 8px;
 
                         & > .menu_button {
-                            transition: var(--transition);
-                            cursor: pointer;
                             display: flex;
-                            flex-direction: row;
-                            align-items: center;
-                            padding: 10px 20px;
-                            gap: 10px;
-                            width: 100%;
-                            border: none;
 
-                            font-weight: 700;
+                            flex-direction: row;
+
+                            gap: 10px;
+
+                            align-items: center;
+
+                            width: 100%;
+
+                            padding: 10px 20px;
+
                             font-size: 13px;
+                            font-weight: 700;
+
                             line-height: 140%;
-                            background: transparent;
 
                             color: var(--text-primary);
+
+                            cursor: pointer;
+
+                            background: transparent;
+                            border: none;
+
+                            transition: var(--transition);
 
                             &:hover {
                                 background: var(--hover);
                             }
 
                             &:disabled {
-                                opacity: 0.2;
                                 cursor: default;
+
+                                opacity: 0.2;
 
                                 &:hover {
                                     background: transparent;
@@ -663,13 +865,17 @@
                 display: flex;
 
                 .button_title {
-                    cursor: pointer;
                     display: flex;
+
                     width: fit-content;
                     height: fit-content;
-                    border: 0;
+
                     padding: 14px;
+
+                    cursor: pointer;
+
                     background: transparent;
+                    border: 0;
                     -webkit-app-region: no-drag;
 
                     &:hover {
@@ -678,6 +884,7 @@
 
                     &[id='close'] {
                         border-radius: 0 7px 0 0;
+
                         &:hover {
                             background-color: red;
                         }
@@ -695,23 +902,29 @@
 }
 
 .hoverUpload {
-    cursor: pointer;
-    transition: var(--transition);
-    opacity: 0;
     position: absolute;
-    background: color-mix(in srgb, var(--background) 74%, transparent);
-    color: white;
+    inset: 0;
+
     display: flex;
+
     align-items: center;
     justify-content: center;
-    left: 0;
-    right: 0;
-    bottom: 0;
-    top: 0;
-    border-radius: 8px;
-    text-align: center;
+
     font-size: 12px;
     font-weight: 700;
+
+    color: white;
+
+    text-align: center;
+
+    cursor: pointer;
+
+    background: color-mix(in srgb, var(--background) 74%, transparent);
+    border-radius: 8px;
+
+    opacity: 0;
+
+    transition: var(--transition);
 
     &:hover {
         opacity: 1;
@@ -720,116 +933,160 @@
 
 .badge {
     position: relative;
+
     display: flex;
+
     flex-direction: row;
+
     align-items: center;
 
     img {
         width: 24px;
         height: 24px;
-        background: transparent;
+
         cursor: pointer;
+
+        background: transparent;
     }
 }
 
 .dev {
-    opacity: 1;
-    color: var(--surface-tertiary);
-    background: var(--development-build);
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 0;
+
+    justify-self: center;
+
+    width: -webkit-fill-available;
+
     padding: 2px 12px;
+
     font-size: 12px;
     font-weight: 1000;
-    position: absolute;
-    bottom: 0px;
-    right: 0;
-    left: 0;
-    justify-self: center;
+
+    color: var(--surface-tertiary);
+
     text-align: center;
-    width: -webkit-fill-available;
+
+    background: var(--development-build);
+
+    opacity: 1;
 }
 
 .headerIconButton {
-    -webkit-app-region: no-drag;
-    width: 30px;
-    height: 30px;
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: transparent;
     border: 0;
     border-radius: 6px;
-    background: transparent;
-    color: var(--text-secondary);
-    cursor: pointer;
+
     transition: var(--transition);
+    -webkit-app-region: no-drag;
 
     & > img {
         width: 20px;
         height: 20px;
+
         object-fit: contain;
     }
 
     &:hover {
-        background: var(--surface-elevated);
         color: var(--text-primary);
+
+        background: var(--surface-elevated);
     }
 }
 
 .devOverridesTrigger {
     position: relative;
+
     display: flex;
     -webkit-app-region: no-drag;
 }
 
 .loginButton {
-    -webkit-app-region: no-drag;
-    width: 94px;
-    padding: 8px 18px;
     align-items: center;
     justify-content: center;
+
+    width: 94px;
+
+    padding: 8px 18px;
+
     border-radius: 10px;
+    -webkit-app-region: no-drag;
 }
 
 .devOverridesBadge {
     position: absolute;
     top: -5px;
     right: -5px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
-    background: var(--danger);
-    color: var(--text-primary);
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
     font-size: 10px;
     font-weight: 900;
+
     line-height: 1;
-    box-shadow: 0 0 0 2px var(--surface-tertiary);
+
+    color: var(--text-primary);
+
     pointer-events: none;
+
+    background: var(--danger);
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px var(--surface-tertiary);
 }
 
 .devOverridesBadge {
-    background: var(--warning);
     color: var(--accent-foreground);
+
+    background: var(--warning);
 }
 
 .giveawaysBadge {
     position: absolute;
     top: -5px;
     right: -5px;
-    min-width: 18px;
-    height: 18px;
-    padding: 0 5px;
+
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
-    border-radius: 999px;
-    background: var(--danger);
-    color: var(--text-primary);
+
+    min-width: 18px;
+    height: 18px;
+
+    padding: 0 5px;
+
     font-size: 10px;
     font-weight: 900;
+
     line-height: 1;
-    box-shadow: 0 0 0 2px var(--surface-tertiary);
+
+    color: var(--text-primary);
+
     pointer-events: none;
+
+    background: var(--danger);
+    border-radius: 999px;
+    box-shadow: 0 0 0 2px var(--surface-tertiary);
 }

@@ -167,7 +167,7 @@ const stripUrlDetails = (value: string): string =>
 
 const redactSensitiveText = (value: string): string =>
     stripUrlDetails(value)
-        .replace(/\bBearer\s+[A-Za-z0-9._~+\/-]+=*/gi, 'Bearer [Filtered]')
+        .replace(/\bBearer\s+[A-Za-z0-9._~+/-]+=*/gi, 'Bearer [Filtered]')
         .replace(/\b[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\.[A-Za-z0-9_-]{16,}\b/g, '[Filtered JWT]')
         .replace(/\b[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}\b/gi, '[Filtered Email]')
         .replace(/\b(authorization|password|secret|token|api[_-]?key)\s*[:=]\s*[^\s,;]+/gi, '$1=[Filtered]')

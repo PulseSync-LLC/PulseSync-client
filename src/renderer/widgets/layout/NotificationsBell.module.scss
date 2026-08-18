@@ -1,6 +1,8 @@
 .notificationTrigger {
     position: relative;
+
     display: flex;
+
     align-items: center;
     -webkit-app-region: no-drag;
 }
@@ -8,6 +10,7 @@
 .headerBellIcon {
     width: 20px;
     height: 20px;
+
     object-fit: contain;
 }
 
@@ -20,72 +23,96 @@
     top: calc(100% + 12px);
     right: 0;
     z-index: 99998;
+
+    display: grid;
+
+    grid-template-rows: auto minmax(0, 1fr);
+
     width: min(388px, calc(100vw - 24px));
     min-width: min(388px, calc(100vw - 24px));
     max-width: calc(100vw - 24px);
     max-height: min(70vh, 560px);
-    display: grid;
-    grid-template-rows: auto minmax(0, 1fr);
-    border-radius: 20px;
-    border: 1px solid var(--border);
-    background: color-mix(in srgb, var(--surface-elevated) 94%, var(--surface-primary) 6%);
-    box-shadow:
-        0 20px 48px rgba(0, 0, 0, 0.42),
-        0 0 0 1px var(--hover) inset;
+
     overflow: hidden;
+
+    background: color-mix(in srgb, var(--surface-elevated) 94%, var(--surface-primary) 6%);
+    border: 1px solid var(--border);
+    border-radius: 20px;
+    box-shadow:
+        0 20px 48px rgb(0, 0, 0, 0.42),
+        0 0 0 1px var(--hover) inset;
     -webkit-app-region: no-drag;
 
     &::before {
-        content: '';
         position: absolute;
         top: -7px;
         right: 16px;
+
         width: 14px;
         height: 14px;
-        transform: rotate(45deg);
+
+        content: '';
+
         background: inherit;
         border-top: 1px solid var(--border);
         border-left: 1px solid var(--border);
+
+        transform: rotate(45deg);
     }
 }
 
 .notificationsHeader {
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+
     padding: 16px 16px 14px;
+
     border-bottom: 1px solid var(--border);
 }
 
 .notificationsHeaderCopy {
-    min-width: 0;
     display: grid;
+
     gap: 4px;
+
+    min-width: 0;
 }
 
 .notificationsTitle {
     font-size: 16px;
     font-weight: 800;
+
     color: var(--text-primary);
 }
 
 .notificationsSubtitle {
     font-size: 12px;
+
     color: var(--text-muted);
 }
 
 .notificationsAction {
     flex: 0 0 auto;
+
     min-height: 28px;
+
     padding: 0 10px;
-    border-radius: 8px;
-    border: none;
-    background: transparent;
-    color: var(--text-secondary);
+
     font-size: 12px;
     font-weight: 700;
+
+    color: var(--text-secondary);
+
     cursor: pointer;
+
+    background: transparent;
+    border: none;
+    border-radius: 8px;
+
     transition:
         border-color 0.15s ease,
         color 0.15s ease,
@@ -93,22 +120,29 @@
     -webkit-app-region: no-drag;
 
     &:hover:not(:disabled) {
-        background: var(--surface-secondary);
         color: var(--text-primary);
+
+        background: var(--surface-secondary);
     }
 
     &:disabled {
-        opacity: 0.45;
         cursor: default;
+
+        opacity: 0.45;
     }
 }
 
 .notificationsList {
     display: flex;
+
     flex-direction: column;
+
     gap: 8px;
+
     min-height: 0;
+
     padding: 12px;
+
     overflow: auto;
 }
 
@@ -121,14 +155,21 @@
 .notificationItemWarning,
 .notificationItemUnreadWarning {
     display: grid;
+
     gap: 8px;
+
     width: 100%;
+
     padding: 12px 13px;
-    border-radius: 16px;
-    border: 1px solid var(--border);
-    background: var(--surface-secondary);
-    text-align: left;
+
     color: inherit;
+
+    text-align: left;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+
     transition:
         border-color 0.15s ease,
         transform 0.15s ease,
@@ -144,14 +185,15 @@
 .notificationItemUnreadError:hover,
 .notificationItemWarning:hover,
 .notificationItemUnreadWarning:hover {
-    transform: translateY(-1px);
     border-color: var(--border-hover);
-    box-shadow: 0 8px 20px rgba(0, 0, 0, 0.16);
+    box-shadow: 0 8px 20px rgb(0, 0, 0, 0.16);
+
+    transform: translateY(-1px);
 }
 
 .notificationItemUnread {
-    border-color: var(--border);
     background: color-mix(in srgb, var(--surface-secondary) 84%, var(--warning) 16%);
+    border-color: var(--border);
 }
 
 .notificationItemSuccess,
@@ -183,76 +225,99 @@
 
 .notificationItemHeader {
     display: flex;
+
+    gap: 8px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 8px;
 }
 
 .notificationTone {
-    color: var(--text-secondary);
     font-size: 11px;
     font-weight: 800;
+
+    color: var(--text-secondary);
+
     text-transform: uppercase;
     letter-spacing: 0.06em;
 }
 
 .notificationItemMain {
     display: grid;
+
     gap: 4px;
 }
 
 .notificationItemTitleRow {
     display: flex;
+
+    gap: 10px;
+
     align-items: flex-start;
     justify-content: space-between;
-    gap: 10px;
 }
 
 .notificationItemTitle {
     font-size: 13px;
     font-weight: 700;
-    color: var(--text-primary);
+
     line-height: 1.35;
+
+    color: var(--text-primary);
 }
 
 .notificationItemBody {
     font-size: 13px;
+
     line-height: 1.5;
+
     color: var(--text-secondary);
-    white-space: pre-wrap;
+
     word-break: break-word;
+    white-space: pre-wrap;
 }
 
 .notificationItemMeta {
     font-size: 11px;
+
     color: var(--text-muted);
+
     white-space: nowrap;
 }
 
 .notificationUnreadDot {
+    flex: 0 0 auto;
+
     width: 8px;
     height: 8px;
-    border-radius: 999px;
+
     background: var(--warning);
-    flex: 0 0 auto;
-    box-shadow: 0 0 0 3px rgba(199, 140, 31, 0.14);
+    border-radius: 999px;
+    box-shadow: 0 0 0 3px rgb(199, 140, 31, 0.14);
 }
 
 .notificationItemActions {
     display: flex;
-    align-items: center;
+
     gap: 8px;
+
+    align-items: center;
     justify-content: flex-end;
 }
 
 .notificationActionPrimary,
 .notificationActionSecondary {
     min-height: 28px;
+
     padding: 0 10px;
-    border-radius: 8px;
+
     font-size: 12px;
     font-weight: 700;
+
     cursor: pointer;
+
+    border-radius: 8px;
+
     transition:
         background 0.15s ease,
         border-color 0.15s ease,
@@ -261,9 +326,10 @@
 }
 
 .notificationActionPrimary {
-    border: 1px solid var(--border);
-    background: var(--surface-elevated);
     color: var(--text-primary);
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
 
     &:hover {
         border-color: var(--border-hover);
@@ -271,13 +337,15 @@
 }
 
 .notificationActionSecondary {
-    border: none;
-    background: transparent;
     color: var(--text-secondary);
 
+    background: transparent;
+    border: none;
+
     &:hover {
-        background: var(--surface-elevated);
         color: var(--text-primary);
+
+        background: var(--surface-elevated);
     }
 }
 
@@ -314,7 +382,7 @@
 
 .notificationItemUnreadError .notificationUnreadDot {
     background: var(--danger);
-    box-shadow: 0 0 0 3px rgba(255, 119, 119, 0.16);
+    box-shadow: 0 0 0 3px rgb(255, 119, 119, 0.16);
 }
 
 .notificationItemUnreadWarning .notificationUnreadDot,
@@ -325,29 +393,40 @@
 
 .notificationsEmpty {
     display: grid;
-    justify-items: center;
-    align-content: center;
+
     gap: 12px;
+
+    align-content: center;
+    justify-items: center;
+
     min-height: 160px;
+
     padding: 32px 18px;
-    text-align: center;
+
     color: var(--text-secondary);
+
+    text-align: center;
 }
 
 .notificationsEmptyIcon {
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     width: 42px;
     height: 42px;
-    border-radius: 14px;
-    border: 1px solid var(--border);
-    background: var(--surface-secondary);
+
     color: var(--text-secondary);
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 14px;
 }
 
 .notificationsEmptyTitle {
     font-size: 14px;
     font-weight: 700;
+
     color: var(--text-primary);
 }

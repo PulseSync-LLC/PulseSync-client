@@ -1,78 +1,115 @@
 .level_progress {
     display: flex;
+
     flex-direction: column;
-    justify-content: center;
-    padding: 8px 12px 12px;
+
     gap: 8px;
+
+    justify-content: center;
+
     width: 100%;
+
+    padding: 8px 12px 12px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
 
     .level_header {
         display: flex;
-        justify-content: space-between;
-        font-weight: 700;
-        font-size: 14px;
-        line-height: 140%;
-        color: var(--text-secondary);
+
         flex: none;
+
+        justify-content: space-between;
+
+        font-size: 14px;
+        font-weight: 700;
+
+        line-height: 140%;
+
+        color: var(--text-secondary);
     }
 
     .progress_bar {
         position: relative;
-        overflow: hidden;
+
         display: flex;
+
         flex-direction: row;
-        justify-content: space-between;
-        align-items: center;
-        padding: 4px;
+
         gap: 10px;
-        isolation: isolate;
+
+        align-items: center;
+        justify-content: space-between;
+
+        padding: 4px;
+
+        overflow: hidden;
+
         background: var(--surface-tertiary);
-        //outline: 4px solid color-mix(in srgb, var(--text-secondary) 50%, transparent);
+
+        // outline: 4px solid color-mix(in srgb, var(--text-secondary) 50%, transparent);
         border-radius: 8px;
+
+        isolation: isolate;
 
         .progress_fill {
             position: absolute;
-            left: 0;
             top: 0;
-            height: -webkit-fill-available;
-            transition: var(--transition);
+            left: 0;
+
             display: flex;
+
             flex-direction: row;
-            justify-content: flex-end;
+
             align-items: center;
+            justify-content: flex-end;
+
+            height: -webkit-fill-available;
+
             background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 50%, transparent) 0%, var(--accent) 100%);
             border-radius: 8px;
+
+            transition: var(--transition);
         }
 
         .progress_content {
             position: relative;
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            width: 100%;
             z-index: 1;
 
+            display: flex;
+
+            align-items: center;
+            justify-content: space-between;
+
+            width: 100%;
+
             .level_box {
-                color: var(--text-primary);
-                font-size: 14px;
-                font-weight: bold;
                 display: flex;
-                justify-content: space-around;
+
                 align-items: center;
-                margin: 5px;
+                justify-content: space-around;
+
                 width: 29px;
                 height: 29px;
+
+                margin: 5px;
+
+                font-size: 14px;
+                font-weight: bold;
+
+                color: var(--text-primary);
+
                 background: rgb(184 195 230 / 35%);
-                //outline: 4px solid rgb(184 195 230 / 24%);
+
+                // outline: 4px solid rgb(184 195 230 / 24%);
                 border-radius: 4px;
             }
 
             .points {
-                font-weight: 800;
                 font-size: 14px;
+                font-weight: 800;
+
                 line-height: 140%;
 
                 color: var(--text-primary);

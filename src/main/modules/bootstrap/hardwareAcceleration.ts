@@ -1,5 +1,7 @@
 import { app } from 'electron'
+
 import ElectronStoreModule from 'electron-store'
+
 import { PULSESYNC_STORE_ENCRYPTION_KEY, PULSESYNC_STORE_NAME } from '../storageIdentity'
 
 const ElectronStore = ElectronStoreModule

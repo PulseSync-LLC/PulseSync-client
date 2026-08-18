@@ -1,21 +1,23 @@
-import { BrowserWindow, ipcMain, shell } from 'electron'
-import * as path from 'path'
+import { ipcMain, shell } from 'electron'
+
 import * as fs from 'original-fs'
+import * as path from 'path'
+
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { getState } from '../state'
-import logger from '../logger'
-import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../../utils/appUtils'
-import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
-import { downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
-import { nativeRenameFile } from '../nativeModules'
-import { sendFailure, sendToRenderer } from './download.helpers'
 import { CACHE_DIR, TEMP_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
+import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../../utils/appUtils'
 import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../../utils/appUtils/elevation'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
+import logger from '../logger'
+import { nativeRenameFile } from '../nativeModules'
+import { getState } from '../state'
+import { sendFailure, sendToRenderer } from './download.helpers'
+import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import {
-    clearCacheOnVersionChange,
     cleanupModArtifacts,
+    clearCacheOnVersionChange,
     clearModState,
     closeMusicIfRunning,
     fileExists,
@@ -24,9 +26,11 @@ import {
     setProgressPercent,
     tryUseCacheOrDownload,
 } from './mod-manager.helpers'
+import { downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
 import { getGithubModRelease } from './network/releaseCatalog'
+
 import type { ModDownloadFailure } from './network/types'
-import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
+import type { BrowserWindow} from 'electron';
 
 const State = getState()
 const PROGRESS_ASAR_ONLY = { base: 0, scale: 0.95, resetOnComplete: false }

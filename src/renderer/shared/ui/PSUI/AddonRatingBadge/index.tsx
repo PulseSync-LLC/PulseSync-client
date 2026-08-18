@@ -1,6 +1,7 @@
+import { Badge } from '@pulsesync/uikit/data-display'
 import cn from 'clsx'
 import { MdStar } from 'react-icons/md'
-import { Badge } from '@pulsesync/uikit/data-display'
+
 import * as st from '@shared/ui/PSUI/AddonRatingBadge/AddonRatingBadge.module.scss'
 
 type AddonRatingBadgeProps = {

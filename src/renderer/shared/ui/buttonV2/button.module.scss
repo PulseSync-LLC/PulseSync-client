@@ -1,23 +1,30 @@
 .button {
-    cursor: pointer;
-    transition: var(--transition);
-
     display: flex;
+
     flex-direction: row;
-    justify-content: center;
-    align-items: flex-start;
-    padding: 8px 25px;
+
     gap: 10px;
 
-    background: var(--accent);
-    border-radius: 8px;
+    align-items: flex-start;
+    justify-content: center;
+
     min-width: fit-content;
 
-    font-weight: 800;
+    padding: 8px 25px;
+
     font-size: 14px;
+    font-weight: 800;
+
     line-height: 140%;
 
     color: var(--accent-foreground);
+
+    cursor: pointer;
+
+    background: var(--accent);
+    border-radius: 8px;
+
+    transition: var(--transition);
 
     &:not(:disabled):hover {
         filter: brightness(0.85);
@@ -25,6 +32,7 @@
 
     &:disabled {
         cursor: default;
+
         opacity: 0.48;
     }
 

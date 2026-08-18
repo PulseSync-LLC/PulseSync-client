@@ -1,8 +1,9 @@
-import type { Socket } from 'socket.io-client'
-import type { RealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
-import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 import OutgoingSocketEvents from '@shared/api/socket/enums/outgoingSocketEvents'
+
 import type { DesktopRuntimeInfo } from '@common/desktopApi/contract'
+import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
+import type { RealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
+import type { Socket } from 'socket.io-client'
 
 const SOCKET_VERSION_FALLBACK = '0.0.0'
 const COMPRESSION_LEVEL = 3

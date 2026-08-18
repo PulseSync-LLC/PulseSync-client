@@ -1,21 +1,24 @@
 import React, { useCallback, useContext } from 'react'
+
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
-import Header from '@widgets/layout/header'
-import NavButtonPulse from '@shared/ui/PSUI/NavButton'
-import Preloader from '@widgets/preloader'
-import userContext from '@entities/user/model/context'
-import toast from '@shared/ui/toast'
-import * as pageStyles from '@widgets/layout/layout.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { useModalContext } from '@app/providers/modal'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router-dom'
+
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
+import Header from '@widgets/layout/header'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
 import ModUpdateBanner from '@widgets/layout/ui/ModUpdateBanner'
-import { useNavigate } from 'react-router-dom'
+import Preloader from '@widgets/preloader'
+import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import NavButtonPulse from '@shared/ui/PSUI/NavButton'
+import toast from '@shared/ui/toast'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as pageStyles from '@widgets/layout/layout.module.scss'
 
 interface LayoutProps {
     title: string

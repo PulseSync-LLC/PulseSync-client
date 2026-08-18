@@ -1,20 +1,24 @@
 .background {
     display: flex;
+
     flex-direction: column;
-    justify-content: center;
-    align-items: center;
-    padding: 1px 7px;
+
     gap: 10px;
 
+    align-items: center;
+    justify-content: center;
+
+    padding: 1px 7px;
+
     font-family: 'JetBrains Mono', monospace;
-
-    border-radius: 4px;
-
-    font-weight: 700;
     font-size: 12px;
+    font-weight: 700;
+
     line-height: 16px;
 
     color: var(--text-primary);
 
-    text-shadow: 0px -1px 4px rgba(0, 0, 0, 0.3);
+    text-shadow: 0 -1px 4px rgb(0, 0, 0, 0.3);
+
+    border-radius: 4px;
 }

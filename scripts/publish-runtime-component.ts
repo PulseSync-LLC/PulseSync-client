@@ -1,10 +1,13 @@
 import 'dotenv/config'
+
+import { spawnSync } from 'node:child_process'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
-import { spawnSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+
 import { build as viteBuild } from 'vite'
+
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import { emitRuntimeComponentUpdateManifest, getDesktopHybridReleaseManifestName, getDesktopReleaseManifestName } from './desktop-release-manifest.js'
 import { publishToS3 } from './s3-upload.js'

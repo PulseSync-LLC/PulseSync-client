@@ -1,10 +1,13 @@
-import React, { useState, useRef, useEffect, useCallback, useLayoutEffect } from 'react'
-import * as styles from '@shared/ui/PSUI/TextInput/TextInput.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp, MdKeyboardCommandKey } from 'react-icons/md'
+import React, { useCallback, useEffect, useLayoutEffect,useRef, useState } from 'react'
+
 import clsx from 'clsx'
-import ButtonV2 from '@shared/ui/buttonV2'
 import { useTranslation } from 'react-i18next'
+import { MdHelp, MdKeyboardCommandKey } from 'react-icons/md'
+
+import ButtonV2 from '@shared/ui/buttonV2'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@shared/ui/PSUI/TextInput/TextInput.module.scss'
 
 interface TextInputProps {
     name: string

@@ -1,5 +1,6 @@
-import type { ImgHTMLAttributes } from 'react'
 import { getAvatarMediaUrls, getBannerMediaUrls } from '@shared/lib/mediaVariants'
+
+import type { ImgHTMLAttributes } from 'react'
 
 export type CdnMediaType = 'avatar' | 'banner'
 

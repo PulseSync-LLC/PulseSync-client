@@ -1,10 +1,12 @@
 .scrollWrapper {
     position: relative;
+
     overflow: hidden;
 }
 
 .scrollContent {
-    overflow-y: overlay;
+    overflow-y: auto;
+
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
@@ -16,16 +18,21 @@
 .scrollbarTrack {
     position: absolute;
     top: 5px;
-    bottom: 5px;
     right: 0;
-    width: 0px;
+    bottom: 5px;
+    z-index: 9999;
+
+    display: flex;
+
+    width: 0;
+    height: -webkit-fill-available;
+
     padding: 0 5px;
     margin: 0 var(--scrollbar-track-margin, 5px);
-    display: flex;
-    height: -webkit-fill-available;
-    background-color: #00000000;
+
+    background-color: #0000;
+
     transition: var(--transition);
-    z-index: 9999;
 
     &:hover {
         width: 5px;
@@ -41,18 +48,24 @@
 }
 
 .scrollbarThumb {
-    z-index: 9999;
-    cursor: pointer;
     position: absolute;
+    z-index: 9999;
+
     width: 100%;
+
+    cursor: pointer;
+
     background-color: color-mix(in srgb, var(--text-secondary) 32%, transparent);
     border-radius: 3px;
-    transition: var(--transition);
+
     transform: translateY(0);
+
+    transition: var(--transition);
 }
 
 .scrollbarTrack.visible {
     z-index: 9999;
+
     background-color: color-mix(in srgb, var(--text-secondary) 32%, transparent);
 }
 

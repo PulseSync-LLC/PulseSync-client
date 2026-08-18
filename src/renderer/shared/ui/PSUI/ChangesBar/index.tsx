@@ -1,7 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react'
+
 import clsx from 'clsx'
-import * as css from '@shared/ui/PSUI/ChangesBar/ChangesBar.module.scss'
 import { useTranslation } from 'react-i18next'
+
+import * as css from '@shared/ui/PSUI/ChangesBar/ChangesBar.module.scss'
 
 type Props = {
     open: boolean

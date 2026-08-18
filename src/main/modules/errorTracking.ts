@@ -11,6 +11,7 @@ import {
     sanitizeErrorTrackingEvent,
 } from '@common/errorTracking'
 import { getDesktopErrorTrackingRelease } from '@common/errorTrackingRelease'
+
 import logger from './logger'
 
 const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')

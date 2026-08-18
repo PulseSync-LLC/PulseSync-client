@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
-import rendererHttpClient from '@shared/api/http/client'
-import toast from '@shared/ui/toast'
+
 import { getNotificationPresentation } from '@app/providers/notifications/presentation'
-import type { NotificationsContextValue, NotificationItem } from '@app/providers/notifications/types'
+import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
+
+import type { NotificationItem,NotificationsContextValue } from '@app/providers/notifications/types'
 
 type NotificationsListResponse = {
     notifications: NotificationItem[]

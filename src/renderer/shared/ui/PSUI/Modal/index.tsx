@@ -1,7 +1,10 @@
 import React from 'react'
-import RModal from 'react-modal'
-import Button from '@shared/ui/buttonV2'
+
 import { IoCloseSharp } from 'react-icons/io5'
+import RModal from 'react-modal'
+
+import Button from '@shared/ui/buttonV2'
+
 import './modal.css'
 interface p {
     title?: string

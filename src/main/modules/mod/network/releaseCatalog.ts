@@ -1,10 +1,12 @@
 import * as semver from 'semver'
 
 import config from '@common/appConfig'
+
 import { getState } from '../../state'
 import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } from '../../updater/githubReleaseResolver'
-import type { UpdateSource } from '../../updater/updateSource'
 import { getPulseSyncUserAgent } from './userAgent'
+
+import type { UpdateSource } from '../../updater/updateSource'
 
 export type ModReleaseEntry = {
     checksum?: string | null

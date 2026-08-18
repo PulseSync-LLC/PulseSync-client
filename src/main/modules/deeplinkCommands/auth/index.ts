@@ -1,4 +1,5 @@
 import { extractBrowserAuthCredentialsFromUrl } from '../../auth/browserAuth'
+
 import type { DeeplinkCommandContext } from '..'
 
 export default async function authCommand(context: DeeplinkCommandContext): Promise<boolean> {

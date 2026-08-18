@@ -1,8 +1,11 @@
-import { BrowserWindow, app } from 'electron'
-import isAppDev from '../../utils/isAppDev'
+import { app } from 'electron'
+
 import RendererEvents from '../../../common/types/rendererEvents'
+import isAppDev from '../../utils/isAppDev'
 import logger from '../logger'
 import { getState } from '../state'
+
+import type { BrowserWindow} from 'electron';
 
 const State = getState()
 const BROWSER_AUTH_ACTION = 'BROWSER_AUTH'

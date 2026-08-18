@@ -1,23 +1,28 @@
-import * as http from 'http'
 import { app, dialog } from 'electron'
-import { selectedAddon } from '../../startup/runtimeState'
-import { authorized } from '../../events'
-import isAppDev from '../../utils/isAppDev'
-import logger from '../logger'
-import { Server as IOServer, Socket } from 'socket.io'
-import trackInitials from '@entities/track/model/track.initials'
-import { isFirstInstance } from '../singleInstance'
-import { Track } from '@entities/track/model/track.interface'
-import { mainWindow } from '../createWindow'
+
+import * as http from 'http'
+import { Server as IOServer } from 'socket.io'
+
 import config from '@common/appConfig'
-import { getState } from '../state'
+import trackInitials from '@entities/track/model/track.initials'
+
 import RendererEvents from '../../../common/types/rendererEvents'
-import { registerSocketClientEvents } from './events/registerSocketClientEvents'
-import { registerServerIpcEvents } from './events/registerServerIpcEvents'
-import { createHttpRequestHandler } from './httpRequestHandler'
-import { createAddonService } from './addonService'
-import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
+import { authorized } from '../../events'
 import mainHttpClient from '../../http/client'
+import { selectedAddon } from '../../startup/runtimeState'
+import isAppDev from '../../utils/isAppDev'
+import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
+import { mainWindow } from '../createWindow'
+import logger from '../logger'
+import { isFirstInstance } from '../singleInstance'
+import { getState } from '../state'
+import { createAddonService } from './addonService'
+import { registerServerIpcEvents } from './events/registerServerIpcEvents'
+import { registerSocketClientEvents } from './events/registerSocketClientEvents'
+import { createHttpRequestHandler } from './httpRequestHandler'
+
+import type { Track } from '@entities/track/model/track.interface'
+import type { Socket } from 'socket.io';
 
 let data: Track = trackInitials
 let server: http.Server | null = null

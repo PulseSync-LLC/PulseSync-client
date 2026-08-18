@@ -1,6 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo } from 'react'
+
 import { useQuery } from '@apollo/client/react'
+
 import GET_VISIBLE_NEWS from '@entities/news/api/getVisibleNews.query'
+
 import type { GetVisibleNewsData, NewsContextValue, NewsProviderProps } from '@app/providers/news/types'
 
 const noopAsync = async (): Promise<void> => undefined

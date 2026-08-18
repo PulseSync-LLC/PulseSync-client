@@ -1,21 +1,27 @@
-import { app, BrowserWindow } from 'electron'
-import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
-import * as path from 'path'
+import { app } from 'electron'
+
 import * as fs from 'original-fs'
 import os from 'os'
-import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
-import { getState } from '../state'
-import logger from '../logger'
-import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
-import { Paths } from './mod-files'
-import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
-import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
-import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
+import * as path from 'path'
+
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+
+import RendererEvents from '../../../common/types/rendererEvents'
 import { CACHE_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
-import type { RemoteModInfo } from './network/modCatalog'
-import { hashArtifactInWorker } from './network/artifactWorkerClient'
+import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
+import logger from '../logger'
+import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
+import { getState } from '../state'
+import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
+import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
+import { hashArtifactInWorker } from './network/artifactWorkerClient'
+
+import type { RendererEvent } from '../../../common/types/rendererEvents';
+import type { Paths } from './mod-files'
+import type { RemoteModInfo } from './network/modCatalog'
+import type { BrowserWindow } from 'electron';
 
 const State = getState()
 const MUSIC_CLOSE_TIMEOUT_MS = 5000

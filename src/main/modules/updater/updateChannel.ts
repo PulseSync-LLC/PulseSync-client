@@ -1,4 +1,5 @@
 import config, { branch as buildBranch } from '@common/appConfig'
+
 import { readBootstrapSettings, writeBootstrapSettings } from '../bootstrap/bootstrapSettings'
 
 export const UPDATE_CHANNELS = ['beta', 'dev'] as const

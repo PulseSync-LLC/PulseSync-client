@@ -1,56 +1,78 @@
 .children {
-    flex: 1;
     display: flex;
-    width: -webkit-fill-available;
+
+    flex: 1;
     flex-direction: column;
+
     align-items: center;
+
+    width: -webkit-fill-available;
 }
 
 .main_window {
-    display: flex;
     position: absolute;
+    top: 48px;
+    bottom: 0;
+    z-index: 8000;
+
+    display: flex;
+
     // max-width: 1157px;
     width: -webkit-fill-available;
-    bottom: 0;
-    top: 48px;
-    background: var(--surface-primary);
-    z-index: 8000;
+
     padding: 0 10px 10px 0;
 
+    background: var(--surface-primary);
+
     .navigation_bar {
-        display: flex;
-        flex-direction: column;
-        justify-content: space-between;
-        align-items: center;
-        width: 54px;
-        flex: 0 0 54px;
         box-sizing: border-box;
+        display: flex;
+
+        flex: 0 0 54px;
+        flex-direction: column;
+
+        align-items: center;
+        justify-content: space-between;
+
+        width: 54px;
+
         padding: 10px;
 
         .navigation_buttons {
             display: flex;
+
             flex-direction: column;
-            align-items: flex-start;
+
             gap: 5px;
+
+            align-items: flex-start;
         }
+
         .alert_fix {
             z-index: 12223;
         }
 
         .update_download {
-            transition: var(--transition);
-            cursor: pointer;
             display: flex;
+
             flex-direction: row;
+
+            align-items: center;
+            justify-content: center;
+
             width: 34px;
+            width: fit-content;
             height: 34px;
+
             padding: 5px;
-            border-radius: var(--BorderRadius);
+
+            cursor: pointer;
+
             background: var(--download);
             border: none;
-            justify-content: center;
-            align-items: center;
-            width: fit-content;
+            border-radius: var(--BorderRadius);
+
+            transition: var(--transition);
 
             &:hover {
                 background: var(--downloadH);
@@ -68,90 +90,119 @@
     }
 
     .alert_patch {
+        position: absolute;
+        inset: 0;
         z-index: 12222;
+
         display: flex;
+
         flex-direction: column;
-        justify-content: center;
-        align-items: center;
-        padding: 15px;
+
         gap: 10px;
 
-        position: absolute;
-        left: 0px;
-        right: 0px;
-        top: 0px;
-        bottom: 0px;
+        align-items: center;
+        justify-content: center;
+
+        padding: 15px;
 
         background: color-mix(in srgb, var(--background) 85%, transparent);
+
         backdrop-filter: blur(9.5px);
 
         & > .patch_container {
             position: relative;
+
             display: flex;
+
             flex-direction: row;
+
             align-items: center;
-            padding: 0px;
-            isolation: isolate;
-            overflow: hidden;
 
             width: 100%;
             max-width: 560px;
+
+            padding: 0;
+
+            overflow: hidden;
 
             background: var(--surface-tertiary);
             border: 1px solid var(--border);
             border-radius: 10px;
 
+            isolation: isolate;
+
             & > .patch_detail {
                 z-index: 2222;
+
                 display: flex;
+
                 flex-direction: column;
-                align-items: stretch;
-                padding: 35px;
+
                 gap: 18px;
+
+                align-items: stretch;
 
                 width: 100%;
                 height: fit-content;
 
+                padding: 35px;
+
                 & > .patch_main_row {
                     display: flex;
+
                     flex-direction: row;
-                    justify-content: space-between;
-                    align-items: center;
+
                     gap: 20px;
+
+                    align-items: center;
+                    justify-content: space-between;
+
                     width: 100%;
                 }
 
                 & > .patch_main_row > .alert_info {
                     display: flex;
+
                     flex: 1 1 auto;
                     flex-direction: column;
-                    justify-content: center;
+
                     align-items: flex-start;
-                    padding: 0px;
+                    justify-content: center;
+
+                    padding: 0;
 
                     & > .alert_version_update {
-                        color: var(--text-primary);
                         display: flex;
+
                         flex-direction: row;
-                        align-items: center;
-                        padding-top: 5px;
+
                         gap: 7px;
+
+                        align-items: center;
+
+                        padding-top: 5px;
+
+                        color: var(--text-primary);
 
                         & > .version_old,
                         .version_new {
                             display: flex;
+
                             flex-direction: row;
-                            justify-content: center;
-                            align-items: center;
-                            padding: 4px 8px;
+
                             gap: 10px;
 
-                            border-radius: 4px;
+                            align-items: center;
+                            justify-content: center;
 
-                            font-weight: 600;
+                            padding: 4px 8px;
+
                             font-size: 12px;
+                            font-weight: 600;
 
                             color: var(--text-primary);
+
+                            border-radius: 4px;
                         }
 
                         & > .version_old {
@@ -159,23 +210,27 @@
                         }
 
                         & > .version_new {
-                            background: var(--accent);
                             color: var(--accent-foreground);
+
+                            background: var(--accent);
                         }
                     }
 
                     & > .alert_title {
-                        font-weight: 900;
                         font-size: 25px;
+                        font-weight: 900;
+
                         line-height: 140%;
-                        text-transform: uppercase;
 
                         color: var(--text-primary);
+
+                        text-transform: uppercase;
                     }
 
                     & > .alert_warn {
-                        font-weight: 400;
                         font-size: 14px;
+                        font-weight: 400;
+
                         line-height: 140%;
 
                         color: var(--text-secondary);
@@ -184,21 +239,30 @@
 
                 & > .patch_error_box {
                     display: flex;
+
                     flex-direction: column;
-                    align-items: flex-start;
+
                     gap: 7px;
+
+                    align-items: flex-start;
+
                     width: 100%;
+
                     padding: 12px 14px 12px 13px;
-                    border-radius: 8px;
+
+                    background: color-mix(in srgb, var(--warning) 5%, transparent);
                     border: 1px solid color-mix(in srgb, var(--warning) 14%, transparent);
                     border-left: 3px solid color-mix(in srgb, var(--warning) 72%, transparent);
-                    background: color-mix(in srgb, var(--warning) 5%, transparent);
+                    border-radius: 8px;
                     box-shadow: inset 0 1px 0 var(--hover);
 
                     & > .patch_error_title_row {
                         display: flex;
-                        align-items: center;
+
                         gap: 8px;
+
+                        align-items: center;
+
                         color: var(--warning);
 
                         & > svg {
@@ -207,47 +271,62 @@
                     }
 
                     & > .patch_error_title {
-                        font-weight: 700;
                         font-size: 12px;
+                        font-weight: 700;
+
                         line-height: 1.3;
-                        letter-spacing: 0.01em;
+
                         color: var(--warning);
+
+                        letter-spacing: 0.01em;
                     }
 
                     & > .patch_error_message {
-                        font-weight: 400;
                         font-size: 13px;
+                        font-weight: 400;
+
                         line-height: 1.45;
+
                         color: var(--text-secondary);
+
                         word-break: break-word;
                     }
                 }
 
                 & > .patch_main_row > .button_container {
                     display: flex;
-                    gap: 5px;
+
+                    flex-shrink: 0;
                     flex-direction: column;
+
+                    gap: 5px;
+
                     align-items: flex-end;
                     justify-content: center;
-                    flex-shrink: 0;
 
                     & > .patch_button {
-                        cursor: pointer;
                         display: flex;
+
                         flex-direction: row;
-                        align-items: center;
-                        padding: 7px 19px;
+
                         gap: 10px;
 
-                        background: var(--accent);
-                        border-radius: 4px;
-                        border: 0;
+                        align-items: center;
 
-                        font-weight: 600;
+                        padding: 7px 19px;
+
                         font-size: 14px;
+                        font-weight: 600;
+
                         line-height: 140%;
 
                         color: var(--accent-foreground);
+
+                        cursor: pointer;
+
+                        background: var(--accent);
+                        border: 0;
+                        border-radius: 4px;
 
                         &:hover {
                             background: var(--accent-muted);
@@ -263,41 +342,57 @@
 
         & > .gfdiv {
             display: flex;
+
             flex-direction: row;
-            align-items: center;
-            padding: 0px 0px 0px 23px;
-            width: 700px;
+
             gap: 35px;
+
+            align-items: center;
+
+            width: 700px;
             height: fit-content;
+
+            padding: 0 0 0 23px;
+
             background: var(--warning);
             border-radius: 10px;
 
             & > div {
                 display: flex;
+
                 flex-direction: column;
-                align-items: flex-start;
-                padding: 0px;
+
                 gap: 5px;
+
+                align-items: flex-start;
 
                 width: -webkit-fill-available;
                 height: fit-content;
 
+                padding: 0;
+
                 & > .container_warn {
                     display: flex;
+
                     flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 0px;
+
                     gap: 14px;
+
+                    align-items: center;
+                    justify-content: center;
+
                     width: fit-content;
+
+                    padding: 0;
 
                     * {
                         color: var(--text-muted);
                     }
 
                     & > div {
-                        font-weight: 800;
                         font-size: 20px;
+                        font-weight: 800;
+
                         line-height: 27px;
 
                         color: var(--text-muted);
@@ -305,25 +400,31 @@
                 }
 
                 button {
-                    cursor: pointer;
                     display: flex;
+
                     flex-direction: row;
-                    justify-content: center;
-                    align-items: center;
-                    padding: 14px 23px;
+
                     gap: 10px;
 
+                    align-items: center;
+                    justify-content: center;
+
                     width: 413px;
+
+                    padding: 14px 23px;
+
+                    font-size: 18px;
+                    font-weight: 600;
+
+                    line-height: 25px;
+
+                    color: var(--warning);
+
+                    cursor: pointer;
 
                     background: var(--surface-elevated);
                     border: 0;
                     border-radius: 10px;
-
-                    font-weight: 600;
-                    font-size: 18px;
-                    line-height: 25px;
-
-                    color: var(--warning);
 
                     * {
                         color: var(--warning);
@@ -344,15 +445,20 @@
 }
 
 .betatest {
-    color: var(--accent-foreground);
-    background: var(--warning);
-    padding: 0px 6px;
-    border-radius: 4px;
+    position: absolute;
+    right: 0;
+    bottom: 0;
+    left: 7px;
+
+    width: fit-content;
+
+    padding: 0 6px;
+
     font-size: 11px;
     font-weight: 700;
-    position: absolute;
-    bottom: 0px;
-    right: 0px;
-    left: 7px;
-    width: fit-content;
+
+    color: var(--accent-foreground);
+
+    background: var(--warning);
+    border-radius: 4px;
 }

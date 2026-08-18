@@ -1,9 +1,11 @@
 import React, { useEffect, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
-import { desktopApi } from '@shared/desktop/desktopApi'
 
 const LinuxAsarPathDialog: React.FC = () => {
     const { t } = useTranslation()

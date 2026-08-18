@@ -1,8 +1,9 @@
 import RendererEvents from '../../../../common/types/rendererEvents'
-import { Track } from '@entities/track/model/track.interface'
-import { BrowserWindow } from 'electron'
-import { Socket } from 'socket.io'
 import { extractInstallModUpdateFromPayload, installModUpdateFromAsar } from '../../mod/installModUpdateFrom'
+
+import type { Track } from '@entities/track/model/track.interface'
+import type { BrowserWindow } from 'electron'
+import type { Socket } from 'socket.io'
 
 interface StateLike {
     get: (key: string) => any

@@ -1,25 +1,25 @@
-import { BrowserWindow } from 'electron'
 import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import logger from '../../logger'
-import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
-import { installPreparedAsarAndPatchBundle, isCompressedArchiveLink } from '../mod-files'
+
 import { t } from '../../../i18n'
 import { copyFile } from '../../../utils/appUtils'
-import {
-    sendToRenderer,
-    resetProgress,
-    sendFailure,
-    unlinkIfExists,
-    restoreBackupIfExists,
-    downloadToTempWithProgress,
-    DownloadError,
-    sendProgress,
-    setProgress,
-} from '../download.helpers'
 import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
-import type { DownloadProgress, ModDownloadFailure } from './types'
+import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
+import logger from '../../logger'
+import {
+    DownloadError,
+    downloadToTempWithProgress,
+    resetProgress,
+    restoreBackupIfExists,
+    sendFailure,
+    sendProgress,
+    sendToRenderer,
+    setProgress,
+    unlinkIfExists,
+} from '../download.helpers'
+import { installPreparedAsarAndPatchBundle, isCompressedArchiveLink } from '../mod-files'
+import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
 import {
     ensureDir,
     isCachedArchiveValid,
@@ -30,8 +30,10 @@ import {
     UNPACKED_MARKER_FILE,
     writeUnpackedMarker,
 } from './helpers'
-import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
 import { getPulseSyncUserAgent } from './userAgent'
+
+import type { DownloadProgress, ModDownloadFailure } from './types'
+import type { BrowserWindow } from 'electron'
 const NETWORK_PROGRESS_RATIO = 0.85
 const DERIVED_UNPACKED_DIRECTORY_SUFFIX = '.unpacked-dir'
 const LEGACY_PREPARED_UNPACKED_SUFFIX = '.unpacked.zip'

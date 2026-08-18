@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+
 import semver from 'semver'
 import stringSimilarity from 'string-similarity'
 
 import config from '@common/appConfig'
-import Addon from '@entities/addon/model/addon.interface'
-import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
 
 export const defaultOrder = {
     alphabet: 'asc',

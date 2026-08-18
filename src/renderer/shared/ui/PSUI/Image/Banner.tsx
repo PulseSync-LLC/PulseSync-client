@@ -1,5 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import CdnAnimatedImage, { CdnAnimatedImageProps } from '@shared/ui/PSUI/Image/CdnAnimatedImage'
+
+import CdnAnimatedImage from '@shared/ui/PSUI/Image/CdnAnimatedImage'
+
+import type { CdnAnimatedImageProps } from '@shared/ui/PSUI/Image/CdnAnimatedImage';
 
 export type BannerProps = Omit<CdnAnimatedImageProps, 'type'>
 

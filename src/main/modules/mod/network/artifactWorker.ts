@@ -1,5 +1,7 @@
 import { parentPort, threadId, workerData } from 'node:worker_threads'
-import { requirePulseSyncNative, type NativeArtifactDurations, type NativeArtifactResult } from '../../nativeModules/pulsesyncNative'
+
+import { type NativeArtifactDurations, type NativeArtifactResult,requirePulseSyncNative } from '../../nativeModules/pulsesyncNative'
+
 import type {
     ArtifactWorkerFailure,
     ArtifactWorkerRequest,

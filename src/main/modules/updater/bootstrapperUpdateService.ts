@@ -1,17 +1,18 @@
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 import { bootstrapUiStateFromProgress } from '../bootstrap/updateUiState'
 import { runBootstrapperCommand } from '../bootstrapper/command'
 import {
+    type DiscardPreparedUpdateResultV1,
     parseDiscardResult,
     parsePrepareResult,
     parseRustUpdateProgress,
-    unwrapSemanticResult,
-    type DiscardPreparedUpdateResultV1,
     type PrepareUpdateResultV1,
     type RequestedManifestSource,
     type RustUpdateProgressEventV1,
+    unwrapSemanticResult,
 } from '../bootstrapper/contracts'
+
 import type { BootstrapperLauncher } from '../bootstrapper/paths'
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 export type PrepareDesktopUpdateOptions = {
     activeLeaseId: string

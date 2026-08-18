@@ -1,10 +1,13 @@
 .publicationModal {
-    min-width: 0;
-    width: min(720px, calc(100vw - 32px));
-    max-width: 720px;
-    align-items: stretch;
-    padding: 20px;
     gap: 16px;
+
+    align-items: stretch;
+
+    width: min(720px, calc(100vw - 32px));
+    min-width: 0;
+    max-width: 720px;
+
+    padding: 20px;
 }
 
 .publicationModalReadonly {
@@ -13,10 +16,13 @@
 }
 
 .body {
-    width: 100%;
     display: flex;
+
     flex-direction: column;
+
     gap: 16px;
+
+    width: 100%;
 }
 
 .bodyReadonly {
@@ -25,64 +31,90 @@
 
 .summaryPane,
 .formPane {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
+
+    min-width: 0;
 }
 
 .summaryPane {
-    width: 100%;
-    align-self: stretch;
     box-sizing: border-box;
+
     gap: 14px;
+
+    align-self: stretch;
+
+    width: 100%;
+
     padding: 0;
 }
 
 .formPane {
     gap: 14px;
+
     padding: 16px 0 0;
+
     border-top: 1px solid var(--border);
 }
 
 .header {
     display: flex;
+
     flex-direction: column;
+
     gap: 12px;
 }
 
 .headerTop {
-    min-height: 30px;
     display: flex;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+
+    min-height: 30px;
 }
 
 .statusLine {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     flex-wrap: wrap;
+
     gap: 8px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .closeButton {
+    display: grid;
+
+    flex: 0 0 32px;
+
+    place-items: center;
+
     width: 32px;
     height: 32px;
-    flex: 0 0 32px;
-    display: grid;
-    place-items: center;
+
     padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: var(--surface-secondary);
     border: 0;
     border-radius: 8px;
-    background: var(--surface-secondary);
-    color: var(--text-secondary);
-    cursor: pointer;
+
     transition: var(--transition);
 
     &:hover {
-        background: var(--border-hover);
         color: var(--text-primary);
+
+        background: var(--border-hover);
     }
 
     svg {
@@ -94,50 +126,69 @@
 .eyebrow {
     font-size: 13px;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+
     color: var(--success);
+
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .headlineRow {
     display: flex;
-    align-items: flex-start;
+
     gap: 12px;
+
+    align-items: flex-start;
 }
 
 .identity {
     display: flex;
-    min-width: 0;
+
     flex-direction: column;
+
     gap: 8px;
+
+    min-width: 0;
 }
 
 .addonName {
     margin: 0;
+
     font-size: 26px;
-    line-height: 1.1;
     font-weight: 900;
+
+    line-height: 1.1;
+
     color: var(--text-primary);
 }
 
 .authors {
-    margin: 0;
     display: flex;
+
     flex-wrap: wrap;
+
     gap: 6px;
+
+    margin: 0;
+
     font-size: 14px;
+
     line-height: 1.45;
+
     color: var(--text-primary);
 }
 
 .authorsLabel {
-    color: var(--text-secondary);
     font-weight: 800;
+
+    color: var(--text-secondary);
 }
 
 .infoGrid {
     display: flex;
+
     flex-wrap: wrap;
+
     gap: 24px;
 }
 
@@ -146,14 +197,18 @@
 .cooldownCard,
 .fieldGroup {
     display: flex;
+
     flex-direction: column;
+
     gap: 8px;
 }
 
 .noteCard,
 .cooldownCard {
     gap: 6px;
+
     padding-top: 14px;
+
     border-top: 1px solid var(--border);
 }
 
@@ -164,9 +219,11 @@
 .label {
     font-size: 12px;
     font-weight: 800;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
+
     color: var(--text-secondary);
+
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .requiredMark {
@@ -176,29 +233,39 @@
 .value {
     font-size: 16px;
     font-weight: 800;
+
     color: var(--text-primary);
 }
 
 .subValue {
     font-size: 14px;
+
     line-height: 1.55;
+
     color: var(--text-primary);
-    white-space: pre-wrap;
+
     overflow-wrap: anywhere;
+    white-space: pre-wrap;
 }
 
 .changelogInput {
     width: 100%;
     min-height: 150px;
-    resize: vertical;
+
     padding: 14px 16px;
+
+    font: inherit;
+
+    line-height: 1.5;
+
+    color: var(--text-primary);
+
+    resize: vertical;
+    outline: none;
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface-secondary);
-    color: var(--text-primary);
-    font: inherit;
-    line-height: 1.5;
-    outline: none;
 
     &::placeholder {
         color: var(--text-secondary);
@@ -211,14 +278,20 @@
 
 .githubInput {
     width: 100%;
+
     padding: 14px 16px;
+
+    font: inherit;
+
+    line-height: 1.5;
+
+    color: var(--text-primary);
+
+    outline: none;
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface-secondary);
-    color: var(--text-primary);
-    font: inherit;
-    line-height: 1.5;
-    outline: none;
 
     &::placeholder {
         color: var(--text-secondary);
@@ -231,18 +304,28 @@
 
 .rulesCheckbox {
     display: flex;
-    align-items: flex-start;
+
     gap: 12px;
+
+    align-items: flex-start;
+
     width: 100%;
+
     padding: 11px 12px;
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    background: var(--surface-secondary);
+
     font-size: 13px;
     font-weight: 600;
+
     line-height: 1.45;
+
     color: var(--text-primary);
+
     cursor: pointer;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+
     transition:
         color 0.2s ease,
         border-color 0.2s ease,
@@ -255,35 +338,47 @@
 
 .agreements {
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
 }
 
 .rulesCheckboxMark {
+    position: relative;
+
     width: 18px;
-    height: 18px;
     min-width: 18px;
+    height: 18px;
+
     margin-top: 1px;
+
     border: 2px solid var(--text-secondary);
     border-radius: 4px;
-    position: relative;
+
     transition:
         background-color 0.3s,
         border-color 0.3s;
 
     &::before {
-        content: '';
         position: absolute;
-        width: 12px;
-        height: 12px;
-        min-width: 12px;
-        background-color: transparent;
-        border-radius: 2px;
         top: 50%;
         left: 50%;
-        transform: translate(-50%, -50%);
+
+        width: 12px;
+        min-width: 12px;
+        height: 12px;
+
+        content: '';
+
+        background-color: transparent;
         border: 5px solid var(--accent);
+        border-radius: 2px;
+
         opacity: 0;
+
+        transform: translate(-50%, -50%);
+
         transition:
             opacity 0.3s,
             transform 0.3s;
@@ -291,9 +386,11 @@
 }
 
 .rulesCheckbox input[type='checkbox']:checked + .rulesCheckboxMark::before {
-    opacity: 1;
-    transform: translate(-50%, -50%) scale(0.5);
     background-color: var(--accent);
+
+    opacity: 1;
+
+    transform: translate(-50%, -50%) scale(0.5);
 }
 
 .rulesCheckbox input[type='checkbox']:checked + .rulesCheckboxMark {
@@ -313,16 +410,20 @@
 
 .rulesCheckbox span:last-child {
     min-width: 0;
+
     padding-top: 1px;
 }
 
 .rulesLink {
     color: var(--accent);
+
     text-decoration: none;
+
     transition: color 0.2s ease;
 
     &:hover {
         color: var(--text-secondary);
+
         text-decoration: underline;
     }
 }
@@ -333,39 +434,51 @@
 
 .statusBadge {
     display: inline-flex;
-    align-items: center;
-    width: fit-content;
+
     flex: 0 0 auto;
+
+    align-items: center;
+
+    width: fit-content;
+
     padding: 7px 10px;
-    border-radius: 999px;
+
     font-size: 13px;
     font-weight: 800;
+
     line-height: 1;
+
+    border-radius: 999px;
 }
 
 .statusAccepted {
-    background: color-mix(in srgb, var(--success) 20%, transparent);
     color: var(--success);
+
+    background: color-mix(in srgb, var(--success) 20%, transparent);
 }
 
 .statusPending {
-    background: color-mix(in srgb, var(--warning) 20%, transparent);
     color: var(--warning);
+
+    background: color-mix(in srgb, var(--warning) 20%, transparent);
 }
 
 .statusRejected {
-    background: color-mix(in srgb, var(--danger) 20%, transparent);
     color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .statusUnpublished {
-    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
     color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--text-secondary) 20%, transparent);
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
     .publicationModal {
         width: min(100%, calc(100vw - 24px));
+
         padding: 18px;
     }
 

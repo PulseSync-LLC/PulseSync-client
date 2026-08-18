@@ -1,4 +1,6 @@
 import React, { useCallback, useContext, useEffect, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
 import { IoCheckmarkSharp, IoCloseSharp } from 'react-icons/io5'
 import {
     MdChevronRight,
@@ -12,17 +14,17 @@ import {
     MdSystemUpdateAlt,
     MdWidgets,
 } from 'react-icons/md'
-import { useTranslation } from 'react-i18next'
 
-import { useModalContext } from '@app/providers/modal'
 import { isDev } from '@common/appConfig'
-import userContext from '@entities/user/model/context'
+import { useModalContext } from '@app/providers/modal'
 import DeveloperToolsPanel, { type DeveloperToolsSection } from '@features/developerTools/DeveloperToolsPanel'
 import ExperimentOverridesPanel from '@features/developerTools/ExperimentOverridesPanel'
 import { useSettingsActions } from '@features/settings/model/useSettingsActions'
+import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
+
 import * as styles from '@widgets/modalContainer/modals/SettingsModal.module.scss'
 
 type DeveloperSetting = 'devSocket' | 'showDevFrame'

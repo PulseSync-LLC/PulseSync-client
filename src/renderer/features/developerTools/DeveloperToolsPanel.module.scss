@@ -6,45 +6,63 @@
 
 .panelHeader {
     display: flex;
+
+    gap: 16px;
+
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
+
     margin-bottom: 18px;
 }
 
 .panelTitle {
     margin: 0;
-    color: var(--text-primary);
+
     font-size: 22px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .panelDescription,
 .updated {
     margin: 6px 0 0;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .primaryButton,
 .actionButton,
 .navigationButton {
     display: flex;
+
     align-items: center;
     justify-content: center;
+
     min-height: 36px;
+
     padding: 0 12px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface-tertiary);
-    color: var(--text-secondary);
+
     font: inherit;
     font-size: 12px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-secondary);
+
     cursor: pointer;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
     transition:
         color 0.15s ease,
         border-color 0.15s ease,
@@ -52,8 +70,9 @@
 
     &:hover:not(:disabled) {
         color: var(--text-primary);
-        border-color: var(--border-hover);
+
         background: var(--surface-elevated);
+        border-color: var(--border-hover);
     }
 
     &:focus-visible {
@@ -62,35 +81,46 @@
     }
 
     &:disabled {
-        opacity: 0.5;
         cursor: default;
+
+        opacity: 0.5;
     }
 }
 
 .primaryButton {
     flex: 0 0 auto;
-    border-color: var(--accent);
-    background: var(--accent);
+
     color: var(--accent-foreground);
+
+    background: var(--accent);
+    border-color: var(--accent);
 
     &:hover:not(:disabled) {
         color: var(--background);
+
         background: var(--text-secondary);
     }
 }
 
 .statsGrid {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 8px;
 }
 
 .statCard {
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
     min-width: 0;
+
     padding: 11px 12px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -98,13 +128,18 @@
 
 .statIcon {
     display: grid;
+
+    flex: 0 0 32px;
+
     place-items: center;
+
     width: 32px;
     height: 32px;
-    flex: 0 0 32px;
-    border-radius: 8px;
-    background: var(--surface-tertiary);
+
     color: var(--text-secondary);
+
+    background: var(--surface-tertiary);
+    border-radius: 8px;
 
     svg {
         width: 18px;
@@ -114,41 +149,57 @@
 
 .statLabel {
     margin-bottom: 2px;
-    color: var(--text-secondary);
+
     font-size: 11px;
+
     line-height: 1.3;
+
+    color: var(--text-secondary);
 }
 
 .statValue {
-    color: var(--text-primary);
     font-size: 18px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .chartHeader {
     display: flex;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+
     margin-top: 18px;
 }
 
 .sectionLabel {
-    color: var(--text-muted);
     font-size: 12px;
     font-weight: 800;
+
     line-height: 1.3;
-    letter-spacing: 0.04em;
+
+    color: var(--text-muted);
+
     text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .segmented {
     display: grid;
+
     grid-template-columns: repeat(4, minmax(44px, 1fr));
+
     gap: 2px;
+
     width: 208px;
+
     padding: 3px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -156,21 +207,30 @@
 
 .segmentButton {
     display: grid;
+
     place-items: center;
+
     height: 30px;
+
     padding: 0 8px;
-    border: 0;
-    border-radius: 7px;
-    background: transparent;
-    color: var(--text-secondary);
+
     font: inherit;
     font-size: 11px;
     font-weight: 800;
+
     line-height: 1;
+
+    color: var(--text-secondary);
+
     cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 7px;
 
     &:hover {
         color: var(--text-primary);
+
         background: var(--hover);
     }
 
@@ -183,12 +243,14 @@
 .segmentButtonActive,
 .segmentButtonActive:hover {
     color: var(--text-primary);
+
     background: var(--active);
 }
 
 .chartCard {
-    margin-top: 8px;
     padding: 12px;
+    margin-top: 8px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -200,23 +262,31 @@
 
 .chartState {
     display: grid;
+
     place-items: center;
+
     height: 220px;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
+    color: var(--text-secondary);
 }
 
 .chartShimmer {
     position: relative;
+
     width: 100%;
     height: 100%;
+
     overflow: hidden;
 }
 
 .chartShimmerGrid {
     position: absolute;
     inset: 8px 0 28px;
+
     background: repeating-linear-gradient(to bottom, var(--border) 0 1px, transparent 1px 25%);
+
     opacity: 0.55;
 }
 
@@ -224,6 +294,7 @@
     @include shimmer.surface(color-mix(in srgb, var(--accent) 16%, transparent));
     position: absolute;
     inset: 24px 0 28px;
+
     clip-path: polygon(0 82%, 13% 62%, 27% 70%, 42% 35%, 57% 52%, 73% 18%, 87% 40%, 100% 8%, 100% 100%, 0 100%);
 }
 
@@ -232,9 +303,12 @@
     right: 0;
     bottom: 3px;
     left: 0;
+
     display: flex;
-    justify-content: space-between;
+
     gap: 18px;
+
+    justify-content: space-between;
 
     span {
         @include shimmer.text-surface;
@@ -245,12 +319,15 @@
 
 .toolList {
     display: grid;
+
     gap: 10px;
+
     margin-top: 18px;
 }
 
 .toolCard {
     padding: 14px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
@@ -261,29 +338,37 @@
 }
 
 .toolTitle {
-    color: var(--text-primary);
     font-size: 14px;
     font-weight: 800;
+
     line-height: 1.3;
+
+    color: var(--text-primary);
 }
 
 .toolDescription {
     margin-top: 4px;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
     line-height: 1.4;
+
+    color: var(--text-secondary);
 }
 
 .actionGrid,
 .navigationGrid {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 8px;
 }
 
 .actionButton,
 .navigationButton {
     justify-content: flex-start;
+
     text-align: left;
 }
 
@@ -295,7 +380,7 @@
     min-height: 42px;
 }
 
-@media (max-width: 700px) {
+@media (width <= 700px) {
     .statsGrid,
     .actionGrid,
     .navigationGrid {
@@ -304,8 +389,9 @@
 
     .panelHeader,
     .chartHeader {
-        align-items: stretch;
         flex-direction: column;
+
+        align-items: stretch;
     }
 
     .segmented {

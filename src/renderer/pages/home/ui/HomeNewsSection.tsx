@@ -1,10 +1,11 @@
 import { useCallback, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import config from '@common/appConfig'
 import { useNews } from '@app/providers/news'
-import ButtonV2 from '@shared/ui/buttonV2'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import ButtonV2 from '@shared/ui/buttonV2'
 
 import * as styles from './home.module.scss'
 

@@ -1,80 +1,111 @@
 .rulesLine {
-    width: 100%;
     display: flex;
-    align-items: center;
+
     gap: 8px;
-    color: var(--success);
+
+    align-items: center;
+
+    width: 100%;
+
     font-weight: 700;
+
+    color: var(--success);
 }
+
 .rulesFlag {
     filter: saturate(0) brightness(1.2);
 }
+
 .rulesLink {
     color: var(--success);
+
     text-decoration: underline;
 }
 
 .list {
-    width: 100%;
-    margin: 0;
-    padding: 0;
-    list-style: none;
     display: grid;
+
     gap: 12px;
+
+    width: 100%;
+
+    padding: 0;
+    margin: 0;
+
+    list-style: none;
 }
 
 .row {
     display: grid;
+
     grid-template-columns: 22px 1fr;
-    align-items: start;
+
     gap: 12px;
+
+    align-items: start;
 }
 
 .rowIcon {
     width: 22px;
-    text-align: center;
-    line-height: 22px;
+
     font-weight: 800;
+
+    line-height: 22px;
+
     color: var(--text-primary);
+
+    text-align: center;
 }
 
 .rowTextWrap {
     display: grid;
+
     gap: 8px;
 }
+
 .rowLabel {
     font-weight: 800;
-    color: #ffffff;
+
+    color: #fff;
 }
 
 .progress {
     width: 100%;
     height: 8px;
-    border-radius: 9999px;
+
     overflow: hidden;
+
     background: var(--surface-elevated);
+    border-radius: 9999px;
     box-shadow: inset 0 0 0 1px var(--hover);
 }
+
 .progressFill {
-    height: 100%;
     width: 0%;
+    height: 100%;
+
     background: var(--warning);
+
     transition: width 0.15s linear;
 }
 
 .note {
     margin-top: -2px;
+
     font-size: 14px;
     font-weight: 700;
+
     color: var(--danger);
 }
 
 .st_done .rowIcon {
     color: var(--success);
 }
+
 .st_done .rowLabel {
     color: var(--success);
 }
+
 .st_done .progressFill {
     background: var(--success);
 }
@@ -82,6 +113,7 @@
 .st_error .rowIcon {
     color: var(--danger);
 }
+
 .st_error .rowLabel {
     color: var(--danger);
 }
@@ -89,6 +121,7 @@
 .st_running .rowIcon {
     color: var(--warning);
 }
+
 .st_running .rowLabel {
     color: var(--warning);
 }
@@ -96,20 +129,29 @@
 .st_idle .rowIcon {
     color: var(--text-secondary);
 }
+
 .st_idle .rowLabel {
     color: var(--text-primary);
 }
 
 .errorInline {
-    width: 100%;
-    margin-top: 6px;
-    color: var(--danger);
-    font-weight: 700;
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
+    width: 100%;
+
+    margin-top: 6px;
+
+    font-weight: 700;
+
+    color: var(--danger);
 }
+
 .resetBtn {
     height: 36px;
+
     border-radius: 10px;
 }

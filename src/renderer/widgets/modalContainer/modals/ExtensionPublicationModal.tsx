@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
+
 import cn from 'clsx'
-import { MdClose } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdClose } from 'react-icons/md'
+
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+
 import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModal.module.scss'
 
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000

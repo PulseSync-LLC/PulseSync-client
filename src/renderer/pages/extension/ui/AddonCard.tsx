@@ -1,19 +1,22 @@
 import React from 'react'
-import cn from 'clsx'
-import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
+
 import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
-import Addon from '@entities/addon/model/addon.interface'
 import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
-import userContext from '@entities/user/model/context'
 import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
-import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+import userContext from '@entities/user/model/context'
 import { staticAsset } from '@shared/lib/staticAssets'
 import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+
 import type { DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
 
 type Props = {
     addon: Addon

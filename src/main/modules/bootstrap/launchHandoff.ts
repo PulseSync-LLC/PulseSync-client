@@ -1,12 +1,14 @@
 import { app } from 'electron'
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
-import logger from '../logger'
-import type { ActiveAppLeaseV1 } from '../bootstrapper/contracts'
-import { claimActiveApp } from '../bootstrapper/runtimeCommands'
-import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
+
 import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
+import { claimActiveApp } from '../bootstrapper/runtimeCommands'
+import logger from '../logger'
+
+import type { ActiveAppLeaseV1 } from '../bootstrapper/contracts'
+import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
 import type { LaunchInbox } from './launchInbox'
 import type { LaunchQueue } from './launchQueue'
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 export type LaunchHandoffRuntime = {
     inbox: LaunchInbox

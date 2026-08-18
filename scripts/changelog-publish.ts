@@ -1,8 +1,10 @@
 import 'dotenv/config'
+
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
+import chalk from 'chalk'
 import fs from 'fs'
 import path from 'path'
-import chalk from 'chalk'
-import { fileURLToPath, pathToFileURL } from 'node:url'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

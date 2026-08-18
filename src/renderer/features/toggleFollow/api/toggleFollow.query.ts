@@ -1,4 +1,6 @@
-import { gql, TypedDocumentNode } from '@apollo/client'
+import { gql } from '@apollo/client'
+
+import type { TypedDocumentNode } from '@apollo/client';
 
 type ToggleFollowData = { toggleFollow: { isFollowing: boolean; areFriends: boolean } }
 type ToggleFollowVars = { targetId: string }

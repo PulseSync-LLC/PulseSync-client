@@ -1,23 +1,30 @@
 .button {
-    transition: var(--transition);
+    position: relative;
 
-    cursor: pointer;
+    box-sizing: border-box;
     display: flex;
-    background: transparent;
-    border: none;
+
     width: 34px;
     height: 34px;
-    box-sizing: border-box;
-    border-radius: 6px;
+
     padding: 5px;
-    position: relative;
+
+    cursor: pointer;
+
+    background: transparent;
+    border: none;
+    border-radius: 6px;
+
+    transition: var(--transition);
 
     & > svg,
     & > img {
         width: 24px;
         height: 24px;
-        transition: var(--transition);
+
         fill: var(--text-secondary);
+
+        transition: var(--transition);
     }
 
     & > img {
@@ -26,6 +33,7 @@
 
     &:hover {
         background: var(--surface-elevated);
+
         & > svg {
             fill: var(--text-primary);
         }
@@ -36,9 +44,11 @@
     }
 
     &:disabled {
-        opacity: 0.5;
         background: transparent;
         border: none;
+
+        opacity: 0.5;
+
         & > svg {
             fill: var(--NavigationIconDefaultSvgColor);
         }

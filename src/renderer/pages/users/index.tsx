@@ -1,22 +1,26 @@
-import PageLayout from '@widgets/layout/PageLayout'
-import * as s from '@pages/users/users.module.scss'
-import { useLayoutEffect, useState, useEffect, useCallback, useMemo, useRef } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef,useState } from 'react'
+
 import cn from 'clsx'
-import UserInterface from '@entities/user/model/user.interface'
-import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
-import apolloClient from '@shared/api/apolloClient'
 import debounce from 'lodash.debounce'
-import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
-import toast from '@shared/ui/toast'
-import UserCardV2 from '@entities/user/ui/userCardV2'
-import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 import { useTranslation } from 'react-i18next'
-import { Banner } from '@shared/ui/PSUI/Image'
-import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
-import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
-import type { SortState, UserGridMetrics } from '@pages/users/model/userList'
-import { SORT_FIELDS, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH, getUserGridMetrics, sortUsers } from '@pages/users/model/userList'
+import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
+
 import { useModalContext } from '@app/providers/modal'
+import { getUserGridMetrics, SORT_FIELDS, sortUsers,USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH } from '@pages/users/model/userList'
+import PageLayout from '@widgets/layout/PageLayout'
+import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
+import UserCardV2 from '@entities/user/ui/userCardV2'
+import apolloClient from '@shared/api/apolloClient'
+import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
+import { Banner } from '@shared/ui/PSUI/Image'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
+import toast from '@shared/ui/toast'
+
+import * as s from '@pages/users/users.module.scss'
+
+import type UserInterface from '@entities/user/model/user.interface'
+import type { SortState, UserGridMetrics } from '@pages/users/model/userList'
 
 export default function UsersPage() {
     const INITIAL_SHIMMER_FADE_MS = 180

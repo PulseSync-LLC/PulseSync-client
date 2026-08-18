@@ -1,7 +1,8 @@
+import { execFileSync } from 'node:child_process'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFileSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
+
 import { readRuntimeComponentMetadata } from '../component-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))

@@ -1,20 +1,28 @@
 @use '../styles/skeleton' as shimmer;
 
 .shell {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 0;
+
     width: 100%;
     min-height: 100%;
-    display: flex;
-    flex-direction: column;
-    gap: 0;
+
     background: var(--surface-primary);
 }
 
 .statusBar {
-    height: 36px;
     display: flex;
+
     align-items: center;
     justify-content: space-between;
+
+    height: 36px;
+
     padding: 0 64px 0 40px;
+
     background: var(--surface-tertiary);
 }
 
@@ -28,36 +36,51 @@
     @include shimmer.surface;
     width: 18px;
     height: 18px;
+
     border-radius: 4px;
 }
 
 .banner {
     @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 14%, transparent));
-    height: clamp(250px, 28vh, 320px);
-    padding: 20px 40px;
     display: flex;
+
     flex-direction: column;
-    justify-content: flex-end;
+
     gap: 12px;
+
+    justify-content: flex-end;
+
+    height: clamp(250px, 28vh, 320px);
+
+    padding: 20px 40px;
 }
 
 .profileMetaContainer {
     display: flex;
-    width: 100%;
+
     flex-direction: row;
+
     gap: 15px;
+
     align-items: center;
     justify-content: space-between;
+
+    width: 100%;
 }
 
 .identity {
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    justify-content: start;
-    gap: 15px;
     position: relative;
     z-index: 1;
+
+    display: flex;
+
+    flex-direction: row;
+
+    gap: 15px;
+
+    align-items: center;
+    justify-content: start;
+
     width: 100%;
 }
 
@@ -65,15 +88,20 @@
     @include shimmer.surface;
     width: 84px;
     height: 84px;
+
     border-radius: 16px;
 }
 
 .identityText {
     display: flex;
+
     flex-direction: column;
+
     gap: 3px;
-    min-width: 0;
+
     align-items: flex-start;
+
+    min-width: 0;
 }
 
 .dateLine {
@@ -84,22 +112,29 @@
 
 .nameRow {
     display: flex;
-    align-items: center;
-    gap: 5px;
-    min-width: 0;
+
     flex-wrap: wrap;
+
+    gap: 5px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .nameLine {
     @include shimmer.text-surface;
+    flex: 0 0 auto;
+
     width: 172px;
     height: 22px;
-    flex: 0 0 auto;
 }
 
 .badgesRow {
     display: flex;
+
     gap: 4px;
+
     align-items: center;
 }
 
@@ -107,6 +142,7 @@
     @include shimmer.surface;
     width: 40px;
     height: 20px;
+
     border-radius: 6px;
 }
 
@@ -114,6 +150,7 @@
     @include shimmer.surface;
     width: 20px;
     height: 20px;
+
     border-radius: 6px;
 }
 
@@ -124,34 +161,46 @@
 }
 
 .buttons {
-    display: flex;
-    gap: 10px;
     position: relative;
     z-index: 1;
-    width: 100%;
+
+    display: flex;
+
+    gap: 10px;
+
     justify-content: end;
+
+    width: 100%;
 }
 
 .buttonFull {
     @include shimmer.surface;
     width: 200px;
     height: 40px;
+
     border-radius: 8px;
 }
 
 .section {
-    flex: 1;
-    min-height: 240px;
-    padding: 20px 40px 32px;
     display: flex;
+
+    flex: 1;
     flex-direction: column;
+
     gap: 15px;
+
+    min-height: 240px;
+
+    padding: 20px 40px 32px;
+
     background: var(--surface-primary);
 }
 
 .sectionHeader {
     display: flex;
+
     flex-direction: column;
+
     gap: 6px;
 }
 
@@ -168,20 +217,27 @@
 }
 
 .progressCard {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
     min-height: 96px;
+
+    padding: 8px 12px 12px;
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    padding: 8px 12px 12px;
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    background: var(--surface-secondary);
 }
 
 .progressHeader {
     display: flex;
-    justify-content: space-between;
+
     gap: 12px;
+
+    justify-content: space-between;
 }
 
 .progressLabel {
@@ -198,18 +254,22 @@
 
 .progressBar {
     position: relative;
+
     height: 45px;
-    border-radius: 8px;
+
     background: var(--surface-tertiary);
+    border-radius: 8px;
 }
 
 .progressFill {
     @include shimmer.surface(color-mix(in srgb, var(--accent) 32%, transparent));
     position: absolute;
-    left: 4px;
     top: 4px;
     bottom: 4px;
+    left: 4px;
+
     width: 30%;
+
     border-radius: 8px;
 }
 
@@ -218,8 +278,10 @@
     @include shimmer.surface(rgba(184, 195, 230, 0.24));
     position: absolute;
     top: 8px;
+
     width: 29px;
     height: 29px;
+
     border-radius: 4px;
 }
 
@@ -234,16 +296,20 @@
 .progressValue {
     @include shimmer.text-surface(rgba(70, 78, 104, 0.24));
     position: absolute;
-    left: 50%;
     top: 13px;
-    transform: translateX(-50%);
+    left: 50%;
+
     width: 108px;
     height: 16px;
+
+    transform: translateX(-50%);
 }
 
 .achievementList {
     display: flex;
+
     flex-direction: column;
+
     gap: 5px;
 }
 
@@ -254,28 +320,37 @@
 }
 
 .achievementRow {
+    display: flex;
+
+    gap: 14px;
+
+    align-items: center;
+
     min-height: 82px;
+
+    padding: 10px 16px;
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
-    display: flex;
-    align-items: center;
-    gap: 14px;
-    padding: 10px 16px;
-    background: var(--surface-secondary);
 }
 
 .achievementThumb {
     @include shimmer.surface;
     width: 40px;
     height: 40px;
+
     border-radius: 8px;
 }
 
 .achievementContent {
     display: flex;
-    flex-direction: column;
-    gap: 5px;
+
     flex: 1 1 auto;
+    flex-direction: column;
+
+    gap: 5px;
+
     min-width: 0;
 }
 
@@ -295,12 +370,15 @@
     @include shimmer.surface;
     width: 28px;
     height: 28px;
+
     border-radius: 999px;
 }
 
 .achievementFooter {
     display: flex;
+
     gap: 8px;
+
     margin-top: 2px;
 }
 
@@ -309,6 +387,7 @@
     @include shimmer.surface;
     width: 86px;
     height: 20px;
+
     border-radius: 8px;
 }
 
@@ -316,13 +395,14 @@
     width: 58px;
 }
 
-@media (max-width: 1200px) {
+@media (width <= 1200px) {
     .statusBar {
         padding-left: 24px;
     }
 
     .banner {
         height: clamp(230px, 27vh, 280px);
+
         padding-inline: 24px;
     }
 
@@ -331,7 +411,7 @@
     }
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
     .statusBar {
         padding-left: 16px;
     }
@@ -343,13 +423,16 @@
     .banner {
         height: auto;
         min-height: 260px;
+
         padding: 56px 16px 20px;
     }
 
     .profileMetaContainer {
         flex-direction: column;
-        align-items: flex-start;
+
         gap: 16px;
+
+        align-items: flex-start;
     }
 
     .buttons {

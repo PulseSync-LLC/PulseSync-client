@@ -1,18 +1,20 @@
 import { app, type BrowserWindow } from 'electron'
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
-import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
-import logger from '../logger'
+
 import { BootstrapperCommandError } from '../bootstrapper/command'
-import { isUpdateErrorV1, type ActiveAppLeaseV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../bootstrapper/contracts'
-import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
+import { type ActiveAppLeaseV1, isUpdateErrorV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../bootstrapper/contracts'
 import { acknowledgeActiveRuntime } from '../bootstrapper/runtimeCommands'
+import logger from '../logger'
 import { getDesktopUpdateManifestRequest } from '../updater/desktopManifestSource'
 import { getUpdateSource } from '../updater/updateSource'
+import { handoffPreparedUpdate,setLaunchHandoffRuntime } from './launchHandoff'
 import { updateCoordinator } from './updateCoordinator'
+
+import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
 import type { BootstrapWindowController } from './bootstrapWindow'
-import { setLaunchHandoffRuntime, handoffPreparedUpdate } from './launchHandoff'
 import type { LaunchInbox } from './launchInbox'
 import type { LaunchQueue } from './launchQueue'
+import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 export type ApplicationStartupHandle = {
     deliverLaunchRequest(request: LaunchRequestEnvelopeV1): Promise<boolean>

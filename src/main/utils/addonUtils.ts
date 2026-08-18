@@ -1,14 +1,17 @@
-import path from 'path'
-import * as fs from 'original-fs'
-import { getFolderSize, formatSizeUnits } from './appUtils'
-import logger from '../modules/logger'
-import Addon from '@entities/addon/model/addon.interface'
-import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { getState } from '../modules/state'
 import * as acorn from 'acorn'
 import { simple as walkSimple } from 'acorn-walk'
+import * as fs from 'original-fs'
+import path from 'path'
+
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
+import logger from '../modules/logger'
+import { getState } from '../modules/state'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
 import { getAddonsRoot } from './addonPaths'
+import { formatSizeUnits,getFolderSize } from './appUtils'
+
+import type Addon from '@entities/addon/model/addon.interface'
 
 const State = getState()
 const defaultAddon: Partial<Addon> = {

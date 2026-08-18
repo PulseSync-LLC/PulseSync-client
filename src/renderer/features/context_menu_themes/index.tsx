@@ -1,8 +1,12 @@
 import React, { useEffect, useRef } from 'react'
+
 import cn from 'clsx'
-import * as cm from '@features/context_menu_themes/contextMenu.module.scss'
-import { MenuItem } from '@features/context_menu_themes/sectionConfig'
+
 import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as cm from '@features/context_menu_themes/contextMenu.module.scss'
+
+import type { MenuItem } from '@features/context_menu_themes/sectionConfig'
 
 interface ContextMenuProps {
     items: MenuItem[]

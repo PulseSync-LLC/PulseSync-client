@@ -1,9 +1,11 @@
-import * as styles from '@shared/ui/PSUI/OptionMenu/OptionMenu.module.scss'
-import { MdCreateNewFolder, MdDeleteOutline, MdFolderOpen, MdRefresh } from 'react-icons/md'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
-import type { ReactNode } from 'react'
 import { useTranslation } from 'react-i18next'
+import { MdCreateNewFolder, MdDeleteOutline, MdFolderOpen, MdRefresh } from 'react-icons/md'
+
+import * as styles from '@shared/ui/PSUI/OptionMenu/OptionMenu.module.scss'
+
 import type { DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
+import type { ReactNode } from 'react'
 
 interface OptionMenuProps {
     onReloadAddons: () => void

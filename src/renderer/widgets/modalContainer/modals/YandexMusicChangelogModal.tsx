@@ -1,13 +1,15 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
 import { compareVersions } from '@shared/lib/utils'
-import Modal from '@shared/ui/PSUI/Modal'
 import Loader from '@shared/ui/PSUI/Loader'
-import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
+import Modal from '@shared/ui/PSUI/Modal'
+
 import * as styles from './YandexMusicChangelogModal.module.scss'
-import cn from 'clsx'
+import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 
 const RELEASE_NOTES_URL = 'https://desktop.app.music.yandex.net/stable/release-notes/ru.json'
 const RELEASE_NOTES_DEFAULT_KEY = 'desktop-release-notes.default'

@@ -1,11 +1,14 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
+
 import clsx from 'clsx'
 import path from 'path'
-import * as s from '@shared/ui/PSUI/FileInput/FileInput.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp, MdFolderOpen, MdClose } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdClose,MdFolderOpen, MdHelp } from 'react-icons/md'
+
 import { desktopApi } from '@shared/desktop/desktopApi'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as s from '@shared/ui/PSUI/FileInput/FileInput.module.scss'
 
 type Props = {
     label: string

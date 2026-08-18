@@ -1,21 +1,23 @@
 import React, { useCallback, useEffect, useMemo } from 'react'
-import { RouterProvider } from 'react-router'
+
 import { CssVarsProvider } from '@mui/joy'
 import { SkeletonTheme } from 'react-loading-skeleton'
+import { RouterProvider } from 'react-router'
 
-import UserContext from '@entities/user/model/context'
-import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
-import { NotificationsProvider } from '@app/providers/notifications'
-import { NewsProvider } from '@app/providers/news'
-import { useSocketContext } from '@app/providers/socket'
 import { ExperimentsProvider } from '@app/providers/experiments'
-import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
-import Preloader from '@widgets/preloader'
+import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'
+import { NewsProvider } from '@app/providers/news'
+import { NotificationsProvider } from '@app/providers/notifications'
+import PlayerProvider from '@app/providers/PlayerProvider'
+import { useSocketContext } from '@app/providers/socket'
 import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
+import Preloader from '@widgets/preloader'
+import UserContext from '@entities/user/model/context'
+import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
+
 import type { AppProvidersProps } from '@app/AppShell.types'
-import PlayerProvider from '@app/providers/PlayerProvider'
-import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'
+import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
 
 export default function AppProviders({
     user,

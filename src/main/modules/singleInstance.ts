@@ -1,11 +1,13 @@
 import { BrowserWindow } from 'electron'
-import type { LaunchRequestEnvelopeV1 } from './bootstrapper/contracts'
-import logger from './logger'
-import { queueAddonOpen } from '../events'
-import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporter'
-import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
 
-export { consumePendingInstallModUpdateFromPath, consumePendingBrowserAuthFromDeepLink } from './handleDeeplinks'
+import { queueAddonOpen } from '../events'
+import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
+import logger from './logger'
+import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporter'
+
+import type { LaunchRequestEnvelopeV1 } from './bootstrapper/contracts'
+
+export { consumePendingBrowserAuthFromDeepLink,consumePendingInstallModUpdateFromPath } from './handleDeeplinks'
 
 export let isFirstInstance = false
 

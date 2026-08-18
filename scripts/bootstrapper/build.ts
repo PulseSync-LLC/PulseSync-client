@@ -1,10 +1,12 @@
 import 'dotenv/config'
+
+import { execFile } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import { execFile } from 'node:child_process'
-import { promisify } from 'node:util'
 import { fileURLToPath } from 'node:url'
+import { promisify } from 'node:util'
+
 import { emitBootstrapperUpdateManifest } from '../desktop-release-manifest.js'
 import { publishToS3 } from '../s3-upload.js'
 

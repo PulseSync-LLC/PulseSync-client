@@ -1,7 +1,9 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+
 import { Modals } from '@app/providers/modal/modals'
-import type { ModalName, ModalProviderProps, ModalState, ModalStatePatch, ModalsContextValue, ModalsState } from '@app/providers/modal/types'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type { ModalName, ModalProviderProps, ModalsContextValue, ModalsState,ModalState, ModalStatePatch } from '@app/providers/modal/types'
 
 const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },
@@ -53,7 +55,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
                     ...prev,
                     [modal]: {
                         ...prev[modal],
-                        ...(state ?? {}),
+                        ...state,
                         isOpen: true,
                     },
                 }) as ModalsState,

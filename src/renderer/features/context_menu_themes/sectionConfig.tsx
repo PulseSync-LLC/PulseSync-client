@@ -1,12 +1,16 @@
 import React from 'react'
-import CheckOn from '@shared/assets/stratis-icons/check-square-on.svg'
-import CheckOff from '@shared/assets/stratis-icons/minus-square-off.svg'
-import Addon from '@entities/addon/model/addon.interface'
-import toast from '@shared/ui/toast'
-import type { ModalsContextValue } from '@app/providers/modal/types'
+
 import { MdDeleteForever, MdFileOpen, MdIosShare } from 'react-icons/md'
+
 import { t } from '@app/i18n'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
+
+import CheckOn from '@shared/assets/stratis-icons/check-square-on.svg'
+import CheckOff from '@shared/assets/stratis-icons/minus-square-off.svg'
+
+import type { ModalsContextValue } from '@app/providers/modal/types'
+import type Addon from '@entities/addon/model/addon.interface'
 
 export interface MenuItem {
     label?: string

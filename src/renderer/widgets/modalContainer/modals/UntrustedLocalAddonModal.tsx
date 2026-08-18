@@ -1,7 +1,10 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+
 import * as styles from '@widgets/modalContainer/modals/UntrustedLocalAddonModal.module.scss'
 
 const UntrustedLocalAddonModal: React.FC = () => {

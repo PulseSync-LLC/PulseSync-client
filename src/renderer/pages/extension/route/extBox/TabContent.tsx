@@ -1,23 +1,25 @@
-import React, { useMemo, useState, useEffect } from 'react'
+import React, { useEffect,useMemo, useState } from 'react'
+
 import path from 'path'
+import { useTranslation } from 'react-i18next'
+
 import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
-
-import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
+import appConfig from '@common/appConfig'
 import AddonRelationsPanel from '@pages/extension/route/extBox/AddonRelationsPanel'
-
+import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
+import { DESCRIPTION_TAB, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import ConfigurationSettings from '@features/configurationSettings/ConfigurationSettings'
 import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
-import { AddonConfig } from '@features/configurationSettings/types'
-
-import { ActiveTab, DESCRIPTION_TAB, DocTab, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
-import * as styles from '@pages/extension/route/extensionview.module.scss'
-import appConfig from '@common/appConfig'
-import Addon from '@entities/addon/model/addon.interface'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
-import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
-import { useTranslation } from 'react-i18next'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
+
+import * as styles from '@pages/extension/route/extensionview.module.scss'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
+import type { AddonConfig } from '@features/configurationSettings/types'
+import type { ActiveTab, DocTab} from '@pages/extension/route/extBox/types';
 
 interface Props {
     active: ActiveTab

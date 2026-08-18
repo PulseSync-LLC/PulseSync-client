@@ -1,5 +1,7 @@
 import path from 'path'
+
 import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
 import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
 import logger from '../logger'
 import { loadPulseSyncNative } from './pulsesyncNative'

@@ -1,4 +1,5 @@
 import { t } from '@app/i18n'
+
 import type { NotificationItem } from '@app/providers/notifications/types'
 
 export type NotificationTone = 'success' | 'error' | 'warning'

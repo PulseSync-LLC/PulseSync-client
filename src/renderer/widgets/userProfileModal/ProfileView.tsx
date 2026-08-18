@@ -1,18 +1,21 @@
 import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'
 
-import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
-import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
-import userInitials from '@entities/user/model/user.initials'
-import type { ExtendedUser } from '@entities/user/model/extendUser.interface'
-import userContext from '@entities/user/model/context'
-import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-import { isProfileSlugForUser } from '@shared/lib/profileSlug'
-import ProfileTab from '@widgets/userProfileModal/tabs/ProfileTab'
 import FriendsTab from '@widgets/userProfileModal/tabs/FriendsTab'
+import ProfileTab from '@widgets/userProfileModal/tabs/ProfileTab'
 import SettingsTab from '@widgets/userProfileModal/tabs/SettingsTab'
+import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
+import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
+import userContext from '@entities/user/model/context'
+import userInitials from '@entities/user/model/user.initials'
+import { isProfileSlugForUser } from '@shared/lib/profileSlug'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+
 import * as styles from '@widgets/userProfileModal/profileView.module.scss'
+
+import type { ExtendedUser } from '@entities/user/model/extendUser.interface'
 
 type ProfileViewProps = {
     profileName: string

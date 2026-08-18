@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto'
+
 import type { LaunchRequestEnvelopeV1, LaunchRequestInputV1 } from '../bootstrapper/contracts'
 
 const MAX_ARGUMENTS = 64

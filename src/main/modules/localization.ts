@@ -1,26 +1,30 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+
 import { app, ipcMain } from 'electron'
+
 import i18next, { createInstance } from 'i18next'
 import HttpBackend from 'i18next-http-backend'
 import * as semver from 'semver'
 
 import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
 import {
-    LOCALIZATION_CATALOG_SCHEMA_VERSION,
-    SUPPORTED_LANGUAGES,
-    parseRemoteLocalizationCatalog,
-    serializeLocalizationRevisionInput,
     type DesktopLocalizationSnapshot,
+    LOCALIZATION_CATALOG_SCHEMA_VERSION,
+    parseRemoteLocalizationCatalog,
     type RemoteLocalizationCatalog,
+    serializeLocalizationRevisionInput,
+    SUPPORTED_LANGUAGES,
     type TranslationTree,
 } from '@common/localization/catalog'
+
+import MainEvents from '../../common/types/mainEvents'
 import bundledEn from '../../locales/bundled/en/main.json'
 import bundledRu from '../../locales/bundled/ru/main.json'
-import MainEvents from '../../common/types/mainEvents'
-import type { MainRendererSource } from './rendererSource'
 import logger from './logger'
+
+import type { MainRendererSource } from './rendererSource'
 
 const CACHE_FILE_NAME = 'catalog-v1.json'
 const MAX_CATALOG_BYTES = 2 * 1024 * 1024

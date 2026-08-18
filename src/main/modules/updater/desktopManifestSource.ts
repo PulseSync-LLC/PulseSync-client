@@ -1,4 +1,5 @@
 import config from '@common/appConfig'
+
 import { getEffectiveUpdateChannel, getUpdateFeedUrl, type UpdateChannel } from './updateChannel'
 import { getUpdateSource, type UpdateSource } from './updateSource'
 

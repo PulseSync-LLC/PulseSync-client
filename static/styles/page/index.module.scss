@@ -1,12 +1,17 @@
 .page {
-    font-family: var(--font-family), sans-serif;
-    width: -webkit-fill-available;
-    height: -webkit-fill-available;
-    overflow-y: scroll;
-    scrollbar-width: none;
     display: flex;
 
-    padding: 0px;
+    width: -webkit-fill-available;
+    height: -webkit-fill-available;
+
+    padding: 0;
+
+    overflow-y: scroll;
+
+    font-family: var(--font-family), sans-serif;
+
+    scrollbar-width: none;
+
     background: var(--background);
     border-radius: 12px;
 
@@ -16,73 +21,104 @@
 }
 
 .container30x15 {
+    position: relative;
+
     display: flex;
+
     flex-direction: row;
-    align-items: flex-start;
-    padding: 15px 30px;
+
     gap: 15px;
+
+    align-items: flex-start;
 
     width: -webkit-fill-available;
     height: -webkit-fill-available;
+
+    padding: 15px 30px;
+
     overflow: scroll;
-    position: relative;
 }
 
 .containerUsesPage {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-start;
-    padding: 15px 30px;
-    gap: 15px;
-    width: 100%;
     position: relative;
+
+    display: flex;
+
+    flex-direction: row;
+
+    gap: 15px;
+
+    align-items: flex-start;
+
+    width: 100%;
+
+    padding: 15px 30px;
 }
 
 .container0x0 {
+    position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     align-items: flex-start;
-    padding: 0px;
 
     width: -webkit-fill-available;
     height: -webkit-fill-available;
+
+    padding: 0;
+
     overflow: scroll;
-    position: relative;
 }
 
 .container {
     display: flex;
+
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    overflow: overlay;
+
     gap: 15px;
+
+    align-items: flex-start;
+    justify-content: center;
+
     width: -webkit-fill-available;
     height: -webkit-fill-available;
 
+    overflow: auto;
+
     .main_container {
+        position: relative;
+
         display: flex;
+
         flex-direction: column;
+
         align-items: flex-start;
 
         width: -webkit-fill-available;
         height: -webkit-fill-available;
 
-        border-radius: 12px;
+        overflow: hidden;
+
         background: var(--background);
         border: 1px solid var(--border);
-        position: relative;
-        overflow: hidden;
+        border-radius: 12px;
 
         .container_witch_text {
             display: flex;
+
             flex-direction: column;
-            color: #ffffff;
+
             gap: 12px;
+
             width: 100%;
+
+            color: #fff;
 
             .container_patcher {
                 display: flex;
+
                 width: 100%;
             }
         }

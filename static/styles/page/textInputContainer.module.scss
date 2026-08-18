@@ -1,65 +1,92 @@
 .textInputContainer {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    padding: 0px;
-    gap: 2px;
-    width: -webkit-fill-available;
     position: relative;
 
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+    align-items: flex-start;
+
+    width: -webkit-fill-available;
+
+    padding: 0;
+
     .error {
-        color: black;
-        background: #ffcb38;
-        font-weight: 900;
         padding: 5px 10px;
+
+        font-weight: 900;
+
+        color: black;
+
+        background: #ffcb38;
         border-radius: 2px;
     }
 
     > div {
-        font-weight: 700;
         font-size: 12px;
+        font-weight: 700;
+
         line-height: 140%;
-        text-transform: uppercase;
+
         color: var(--textInputContainer);
+
+        text-transform: uppercase;
     }
 
     .charCount {
-        transition: var(--transition);
-        opacity: 0;
         position: absolute;
         right: 0;
         bottom: 0;
-        font-weight: 400;
-        font-size: 9px;
-        line-height: 140%;
         z-index: 9246;
-        margin: 3px 3px;
+
         padding: 2px 4px;
+        margin: 3px;
+
+        font-size: 9px;
+        font-weight: 400;
+
+        line-height: 140%;
+
+        color: var(--textInputContainer);
+
+        background: var(--inputColor);
         border: 1px solid var(--NavigationOnColor);
         border-radius: 4px;
-        background: var(--inputColor);
-        color: var(--textInputContainer);
+
+        opacity: 0;
+
+        transition: var(--transition);
     }
 }
 
 .styledInput {
     position: relative;
+
+    display: flex;
+
+    flex-direction: row;
+
+    gap: 10px;
+
+    align-items: center;
+
     width: -webkit-fill-available;
-    font-weight: 400;
-    font-size: 14px;
-    line-height: 140%;
+
+    padding: 7px 14px;
+
     overflow: auto;
+
+    font-size: 14px;
+    font-weight: 400;
+
+    line-height: 140%;
 
     color: #bdc5e2;
 
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 7px 14px;
-    gap: 10px;
-    border: none;
-
     background: var(--border);
+    border: none;
     border-radius: 8px;
 
     &::placeholder {
@@ -67,11 +94,12 @@
     }
 
     &:focus-visible {
-        outline: 0px double transparent !important;
+        outline: 0 double transparent !important;
     }
 
     &:focus {
         color: white;
+
         background: #1c212b;
 
         ~ .charCount {

@@ -1,6 +1,8 @@
-import path from 'node:path'
 import fs from 'node:fs'
+import path from 'node:path'
+
 import { app, BrowserWindow, ipcMain, screen } from 'electron'
+
 import { BOOTSTRAP_WINDOW_CHANNELS, type BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 declare const PRELOADER_VITE_DEV_SERVER_URL: string

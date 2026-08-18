@@ -1,12 +1,14 @@
 import React, { useContext } from 'react'
-import LoadingIndicator from '@widgets/userProfileModal/tabs/ProfileTab/LoadingIndicator'
-import ErrorMessage from '@widgets/userProfileModal/tabs/ProfileTab/ErrorMessage'
-import UserStatus from '@widgets/userProfileModal/tabs/ProfileTab/UserStatus'
-import ProfileHeader from '@widgets/userProfileModal/tabs/ProfileTab/ProfileHeader'
-import FriendButton from '@widgets/userProfileModal/tabs/ProfileTab/FriendButton'
-import AchievementsSection from '@widgets/userProfileModal/tabs/ProfileTab/AchievementsSection'
-import userContext from '@entities/user/model/context'
+
 import { useTranslation } from 'react-i18next'
+
+import AchievementsSection from '@widgets/userProfileModal/tabs/ProfileTab/AchievementsSection'
+import ErrorMessage from '@widgets/userProfileModal/tabs/ProfileTab/ErrorMessage'
+import FriendButton from '@widgets/userProfileModal/tabs/ProfileTab/FriendButton'
+import LoadingIndicator from '@widgets/userProfileModal/tabs/ProfileTab/LoadingIndicator'
+import ProfileHeader from '@widgets/userProfileModal/tabs/ProfileTab/ProfileHeader'
+import UserStatus from '@widgets/userProfileModal/tabs/ProfileTab/UserStatus'
+import userContext from '@entities/user/model/context'
 
 interface ProfileTabProps {
     userProfile: any

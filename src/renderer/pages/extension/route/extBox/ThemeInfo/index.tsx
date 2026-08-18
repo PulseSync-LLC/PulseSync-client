@@ -1,25 +1,29 @@
 import React, { useEffect, useMemo, useState } from 'react'
-import cn from 'clsx'
-import { useNavigate } from 'react-router-dom'
-import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
-import { FaGithub } from 'react-icons/fa'
-import AddonInterface from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
-import Button from '@shared/ui/buttonV2'
-import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
+
 import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
-import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
-import config from '@common/appConfig'
-import { staticAsset } from '@shared/lib/staticAssets'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { FaGithub } from 'react-icons/fa'
+import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { useNavigate } from 'react-router-dom'
+
+import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
-import { desktopApi } from '@shared/desktop/desktopApi'
-import userContext from '@entities/user/model/context'
+import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
 import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
 import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
+import userContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import Button from '@shared/ui/buttonV2'
+
+import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
+
+import type AddonInterface from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 
 interface Props {
     addon: AddonInterface

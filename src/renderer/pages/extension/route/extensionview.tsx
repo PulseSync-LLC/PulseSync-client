@@ -1,19 +1,22 @@
 import React, { useContext, useEffect, useMemo, useState } from 'react'
+
 import cn from 'clsx'
+import { useTranslation } from 'react-i18next'
 import { MdEdit } from 'react-icons/md'
 
-import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-import TabNavigation from '@pages/extension/route/extBox/TabNavigation'
-import TabContent from '@pages/extension/route/extBox/TabContent'
-import ThemeInfo from '@pages/extension/route/extBox/ThemeInfo'
 import { useAddonFiles } from '@pages/extension/route/extBox/hooks'
+import TabContent from '@pages/extension/route/extBox/TabContent'
+import TabNavigation from '@pages/extension/route/extBox/TabNavigation'
 import { selectDefaultExtensionTab } from '@pages/extension/route/extBox/tabSelection'
+import ThemeInfo from '@pages/extension/route/extBox/ThemeInfo'
+import { RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import { useConfig } from '@pages/extension/route/extBox/useConfig'
-import { ExtensionViewProps, ActiveTab, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import UserContext from '@entities/user/model/context'
-import { useTranslation } from 'react-i18next'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 
 import * as s from '@pages/extension/route/extensionview.module.scss'
+
+import type { ActiveTab, ExtensionViewProps} from '@pages/extension/route/extBox/types';
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({
     addon,

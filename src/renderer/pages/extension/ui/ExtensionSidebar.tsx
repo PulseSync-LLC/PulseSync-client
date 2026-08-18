@@ -1,19 +1,22 @@
 import React from 'react'
+
+import { Accordion, type AccordionItem } from '@pulsesync/uikit/layout'
 import cn from 'clsx'
 import { MdChevronRight, MdFilterList, MdFolder, MdMoreHoriz } from 'react-icons/md'
-import { Accordion, type AccordionItem } from '@pulsesync/uikit/layout'
+
+import AddonCard from '@pages/extension/ui/AddonCard'
+import { staticAsset } from '@shared/lib/staticAssets'
+import AddonFilters from '@shared/ui/PSUI/AddonFilters'
+import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
+import OptionMenu from '@shared/ui/PSUI/OptionMenu'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+import toast from '@shared/ui/toast'
+
+import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
-import Addon from '@entities/addon/model/addon.interface'
-import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-import AddonFilters from '@shared/ui/PSUI/AddonFilters'
-import OptionMenu from '@shared/ui/PSUI/OptionMenu'
-import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
-import AddonCard from '@pages/extension/ui/AddonCard'
-import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonTypeFilter, SortKey } from '@pages/extension/model/addonCatalog'
-import { staticAsset } from '@shared/lib/staticAssets'
-import toast from '@shared/ui/toast'
 
 const ADDON_DRAG_TYPE = 'application/x-pulsesync-addon-id'
 const DRAG_OPEN_DELAY_MS = 550

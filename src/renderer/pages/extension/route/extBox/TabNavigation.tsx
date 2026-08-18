@@ -1,11 +1,16 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
-import cn from 'clsx'
-import { MdFactCheck } from 'react-icons/md'
-import { ActiveTab, DESCRIPTION_TAB, DocTab, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+
 import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
-import { staticAsset } from '@shared/lib/staticAssets'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdFactCheck } from 'react-icons/md'
+
+import { DESCRIPTION_TAB, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+import { staticAsset } from '@shared/lib/staticAssets'
+
 import * as s from './TabNavigation.module.scss'
+
+import type { ActiveTab, DocTab} from '@pages/extension/route/extBox/types';
 
 interface TabItem {
     title: string

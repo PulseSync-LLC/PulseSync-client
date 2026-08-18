@@ -1,8 +1,10 @@
 import React, { useCallback, useEffect } from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const MacPermissionsModal: React.FC = () => {
     const { t } = useTranslation()

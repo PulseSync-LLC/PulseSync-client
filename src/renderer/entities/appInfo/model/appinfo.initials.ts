@@ -1,4 +1,4 @@
-import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 
 const appInfoInitials: AppInfoInterface[] = [
     {

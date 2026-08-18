@@ -2,49 +2,70 @@
 
 .panel {
     display: grid;
+
     gap: 18px;
+
     width: 100%;
     min-width: 0;
+
     container-type: inline-size;
 }
 
 .panelHeader {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
-    align-items: flex-start;
+
     gap: 16px;
+
+    align-items: flex-start;
 }
 
 .panelTitle {
     margin: 0;
-    color: var(--text-primary);
+
     font-size: 22px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .panelDescription {
     max-width: 560px;
+
     margin: 7px 0 0;
-    color: var(--text-secondary);
+
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--text-secondary);
 }
 
 .clearAllButton,
 .secondaryButton,
 .primaryButton {
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     min-height: 36px;
+
     padding: 0 14px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
+
     font-size: 13px;
     font-weight: 700;
+
     white-space: nowrap;
+
     cursor: pointer;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
     transition:
         background 0.15s ease,
         border-color 0.15s ease,
@@ -57,27 +78,30 @@
 
 .clearAllButton,
 .secondaryButton {
-    background: var(--surface-secondary);
     color: var(--text-primary);
+
+    background: var(--surface-secondary);
 }
 
 .clearAllButton:hover:not(:disabled),
 .secondaryButton:hover:not(:disabled) {
-    border-color: var(--border-hover);
     background: var(--surface-elevated);
+    border-color: var(--border-hover);
 }
 
 .primaryButton {
-    border-color: var(--accent);
-    background: var(--accent);
     color: var(--accent-foreground, #040404);
+
+    background: var(--accent);
+    border-color: var(--accent);
 }
 
 .clearAllButton:disabled,
 .secondaryButton:disabled,
 .primaryButton:disabled {
-    opacity: 0.45;
     cursor: default;
+
+    opacity: 0.45;
 }
 
 .clearAllButton:focus-visible,
@@ -89,23 +113,30 @@
 
 .warningCard {
     padding: 16px;
+
+    color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--danger) 9%, var(--surface-secondary));
     border: 1px solid color-mix(in srgb, var(--danger) 72%, var(--border));
     border-radius: 10px;
-    background: color-mix(in srgb, var(--danger) 9%, var(--surface-secondary));
-    color: var(--text-primary);
 
     strong {
         display: block;
+
         margin-bottom: 10px;
+
         font-size: 15px;
         font-weight: 800;
     }
 
     p {
         margin: 0;
-        color: var(--text-secondary);
+
         font-size: 13px;
+
         line-height: 1.5;
+
+        color: var(--text-secondary);
     }
 
     p + p {
@@ -114,17 +145,24 @@
 }
 
 .searchField {
+    box-sizing: border-box;
     display: grid;
+
     grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
+
     gap: 9px;
+
+    align-items: center;
+
     min-height: 42px;
+
     padding: 0 12px;
+
+    color: var(--text-muted);
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--surface-secondary);
-    color: var(--text-muted);
-    box-sizing: border-box;
 
     &:focus-within {
         border-color: var(--border-hover);
@@ -134,12 +172,17 @@
     input {
         width: 100%;
         min-width: 0;
+
         padding: 0;
-        border: 0;
-        outline: 0;
-        background: transparent;
-        color: var(--text-primary);
+
         font: inherit;
+
+        color: var(--text-primary);
+
+        outline: 0;
+
+        background: transparent;
+        border: 0;
     }
 
     input::placeholder {
@@ -153,7 +196,9 @@
 
 .experimentItem {
     min-width: 0;
+
     padding: 18px 0;
+
     border-bottom: 1px solid var(--border);
 }
 
@@ -167,9 +212,11 @@
 
 .experimentHeader {
     display: flex;
+
+    gap: 16px;
+
     align-items: flex-start;
     justify-content: space-between;
-    gap: 16px;
 }
 
 .experimentHeading {
@@ -177,39 +224,52 @@
 }
 
 .experimentTitle {
-    color: var(--text-primary);
     font-size: 15px;
     font-weight: 800;
+
     line-height: 1.35;
+
+    color: var(--text-primary);
+
     overflow-wrap: anywhere;
 }
 
 .experimentDescription {
     margin-top: 3px;
-    color: var(--text-muted);
+
     font-size: 12px;
+
     line-height: 1.4;
+
+    color: var(--text-muted);
+
     overflow-wrap: anywhere;
 }
 
 .experimentScope {
     flex: 0 0 auto;
-    color: var(--text-muted);
+
     font-size: 12px;
     font-weight: 700;
+
+    color: var(--text-muted);
 }
 
 .variantSection {
     display: grid;
+
     gap: 8px;
+
     margin-top: 14px;
 }
 
 .assignmentValue,
 .effectiveValue {
-    color: var(--text-muted);
     font-size: 11px;
+
     line-height: 1.35;
+
+    color: var(--text-muted);
 }
 
 .assignmentValue {
@@ -217,14 +277,18 @@
 }
 
 .detailsToggle {
-    margin-top: 12px;
     padding: 0;
-    border: 0;
-    background: transparent;
-    color: var(--text-primary);
+    margin-top: 12px;
+
     font-size: 13px;
     font-weight: 800;
+
+    color: var(--text-primary);
+
     cursor: pointer;
+
+    background: transparent;
+    border: 0;
 
     &:hover {
         color: var(--text-secondary);
@@ -238,96 +302,130 @@
 
 .details {
     display: grid;
+
     gap: 14px;
-    margin-top: 14px;
+
     padding: 14px;
+    margin-top: 14px;
+
+    background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 10px;
-    background: var(--surface-secondary);
 }
 
 .detailsHeader {
     display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
 }
 
 .stateRow {
     display: flex;
-    gap: 8px 14px;
+
     flex-wrap: wrap;
-    color: var(--text-secondary);
+
+    gap: 8px 14px;
+
     font-size: 12px;
     font-weight: 700;
+
+    color: var(--text-secondary);
 }
 
 .copyButton {
     display: inline-flex;
-    align-items: center;
+
     gap: 6px;
+
+    align-items: center;
+
     min-height: 32px;
+
     padding: 0 10px;
-    border: 1px solid var(--border);
-    border-radius: 8px;
-    background: var(--surface-tertiary);
-    color: var(--text-primary);
+
     font-size: 12px;
     font-weight: 700;
+
+    color: var(--text-primary);
+
     cursor: pointer;
 
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
     &:hover {
-        border-color: var(--border-hover);
         background: var(--surface-elevated);
+        border-color: var(--border-hover);
     }
 }
 
 .groupsGrid {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 8px;
 }
 
 .groupButton {
     position: relative;
+
     display: grid;
+
     gap: 5px;
+
     min-width: 0;
+
     padding: 10px 12px;
+
+    color: var(--text-primary);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    background: var(--surface-tertiary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    background: var(--surface-tertiary);
-    color: var(--text-primary);
-    text-align: left;
-    cursor: pointer;
 
     span {
         padding-right: 42px;
+
         font-size: 13px;
         font-weight: 800;
+
         overflow-wrap: anywhere;
     }
 
     small {
-        color: var(--text-secondary);
         font-size: 11px;
+
         line-height: 1.4;
+
+        color: var(--text-secondary);
     }
 
     em {
         position: absolute;
         top: 10px;
         right: 10px;
-        color: var(--text-muted);
+
         font-size: 10px;
         font-style: normal;
         font-weight: 700;
+
+        color: var(--text-muted);
     }
 
     &:hover {
-        border-color: var(--border-hover);
         background: var(--surface-elevated);
+        border-color: var(--border-hover);
     }
 }
 
@@ -338,49 +436,66 @@
 
 .advancedEditor {
     display: grid;
+
     grid-template-columns: minmax(140px, 0.4fr) minmax(0, 1fr);
+
     gap: 10px;
 }
 
 .field {
     display: grid;
-    align-content: start;
+
     gap: 7px;
+
+    align-content: start;
+
     min-width: 0;
 
     > span {
-        color: var(--text-primary);
         font-size: 11px;
         font-weight: 800;
-        letter-spacing: 0.04em;
+
+        color: var(--text-primary);
+
         text-transform: uppercase;
+        letter-spacing: 0.04em;
     }
 
     input,
     textarea {
+        box-sizing: border-box;
+
         width: 100%;
         min-width: 0;
+
+        font: inherit;
+
+        color: var(--text-primary);
+
+        outline: 0;
+
+        background: var(--surface-tertiary);
         border: 1px solid var(--border);
         border-radius: 8px;
-        outline: 0;
-        background: var(--surface-tertiary);
-        color: var(--text-primary);
-        font: inherit;
-        box-sizing: border-box;
     }
 
     input {
         height: 40px;
+
         padding: 0 11px;
     }
 
     textarea {
         min-height: 98px;
+
         padding: 10px 11px;
-        resize: vertical;
+
         font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
         font-size: 12px;
+
         line-height: 1.5;
+
+        resize: vertical;
     }
 
     input:focus,
@@ -392,21 +507,30 @@
 
 .detailsActions {
     display: flex;
-    justify-content: flex-end;
+
     gap: 10px;
+
+    justify-content: flex-end;
 }
 
 .empty {
+    box-sizing: border-box;
     display: grid;
+
     place-items: center;
+
     min-height: 180px;
+
     padding: 28px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+    text-align: center;
+
     border: 1px solid var(--border);
     border-radius: 10px;
-    color: var(--text-secondary);
-    font-size: 13px;
-    text-align: center;
-    box-sizing: border-box;
 }
 
 .shimmerList {
@@ -415,8 +539,11 @@
 
 .shimmerExperiment {
     display: grid;
+
     gap: 10px;
+
     padding: 18px 0;
+
     border-bottom: 1px solid var(--border);
 }
 
@@ -440,6 +567,7 @@
 .shimmerSelect {
     width: 100%;
     height: 42px;
+
     border-radius: 8px;
 }
 
@@ -468,6 +596,7 @@
 
     .detailsActions {
         display: grid;
+
         grid-template-columns: 1fr;
     }
 }

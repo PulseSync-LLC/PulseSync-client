@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useMemo,useRef, useState } from 'react'
+
 import cn from 'clsx'
-import * as styles from '@entities/user/ui/userCardV2/userCard.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { getStatusColor } from '@shared/lib/userStatus'
-import UserInterface from '@entities/user/model/user.interface'
-import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
-import LevelBadge from '@entities/user/ui/LevelBadge'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Banner } from '@shared/ui/PSUI/Image'
-import { getProfileSlug } from '@shared/lib/profileSlug'
+import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
+
 import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+import LevelBadge from '@entities/user/ui/LevelBadge'
+import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+import { getProfileSlug } from '@shared/lib/profileSlug'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { getStatusColor } from '@shared/lib/userStatus'
+import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@entities/user/ui/userCardV2/userCard.module.scss'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 interface UserCardProps {
     user: Partial<UserInterface>

@@ -1,9 +1,11 @@
 import { createContext } from 'react'
-import userInitials from '@entities/user/model/user.initials'
-import settingsInitials from '@entities/settings/model/settings.initials'
-import AppinfoInitials from '@entities/appInfo/model/appinfo.initials'
+
 import AddonInitials from '@entities/addon/model/addon.initials'
+import AppinfoInitials from '@entities/appInfo/model/appinfo.initials'
 import modInitials from '@entities/mod/model/mod.initials'
+import settingsInitials from '@entities/settings/model/settings.initials'
+import userInitials from '@entities/user/model/user.initials'
+
 import type { UserContextValue } from '@entities/user/model/context/types'
 import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 

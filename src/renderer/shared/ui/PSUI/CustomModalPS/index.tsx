@@ -1,9 +1,14 @@
-import React, { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
-import cn from 'clsx'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+
+import cn from 'clsx'
+import { AnimatePresence,motion } from 'framer-motion'
+
 import ButtonV2 from '@shared/ui/buttonV2'
+
 import * as styles from '@shared/ui/PSUI/CustomModalPS/CustomModalPS.module.scss'
+
+import type { ReactNode} from 'react';
 
 export interface ModalButton {
     text: string

@@ -1,5 +1,6 @@
 .updateModal {
     display: flex;
+
     flex-direction: column;
 
     h1,
@@ -8,28 +9,33 @@
     h4,
     h5,
     h6 {
-        color: #ffffff;
-        margin: 0 0 0.75rem 0;
+        margin: 0 0 0.75rem;
+
+        color: #fff;
     }
 
     ul {
-        list-style: disc inside;
         margin: 0 0 0.75rem 1rem;
+
+        list-style: disc inside;
 
         li {
             margin-bottom: 0.35rem;
+
             line-height: 1.4;
         }
     }
 
     hr {
+        margin: 1.5rem 0;
+
         border: none;
         border-top: 1px solid var(--hover);
-        margin: 1.5rem 0;
     }
 
     a {
         color: var(--text-primary);
+
         text-decoration: underline;
 
         &:hover {
@@ -44,8 +50,11 @@
 
 .updateItem {
     position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     outline: 1px solid var(--modal-border);
 
     &:first-child {
@@ -55,20 +64,24 @@
 
 .remerkStyle {
     min-width: 0;
+
     padding: 30px 24px 24px;
 
     h3,
     h2 {
+        margin: 0 0 0.75rem;
+
         font-size: 22px;
         font-weight: 700;
-        color: #ffffff;
-        margin: 0 0 0.75rem;
+
+        color: #fff;
     }
 }
 
 .updateItem:nth-child(odd) {
     background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 100%);
 }
+
 .updateItem:nth-child(even) {
     background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 100%);
 }
@@ -78,44 +91,62 @@
     top: 0;
     left: 50%;
     z-index: 1;
+
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
     width: max-content;
     max-width: calc(100% - 48px);
+
     padding: 4px 10px;
-    box-sizing: border-box;
-    border-radius: 999px;
-    background: var(--background);
-    transform: translate(-50%, -50%);
+
     text-wrap-mode: nowrap;
 
+    background: var(--background);
+    border-radius: 999px;
+
+    transform: translate(-50%, -50%);
+
     h3 {
+        padding: 0;
         margin: 0;
+
         font-size: 12px;
         font-weight: 800;
+
         color: var(--text-primary);
-        padding: 0;
+
         background: transparent;
     }
 
     span {
         display: inline-flex;
-        align-items: center;
+
         gap: 10px;
+
+        align-items: center;
+
         padding: 0;
-        background: transparent;
+
         font-size: 11px;
+
         color: var(--text-secondary);
 
+        background: transparent;
+
         &::before {
-            content: '•';
             color: var(--text-muted);
+
+            content: '•';
         }
     }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
     .remerkStyle {
         padding-inline: 18px;
     }

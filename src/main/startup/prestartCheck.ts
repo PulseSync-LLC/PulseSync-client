@@ -1,11 +1,11 @@
 import { setAddon } from '../modules/httpServer'
 import logger from '../modules/logger'
-import { getState } from '../modules/state'
 import { startThemeWatcher } from '../modules/nativeModules'
-import { checkAsar, isLinux } from '../utils/appUtils'
-import { createDefaultAddonIfNotExists } from '../utils/addonUtils'
-import { migrateLegacyAddonSettings } from '../utils/addonSettingsMigration'
+import { getState } from '../modules/state'
 import { getAddonsRoot } from '../utils/addonPaths'
+import { migrateLegacyAddonSettings } from '../utils/addonSettingsMigration'
+import { createDefaultAddonIfNotExists } from '../utils/addonUtils'
+import { checkAsar, isLinux } from '../utils/appUtils'
 import { musicPath, selectedAddon, setAsarFilename, setSelectedAddon } from './runtimeState'
 
 const State = getState()

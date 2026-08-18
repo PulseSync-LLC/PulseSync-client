@@ -1,12 +1,15 @@
-import type { ForgeConfig } from '@electron-forge/shared-types'
-import { VitePlugin } from '@electron-forge/plugin-vite'
-import { FusesPlugin } from '@electron-forge/plugin-fuses'
-import { FuseV1Options, FuseVersion } from '@electron/fuses'
-import path from 'path'
-import fs from 'fs'
 import { fileURLToPath } from 'node:url'
-import { prepareGlitchTipSourceMaps } from './scripts/glitchtip-sourcemaps.js'
+
+import { FuseV1Options, FuseVersion } from '@electron/fuses'
+import { FusesPlugin } from '@electron-forge/plugin-fuses'
+import { VitePlugin } from '@electron-forge/plugin-vite'
+import fs from 'fs'
+import path from 'path'
+
 import { componentContainerName, readRuntimeComponentMetadata } from './scripts/component-layout.js'
+import { prepareGlitchTipSourceMaps } from './scripts/glitchtip-sourcemaps.js'
+
+import type { ForgeConfig } from '@electron-forge/shared-types'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

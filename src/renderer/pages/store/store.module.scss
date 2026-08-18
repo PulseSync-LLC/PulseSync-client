@@ -11,7 +11,9 @@
 .containerFixInner {
     width: var(--scrollWStore);
     height: var(--scrollHStore);
-    overflow: overlay;
+
+    overflow: auto;
+
     background:
         radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
         radial-gradient(ellipse 38% 34% at 100% 0, color-mix(in srgb, var(--catalog-edge-right, #040404) 58%, #040404) 0%, transparent 100%), #040404;
@@ -23,51 +25,69 @@
 
 .store {
     box-sizing: border-box;
+
     width: min(1200px, 100%);
     min-height: 100%;
-    margin: 0 auto;
+
     padding: 14px 25px 34px;
-    color: var(--text-primary);
+    margin: 0 auto;
+
     font-family: var(--font-family), sans-serif;
+
+    color: var(--text-primary);
 }
 
 .catalogToolbar {
+    box-sizing: border-box;
+    display: flex;
+
+    gap: 12px;
+
+    align-items: center;
+
     width: 100%;
     height: 51px;
+
     padding: 4px;
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    box-sizing: border-box;
-    border-radius: 12px;
+
     background: var(--active);
+    border-radius: 12px;
 }
 
 .catalogTabsRoot {
-    min-width: 0;
     flex: 1 1 auto;
+
+    min-width: 0;
 }
 
 .catalogTabs {
     width: fit-content;
     height: 43px;
     min-height: 43px;
+
     padding: 0;
+
     background: transparent;
 }
 
 .catalogTabs button {
-    height: 43px;
-    min-height: 43px;
-    padding: 0;
+    box-sizing: border-box;
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
-    box-sizing: border-box;
-    border-radius: 8px;
+
+    height: 43px;
+    min-height: 43px;
+
+    padding: 0;
+
     font-size: 14px;
     font-weight: 700;
+
     line-height: 19px;
+
+    border-radius: 8px;
 }
 
 .catalogTabs button:nth-of-type(1) {
@@ -85,50 +105,65 @@
 .catalogTabs :global([class*='_tabIndicator_']) {
     top: 0;
     bottom: 0;
-    border-radius: 6px;
+
     background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    border-radius: 6px;
 }
 
 .catalogSearchSlot {
     position: relative;
-    width: 271px;
-    flex: 0 0 271px;
-    min-width: 0;
+
     display: flex;
+
+    flex: 0 0 271px;
+
     align-self: flex-start;
+
+    width: 271px;
+    min-width: 0;
 }
 
 .catalogSearchIcon {
     position: absolute;
-    z-index: 1;
     top: 10px;
     left: 10px;
+    z-index: 1;
+
     width: 22px;
     height: 22px;
+
     color: var(--text-secondary);
+
     pointer-events: none;
 }
 
 .catalogSearch {
+    box-sizing: border-box;
+
+    flex: 1 1 auto;
+
+    gap: 7px;
+
     width: 100%;
     max-width: 100%;
     height: 42px;
     min-height: 42px;
+
     padding: 10px;
-    gap: 7px;
-    flex: 1 1 auto;
-    box-sizing: border-box;
+
+    background: var(--hover);
     border: 0;
     border-radius: 6px;
-    background: var(--hover);
     box-shadow: none;
 }
 
 .catalogSearch :global([class*='_searchIcon_']) {
+    visibility: hidden;
+
     width: 22px;
     height: 22px;
+
     color: var(--text-secondary);
-    visibility: hidden;
 }
 
 .catalogSearch :global([class*='_searchIcon_']) svg {
@@ -151,11 +186,13 @@
 
 .featured {
     width: 100%;
+
     margin-top: 15px;
 }
 
 .featuredClickable {
     cursor: pointer;
+
     border-radius: 10px;
 
     &:focus-visible {
@@ -175,10 +212,13 @@
 @keyframes featuredEnterNext {
     from {
         opacity: 0;
+
         transform: translateX(18px);
     }
+
     to {
         opacity: 1;
+
         transform: translateX(0);
     }
 }
@@ -186,10 +226,13 @@
 @keyframes featuredEnterPrevious {
     from {
         opacity: 0;
+
         transform: translateX(-18px);
     }
+
     to {
         opacity: 1;
+
         transform: translateX(0);
     }
 }
@@ -202,65 +245,86 @@
 }
 
 .featuredTopline {
-    min-height: 30px;
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+
+    min-height: 30px;
 }
 
 .featuredIdentity {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .featuredAvatar {
+    flex: 0 0 auto;
+
     width: 30px;
     height: 30px;
-    flex: 0 0 auto;
-    border-radius: 6px;
+
     object-fit: cover;
+
+    border-radius: 6px;
 }
 
 .featuredTitle {
     min-width: 0;
+
     margin: 0;
+
     overflow: hidden;
+    text-overflow: ellipsis;
+
     font-size: 22px;
     font-weight: 700;
+
     line-height: 30px;
-    text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
 .metaBadge {
     padding: 4px 7px;
-    border-radius: 6px;
+
     font-size: 12px;
     font-weight: 600;
+
     line-height: 16px;
+
+    border-radius: 6px;
 }
 
 .neutralBadge {
-    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
     color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
 }
 
 .toneSuccess {
-    background: color-mix(in srgb, var(--ps-success, var(--success)) 15%, transparent);
     color: var(--ps-success, var(--success));
+
+    background: color-mix(in srgb, var(--ps-success, var(--success)) 15%, transparent);
 }
 
 .toneWarning {
-    background: color-mix(in srgb, var(--ps-warning, var(--warning)) 15%, transparent);
     color: var(--ps-warning, var(--warning));
+
+    background: color-mix(in srgb, var(--ps-warning, var(--warning)) 15%, transparent);
 }
 
 .toneInfo {
-    background: color-mix(in srgb, var(--ps-info, #44aaff) 15%, transparent);
-    color: var(--ps-info, #44aaff);
+    color: var(--ps-info, #4af);
+
+    background: color-mix(in srgb, var(--ps-info, #4af) 15%, transparent);
 }
 
 .metaBadge svg {
@@ -270,72 +334,96 @@
 
 .installButton,
 .removeButton {
+    box-sizing: border-box;
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+    justify-content: center;
+
     width: 115px;
     min-width: 115px;
     height: 30px;
+
     padding: 0 14px;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--success) 15%, transparent);
-    color: var(--success);
+
     font: inherit;
     font-size: 12px;
     font-weight: 600;
+
+    color: var(--success);
+
     cursor: pointer;
 
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    border: 0;
+    border-radius: 6px;
+
     &:hover:not(:disabled) {
-        background: var(--success);
         color: var(--background);
+
+        background: var(--success);
     }
 
     &:disabled {
-        opacity: 0.5;
         cursor: default;
+
+        opacity: 0.5;
     }
 }
 
 .removeButton {
-    background: color-mix(in srgb, var(--danger) 15%, transparent);
     color: var(--danger);
 
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+
     &:hover:not(:disabled) {
-        background: var(--danger);
         color: var(--text-primary);
+
+        background: var(--danger);
     }
 }
 
 .featuredBody {
-    min-height: 378px;
-    margin-top: 15px;
     display: grid;
+
     grid-template-columns: minmax(300px, 432px) minmax(0, 1fr);
+
     gap: 15px;
+
+    min-height: 378px;
+
+    margin-top: 15px;
 }
 
 .featuredCopy {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
-    align-items: flex-start;
+
     gap: 15px;
+
+    align-items: flex-start;
+
+    min-width: 0;
 }
 
 .featuredDescription {
     margin: 0;
-    color: var(--text-secondary);
+
     font-size: 12px;
     font-weight: 600;
+
     line-height: 16px;
+
+    color: var(--text-secondary);
 }
 
 .featuredGroup {
     width: 100%;
     min-height: 0;
+
     margin: 0;
 }
 
@@ -345,69 +433,90 @@
 
 .featuredGroup h2 {
     margin: 0 0 3px;
+
     font-size: 14px;
     font-weight: 800;
+
     line-height: 19px;
 }
 
 .badgeRow {
     display: flex;
+
     flex-wrap: wrap;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
 }
 
 .authorBadge,
 .githubLink {
-    min-height: 24px;
-    padding: 0 7px;
     display: inline-flex;
-    align-items: center;
+
     gap: 6px;
-    border: 0;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--ps-accent, var(--accent)) 15%, transparent);
-    color: var(--ps-accent, var(--accent));
+
+    align-items: center;
+
+    min-height: 24px;
+
+    padding: 0 7px;
+
     font: inherit;
     font-size: 12px;
     font-weight: 600;
+
+    color: var(--ps-accent, var(--accent));
+
     cursor: pointer;
+
+    background: color-mix(in srgb, var(--ps-accent, var(--accent)) 15%, transparent);
+    border: 0;
+    border-radius: 6px;
 }
 
 .authorBadge.toneInfo {
-    background: color-mix(in srgb, var(--ps-info, #44aaff) 15%, transparent);
-    color: var(--ps-info, #44aaff);
+    color: var(--ps-info, #4af);
+
+    background: color-mix(in srgb, var(--ps-info, #4af) 15%, transparent);
 }
 
 .authorBadge.neutralBadge {
-    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
     color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
 }
 
 .authorBadge > span {
     width: 8px;
     height: 8px;
+
+    background: currentcolor;
     border-radius: 50%;
-    background: currentColor;
 }
 
 .githubLink {
     color: var(--text-primary);
+
     background: var(--active);
 }
 
 .featuredMedia {
     min-width: 0;
     height: 378px;
+
     overflow: hidden;
-    border-radius: 10px;
+
     background: var(--surface-secondary);
+    border-radius: 10px;
 }
 
 .featuredMedia img {
+    display: block;
+
     width: 100%;
     height: 100%;
-    display: block;
+
     object-fit: cover;
 }
 
@@ -416,45 +525,60 @@
 }
 
 .pagerDots {
-    height: 30px;
-    margin: 15px 0;
     display: flex;
+
+    gap: 5px;
+
     align-items: center;
     justify-content: center;
-    gap: 5px;
+
+    height: 30px;
+
+    margin: 15px 0;
 }
 
 .pagerDot {
     width: 15px;
     height: 30px;
+
     padding: 0;
+
+    cursor: pointer;
+
+    background: var(--active);
     border: 0;
     border-radius: 6px;
-    background: var(--active);
-    cursor: pointer;
 }
 
 .pagerDotActive {
     width: 30px;
+
     background: var(--text-primary);
 }
 
 .pagerArrow {
+    display: grid;
+
+    place-items: center;
+
     width: 30px;
     height: 30px;
+
     padding: 0;
-    display: grid;
-    place-items: center;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: var(--active);
     border: 0;
     border-radius: 6px;
-    background: var(--active);
-    color: var(--text-primary);
-    cursor: pointer;
 }
 
 .pagerArrow:disabled {
-    opacity: 0.5;
     cursor: default;
+
+    opacity: 0.5;
 }
 
 .pagerArrow svg,
@@ -465,49 +589,67 @@
 
 .catalogSection {
     width: 100%;
+
     margin-top: 15px;
 }
 
 .sectionHeader {
-    min-height: 30px;
-    margin-bottom: 15px;
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+
+    min-height: 30px;
+
+    margin-bottom: 15px;
 }
 
 .sectionHeader h2 {
     margin: 0;
-    color: var(--text-primary);
+
     font-size: 22px;
     font-weight: 700;
+
     line-height: 30px;
+
+    color: var(--text-primary);
 }
 
 .sectionHeader p {
     margin: 3px 0 0;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
+    color: var(--text-secondary);
 }
 
 .sectionActions {
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
 }
 
 .sectionActions button {
+    display: grid;
+
+    place-items: center;
+
     width: 30px;
     height: 30px;
+
     padding: 0;
-    display: grid;
-    place-items: center;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: var(--active);
     border: 0;
     border-radius: 6px;
-    background: var(--active);
-    color: var(--text-primary);
-    cursor: pointer;
 
     &:hover {
         background: var(--border-hover);
@@ -515,14 +657,19 @@
 }
 
 .posterRail {
+    display: flex;
+
+    gap: 10px;
+
     width: calc(100% + 25px);
     max-width: none;
-    display: flex;
-    gap: 10px;
+
     overflow-x: auto;
+
     scroll-snap-type: x mandatory;
+
     scrollbar-width: none;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
+
     mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
 }
 
@@ -536,26 +683,34 @@
 
 .listShell {
     position: relative;
+
     width: 100%;
 }
 
 .storeList {
-    width: 100%;
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
+
+    width: 100%;
 }
 
 .storeVirtualSpacer {
-    width: 100%;
     flex: 0 0 auto;
+
+    width: 100%;
 }
 
 .initialShimmerOverlay {
     position: absolute;
     inset: 0;
+
     pointer-events: none;
+
     opacity: 1;
+
     transition: opacity 0.18s ease-out;
 }
 
@@ -564,17 +719,23 @@
 }
 
 .storeState {
-    min-height: 220px;
     display: flex;
+
     align-items: center;
     justify-content: center;
+
+    min-height: 220px;
+
     color: var(--text-secondary);
+
     text-align: center;
 }
 
 .storeLoading {
     width: 100%;
+
     margin-top: 15px;
+
     animation: storeShimmerFadeIn 0.18s ease-out;
 }
 
@@ -582,21 +743,24 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
 }
 
-@media (max-width: 900px) {
+@media (width <= 900px) {
     .store {
         padding-inline: 16px;
         padding-bottom: 72px;
     }
 
     .catalogToolbar {
-        height: auto;
-        align-items: stretch;
         flex-direction: column;
+
+        align-items: stretch;
+
+        height: auto;
     }
 
     .catalogTabsRoot,
@@ -620,6 +784,7 @@
 
     .catalogTabs button {
         flex: 1 0 auto;
+
         padding-inline: 18px;
     }
 
@@ -633,18 +798,20 @@
 
     .featuredMedia {
         order: 1;
+
         height: min(52vw, 378px);
     }
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
     .store {
         padding-inline: 12px;
     }
 
     .featuredTopline {
-        align-items: flex-start;
         flex-direction: column;
+
+        align-items: flex-start;
     }
 
     .featuredIdentity {

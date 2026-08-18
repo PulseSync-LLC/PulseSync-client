@@ -1,6 +1,6 @@
+import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
-import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 export { DESKTOP_API_VERSION } from './version'
 
 export interface DesktopRuntimeInfo {

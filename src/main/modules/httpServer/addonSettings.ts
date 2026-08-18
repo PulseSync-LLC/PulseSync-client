@@ -1,16 +1,18 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
+
 import {
     type AddonSettingsValues,
-    type HandleConfig,
-    HANDLE_EVENTS_FILENAME,
-    HANDLE_EVENTS_SETTINGS_FILENAME,
     extractHandleConfigItemDefaultValue,
     extractHandleConfigItemValue,
+    HANDLE_EVENTS_FILENAME,
+    HANDLE_EVENTS_SETTINGS_FILENAME,
+    type HandleConfig,
     normalizeAddonSettingsValues,
 } from '@common/addons/handleEvents'
-import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
+
 import { getAddonsRoot } from '../../utils/addonPaths'
+import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
 
 export type AddonSettingsPayload = Record<string, any>
 

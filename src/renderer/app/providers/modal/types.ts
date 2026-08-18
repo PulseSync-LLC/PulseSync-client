@@ -1,7 +1,7 @@
-import type { ReactNode } from 'react'
-import { Modals } from '@app/providers/modal/modals'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { Modals } from '@app/providers/modal/modals'
 import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { ReactNode } from 'react'
 
 export type ModalName = (typeof Modals)[keyof typeof Modals]
 

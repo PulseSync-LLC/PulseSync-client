@@ -1,8 +1,10 @@
 import React from 'react'
-import * as styles from '@shared/ui/errorBoundary/errorBoundary.module.scss'
-import toast from '@shared/ui/toast'
+
 import { t } from '@app/i18n'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
+
+import * as styles from '@shared/ui/errorBoundary/errorBoundary.module.scss'
 
 interface ErrorBoundaryProps {
     children: React.ReactNode

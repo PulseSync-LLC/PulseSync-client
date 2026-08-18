@@ -1,13 +1,15 @@
 import { useContext, useEffect, useRef, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
-import SettingsInterface from '@entities/settings/model/settings.interface'
 import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
+
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 export type UpdateSource = 'backend' | 'github'
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'

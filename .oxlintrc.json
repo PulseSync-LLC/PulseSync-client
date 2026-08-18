@@ -1,0 +1,31 @@
+{
+    "$schema": "./node_modules/oxlint/configuration_schema.json",
+    "ignorePatterns": [".vite/**", "out/**", "dist/**", "release/**", "coverage/**", "node_modules/**"],
+    "jsPlugins": ["eslint-plugin-simple-import-sort"],
+    "rules": {
+        "typescript/consistent-type-imports": [
+            "error",
+            {
+                "prefer": "type-imports",
+                "fixStyle": "separate-type-imports"
+            }
+        ],
+        "simple-import-sort/imports": [
+            "error",
+            {
+                "groups": [
+                    ["^\\u0000(?!.*\\.(?:css|scss|sass|less|styl)(?:\\?.*)?$)"],
+                    ["^node:"],
+                    ["^(?:react|react-dom|electron)(?:/.*)?$"],
+                    ["^@?\\w"],
+                    ["^@/", "^@common(?:/|$)", "^@app(?:/|$)", "^@pages(?:/|$)", "^@widgets(?:/|$)", "^@features(?:/|$)", "^@entities(?:/|$)", "^@shared(?:/|$)"],
+                    ["^\\."],
+                    ["^(?:\\u0000)?.*\\.(?:svg|png|jpe?g|gif|webp|ico)(?:\\?.*)?$"],
+                    ["^(?:\\u0000)?.*\\.(?:css|scss|sass|less|styl)(?:\\?.*)?$"],
+                    ["^.*\\u0000$"]
+                ]
+            }
+        ],
+        "simple-import-sort/exports": "error"
+    }
+}

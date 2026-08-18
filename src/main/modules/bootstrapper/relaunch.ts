@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process'
 import { StringDecoder } from 'node:string_decoder'
+
 import { parseHandoffArmedProgress, type RustHandoffArmedEventV1 } from './contracts'
+
 import type { BootstrapperLauncher } from './paths'
 
 export type BootstrapperRelaunchOptions = {

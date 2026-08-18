@@ -1,4 +1,4 @@
-import { Item, TextItem } from '@features/configurationSettings/types'
+import type { Item, TextItem } from '@features/configurationSettings/types'
 
 export const isTextItem = (item: Item): item is TextItem => item.type === 'text'
 

@@ -1,5 +1,6 @@
-import UserInterface from '@entities/user/model/user.interface'
 import trackInitials from '@entities/track/model/track.initials'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 const UserInitials: UserInterface = {
     id: '-1',

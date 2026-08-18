@@ -1,14 +1,17 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { MdContentCopy, MdSearch } from 'react-icons/md'
+
 import { useTranslation } from 'react-i18next'
+import { MdContentCopy, MdSearch } from 'react-icons/md'
 
 import { useExperiments } from '@app/providers/experiments'
-import type { DesktopDetailedExperiment, DesktopExperiment } from '@app/providers/experiments/types'
 import { fetchDetailedExperiments } from '@entities/experiment/api/experiments'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
+
 import * as styles from '@features/developerTools/ExperimentOverridesPanel.module.scss'
+
+import type { DesktopDetailedExperiment, DesktopExperiment } from '@app/providers/experiments/types'
 
 type OverrideDraft = {
     group: string

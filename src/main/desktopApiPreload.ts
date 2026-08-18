@@ -1,11 +1,15 @@
-import { contextBridge, ipcRenderer, IpcRendererEvent } from 'electron'
+import { contextBridge, ipcRenderer } from 'electron'
+
+import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
+
 import packageJson from '../../packages/desktop-core/package.json'
 import { DESKTOP_API_VERSION, type DesktopSettingsPatch, type PulseSyncDesktopApi } from '../common/desktopApi/contract'
 import MainEvents from '../common/types/mainEvents'
 import RendererEvents from '../common/types/rendererEvents'
+
 import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
-import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
+import type { IpcRendererEvent } from 'electron';
 
 export const buildPackageJson = packageJson as typeof packageJson & {
     buildInfo?: {

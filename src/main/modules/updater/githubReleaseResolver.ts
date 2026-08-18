@@ -1,4 +1,5 @@
 import axios from 'axios'
+
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 export type GitHubRepo = {

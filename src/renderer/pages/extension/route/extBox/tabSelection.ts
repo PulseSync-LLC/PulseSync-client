@@ -1,4 +1,5 @@
 import { DESCRIPTION_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+
 import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
 
 interface SelectDefaultExtensionTabOptions {

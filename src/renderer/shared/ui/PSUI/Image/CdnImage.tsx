@@ -1,5 +1,8 @@
 import React, { useMemo } from 'react'
-import { CdnImageBaseProps, resolveCdnMedia } from '@shared/ui/PSUI/Image/shared'
+
+import { resolveCdnMedia } from '@shared/ui/PSUI/Image/shared'
+
+import type { CdnImageBaseProps} from '@shared/ui/PSUI/Image/shared';
 
 export type CdnImageProps = CdnImageBaseProps
 

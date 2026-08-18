@@ -7,21 +7,28 @@
 }
 
 .root {
-    container-name: metadata-editor;
-    container-type: inline-size;
+    box-sizing: border-box;
     display: flex;
+
     flex-direction: column;
+
     gap: 14px;
-    color: var(--cfg-text);
+
     width: 100%;
     min-width: 0;
+
     padding: 14px 24px;
-    box-sizing: border-box;
+
+    container-name: metadata-editor;
+    container-type: inline-size;
+
+    color: var(--cfg-text);
 }
 
 .alert {
     padding: 18px 24px;
     margin: 16px 40px;
+
     background: var(--border);
     border: 1px solid var(--border-hover);
     border-radius: 12px;
@@ -54,9 +61,13 @@
 
 .metaGrid {
     display: grid;
-    gap: 12px;
+
     grid-template-columns: repeat(2, minmax(240px, 1fr));
+
+    gap: 12px;
+
     align-items: start;
+
     min-width: 0;
 }
 
@@ -66,21 +77,28 @@
 
 .metaSplit {
     display: grid;
+
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+
     gap: 12px;
+
     align-items: start;
 }
 
 .metaMainColumn,
 .metaSideColumn {
     display: grid;
+
     gap: 12px;
+
     min-width: 0;
 }
 
 .metaSideRow {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 12px;
 }
 
@@ -91,59 +109,75 @@
 
 .metaDescription [role='textbox'] {
     font-size: 16px;
+
     line-height: 1.35;
 }
 
 .metadataField {
     box-sizing: border-box;
+
     min-width: 0;
+
+    outline-color: transparent;
+
     background: var(--surface-tertiary);
     border: 1px solid var(--border);
-    outline-color: transparent;
     box-shadow: none;
 }
 
 .metadataField:hover {
+    outline-color: transparent;
+
     background: var(--surface-elevated);
     border-color: var(--border-hover);
-    outline-color: transparent;
 }
 
 .metadataField:focus-within {
+    outline-color: transparent;
+
     background: var(--surface-tertiary);
     border-color: var(--border-hover);
-    outline-color: transparent;
     box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .authorField {
     display: grid;
+
     gap: 4px;
+
     min-width: 0;
+
     padding: 10px 16px;
+
+    outline: transparent solid 2px;
+
     background: var(--surface-tertiary);
     border: 1px solid var(--border);
     border-radius: 8px;
-    outline: transparent solid 2px;
+
     transition: var(--transition);
 }
 
 .authorField:hover {
+    outline-color: transparent;
+
     background: var(--surface-elevated);
     border-color: var(--border-hover);
-    outline-color: transparent;
 }
 
 .authorField:focus-within {
+    outline-color: transparent;
+
     background: var(--surface-tertiary);
     border-color: var(--border-hover);
-    outline-color: transparent;
     box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .authorFieldLabel {
     font-size: 12px;
+
     line-height: 1.4;
+
     color: var(--text-primary);
 }
 
@@ -153,15 +187,22 @@
 
 .authorCombobox {
     display: flex;
-    align-items: center;
+
     flex-wrap: wrap;
+
     gap: 6px;
+
+    align-items: center;
+
     min-height: 24px;
+
+    padding: 0;
+
+    cursor: text;
+
+    background: transparent;
     border: 0;
     border-radius: 0;
-    background: transparent;
-    padding: 0;
-    cursor: text;
 }
 
 .authorCombobox:focus-within {
@@ -170,16 +211,22 @@
 
 .authorSearchInput {
     flex: 1 1 56px;
+
     min-width: 48px;
     height: auto;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: var(--cfg-text);
+
     padding: 0;
+
     font-size: 14px;
     font-weight: 500;
+
     line-height: 1.35;
+
+    color: var(--cfg-text);
+
+    background: transparent;
+    border: 0;
+    border-radius: 0;
 }
 
 .authorSearchInput::placeholder {
@@ -193,35 +240,47 @@
 .authorSearchDropdown {
     position: absolute;
     top: calc(100% + 8px);
-    left: 0;
     right: 0;
+    left: 0;
     z-index: 12;
+
     display: flex;
+
     flex-direction: column;
+
+    padding: 6px;
+
+    overflow: hidden;
+
+    background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface-elevated);
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
-    padding: 6px;
-    overflow: hidden;
+    box-shadow: 0 10px 28px rgb(0, 0, 0, 0.45);
 }
 
 .authorSearchState {
     padding: 10px 12px;
-    color: var(--text-secondary);
+
     font-size: 13px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .fileCol {
     display: grid;
+
     gap: 8px;
 }
 
 .assetGrid {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 12px;
+
     align-items: start;
 }
 
@@ -230,10 +289,14 @@
 }
 
 .editorCard {
-    grid-column: 1 / -1;
     display: grid;
+
+    grid-column: 1 / -1;
+
     gap: 14px;
+
     padding: 16px 18px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 14px;
@@ -241,14 +304,19 @@
 
 .listEditorHeader {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 16px;
+
     align-items: start;
 }
 
 .listEditorHeaderContent {
     display: grid;
+
     gap: 6px;
+
     min-width: 0;
 }
 
@@ -258,23 +326,31 @@
 }
 
 .listEditorDescription {
-    color: var(--cfg-muted);
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorButton {
     box-sizing: border-box;
+
     min-width: 140px;
     max-width: 100%;
+
     padding: 10px 14px;
-    border: 1px solid var(--border-hover);
-    border-radius: 10px;
-    background: var(--surface-elevated);
-    color: var(--text-primary);
+
     font-size: 13px;
     font-weight: 600;
+
+    color: var(--text-primary);
+
     cursor: pointer;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
 }
 
 .listEditorButton:hover {
@@ -283,33 +359,43 @@
 
 .listSummaryRow {
     display: grid;
-    gap: 12px;
+
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+    gap: 12px;
+
     padding-top: 2px;
 }
 
 .listSummaryMeta {
     display: grid;
+
     gap: 4px;
+
     min-width: 0;
 }
 
 .listSummaryLabel {
     font-size: 13px;
     font-weight: 700;
+
     color: var(--text-primary);
 }
 
 .listSummaryValue {
-    color: var(--text-secondary);
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--text-secondary);
+
     word-break: break-word;
 }
 
 .listPreviewEmpty {
-    color: var(--cfg-muted);
     font-size: 13px;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorModal {
@@ -318,35 +404,46 @@
 }
 
 .relationsModal {
+    gap: 16px !important;
+
+    align-items: stretch !important;
+
     min-width: min(760px, calc(100vw - 32px)) !important;
     max-width: min(760px, calc(100vw - 32px)) !important;
+
     padding: 24px !important;
-    gap: 16px !important;
-    align-items: stretch !important;
 }
 
 .relationsModalHeader {
     display: grid;
+
     gap: 8px;
 }
 
 .relationsModalTitle {
     font-size: 24px;
     font-weight: 800;
+
     line-height: 1.2;
+
     color: var(--text-primary);
 }
 
 .relationsModalDescription {
-    color: var(--text-secondary);
     font-size: 15px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .listEditorModalBody {
     display: grid;
-    gap: 16px;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+
     align-items: start;
 }
 
@@ -356,35 +453,46 @@
 
 .listEditorSection {
     display: grid;
+
     gap: 12px;
+
     padding: 12px;
-    border-radius: 14px;
+
+    color: var(--text-primary);
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
-    color: var(--text-primary);
+    border-radius: 14px;
 }
 
 .listEditorSectionHeader {
     display: grid;
+
     gap: 6px;
 }
 
 .listEditorFieldLabel {
     font-size: 14px;
     font-weight: 700;
+
     color: var(--text-primary);
 }
 
 .listEditorHint {
-    color: var(--cfg-muted);
     font-size: 12px;
+
     line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorComposer {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 10px;
+
     align-items: end;
 }
 
@@ -393,15 +501,20 @@
 }
 
 .listEditorInput {
-    height: 44px;
     width: 100%;
+    height: 44px;
+
+    padding: 0 14px;
+
+    font: inherit;
+
+    line-height: 1.5;
+
+    color: var(--cfg-text);
+
+    background: var(--surface-elevated);
     border: 1px solid var(--border-hover);
     border-radius: 12px;
-    background: var(--surface-elevated);
-    color: var(--cfg-text);
-    padding: 0 14px;
-    font: inherit;
-    line-height: 1.5;
 }
 
 .listEditorInput::placeholder {
@@ -410,33 +523,46 @@
 
 .listEditorInput:focus {
     outline: none;
+
     border-color: var(--cfg-accent);
     box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .authorSearchResults {
     display: grid;
+
     gap: 4px;
+
     max-height: 220px;
+
     overflow: auto;
 }
 
 .authorSearchOption {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 12px;
+
     align-items: center;
+
     padding: 8px 10px;
+
+    color: var(--text-primary);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    background: transparent;
     border: 1px solid transparent;
     border-radius: 8px;
-    background: transparent;
-    color: var(--text-primary);
-    cursor: pointer;
+
     transition:
         background 0.16s ease,
         border-color 0.16s ease,
         color 0.16s ease;
-    text-align: left;
 }
 
 .authorSearchOption:hover {
@@ -452,7 +578,9 @@
 
 .authorSearchBody {
     display: grid;
+
     gap: 2px;
+
     min-width: 0;
 }
 
@@ -460,24 +588,29 @@
 .authorSearchSecondary {
     overflow: hidden;
     text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
 .authorSearchPrimary {
     font-size: 13px;
     font-weight: 700;
+
     color: var(--text-primary);
 }
 
 .authorSearchSecondary {
     font-size: 12px;
+
     color: var(--text-secondary);
 }
 
 .authorSearchAction {
     font-size: 12px;
     font-weight: 700;
+
     color: var(--accent);
+
     white-space: nowrap;
 }
 
@@ -487,78 +620,112 @@
 
 .authorChip {
     display: flex;
-    align-items: center;
+
     gap: 4px;
+
+    align-items: center;
+
     min-width: 0;
     max-width: 100%;
+
     padding: 1px 7px;
+
     background: color-mix(in srgb, var(--accent) 12%, transparent);
     border: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
     border-radius: 999px;
 }
 
 .authorChipText {
-    font-size: 13px;
-    line-height: 1.3;
-    color: var(--text-primary);
-    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    line-height: 1.3;
+
+    color: var(--text-primary);
+
     white-space: nowrap;
 }
 
 .authorChipRemove {
-    width: 14px;
-    height: 14px;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: var(--text-secondary);
     display: inline-flex;
+
+    flex: 0 0 auto;
+
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    flex: 0 0 auto;
+
+    width: 14px;
+    height: 14px;
+
     padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+
     opacity: 0.72;
 }
 
 .authorChipRemove:hover {
-    background: transparent;
     color: var(--text-secondary);
+
+    background: transparent;
+
     opacity: 1;
 }
 
 .listEditorAddButton {
-    min-height: 44px;
-    padding: 0 16px !important;
     align-items: center !important;
+
+    min-height: 44px;
+
+    padding: 0 16px !important;
 }
 
 .listEditorItems {
     display: grid;
+
     gap: 0;
+
     max-height: 180px;
-    overflow: auto;
+
     padding-right: 2px;
+
+    overflow: auto;
+
+    background: var(--surface-elevated);
     border: 1px solid var(--border);
     border-radius: 12px;
-    background: var(--surface-elevated);
 }
 
 .listEditorEmpty {
-    color: var(--cfg-muted);
-    font-size: 13px;
-    line-height: 1.5;
     padding: 4px 2px 0;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorRow {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 10px;
+
     align-items: center;
+
     padding: 12px 14px;
+
     background: transparent;
     border-bottom: 1px solid color-mix(in srgb, var(--border-hover) 50%, transparent);
 }
@@ -569,22 +736,30 @@
 
 .listEditorRowValue {
     font-size: 13px;
+
     line-height: 1.5;
-    word-break: break-word;
+
     color: var(--text-primary);
+
+    word-break: break-word;
 }
 
 .listEditorRemoveButton {
-    width: 30px;
-    height: 30px;
-    border: 0;
-    border-radius: 8px;
-    background: color-mix(in srgb, var(--danger) 12%, transparent);
-    color: var(--danger);
     display: flex;
+
     align-items: center;
     justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    color: var(--danger);
+
     cursor: pointer;
+
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border: 0;
+    border-radius: 8px;
 }
 
 .listEditorRemoveButton:hover {
@@ -594,44 +769,57 @@
 .listEditorInlineError,
 .listEditorError {
     padding: 12px 14px;
-    border-radius: 12px;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: var(--danger);
+
     background: color-mix(in srgb, var(--danger) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
-    color: var(--danger);
-    font-size: 13px;
-    line-height: 1.5;
+    border-radius: 12px;
 }
 
 .preview {
     width: 100%;
     max-height: 220px;
+
     object-fit: cover;
-    border-radius: 10px;
-    border: 1px solid var(--border-hover);
+
     background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
 }
 
 .inlineActions {
     display: flex;
-    justify-content: flex-end;
+
     gap: 10px;
+
+    justify-content: flex-end;
+
     margin-top: 8px;
 }
 
 .primaryBtn {
-    background: var(--accent) !important;
     color: var(--accent-foreground) !important;
+
+    background: var(--accent) !important;
     border: 0 !important;
 }
+
 .primaryBtn:hover {
     filter: brightness(1.06);
 }
 
 .secondaryBtn {
-    background: color-mix(in srgb, var(--danger) 12%, transparent) !important;
     color: var(--danger) !important;
+
+    background: color-mix(in srgb, var(--danger) 12%, transparent) !important;
     border: 0 !important;
 }
+
 .secondaryBtn:hover {
     background: color-mix(in srgb, var(--danger) 20%, transparent) !important;
 }
@@ -668,7 +856,7 @@
     }
 }
 
-@media (max-width: 920px) {
+@media (width <= 920px) {
     .root {
         padding: 14px 16px;
     }

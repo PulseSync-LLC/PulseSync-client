@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
 import SliderInput from '@shared/ui/PSUI/SliderInput'
 
 type SliderProps = React.ComponentProps<typeof SliderInput>

@@ -1,4 +1,5 @@
 import rendererHttpClient from '@shared/api/http/client'
+
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
 import type { DesktopDetailedExperiment, DesktopDetailedExperimentGroup, DesktopExperiment, ExperimentMeta } from '@app/providers/experiments/types'
 

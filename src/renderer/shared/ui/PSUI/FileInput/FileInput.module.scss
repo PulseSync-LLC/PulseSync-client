@@ -1,32 +1,47 @@
 .inputContainer {
     position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 6px;
+
+    overflow: hidden;
+
+    outline: transparent solid 2px;
+
     background: var(--border);
     border-radius: 12px;
-    outline: transparent solid 2px;
+
     transition: var(--transition);
-    overflow: hidden;
+
     &:hover {
         outline: var(--text-secondary) solid 2px;
     }
 }
 
 .previewWrap {
+    position: relative;
+
     width: 100%;
     max-height: 180px;
+
     overflow: hidden;
+
     background: var(--border);
     border-bottom: 1px solid var(--hover);
-    position: relative;
 }
+
 .previewWrap.skeleton {
     height: 180px;
+
     background: linear-gradient(90deg, var(--hover), var(--active), var(--hover));
     background-size: 240% 100%;
+
     animation: shimmer 1.4s infinite linear;
 }
+
 .previewWrap.hasSurface {
     cursor: pointer;
 }
@@ -35,6 +50,7 @@
     0% {
         background-position: 0% 0;
     }
+
     100% {
         background-position: -240% 0;
     }
@@ -42,47 +58,70 @@
 
 .preview {
     display: block;
+
     width: 100%;
     height: 180px;
+
     object-fit: cover;
+
     opacity: 0;
+
     transform: translateY(8px);
+
     transition:
         opacity 0.25s ease,
         transform 0.25s ease;
 }
+
 .preview.loaded {
     opacity: 1;
+
     transform: translateY(0);
 }
 
 .label {
-    padding: 10px 16px 0;
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
     display: flex;
+
     gap: 5px;
+
     align-items: center;
+
+    padding: 10px 16px 0;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 140%;
+
+    color: #fff;
 }
 
 .box {
-    margin: 0 16px 12px;
     display: grid;
+
     grid-template-columns: 1fr auto auto;
-    align-items: center;
+
     gap: 6px;
+
+    align-items: center;
+
+    padding: 8px 10px;
+    margin: 0 16px 12px;
+
+    cursor: pointer;
+
     background: var(--border);
     border: 1px solid var(--border-hover);
     border-radius: 8px;
-    padding: 8px 10px;
-    cursor: pointer;
+
     transition: var(--transition);
+
     &:hover {
         border-color: var(--border-hover);
+
         transform: translateY(-1px);
     }
+
     &:active {
         transform: translateY(0);
     }
@@ -90,11 +129,15 @@
 
 .text {
     width: 100%;
+
+    font: 500 14px/1.2 system-ui;
+
+    color: var(--text-primary);
+
+    outline: none;
+
     background: transparent;
     border: none;
-    outline: none;
-    color: var(--text-primary);
-    font: 500 14px/1.2 system-ui;
 
     &:focus-visible {
         outline: none;
@@ -104,21 +147,29 @@
 .clearBtn,
 .pickBtn {
     display: inline-grid;
+
     place-items: center;
-    height: 26px;
+
     width: 26px;
-    border-radius: 6px;
-    border: 1px solid transparent;
-    background: transparent;
+    height: 26px;
+
     color: var(--text-secondary);
-    transition: var(--transition);
+
     cursor: pointer;
+
+    background: transparent;
+    border: 1px solid transparent;
+    border-radius: 6px;
+
+    transition: var(--transition);
 }
+
 .clearBtn:hover,
 .pickBtn:hover {
     background: var(--border);
     border-color: var(--border-hover);
 }
+
 .clearBtn:active,
 .pickBtn:active {
     transform: translateY(1px);

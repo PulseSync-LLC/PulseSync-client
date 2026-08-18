@@ -1,4 +1,5 @@
 import { app, nativeImage } from 'electron'
+
 import path from 'path'
 
 const getNativeImg = (name: string, ext: string, useFor?: string) => {

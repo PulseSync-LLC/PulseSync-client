@@ -1,9 +1,11 @@
-import type { MouseEvent } from 'react'
 import { useTranslation } from 'react-i18next'
 
 import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
 import TooltipButton from '@shared/ui/tooltip_button'
+
 import * as styles from '@entities/addon/ui/LegacyAddonRestrictionBadge.module.scss'
+
+import type { MouseEvent } from 'react'
 
 type Props = {
     className: string

@@ -1,16 +1,17 @@
 import { useContext, useEffect, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
-import * as pageStyles from '@pages/auth/callback.module.scss'
+import Header from '@widgets/layout/header'
+import userContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 import AppIcon from '@shared/assets/icon/App.svg'
 import HandBlockIcon from '@shared/assets/icons/handBlock.svg'
 import UserBlockIcon from '@shared/assets/icons/userBlock.svg'
 
-import userContext from '@entities/user/model/context'
-import Header from '@widgets/layout/header'
-import { useTranslation } from 'react-i18next'
-import { desktopApi } from '@shared/desktop/desktopApi'
+import * as pageStyles from '@pages/auth/callback.module.scss'
 
 export default function CallbackPage() {
     const { t } = useTranslation()

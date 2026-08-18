@@ -1,6 +1,7 @@
 import fs from 'node:fs'
-import { getActiveComponentPath } from '../bootstrap/activeComponents'
 import path from 'node:path'
+
+import { getActiveComponentPath } from '../bootstrap/activeComponents'
 
 declare const __non_vite_require__: (moduleId: string) => unknown
 

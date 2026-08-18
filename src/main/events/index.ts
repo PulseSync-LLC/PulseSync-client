@@ -1,21 +1,51 @@
-import { app, BrowserWindow, clipboard, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
-import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
-import logger from '../modules/logger'
-import path from 'path'
-import fs from 'original-fs'
-import * as fsp from 'fs/promises'
-import * as si from 'systeminformation'
 import os from 'node:os'
-import { v4 } from 'uuid'
-import { musicPath, updated } from '../startup/runtimeState'
-import { readBufResilient } from '../utils/readBufResilient'
-import { getUpdater } from '../modules/updater/updater'
-import { UpdateStatus } from '../modules/updater/constants/updateStatus'
+
+import { app, clipboard, dialog, ipcMain, Notification, session as electronSession,session, shell } from 'electron'
+
 import AdmZip from 'adm-zip'
-import isAppDev from '../utils/isAppDev'
-import { execFile } from 'child_process'
 import axios from 'axios'
+import { execFile } from 'child_process'
+import { installExtension, updateExtensions } from 'electron-chrome-web-store'
+import * as fsp from 'fs/promises'
+import fs from 'original-fs'
+import path from 'path'
+import * as si from 'systeminformation'
+import { v4 } from 'uuid'
+
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+import config, { isDevmark } from '@common/appConfig'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
+import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
+import { t } from '../i18n'
+import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
+import { inSleepMode, mainWindow } from '../modules/createWindow'
+import { setMainErrorTrackingUser } from '../modules/errorTracking'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
+import { get_current_track, sendAuthorizationStatus } from '../modules/httpServer'
+import logger from '../modules/logger'
+import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
+import { nativeGetHardwareIdentity } from '../modules/nativeModules'
+import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
+import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { checkRendererUpdate, installRendererUpdate } from '../modules/rendererUpdate'
+import { getState } from '../modules/state'
+import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
+import { isUiReady, markUiReady } from '../modules/uiReady'
+import { UpdateStatus } from '../modules/updater/constants/updateStatus'
+import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../modules/updater/githubReleaseResolver'
+import {
+    getBuildUpdateChannel,
+    getEffectiveUpdateChannel,
+    getUpdateChannelOverride,
+    setUpdateChannelOverride,
+} from '../modules/updater/updateChannel'
+import { getUpdater } from '../modules/updater/updater'
+import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
+import { musicPath, updated } from '../startup/runtimeState'
+import { loadAddons } from '../utils/addonUtils'
 import {
     checkMusic,
     findAppByName,
@@ -23,41 +53,17 @@ import {
     getLinuxInstallerUrl,
     getYandexMusicAppDataPath,
     getYandexMusicLogsPath,
-    isYandexMusicRunning,
     isLinux,
     isMac,
+    isYandexMusicRunning,
     uninstallApp,
 } from '../utils/appUtils'
-import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { inSleepMode, mainWindow } from '../modules/createWindow'
-import { loadAddons } from '../utils/addonUtils'
-import config, { isDevmark } from '@common/appConfig'
-import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { getState } from '../modules/state'
-import { get_current_track, sendAuthorizationStatus } from '../modules/httpServer'
-import { isUiReady, markUiReady } from '../modules/uiReady'
-import MainEvents from '../../common/types/mainEvents'
-import RendererEvents from '../../common/types/rendererEvents'
-import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
+import isAppDev from '../utils/isAppDev'
+import { readBufResilient } from '../utils/readBufResilient'
+
 import type { DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
-import { nativeGetHardwareIdentity } from '../modules/nativeModules'
-import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
-import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
-import { t } from '../i18n'
-import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
-import {
-    getBuildUpdateChannel,
-    getEffectiveUpdateChannel,
-    getUpdateChannelOverride,
-    setUpdateChannelOverride,
-} from '../modules/updater/updateChannel'
-import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
-import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
-import { setMainErrorTrackingUser } from '../modules/errorTracking'
-import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../modules/updater/githubReleaseResolver'
-import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
-import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
-import { checkRendererUpdate, installRendererUpdate } from '../modules/rendererUpdate'
+import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
+import type { BrowserWindow} from 'electron';
 
 const updater = getUpdater()
 const State = getState()
