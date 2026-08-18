@@ -1,31 +1,42 @@
 .timelineContainer {
-    width: -webkit-fill-available;
     display: flex;
-    align-items: center;
+
     gap: 6px;
+
+    align-items: center;
+
+    width: -webkit-fill-available;
+
     margin-top: auto;
 }
 
 .timestamp {
     width: 30px;
 
-    font-weight: 600;
     font-size: 11px;
+    font-weight: 600;
+
     line-height: 15px;
 
-    color: #ffffff;
+    color: #fff;
 }
 
 .timeline {
-    flex-grow: 1;
-    height: 2px;
-    background-color: #ffffff33;
     position: relative;
+
+    flex-grow: 1;
+
+    height: 2px;
+
     overflow: hidden;
+
+    background-color: #fff3;
 }
 
 .progress {
     height: 100%;
+
     background-color: #fff;
+
     transition: width var(--transition);
 }

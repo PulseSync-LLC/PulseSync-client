@@ -1,9 +1,12 @@
-import * as cm from '@features/context_menu_themes/viewModal.module.scss'
-import { MenuItem } from '@features/context_menu_themes/sectionConfig'
 import React from 'react'
+
+import cn from 'clsx'
 import { motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import cn from 'clsx'
+
+import * as cm from '@features/context_menu_themes/viewModal.module.scss'
+
+import type { MenuItem } from '@features/context_menu_themes/sectionConfig'
 
 interface ContextMenuProps {
     items: MenuItem[]

@@ -1,5 +1,6 @@
-import UserInterface from '@entities/user/model/user.interface'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 export const SORT_FIELDS = ['level', 'lastOnline', 'createdAt', 'username'] as const
 export const USER_CARD_MIN_WIDTH = 300

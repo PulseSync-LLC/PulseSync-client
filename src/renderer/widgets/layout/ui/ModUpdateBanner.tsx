@@ -1,9 +1,11 @@
 import React from 'react'
+
 import { MdKeyboardArrowRight, MdOutlineWarningAmber, MdUpdate } from 'react-icons/md'
 
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type { ModInterface } from '@entities/mod/model/modInterface'
 import * as pageStyles from '@widgets/layout/layout.module.scss'
+
+import type { ModInterface } from '@entities/mod/model/modInterface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const modInstallProxyDomains = ['pulsesync.dev', 'ru-node-1.pulsesync.dev', 'worker.pulsesync.dev', 's3.pulsesync.dev']
 

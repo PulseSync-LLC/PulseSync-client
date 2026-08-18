@@ -1,6 +1,8 @@
-import { app, net, session, type Session } from 'electron'
-import axios, { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
+import { app, net, type Session,session } from 'electron'
+
+import axios, { type AxiosAdapter, AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { PassThrough } from 'stream'
+
 import logger from '../logger'
 
 let axiosAdapterInstalled = false

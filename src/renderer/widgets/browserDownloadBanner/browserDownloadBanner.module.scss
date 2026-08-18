@@ -1,12 +1,15 @@
 .description {
     width: 360px;
-    color: rgba(255, 255, 255, 0.58);
+
     font-size: 14px;
     font-weight: 600;
+
     line-height: 1.5;
+
+    color: rgb(255, 255, 255, 0.58);
 }
 
-@media (max-width: 420px) {
+@media (width <= 420px) {
     .description {
         width: 300px;
     }

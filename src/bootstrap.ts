@@ -1,21 +1,20 @@
-import path from 'node:path'
 import fs from 'node:fs'
+import path from 'node:path'
+
 import { app } from 'electron'
-import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
-import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
-import { registerSchemes } from './main/utils/serverUtils'
-import { createBootstrapWindow, type BootstrapWindowController } from './main/modules/bootstrap/bootstrapWindow'
+
+import { type BootstrapWindowController,createBootstrapWindow } from './main/modules/bootstrap/bootstrapWindow'
 import { applyHardwareAccelerationPreference } from './main/modules/bootstrap/hardwareAcceleration'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
-import { StartupCoordinator, type ApplicationBootstrapRuntime, type ApplicationStartupHandle } from './main/modules/bootstrap/startupCoordinator'
+import { type ApplicationBootstrapRuntime, type ApplicationStartupHandle,StartupCoordinator } from './main/modules/bootstrap/startupCoordinator'
 import {
     canonicalStartSucceeded,
     claimShouldUseCanonicalStart,
     normalizeSecondInstanceArgv,
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
-import { getBootstrapperRuntimePaths, type BootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
+import { type BootstrapperRuntimePaths,getBootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
 import {
     claimActiveApp,
     repairActiveRuntime,
@@ -23,9 +22,13 @@ import {
     rollbackActiveRuntime,
     startCanonicalApp,
 } from './main/modules/bootstrapper/runtimeCommands'
-import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
 import { initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
+import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
+import { registerSchemes } from './main/utils/serverUtils'
+
+import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
+import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
 
 const APP_ID = 'pulsesync.app'
 

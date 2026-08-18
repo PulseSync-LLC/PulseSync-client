@@ -1,82 +1,111 @@
 .home {
+    box-sizing: border-box;
+
     width: 100%;
     height: 100%;
+
     padding: 0;
-    box-sizing: border-box;
+
     color: var(--text-primary);
 }
 
 .surface {
+    box-sizing: border-box;
+
     width: 100%;
     height: 100%;
     min-height: 0;
+
     padding: 18px;
-    border-radius: 14px;
+
     background: var(--surface-elevated);
     border: 1px solid color-mix(in srgb, var(--text-muted) 55%, transparent);
-    box-sizing: border-box;
+    border-radius: 14px;
 }
 
 .grid {
     display: grid;
+
     grid-template-columns: minmax(0, 733px) minmax(330px, 417px);
+
     gap: 25px;
+
     width: 100%;
     max-width: 1200px;
     height: 100%;
     min-height: 0;
+
     margin: 0 auto;
 }
 
 .leftColumn {
     display: flex;
-    gap: 15px;
+
     flex-direction: column;
+
+    gap: 15px;
+
     width: 100%;
+
     margin-top: 15px;
 }
 
 .panelHollow {
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
+
     min-height: 0;
 }
 
 .newsPanel {
+    position: relative;
+
+    box-sizing: border-box;
     display: flex;
+
     flex: 1 1 auto;
     flex-direction: column;
-    min-height: 0;
+
     width: auto;
-    background: var(--background);
+    min-height: 0;
+
     padding: 15px 25px;
-    box-sizing: border-box;
-    position: relative;
+
     overflow: hidden;
+
+    background: var(--background);
 }
 
 .newsHeader {
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
-    margin-bottom: 10px;
+
     margin-right: 0;
+    margin-bottom: 10px;
 }
 
 .panelTitle {
-    margin: 0;
-    letter-spacing: 0;
-
     width: 100%;
     height: 30px;
 
+    margin: 0;
+
+    font-size: 22px;
     font-style: normal;
     font-weight: 700;
-    font-size: 22px;
+
     line-height: 30px;
+
     color: var(--text-primary);
+
+    letter-spacing: 0;
 }
 
 .newsSubtitle {
@@ -90,72 +119,87 @@
 .primaryList,
 .secondaryList {
     display: flex;
+
     flex-direction: column;
 }
 
 .primaryList {
     gap: 10px;
-    transition: gap 0.2s;
+
     width: 100%;
+
+    transition: gap 0.2s;
 }
 
 .secondaryList {
     gap: 10px;
-    transition: gap 0.2s;
+
     width: 100%;
+
+    transition: gap 0.2s;
 }
 
 .primaryItem {
-    display: flex;
-    flex-direction: row;
-    padding: 15px;
-    gap: 10px;
-
-    border-radius: 16px;
-    height: 80px;
     box-sizing: border-box;
+    display: flex;
 
     flex: none;
-    order: 2;
-    align-self: stretch;
-    align-items: center;
     flex-grow: 0;
+    flex-direction: row;
+
+    gap: 10px;
+
+    align-items: center;
+    align-self: stretch;
+
+    order: 2;
+
+    height: 80px;
+
+    padding: 15px;
+
+    border-radius: 16px;
 }
 
 .ymItem {
     background:
-        conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
+        conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .modItem {
     background:
-        conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
+        conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .clientItem {
     background:
-        conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgba(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgba(0, 0, 0, 0.31) 368.08deg),
+        conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .secondaryItem {
-    display: flex;
-    flex-direction: row;
-    padding: 15px;
-    gap: 10px;
-    border-radius: 16px;
-    height: 80px;
     box-sizing: border-box;
-    border: 1px solid var(--border);
+    display: flex;
 
     flex: none;
-    order: 2;
-    align-items: center;
     flex-grow: 0;
+    flex-direction: row;
+
+    gap: 10px;
+
+    align-items: center;
+
+    order: 2;
+
+    height: 80px;
+
+    padding: 15px;
 
     background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 16px;
 
     .componentLogo {
         box-shadow: none;
@@ -164,52 +208,66 @@
 
 .secondaryItemMain {
     display: flex;
-    align-items: center;
-    gap: 10px;
-    min-width: 0;
+
     flex: 1 1 auto;
+
+    gap: 10px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .logoFrame {
-    width: 72px;
-    height: 72px;
-    flex: 0 0 72px;
     display: inline-flex;
+
+    flex: 0 0 72px;
+
     align-items: center;
     justify-content: center;
+
+    width: 72px;
+    height: 72px;
 }
 
 .componentLogo {
     width: 50px;
     height: 50px;
 
-    box-shadow: 0px 0px 4px rgba(0, 0, 0, 0.25);
     border-radius: 12px;
+    box-shadow: 0 0 4px rgb(0, 0, 0, 0.25);
 }
 
 .componentMeta {
     display: flex;
+
+    flex: none;
+    flex-grow: 1;
     flex-direction: column;
+
+    gap: 0;
+
     align-items: flex-start;
     justify-content: center;
-    padding: 0;
-    gap: 0;
+
+    order: 0;
 
     height: 47px;
 
-    flex: none;
-    order: 0;
-    flex-grow: 1;
+    padding: 0;
 }
 
 .componentTitle {
     height: 25px;
 
+    font-size: 18px;
     font-style: normal;
     font-weight: 700;
-    font-size: 18px;
+
     line-height: 25px;
-    color: #ffffff;
+
+    color: #fff;
+
     user-select: text;
 }
 
@@ -217,180 +275,227 @@
 .secondaryStatus {
     font-size: 16px;
     font-weight: 600;
+
     line-height: 22px;
+
     color: var(--text-secondary);
+
     user-select: text;
 }
 
 .primaryItem .componentVersion {
-    color: #ffffff;
+    color: #fff;
 }
 
 .animatedComponentVersion {
-    animation: componentVersionAppear 0.22s ease-out both;
     transform-origin: left center;
+
+    animation: componentVersionAppear 0.22s ease-out both;
 }
 
 .secondaryStatus {
-    text-align: right;
     margin-left: auto;
+
+    text-align: right;
 }
 
 .actionButton {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 10px;
-    gap: 4px;
-
-    background: #ffffff;
-    border-radius: 8px;
 
     flex: none;
-    order: 1;
     flex-grow: 0;
+    flex-direction: row;
 
+    gap: 4px;
+
+    align-items: center;
+
+    order: 1;
+
+    padding: 10px;
+
+    font-size: 14px;
     font-style: normal;
     font-weight: 700;
-    font-size: 14px;
+
     line-height: 110%;
 
     color: var(--accent-foreground);
+
+    background: #fff;
+    border-radius: 8px;
 
     transition:
         transform 0.16s ease,
         background-color 0.16s ease;
 
     &:not(:disabled):hover {
-        background: #ffffff;
+        background: #fff;
+
         transform: translateY(-1px);
     }
 
     &:not(:disabled):active {
-        background: var(--text-primary);
-        transform: translateY(0);
         color: var(--accent-foreground);
+
+        background: var(--text-primary);
+
+        transform: translateY(0);
     }
 
     &:disabled {
-        background: var(--text-muted);
         color: color-mix(in srgb, var(--text-primary) 72%, transparent);
+
+        background: var(--text-muted);
     }
 }
 
 .secondaryActionStatusLabel {
+    display: flex;
+
+    gap: 4px;
+
+    align-items: center;
+
+    font-size: 14px;
     font-style: normal;
     font-weight: 700;
-    font-size: 14px;
+
     line-height: 110%;
 
     color: color-mix(in srgb, var(--text-primary) 72%, transparent);
-
-    display: flex;
-    align-items: center;
-    gap: 4px;
 }
 
 .secondaryActions {
     display: inline-flex;
-    align-items: center;
+
     gap: 8px;
+
+    align-items: center;
+
     margin-left: auto;
 }
 
 .secondaryActionButton {
     display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 10px;
-    gap: 4px;
-
-    background: #ffffff;
-    border-radius: 8px;
 
     flex: none;
-    order: 1;
     flex-grow: 0;
+    flex-direction: row;
 
+    gap: 4px;
+
+    align-items: center;
+
+    order: 1;
+
+    padding: 10px;
+
+    font-size: 14px;
     font-style: normal;
     font-weight: 700;
-    font-size: 14px;
+
     line-height: 110%;
 
     color: var(--border);
+
+    background: #fff;
+    border-radius: 8px;
 
     transition:
         transform 0.16s ease,
         background-color 0.16s ease;
 
     &:not(:disabled):hover {
-        background: #ffffff;
+        background: #fff;
+
         transform: translateY(-1px);
     }
 
     &:not(:disabled):active {
-        background: var(--text-primary);
-        transform: translateY(0);
         color: var(--border);
+
+        background: var(--text-primary);
+
+        transform: translateY(0);
     }
 
     &:disabled {
-        background: var(--text-muted);
         color: color-mix(in srgb, var(--text-primary) 72%, transparent);
+
+        background: var(--text-muted);
     }
 }
 
 .secondaryFolderButton {
     display: inline-flex;
+
+    flex: 0 0 36px;
+
     align-items: center;
     justify-content: center;
+
     width: 36px;
     height: 36px;
+
     padding: 0;
-    border-radius: 8px;
-    flex: 0 0 36px;
+
     line-height: 0;
+
     color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+
     background: var(--active);
+    border-radius: 8px;
+
     transition: none;
 
     svg {
         display: block;
+
         width: 20px;
         height: 20px;
     }
 
     &:not(:disabled):hover {
         color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+
         background: var(--active);
+
         transform: none;
     }
 
     &:not(:disabled):active {
         color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+
         background: var(--active);
+
         transform: none;
     }
 }
 
 .secondaryActionTooltip {
     display: inline-flex;
+
     margin-left: auto;
 }
 
 .newsBody {
     flex: 1 1 auto;
-    border-radius: 16px;
+
     min-height: 0;
+
     overflow: hidden;
+
+    border-radius: 16px;
 }
 
 .newsScroller {
     width: 100%;
     height: 100%;
     min-height: 0;
-    overflow-y: auto;
-    overflow-x: hidden;
+
+    overflow: hidden auto;
+
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
@@ -400,30 +505,42 @@
 
 .newsScrollerInner {
     display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
     width: 100%;
     min-height: 0;
-    flex-direction: column;
-    gap: 10px;
+
     padding-right: 0;
 }
 
 .newsFeaturedCard,
 .newsListItem {
     position: relative;
-    border: 0;
-    padding: 0;
+
     width: 100%;
-    text-align: left;
+
+    padding: 0;
+
     color: inherit;
-    background: transparent;
+
+    text-align: left;
+
     cursor: pointer;
+
+    background: transparent;
+    border: 0;
 }
 
 .newsFeaturedCard {
     overflow: hidden;
-    border-radius: 16px;
+
     background-color: var(--surface-secondary);
     border: 1px solid var(--border);
+    border-radius: 16px;
+
     transition:
         transform 0.22s ease,
         border-color 0.22s ease;
@@ -436,13 +553,15 @@
 
 .newsFeaturedCard:focus-visible,
 .newsListItem:focus-visible {
-    outline: 2px solid rgba(196, 209, 255, 0.8);
+    outline: 2px solid rgb(196, 209, 255, 0.8);
     outline-offset: 2px;
 }
 
 .newsFeaturedMedia {
     position: relative;
+
     height: 182px;
+
     overflow: hidden;
 }
 
@@ -450,8 +569,9 @@
 .newsListItemMediaFallback {
     position: absolute;
     inset: 0;
+
     background:
-        radial-gradient(circle at top right, rgba(255, 255, 255, 0.24) 0%, rgba(255, 255, 255, 0) 30%),
+        radial-gradient(circle at top right, rgb(255, 255, 255, 0.24) 0%, rgb(255, 255, 255, 0) 30%),
         linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-tertiary) 55%, var(--surface-secondary) 100%);
 }
 
@@ -459,31 +579,43 @@
 .newsListItemImage {
     position: absolute;
     inset: 0;
+
     width: 100%;
     height: 100%;
+
     object-fit: cover;
 }
 
 .newsFeaturedContent {
     display: flex;
+
     flex-direction: column;
+
     gap: 8px;
+
     padding: 20px;
 }
 
 .newsMetaRow {
     display: flex;
-    align-items: center;
+
     gap: 8px;
+
+    align-items: center;
+
     min-width: 0;
+
     font-size: 12px;
+
     line-height: 16px;
+
     color: var(--text-muted);
 }
 
 .newsMetaAuthor {
-    color: var(--text-primary);
     font-weight: 700;
+
+    color: var(--text-primary);
 }
 
 .newsMetaDate,
@@ -499,56 +631,73 @@
 .newsFeaturedTitle,
 .newsListItemTitle {
     margin: 0;
-    letter-spacing: 0;
+
     color: var(--text-primary);
+
+    letter-spacing: 0;
 }
 
 .newsFeaturedTitle {
     font-size: 20px;
-    line-height: 26px;
     font-weight: 800;
+
+    line-height: 26px;
 }
 
 .newsFeaturedDescription,
 .newsListItemDescription {
     margin: 0;
-    color: var(--text-secondary);
+
     line-height: 1.6;
+
+    color: var(--text-secondary);
 }
 
 .newsFeaturedDescription {
-    font-size: 14px;
     display: -webkit-box;
+
     overflow: hidden;
     -webkit-line-clamp: 2;
+
+    font-size: 14px;
     -webkit-box-orient: vertical;
 }
 
 .newsListItemFooter {
     display: flex;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
 }
 
 .newsFeaturedSlug {
     min-width: 0;
+
     overflow: hidden;
     text-overflow: ellipsis;
-    white-space: nowrap;
-    color: rgba(184, 196, 230, 0.66);
+
     font-size: 12px;
     font-weight: 600;
+
+    color: rgb(184, 196, 230, 0.66);
+
+    white-space: nowrap;
 }
 
 .newsReadButton {
     flex: 0 0 auto;
+
     padding: 10px 14px;
-    border-radius: 10px;
-    background: var(--text-primary);
-    color: var(--border);
+
     font-size: 13px;
     font-weight: 800;
+
+    color: var(--border);
+
+    background: var(--text-primary);
+    border-radius: 10px;
 
     &:not(:disabled):active {
         color: var(--border);
@@ -557,9 +706,11 @@
 
 .newsListItem {
     overflow: hidden;
-    border-radius: 16px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
+    border-radius: 16px;
+
     transition: transform 0.18s ease;
 
     &:hover,
@@ -569,52 +720,69 @@
 }
 
 .newsListItemDescription {
-    font-size: 14px;
     display: -webkit-box;
+
     overflow: hidden;
     -webkit-line-clamp: 2;
+
+    font-size: 14px;
     -webkit-box-orient: vertical;
 }
 
 .newsState {
     display: flex;
-    height: 100%;
-    min-height: 260px;
-    padding: 18px;
-    border-radius: 18px;
+
     flex-direction: column;
+
     align-items: center;
     justify-content: center;
+
+    height: 100%;
+    min-height: 260px;
+
+    padding: 18px;
+
     text-align: center;
+
     background:
         radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%),
         color-mix(in srgb, var(--surface-elevated) 76%, transparent);
     border: 1px solid color-mix(in srgb, var(--text-secondary) 24%, transparent);
+    border-radius: 18px;
 }
 
 .newsStateTitle {
-    color: var(--text-primary);
     font-size: 20px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .newsStateDescription {
-    margin-top: 8px;
     max-width: 360px;
-    color: rgba(219, 227, 247, 0.72);
+
+    margin-top: 8px;
+
     font-size: 14px;
+
     line-height: 1.5;
+
+    color: rgb(219, 227, 247, 0.72);
 }
 
 .newsStateButton {
-    margin-top: 16px;
     padding: 10px 14px;
-    border-radius: 10px;
-    background: var(--text-primary);
-    color: var(--border);
+    margin-top: 16px;
+
     font-size: 13px;
     font-weight: 800;
+
+    color: var(--border);
+
+    background: var(--text-primary);
+    border-radius: 10px;
 
     &:not(:disabled):active {
         color: var(--border);
@@ -623,13 +791,17 @@
 
 .newsSkeletonState {
     display: flex;
+
+    flex-direction: column;
+
+    gap: 10px;
+
     width: 100%;
     height: 100%;
     min-height: 0;
-    flex-direction: column;
-    gap: 10px;
-    overflow-x: hidden;
-    overflow-y: auto;
+
+    overflow: hidden auto;
+
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
@@ -640,16 +812,19 @@
 .newsSkeletonFeatured,
 .newsSkeletonItem {
     overflow: hidden;
-    border-radius: 16px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
+    border-radius: 16px;
 }
 
 .newsSkeletonFeatured {
     display: flex;
+
     flex: 0 0 auto;
-    width: 100%;
     flex-direction: column;
+
+    width: 100%;
 }
 
 .newsSkeletonImage,
@@ -666,6 +841,7 @@
         color-mix(in srgb, var(--text-secondary) 18%, transparent) 100%
     );
     background-size: 220% 100%;
+
     animation: newsShimmer 1.35s ease-in-out 0.75s infinite;
 }
 
@@ -677,57 +853,70 @@
 .newsSkeletonContent,
 .newsSkeletonItemContent {
     display: flex;
+
     flex-direction: column;
+
     gap: 8px;
+
     padding: 20px;
 }
 
 .newsSkeletonMeta {
     width: 140px;
     height: 16px;
+
     border-radius: 999px;
 }
 
 .newsSkeletonTitle {
     width: 76%;
     height: 26px;
+
     border-radius: 10px;
 }
 
 .newsSkeletonDescription {
     width: 100%;
     height: 16px;
+
     border-radius: 8px;
 }
 
 .newsSkeletonDescriptionShort {
     width: 64%;
     height: 16px;
+
     border-radius: 8px;
 }
 
 .newsSkeletonList {
     display: flex;
+
     flex: 0 0 auto;
     flex-direction: column;
+
     gap: 10px;
+
     width: 100%;
 }
 
 .newsSkeletonItem {
     display: flex;
+
     flex-direction: column;
 }
 
 .newsSkeletonThumb {
     height: 117px;
     min-height: 117px;
+
     border-radius: 0;
 }
 
 .newsSkeletonItemTitle {
     width: 72%;
     height: 26px;
+
     border-radius: 8px;
 }
 
@@ -738,16 +927,20 @@
 
     .newsFeaturedContent {
         gap: 8px;
+
         padding: 20px;
     }
 
     .newsFeaturedTitle {
-        font-size: 20px;
-        line-height: 26px;
-        font-weight: 800;
         display: -webkit-box;
+
         overflow: hidden;
         -webkit-line-clamp: 2;
+
+        font-size: 20px;
+        font-weight: 800;
+
+        line-height: 26px;
         -webkit-box-orient: vertical;
     }
 }
@@ -765,11 +958,13 @@
 @keyframes componentVersionAppear {
     from {
         opacity: 0;
+
         transform: translateY(-4px);
     }
 
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }

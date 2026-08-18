@@ -1,5 +1,6 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
+
 import { resolveAddonPublicationFingerprint } from './addonIdentity'
 import { getAddonsRoot } from './addonPaths'
 

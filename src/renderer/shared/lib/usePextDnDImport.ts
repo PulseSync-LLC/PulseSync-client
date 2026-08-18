@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+
 import { useModalContext } from '@app/providers/modal'
 import { desktopApi } from '@shared/desktop/desktopApi'
 

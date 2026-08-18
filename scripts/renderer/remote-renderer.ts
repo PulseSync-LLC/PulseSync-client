@@ -1,8 +1,10 @@
-import fs from 'fs'
-import path from 'path'
 import crypto from 'node:crypto'
 import { fileURLToPath } from 'node:url'
+
+import fs from 'fs'
+import path from 'path'
 import { build as viteBuild } from 'vite'
+
 import { DESKTOP_API_VERSION } from '../../src/common/desktopApi/version.js'
 import {
     assertGlitchTipSourceMapConfig,

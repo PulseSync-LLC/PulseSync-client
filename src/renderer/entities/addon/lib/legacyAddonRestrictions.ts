@@ -1,6 +1,7 @@
 import config from '@common/appConfig'
-import type Addon from '@entities/addon/model/addon.interface'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type Addon from '@entities/addon/model/addon.interface'
 
 const DEFAULT_NEWS_SLUG = 'legacy-addons-webhost-migration'
 

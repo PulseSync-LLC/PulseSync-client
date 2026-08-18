@@ -1,7 +1,9 @@
-import SettingsInterface from '@entities/settings/model/settings.interface'
 import React from 'react'
+
 import settingsInitials from '@entities/settings/model/settings.initials'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<SettingsInterface> => {
     const [snapshot, token, runtimeInfo] = await Promise.all([

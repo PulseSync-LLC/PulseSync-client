@@ -1,8 +1,11 @@
 import React, { type ReactNode } from 'react'
-import { MdLabelOutline, MdPersonOutline, MdSort, MdViewModule } from 'react-icons/md'
-import { useTranslation } from 'react-i18next'
+
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
+import { useTranslation } from 'react-i18next'
+import { MdLabelOutline, MdPersonOutline, MdSort, MdViewModule } from 'react-icons/md'
+
 import * as styles from '@shared/ui/PSUI/AddonFilters/AddonFilters.module.scss'
+
 import type Addon from '@entities/addon/model/addon.interface'
 
 type AddonTypeFilter = 'all' | Addon['type']

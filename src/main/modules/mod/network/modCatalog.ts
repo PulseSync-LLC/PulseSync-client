@@ -1,5 +1,5 @@
-import { fetchBackendModReleases, type ModReleaseEntry } from './releaseCatalog'
 import { hashArtifactInWorker } from './artifactWorkerClient'
+import { fetchBackendModReleases, type ModReleaseEntry } from './releaseCatalog'
 
 export type RemoteModInfo = Pick<ModReleaseEntry, 'modVersion' | 'musicVersion' | 'realMusicVersion' | 'name' | 'checksum' | 'checksum_v2'>
 

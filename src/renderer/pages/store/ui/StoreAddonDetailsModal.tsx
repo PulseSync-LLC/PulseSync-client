@@ -1,21 +1,25 @@
 import { useEffect, useState } from 'react'
+
+import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
-import type { Components } from 'react-markdown'
+import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
 import { MdClose, MdDownload, MdStar, MdStarBorder, MdVerifiedUser } from 'react-icons/md'
-import { useTranslation } from 'react-i18next'
-import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
+
 import GetStoreAddonMetaQuery from '@entities/addon/api/getStoreAddonMeta.query'
 import RateStoreAddonMutation from '@entities/addon/api/rateStoreAddon.mutation'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import apolloClient from '@shared/api/apolloClient'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
-import toast from '@shared/ui/toast'
 import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
+import toast from '@shared/ui/toast'
+
 import * as st from '@pages/store/ui/StoreAddonDetailsModal.module.scss'
+
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { Components } from 'react-markdown'
 
 type ModalTab = 'description' | 'readme'
 

@@ -2,22 +2,31 @@
 
 .shell {
     @include shimmer.shell;
-    width: 100%;
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
+
+    width: 100%;
 }
 
 .card {
     @include shimmer.surface(var(--surface-secondary));
     box-sizing: border-box;
+    display: grid;
+
+    grid-template-columns: 81px minmax(0, 1fr) 145px;
+
+    gap: 15px;
+
+    align-items: center;
+
     width: 100%;
     min-height: 111px;
+
     padding: 15px 30px;
-    display: grid;
-    grid-template-columns: 81px minmax(0, 1fr) 145px;
-    align-items: center;
-    gap: 15px;
+
     border-radius: 6px;
 }
 
@@ -25,21 +34,27 @@
     @include shimmer.surface;
     width: 81px;
     height: 81px;
+
     border-radius: 12px;
 }
 
 .copy {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
+
     gap: 7px;
+
+    min-width: 0;
 }
 
 .titleRow,
 .meta {
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
 }
 
 .title {
@@ -52,6 +67,7 @@
     @include shimmer.surface;
     width: 58px;
     height: 24px;
+
     border-radius: 20px;
 }
 
@@ -65,6 +81,7 @@
     @include shimmer.surface;
     width: 66px;
     height: 24px;
+
     border-radius: 6px;
 }
 
@@ -72,28 +89,36 @@
     @include shimmer.surface;
     width: 145px;
     height: 52px;
+
     border-radius: 6px;
 }
 
 .catalogShell {
     @include shimmer.shell;
-    width: 100%;
     gap: 0;
+
+    width: 100%;
 }
 
 .heroTopline {
-    min-height: 30px;
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+
+    min-height: 30px;
 }
 
 .heroIdentity {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .heroAvatar,
@@ -114,9 +139,11 @@
 }
 
 .heroAvatar {
+    flex: 0 0 auto;
+
     width: 30px;
     height: 30px;
-    flex: 0 0 auto;
+
     border-radius: 6px;
 }
 
@@ -138,44 +165,59 @@
 .heroBadge {
     width: 62px;
     height: 24px;
+
     border-radius: 6px;
 }
 
 .heroBadgeSmall {
     width: 48px;
     height: 24px;
+
     border-radius: 6px;
 }
 
 .heroAction {
+    flex: 0 0 115px;
+
     width: 115px;
     height: 30px;
-    flex: 0 0 115px;
+
     border-radius: 6px;
 }
 
 .heroBody {
-    min-height: 378px;
-    margin-top: 15px;
     display: grid;
+
     grid-template-columns: minmax(300px, 432px) minmax(0, 1fr);
+
     gap: 15px;
+
+    min-height: 378px;
+
+    margin-top: 15px;
 }
 
 .heroCopy {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
+
     align-items: flex-start;
+
+    min-width: 0;
 }
 
 .heroDescription {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 6px;
+
     width: 100%;
     min-height: 32px;
+
     margin-bottom: 15px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
 }
 
 .heroDescription > div {
@@ -190,24 +232,29 @@
 .heroGroup {
     width: 100%;
     min-height: 75px;
+
     margin-bottom: 15px;
 }
 
 .heroGroupTitle {
     width: 62px;
     height: 12px;
+
     margin-bottom: 7px;
 }
 
 .heroPills {
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
 }
 
 .heroPills > div {
     width: 72px;
     height: 24px;
+
     border-radius: 6px;
 }
 
@@ -222,28 +269,35 @@
 .heroLink {
     width: 180px;
     height: 24px;
+
     border-radius: 6px;
 }
 
 .heroMedia {
     min-width: 0;
     height: 378px;
-    border-radius: 10px;
+
     background: var(--surface-secondary);
+    border-radius: 10px;
 }
 
 .pager {
-    height: 30px;
-    margin: 15px 0;
     display: flex;
+
+    gap: 5px;
+
     align-items: center;
     justify-content: center;
-    gap: 5px;
+
+    height: 30px;
+
+    margin: 15px 0;
 }
 
 .pager > div {
     width: 15px;
     height: 30px;
+
     border-radius: 6px;
 }
 
@@ -254,16 +308,21 @@
 
 .catalogSection {
     width: 100%;
+
     margin-top: 15px;
 }
 
 .sectionHeader {
-    min-height: 30px;
-    margin-bottom: 15px;
     display: flex;
+
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 16px;
+
+    min-height: 30px;
+
+    margin-bottom: 15px;
 }
 
 .sectionTitle {
@@ -278,60 +337,74 @@
 
 .sectionActions {
     display: flex;
+
     gap: 5px;
 }
 
 .sectionActions > div {
     width: 30px;
     height: 30px;
+
     border-radius: 6px;
 }
 
 .posterRail {
-    width: calc(100% + 25px);
     display: flex;
+
     gap: 10px;
+
+    width: calc(100% + 25px);
+
     overflow: hidden;
-    -webkit-mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
+
     mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
 }
 
 .posterCard {
     box-sizing: border-box;
+
     width: min(460px, calc(100vw - 48px));
     min-width: min(460px, calc(100vw - 48px));
     height: 402px;
+
     padding: 5px;
-    border-radius: 6px;
+
     background: var(--surface-secondary);
+    border-radius: 6px;
 }
 
 .posterVisual {
     position: relative;
+
     height: 227px;
 }
 
 .posterBanner {
     width: 100%;
     height: 171px;
+
     border-radius: 6px;
 }
 
 .posterIcon {
     position: absolute;
-    left: 25px;
     bottom: 0;
+    left: 25px;
+
     width: 100px;
     height: 100px;
+
     border-radius: 12px;
 }
 
 .posterButton {
     position: absolute;
-    left: 141px;
     bottom: 0;
+    left: 141px;
+
     width: 123px;
     height: 40px;
+
     border-radius: 6px;
 }
 
@@ -347,29 +420,38 @@
 .posterDescription {
     width: 88%;
     height: 12px;
+
     margin-top: 8px;
 }
 
 .posterMeta {
-    height: 53px;
-    margin-top: 13px;
     display: flex;
+
     flex-wrap: wrap;
-    align-content: flex-start;
+
     gap: 5px;
+
+    align-content: flex-start;
+
+    height: 53px;
+
+    margin-top: 13px;
 }
 
 .posterMeta > div {
     width: 66px;
     height: 24px;
+
     border-radius: 6px;
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
     .card {
-        min-height: 126px;
-        padding: 14px;
         grid-template-columns: 60px minmax(0, 1fr);
+
+        min-height: 126px;
+
+        padding: 14px;
     }
 
     .icon {
@@ -379,13 +461,15 @@
 
     .button {
         grid-column: 1 / -1;
+
         width: 100%;
         height: 40px;
     }
 
     .heroTopline {
-        align-items: flex-start;
         flex-direction: column;
+
+        align-items: flex-start;
     }
 
     .heroIdentity {
@@ -406,6 +490,7 @@
 
     .heroMedia {
         order: 1;
+
         height: 220px;
     }
 

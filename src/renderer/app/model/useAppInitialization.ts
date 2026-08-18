@@ -1,10 +1,11 @@
-import { useEffect, useRef, type Dispatch, type MutableRefObject, type SetStateAction } from 'react'
+import { type Dispatch, type MutableRefObject, type SetStateAction,useEffect, useRef } from 'react'
 
 import config from '@common/appConfig'
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type Addon from '@entities/addon/model/addon.interface'
 import { fetchSettings } from '@entities/settings/api/settings'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
     fetchAchievements: () => Promise<void>

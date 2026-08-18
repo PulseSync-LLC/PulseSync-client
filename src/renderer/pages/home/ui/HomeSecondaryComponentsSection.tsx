@@ -1,15 +1,15 @@
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
-
 import { HiQuestionMarkCircle } from 'react-icons/hi'
 import { MdFolderOpen } from 'react-icons/md'
+
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 import TooltipButton from '@shared/ui/tooltip_button'
 
-import type { HomeSecondaryComponent, HomeSecondaryComponentId } from '@pages/home/model/homeDashboard'
-
 import * as styles from './home.module.scss'
-import cn from 'clsx'
+
+import type { HomeSecondaryComponent, HomeSecondaryComponentId } from '@pages/home/model/homeDashboard'
 
 type Props = {
     items: HomeSecondaryComponent[]

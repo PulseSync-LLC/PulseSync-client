@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
+
+import { Badge } from '@pulsesync/uikit/data-display'
 import cn from 'clsx'
 import {
     MdCheck,
@@ -12,12 +14,13 @@ import {
     MdStar,
     MdVerifiedUser,
 } from 'react-icons/md'
-import { Badge } from '@pulsesync/uikit/data-display'
-import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
+
 import { t } from '@app/i18n'
 import { staticAsset } from '@shared/lib/staticAssets'
-import TooltipButton from '@shared/ui/tooltip_button'
 import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'

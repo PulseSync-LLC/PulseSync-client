@@ -1,8 +1,7 @@
 import 'dotenv/config'
-import fs from 'fs'
-import path from 'path'
-import crypto from 'crypto'
-import chalk from 'chalk'
+
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import {
     AbortMultipartUploadCommand,
     CompleteMultipartUploadCommand,
@@ -16,7 +15,10 @@ import {
     S3Client,
     UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import { fileURLToPath, pathToFileURL } from 'node:url'
+import chalk from 'chalk'
+import crypto from 'crypto'
+import fs from 'fs'
+import path from 'path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024

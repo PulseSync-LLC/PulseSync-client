@@ -1,20 +1,30 @@
 .contextMenu {
-    align-self: self-end;
-    display: flex;
-    flex-direction: row;
-    align-items: center;
-    padding: 6px 12px;
-    gap: 5px;
     position: absolute;
     bottom: 8px;
+
+    display: flex;
+
+    flex-direction: row;
+
+    gap: 5px;
+
+    align-items: center;
+    align-self: self-end;
+    justify-content: center;
+
     width: fit-content;
     height: fit-content;
-    background: var(--border);
-    outline: 2px solid var(--border-hover);
-    box-shadow: 0px 0px 12.3px rgba(0, 0, 0, 0.49);
-    border-radius: 8px;
-    justify-content: center;
+
+    padding: 6px 12px;
+
     position-area: center;
+
+    outline: 2px solid var(--border-hover);
+
+    background: var(--border);
+    border-radius: 8px;
+    box-shadow: 0 0 12.3px rgb(0, 0, 0, 0.49);
+
     animation: fadeIn 0.3s forwards;
 }
 
@@ -24,24 +34,32 @@
 
 .contextMenuItem {
     display: flex;
+
     flex-direction: row;
-    align-items: center;
-    padding: 5px;
-    margin: 0;
+
     gap: 10px;
+
+    align-items: center;
+
     width: fit-content;
     height: fit-content;
 
-    background: rgba(179, 194, 239, 0);
+    padding: 5px;
+    margin: 0;
+
+    background: rgb(179, 194, 239, 0);
     border-radius: 8px;
+
     &:hover {
-        background: rgba(179, 194, 239, 0.2);
+        background: rgb(179, 194, 239, 0.2);
     }
 }
 
 .contextMenuItem:last-child {
+    background: rgb(239, 101, 101, 0);
+
     transition: var(--transition);
-    background: rgba(239, 101, 101, 0);
+
     &:hover {
         background: color-mix(in srgb, var(--danger) 20%, transparent);
     }
@@ -55,11 +73,13 @@
 @keyframes fadeIn {
     from {
         opacity: 0;
+
         transform: scale(0.95);
     }
 
     to {
         opacity: 1;
+
         transform: scale(1);
     }
 }
@@ -67,10 +87,13 @@
 @keyframes fadeOut {
     from {
         opacity: 1;
+
         transform: scale(1);
     }
+
     to {
         opacity: 0;
+
         transform: scale(0.95);
     }
 }

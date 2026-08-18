@@ -1,7 +1,9 @@
 import { ipcMain } from 'electron'
-import logger from './logger'
+
 import ElectronStoreModule from 'electron-store'
+
 import { t } from '../i18n'
+import logger from './logger'
 import { PULSESYNC_STORE_ENCRYPTION_KEY, PULSESYNC_STORE_NAME } from './storageIdentity'
 
 const ElectronStore = ElectronStoreModule

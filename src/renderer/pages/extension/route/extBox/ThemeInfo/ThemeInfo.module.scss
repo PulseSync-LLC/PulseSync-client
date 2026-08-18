@@ -1,34 +1,46 @@
 .summary {
-    display: flex;
-    flex-direction: column;
-    min-height: 100%;
-    padding: 15px 24px 32px;
     box-sizing: border-box;
-    background: var(--surface-primary);
+    display: flex;
+
+    flex-direction: column;
+
+    min-height: 100%;
+
+    padding: 15px 24px 32px;
+
     color: var(--text-primary);
+
+    background: var(--surface-primary);
 }
 
 .themeInfo {
     flex: 0 0 auto;
+
     width: 100%;
     height: 170px;
-    border-radius: 12px;
+
     background-color: var(--surface-elevated);
     background-position: center;
     background-size: cover;
+    border-radius: 12px;
 }
 
 .mediaSkeleton {
     display: block;
+
     pointer-events: none;
 }
 
 .identityRow {
     display: flex;
+
+    gap: 12px;
+
     align-items: flex-end;
     justify-content: space-between;
+
     min-height: 68px;
-    gap: 12px;
+
     padding: 0 14px;
 }
 
@@ -38,32 +50,45 @@
 
 .libraryLogo {
     display: flex;
+
+    flex: 0 0 104px;
+
     align-items: center;
     justify-content: center;
-    flex: 0 0 104px;
+
     width: 104px;
     height: 104px;
+
     margin-top: -48px;
+
     overflow: hidden;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: var(--surface-primary);
     border: 6px solid var(--surface-primary);
     border-radius: 17px;
-    background: var(--surface-primary);
-    color: var(--text-primary);
-    cursor: pointer;
 }
 
 .libraryLogoImg {
     width: 100%;
     height: 100%;
+
     object-fit: cover;
 }
 
 .actions {
     position: relative;
+
     display: flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+
     padding-bottom: 2px;
 }
 
@@ -74,42 +99,55 @@
 
 .toggleButton,
 .miniButton {
+    box-sizing: border-box;
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     height: 46px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 10px;
+
     font: inherit;
     font-size: 14px;
     font-weight: 700;
+
     cursor: pointer;
+
+    border: 0;
+    border-radius: 10px;
+
     transition: var(--transition);
 
     &:disabled {
         cursor: default;
+
         opacity: 0.48;
     }
 }
 
 .toggleButton {
     min-width: 140px;
+
     padding: 0 20px;
 }
 
 .miniButton {
     flex: 0 0 46px;
+
     width: 46px;
+
     padding: 0;
-    background: var(--accent);
+
     color: var(--accent-foreground);
+
+    background: var(--accent);
 }
 
 .enabledState,
 .disabledState {
-    background: var(--accent);
     color: var(--accent-foreground);
+
+    background: var(--accent);
 
     &:hover:not(:disabled) {
         background: var(--text-secondary);
@@ -117,8 +155,9 @@
 }
 
 .updateState {
-    background: var(--success);
     color: var(--background);
+
+    background: var(--success);
 }
 
 .copy {
@@ -126,63 +165,87 @@
 
     h1 {
         margin: 0;
-        color: var(--text-primary);
+
         font-size: 28px;
         font-weight: 800;
+
         line-height: 1.15;
+
+        color: var(--text-primary);
     }
 
     p {
         margin: 7px 0 0;
-        color: var(--text-secondary);
+
         font-size: 12px;
+
         line-height: 1.4;
+
+        color: var(--text-secondary);
     }
 }
 
 .meta {
     display: grid;
+
     grid-template-columns: repeat(4, minmax(0, 1fr));
+
     gap: 12px;
+
     padding: 18px 14px 0;
 }
 
 .metaItem {
     display: flex;
+
     flex-direction: column;
-    min-width: 0;
+
     gap: 5px;
+
+    min-width: 0;
 }
 
 .label {
     overflow: hidden;
-    color: var(--text-primary);
+    text-overflow: ellipsis;
+
     font-size: 12px;
     font-weight: 700;
-    text-overflow: ellipsis;
+
+    color: var(--text-primary);
+
     white-space: nowrap;
 }
 
 .value {
     overflow: hidden;
-    color: var(--text-secondary);
+    text-overflow: ellipsis;
+
     font-size: 12px;
     font-weight: 500;
-    text-overflow: ellipsis;
+
+    color: var(--text-secondary);
+
     white-space: nowrap;
 }
 
 .section {
     display: flex;
+
     flex-direction: column;
+
     gap: 7px;
+
     padding: 15px 14px 0;
 
     h2 {
         margin: 0;
-        color: var(--text-primary);
+
         font-size: 12px;
         font-weight: 800;
+
+        color: var(--text-primary);
+
         text-transform: none;
     }
 }
@@ -190,7 +253,9 @@
 .chipList,
 .linkList {
     display: flex;
+
     flex-wrap: wrap;
+
     gap: 5px;
 }
 
@@ -198,22 +263,31 @@
 .tag,
 .legacyRestrictionTag,
 .linkButton {
-    appearance: none;
+    box-sizing: border-box;
     display: inline-flex;
+
     align-items: center;
     justify-content: center;
+
     min-height: 24px;
+
     padding: 4px 9px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    background: var(--surface-elevated);
-    color: var(--text-primary);
+
     font: inherit;
     font-size: 11px;
     font-weight: 600;
+
     line-height: 1;
+
+    color: var(--text-primary);
+
+    appearance: none;
     cursor: pointer;
+
+    background: var(--surface-elevated);
+    border: 0;
+    border-radius: 6px;
+
     transition: var(--transition);
 
     &:hover {
@@ -227,8 +301,9 @@
     span {
         width: 8px;
         height: 8px;
-        border-radius: 50%;
+
         background: var(--text-primary);
+        border-radius: 50%;
     }
 
     &:first-child {
@@ -245,17 +320,19 @@
 }
 
 .legacyRestrictionTag {
-    border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
-    background: color-mix(in srgb, var(--danger) 15%, var(--surface-elevated));
     color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 15%, var(--surface-elevated));
+    border: 1px solid color-mix(in srgb, var(--danger) 50%, transparent);
 }
 
 .linkButton {
     gap: 6px;
+
     padding-inline: 10px;
 }
 
-@media (max-width: 1350px) {
+@media (width <= 1350px) {
     .summary {
         padding-inline: 18px;
     }

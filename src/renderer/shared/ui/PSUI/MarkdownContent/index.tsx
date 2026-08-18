@@ -1,11 +1,14 @@
 import React from 'react'
+
 import cn from 'clsx'
 import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
 import rehypeRaw from 'rehype-raw'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
+
 import * as st from '@shared/ui/PSUI/MarkdownContent/MarkdownContent.module.scss'
+
+import type { Components } from 'react-markdown'
 
 type MarkdownContentProps = {
     children: string

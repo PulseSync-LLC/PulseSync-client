@@ -1,15 +1,16 @@
 import { useEffect, useMemo } from 'react'
 
-import type Addon from '@entities/addon/model/addon.interface'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import {
     getLegacyAddonMigrationNewsSlug,
     isAddonAuthor,
     isRestrictedLegacyAddon,
     openLegacyAddonMigrationNews,
 } from '@entities/addon/lib/legacyAddonRestrictions'
-import type UserInterface from '@entities/user/model/user.interface'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+
 import type { LegacyAddonRestrictionsState } from '@app/AppShell.types'
+import type Addon from '@entities/addon/model/addon.interface'
+import type UserInterface from '@entities/user/model/user.interface'
 
 type Props = {
     addons: Addon[]

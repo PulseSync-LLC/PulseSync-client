@@ -1,4 +1,4 @@
-import Addon from '@entities/addon/model/addon.interface'
+import type Addon from '@entities/addon/model/addon.interface'
 
 const AddonInitials: Addon[] = [
     {

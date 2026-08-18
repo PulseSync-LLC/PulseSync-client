@@ -1,5 +1,6 @@
 import userInitials from '@entities/user/model/user.initials'
-import UserInterface from '@entities/user/model/user.interface'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 export type UserUpdatePayload = {
     user: Partial<UserInterface> & { id: string }

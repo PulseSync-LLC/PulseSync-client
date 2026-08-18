@@ -1,6 +1,8 @@
 import fs from 'node:fs'
 import path from 'node:path'
+
 import { app } from 'electron'
+
 import isAppDev from '../../utils/isAppDev'
 
 export type BootstrapperLauncherKind = 'executable'

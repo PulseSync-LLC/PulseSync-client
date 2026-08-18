@@ -1,5 +1,7 @@
 import React from 'react'
+
 import clsx from 'clsx'
+
 import Layout from '@widgets/layout'
 import pageStyles from '@widgets/layout/pageStyles'
 import UserProfileModal from '@widgets/userProfileModal/UserProfileModal'

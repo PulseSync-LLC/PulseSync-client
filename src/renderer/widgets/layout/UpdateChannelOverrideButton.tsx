@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
-import TooltipButton from '@shared/ui/tooltip_button'
-import * as styles from '@widgets/layout/header.module.scss'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@widgets/layout/header.module.scss'
 
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 

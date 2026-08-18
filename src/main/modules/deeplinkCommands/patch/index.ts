@@ -1,4 +1,5 @@
 import { extractInstallModUpdateFromDeepLink } from '../../mod/installModUpdateFrom'
+
 import type { DeeplinkCommandContext } from '..'
 
 const PATCH_TYPE_FROM_MOD = 'from_mod'

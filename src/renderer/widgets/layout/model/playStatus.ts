@@ -1,4 +1,4 @@
-import { Track } from '@entities/track/model/track.interface'
+import type { Track } from '@entities/track/model/track.interface'
 
 export type PlayStatus = 'playing' | 'pause' | 'null'
 

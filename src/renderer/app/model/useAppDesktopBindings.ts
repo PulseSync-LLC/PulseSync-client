@@ -1,13 +1,14 @@
 import { useCallback, useEffect } from 'react'
 import { useRef } from 'react'
 
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type Addon from '@entities/addon/model/addon.interface'
 import rendererHttpClient from '@shared/api/http/client'
-import toast from '@shared/ui/toast'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
+import toast from '@shared/ui/toast'
+
 import type { DesktopUpdateAvailablePayload } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
 const MANUAL_UPDATE_CHECK_TOAST_DELAY_MS = 1000

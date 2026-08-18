@@ -1,13 +1,16 @@
+import { createHash } from 'node:crypto'
+
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { createHash } from 'node:crypto'
+
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { sanitizeScript } from '../../utils/addonUtils'
-import { Server as IOServer, Socket } from 'socket.io'
-import { readAddonSettings } from './addonSettings'
-import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
 import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonPaths'
+import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
+import { sanitizeScript } from '../../utils/addonUtils'
+import { readAddonSettings } from './addonSettings'
+
+import type { Server as IOServer, Socket } from 'socket.io'
 
 interface StateLike {
     get: (key: string) => any

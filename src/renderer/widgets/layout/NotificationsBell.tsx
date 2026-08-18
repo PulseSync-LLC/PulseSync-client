@@ -1,19 +1,25 @@
-import React, { MouseEvent, useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import { AnimatePresence, motion } from 'framer-motion'
-import { MdDoneAll } from 'react-icons/md'
-import config from '@common/appConfig'
 import { useTranslation } from 'react-i18next'
+import { MdDoneAll } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
-import { useNotifications } from '@app/providers/notifications'
+
+import config from '@common/appConfig'
 import { useModalContext } from '@app/providers/modal'
-import { getNotificationPresentation, NotificationTone } from '@app/providers/notifications/presentation'
-import type { NotificationItem } from '@app/providers/notifications/types'
-import Loader from '@shared/ui/PSUI/Loader'
-import TooltipButton from '@shared/ui/tooltip_button'
-import * as styles from '@widgets/layout/NotificationsBell.module.scss'
-import * as headerStyles from '@widgets/layout/header.module.scss'
+import { useNotifications } from '@app/providers/notifications'
+import { getNotificationPresentation } from '@app/providers/notifications/presentation'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
+import Loader from '@shared/ui/PSUI/Loader'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as headerStyles from '@widgets/layout/header.module.scss'
+import * as styles from '@widgets/layout/NotificationsBell.module.scss'
+
+import type { NotificationTone } from '@app/providers/notifications/presentation';
+import type { NotificationItem } from '@app/providers/notifications/types'
+import type { MouseEvent} from 'react';
 
 const WEBSITE_ORIGIN = (() => {
     try {

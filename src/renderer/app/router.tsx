@@ -1,11 +1,12 @@
-import React, { Suspense, lazy, useContext } from 'react'
-import { Navigate, createHashRouter } from 'react-router'
+import React, { lazy, Suspense, useContext } from 'react'
+
+import { createHashRouter,Navigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import HomePage from '@pages/home'
-import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
 import Preloader from '@widgets/preloader'
 import UserContext from '@entities/user/model/context'
+import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
 
 const Dev = lazy(() => import('@pages/dev'))
 const AuthPage = lazy(() => import('@pages/auth'))

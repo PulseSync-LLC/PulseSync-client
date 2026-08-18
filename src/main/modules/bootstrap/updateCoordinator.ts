@@ -1,6 +1,7 @@
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 import { prepareDesktopUpdate, type PrepareDesktopUpdateOptions, type PrepareUpdateResultV1 } from '../updater/bootstrapperUpdateService'
 import { bootstrapUiStateFromError, bootstrapUiStateFromPrepareResult } from './updateUiState'
+
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 export type BootstrapStateListener = (state: BootstrapUiStateV1) => void
 

@@ -1,11 +1,11 @@
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { ModInterface } from '@entities/mod/model/modInterface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type UserInterface from '@entities/user/model/user.interface'
+import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 import type { Dispatch, SetStateAction } from 'react'
 import type { Socket } from 'socket.io-client'
-import type UserInterface from '@entities/user/model/user.interface'
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-import type Addon from '@entities/addon/model/addon.interface'
-import type { ModInterface } from '@entities/mod/model/modInterface'
-import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 
 export type SettingsUpdater = SettingsInterface | ((prev: SettingsInterface) => SettingsInterface)
 export type EmitGateway = (event: OutgoingGatewayEvent, payload: unknown) => void

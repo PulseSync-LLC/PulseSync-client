@@ -2,9 +2,10 @@ import { execFile } from 'child_process'
 import fs, { promises as fsp } from 'original-fs'
 import path from 'path'
 import { promisify } from 'util'
+
+import { getYandexMusicAppDataPath, normalizeModSaveDir } from '../utils/appUtils'
 import logger from './logger'
 import { getState } from './state'
-import { getYandexMusicAppDataPath, normalizeModSaveDir } from '../utils/appUtils'
 
 const execFileAsync = promisify(execFile)
 const State = getState()

@@ -1,11 +1,11 @@
+import type { NotificationsContextValue } from '@app/providers/notifications/types'
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { ModInterface } from '@entities/mod/model/modInterface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type UserInterface from '@entities/user/model/user.interface'
 import type { Dispatch, ReactNode, SetStateAction } from 'react'
 import type { createHashRouter } from 'react-router'
-import type UserInterface from '@entities/user/model/user.interface'
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-import type Addon from '@entities/addon/model/addon.interface'
-import type { ModInterface } from '@entities/mod/model/modInterface'
-import type { NotificationsContextValue } from '@app/providers/notifications/types'
 
 export type GetMeData = {
     getMe: Partial<UserInterface> | null

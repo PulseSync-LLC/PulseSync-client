@@ -1,4 +1,5 @@
 import path from 'node:path'
+
 import fs, { promises as fsp } from 'original-fs'
 
 export async function readBufResilient(inputPath: string): Promise<Buffer> {

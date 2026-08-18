@@ -1,6 +1,7 @@
+import { app } from 'electron'
+
 import log4js from 'log4js'
 import path from 'path'
-import { app } from 'electron'
 
 const LOG_PATH = path.join(app.getPath('userData'), 'logs')
 

@@ -1,12 +1,15 @@
 import React from 'react'
-import clsx from 'clsx'
 
-import { AddonConfig, Item } from '@features/configurationSettings/types'
+import clsx from 'clsx'
+import { MdAdd, MdContentCopy, MdDelete, MdDragIndicator, MdUnfoldLess,MdUnfoldMore } from 'react-icons/md'
+
 import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
 import ConfigurationItemCard from '@features/configurationSettings/ui/ConfigurationItemCard'
 import TextInput from '@shared/ui/PSUI/TextInput'
-import { MdDragIndicator, MdContentCopy, MdDelete, MdAdd, MdUnfoldMore, MdUnfoldLess } from 'react-icons/md'
+
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
+
+import type { AddonConfig, Item } from '@features/configurationSettings/types'
 
 type Props = {
     addItemAt: (si: number, index: number, type: Item['type']) => void

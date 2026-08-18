@@ -1,20 +1,22 @@
-import { app, BrowserWindow, shell, powerMonitor, screen } from 'electron'
-import { getNativeImg } from '../utils/electronNative'
-import isAppDev from '../utils/isAppDev'
-import { getUpdater } from './updater/updater'
+import { fileURLToPath } from 'node:url'
+
+import { app, BrowserWindow, powerMonitor, screen,shell } from 'electron'
+
+import fs from 'original-fs'
+import path from 'path'
+
+import config from '@common/appConfig'
+import { isDevmark } from '@common/appConfig'
+
 import { queueAddonOpen, updateAvailable } from '../events'
 import { isWindows } from '../utils/appUtils'
-import { isDevmark } from '@common/appConfig'
-import path from 'path'
-import fs from 'original-fs'
-import logger from './logger'
-import { getState } from './state'
-import { fileURLToPath } from 'node:url'
-import { importPextFile, isPextFilePath } from './pextImporter'
-import { resolveMainRendererSources, type MainRendererSource } from './rendererSource'
+import { getNativeImg } from '../utils/electronNative'
+import isAppDev from '../utils/isAppDev'
 import { refreshRemoteLocalization } from './localization'
-import config from '@common/appConfig'
+import logger from './logger'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
+import { importPextFile, isPextFilePath } from './pextImporter'
+import { type MainRendererSource,resolveMainRendererSources } from './rendererSource'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
 import {
     buildRemoteRendererContentSecurityPolicy,
@@ -24,6 +26,8 @@ import {
     isAllowedRemoteRendererWindowOpen,
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
+import { getState } from './state'
+import { getUpdater } from './updater/updater'
 
 const State = getState()
 

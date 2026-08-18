@@ -1,12 +1,14 @@
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import type { Socket } from 'socket.io-client'
-import toast from '@shared/ui/toast'
+import { getGatewayErrorMessage } from '@app/providers/socket/utils'
 import IncomingGatewayEvents from '@shared/api/socket/enums/incomingGatewayEvents'
 import { parseGatewayFrame } from '@shared/api/socket/realtimeSocket'
-import { applySubscriptionUpdate, applyUserUpdate, SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents'
-import type UserInterface from '@entities/user/model/user.interface'
-import { getGatewayErrorMessage } from '@app/providers/socket/utils'
+import { applySubscriptionUpdate, applyUserUpdate } from '@shared/api/socket/realtimeUserEvents'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
+
+import type UserInterface from '@entities/user/model/user.interface'
+import type { SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents';
+import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
+import type { Socket } from 'socket.io-client'
 
 type CreateGatewayHandlerParams = {
     t: (key: string, options?: any) => string

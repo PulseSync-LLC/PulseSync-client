@@ -1,11 +1,13 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import config from '@common/appConfig'
+
 import AppNameLogo from '@shared/assets/icon/AppName.svg'
 
-import * as pageStyles from '@pages/auth/default/auth.module.scss'
 import styles from './browserDownloadBanner.module.scss'
+import * as pageStyles from '@pages/auth/default/auth.module.scss'
 
 const BrowserDownloadBanner = () => {
     const { t } = useTranslation()

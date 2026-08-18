@@ -1,4 +1,4 @@
-const MARKDOWN_PATTERN = /(^|\n)\s{0,3}(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|~~~)|\*\*|__|`|\[[^\]]+\]\([^\)]+\)|\|.+\|/m
+const MARKDOWN_PATTERN = /(^|\n)\s{0,3}(#{1,6}\s|[-*+]\s|\d+\.\s|>\s|```|~~~)|\*\*|__|`|\[[^\]]+\]\([^)]+\)|\|.+\|/m
 
 function normalizeText(value: string): string {
     return value.replace(/\r\n/g, '\n').replace(/\r/g, '\n').trim()

@@ -1,15 +1,24 @@
 .inputContainer {
     position: relative;
-    cursor: pointer;
+
     display: flex;
+
     flex-direction: column;
+
+    gap: 2px;
+
     align-items: flex-start;
-    padding: 10px 16px;
+
     width: -webkit-fill-available;
+
+    padding: 10px 16px;
+
+    cursor: pointer;
+    outline: transparent solid 2px;
+
     background: var(--border);
     border-radius: 8px;
-    gap: 2px;
-    outline: transparent solid 2px;
+
     transition: var(--transition);
 
     &:hover {
@@ -18,24 +27,35 @@
 }
 
 .label {
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
     display: flex;
+
     gap: 5px;
+
     align-items: center;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 140%;
+
+    color: #fff;
 }
 
 .textInput {
-    font-weight: 500;
-    font-size: 18px;
-    line-height: 140%;
-    color: var(--text-secondary);
-    background: transparent;
-    transition: var(--transition);
-    word-break: break-word;
     width: -webkit-fill-available;
+
+    font-size: 18px;
+    font-weight: 500;
+
+    line-height: 140%;
+
+    color: var(--text-secondary);
+
+    word-break: break-word;
+
+    background: transparent;
+
+    transition: var(--transition);
 
     &.activeText {
         color: var(--success);
@@ -48,33 +68,45 @@
 
 .error {
     font-size: 0.75rem;
+
     color: var(--warning);
+
     animation: fadeIn 0.2s ease-in-out;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
+
         transform: translateY(-5px);
     }
+
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }
 
 .control {
     display: flex;
+
     flex-direction: row;
+
     gap: 6px;
+
     width: -webkit-fill-available;
 }
 
 .controlButton {
     position: relative;
-    cursor: pointer;
+
     padding: 1px;
+
+    cursor: pointer;
+
     background: transparent;
+
     transition: var(--transition);
 
     &:hover {
@@ -86,8 +118,9 @@
     }
 
     svg {
-        transition: var(--transition);
         color: var(--text-secondary);
+
+        transition: var(--transition);
     }
 }
 

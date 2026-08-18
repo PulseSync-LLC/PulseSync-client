@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle,useRef, useState } from 'react'
+
 import cn from 'clsx'
+
 import * as styles from '@shared/ui/PSUI/Scrollbar/Scrollbar.module.scss'
 
 interface ScrollbarProps {

@@ -1,27 +1,33 @@
 .container {
     --user-card-surface: var(--surface-secondary);
-
+    box-sizing: border-box;
     display: flex;
+
     flex-direction: column;
+
     width: -webkit-fill-available;
     height: 150px;
-    box-sizing: border-box;
+
     overflow: hidden;
+
+    cursor: pointer;
+
     background: var(--user-card-surface);
     border: 1px solid var(--border);
     border-radius: 16px;
-    cursor: pointer;
+
     transition:
         transform 0.18s ease,
         border-color 0.18s ease,
         background 0.18s ease;
+
     animation: fadeInUp 0.4s ease-out forwards;
 
     &:hover {
         --user-card-surface: var(--surface-tertiary);
+        border-color: var(--border-hover);
 
         transform: translateY(-2px);
-        border-color: var(--border-hover);
     }
 
     &:focus-visible {
@@ -41,10 +47,13 @@
 @keyframes fadeInUp {
     from {
         opacity: 0;
+
         transform: translateY(20px);
     }
+
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }
@@ -52,10 +61,13 @@
 @keyframes fadeInDown {
     from {
         opacity: 0;
+
         transform: translateY(-20px);
     }
+
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }
@@ -64,77 +76,95 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
 }
 
 .topSection {
-    display: flex;
-    flex-direction: row;
-    align-items: flex-end;
-    padding: 10px;
-    gap: 10px;
-    flex: 1;
-    border-radius: 15px 15px 0 0;
     position: relative;
+
+    display: flex;
+
+    flex: 1;
+    flex-direction: row;
+
+    gap: 10px;
+
+    align-items: flex-end;
+
+    padding: 10px;
+
     overflow: hidden;
+
+    border-radius: 15px 15px 0 0;
 }
 
 .bannerImage {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
+    z-index: 0;
+
     width: 100%;
     height: 100%;
+
     object-fit: cover;
-    z-index: 0;
 }
 
 .bannerGradient {
     position: absolute;
-    top: 0;
-    right: 0;
-    bottom: 0;
-    left: 0;
+    inset: 0;
+    z-index: 1;
+
+    pointer-events: none;
+
     background: linear-gradient(
         0deg,
         var(--user-card-surface) 0%,
         color-mix(in srgb, var(--user-card-surface) 72%, transparent) 42%,
         color-mix(in srgb, var(--background) 18%, transparent) 100%
     );
-    z-index: 1;
-    pointer-events: none;
 }
 
 .userAvatar {
-    width: 60px;
-    height: 60px;
-    border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
-    border-radius: 12px;
-    object-fit: cover;
     position: relative;
     z-index: 2;
+
+    width: 60px;
+    height: 60px;
+
+    object-fit: cover;
+
+    border: 1px solid color-mix(in srgb, var(--text-primary) 14%, transparent);
+    border-radius: 12px;
 }
 
 .userInfo {
-    display: flex;
-    flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
-    gap: 2px;
-    height: 60px;
     position: relative;
     z-index: 2;
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+    align-items: flex-start;
+    justify-content: center;
+
+    height: 60px;
 }
 
 .badges {
     display: flex;
+
     flex-direction: row;
-    align-items: center;
+
     gap: 3px;
+
+    align-items: center;
+
     height: 20px;
 }
 
@@ -146,42 +176,59 @@
 .badgeIcon {
     width: 100%;
     height: 100%;
+
     object-fit: contain;
 }
 
 .nickname {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 18px;
-    line-height: 110%;
-    color: var(--text-primary);
-    height: 20px;
     max-width: 100%;
+    height: 20px;
+
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-family: Nunito, sans-serif;
+    font-size: 18px;
+    font-weight: 700;
+
+    line-height: 110%;
+
+    color: var(--text-primary);
+
     white-space: nowrap;
 }
 
 .bottomSection {
     display: flex;
+
     flex-direction: row;
-    align-items: center;
-    padding: 3px 10px;
+
     gap: 10px;
+
+    align-items: center;
+
     height: 26px;
+
+    padding: 3px 10px;
+
     background: var(--user-card-surface);
     border-top: 1px solid var(--line);
 }
 
 .statusText {
-    font-family: 'Nunito', sans-serif;
-    font-weight: 700;
-    font-size: 12px;
-    line-height: 110%;
-    color: var(--statusColorProfile);
     width: 100%;
+
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-family: Nunito, sans-serif;
+    font-size: 12px;
+    font-weight: 700;
+
+    line-height: 110%;
+
+    color: var(--statusColorProfile);
+
     white-space: nowrap;
 }
 
@@ -189,24 +236,31 @@
 .statusIcon {
     width: 20px;
     height: 20px;
+
     color: var(--statusColorProfile);
 }
 
 .userCardSkeleton {
     position: relative;
+
     width: 100%;
     height: 150px;
-    border-radius: 8px;
+
     background-color: var(--skeleton-base);
+    border-radius: 8px;
 
     &::before {
-        content: '';
         position: absolute;
         top: 0;
         left: -100%;
+
         width: 100%;
         height: 100%;
+
+        content: '';
+
         background: linear-gradient(90deg, transparent, var(--hover), transparent);
+
         animation: shimmer 1.6s infinite;
     }
 }

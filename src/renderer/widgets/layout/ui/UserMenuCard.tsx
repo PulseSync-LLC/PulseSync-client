@@ -1,14 +1,18 @@
-import React, { CSSProperties } from 'react'
+import React from 'react'
+
 import { motion } from 'framer-motion'
 
 import { useModalContext } from '@app/providers/modal'
-import UserInterface from '@entities/user/model/user.interface'
+import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+import { getProfileSlug } from '@shared/lib/profileSlug'
+import { staticAsset } from '@shared/lib/staticAssets'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import TooltipButton from '@shared/ui/tooltip_button'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { getProfileSlug } from '@shared/lib/profileSlug'
-import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+
 import * as styles from '@widgets/layout/header.module.scss'
+
+import type UserInterface from '@entities/user/model/user.interface'
+import type { CSSProperties } from 'react';
 
 type Props = {
     avatarInputRef: React.RefObject<HTMLInputElement | null>

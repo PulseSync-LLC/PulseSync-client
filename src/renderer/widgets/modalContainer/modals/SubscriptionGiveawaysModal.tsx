@@ -1,11 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+
 import cn from 'clsx'
-import { MdAccessTime, MdClose, MdRefresh, MdRedeem } from 'react-icons/md'
+import { useTranslation } from 'react-i18next'
+import { MdAccessTime, MdClose, MdRedeem,MdRefresh } from 'react-icons/md'
 import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
-import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
 import rendererHttpClient from '@shared/api/http/client'
 import {
@@ -15,7 +16,10 @@ import {
 } from '@shared/api/subscriptionGiveaways'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
+
 import * as styles from '@widgets/modalContainer/modals/SubscriptionGiveawaysModal.module.scss'
+
+import type { Components } from 'react-markdown'
 
 type SubscriptionGiveawayEntryResponse = {
     ok?: boolean

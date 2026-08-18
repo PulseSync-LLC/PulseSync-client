@@ -1,6 +1,7 @@
-import type { BootstrapAction, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 import { BootstrapperCommandError } from '../bootstrapper/command'
 import { isUpdateErrorV1, type PrepareUpdateResultV1, type RustUpdateProgressEventV1 } from '../bootstrapper/contracts'
+
+import type { BootstrapAction, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 function actionsFor(retryable: boolean, safeToContinue: boolean): BootstrapAction[] {
     const actions: BootstrapAction[] = []

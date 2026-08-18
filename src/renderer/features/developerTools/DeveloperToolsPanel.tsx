@@ -1,19 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import { useTranslation } from 'react-i18next'
-import { Line } from 'react-chartjs-2'
+
 import {
     CategoryScale,
     Chart as ChartJS,
     Filler,
-    InteractionMode,
     Legend,
     LinearScale,
     LineElement,
     PointElement,
-    ScriptableContext,
     Title,
     Tooltip,
 } from 'chart.js'
+import { Line } from 'react-chartjs-2'
+import { useTranslation } from 'react-i18next'
 import { MdAccessTime, MdGroups, MdOnlinePrediction, MdTrendingUp } from 'react-icons/md'
 
 import rendererHttpClient from '@shared/api/http/client'
@@ -21,7 +20,12 @@ import AddonUploadModal, { type UploadStep } from '@shared/ui/PSUI/AddonUploadMo
 import CustomFormikModalPS from '@shared/ui/PSUI/CustomFormikModalPS'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
+
 import * as styles from '@features/developerTools/DeveloperToolsPanel.module.scss'
+
+import type {
+    InteractionMode,
+    ScriptableContext} from 'chart.js';
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend)
 

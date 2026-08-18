@@ -1,5 +1,6 @@
 import fs from 'node:fs'
 import path from 'node:path'
+
 import { app } from 'electron'
 
 const MAX_COMPLETED_LAUNCH_REQUESTS = 256

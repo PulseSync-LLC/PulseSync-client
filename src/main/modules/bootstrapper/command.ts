@@ -1,5 +1,6 @@
 import { spawn } from 'node:child_process'
 import { StringDecoder } from 'node:string_decoder'
+
 import type { BootstrapperLauncher } from './paths'
 
 const MAX_STDOUT_BYTES = 1024 * 1024

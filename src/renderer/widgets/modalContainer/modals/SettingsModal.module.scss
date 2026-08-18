@@ -1,50 +1,69 @@
 .modal.modal {
+    gap: 0;
+
+    align-items: stretch;
+    justify-content: flex-start;
+
     width: min(980px, calc(100vw - 32px));
     min-width: min(980px, calc(100vw - 32px));
     max-width: min(980px, calc(100vw - 32px));
     height: min(720px, calc(100vh - 32px));
     max-height: min(720px, calc(100vh - 32px));
+
     padding: 0;
-    gap: 0;
-    justify-content: flex-start;
-    align-items: stretch;
+
     overflow: hidden;
+
     background: var(--background);
     border-radius: 16px;
 }
 
 .modalHeader {
+    box-sizing: border-box;
     display: flex;
+
     align-items: center;
     justify-content: space-between;
+
     width: 100%;
     min-height: 58px;
+
     padding: 12px 16px 12px 22px;
-    box-sizing: border-box;
+
     background: var(--surface-secondary);
     border-bottom: 1px solid var(--border);
 }
 
 .modalTitle {
-    color: var(--text-primary);
     font-size: 19px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .closeButton {
     display: inline-flex;
+
+    flex: 0 0 32px;
+
     align-items: center;
     justify-content: center;
+
     width: 32px;
     height: 32px;
-    flex: 0 0 32px;
+
     padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: var(--surface-tertiary);
     border: 1px solid var(--border);
     border-radius: 50%;
-    background: var(--surface-tertiary);
-    color: var(--text-secondary);
-    cursor: pointer;
+
     transition:
         color 0.15s ease,
         border-color 0.15s ease,
@@ -52,8 +71,9 @@
 
     &:hover {
         color: var(--text-primary);
-        border-color: var(--border-hover);
+
         background: var(--surface-elevated);
+        border-color: var(--border-hover);
     }
 
     &:focus-visible {
@@ -64,30 +84,43 @@
 
 .settingsShell {
     display: grid;
-    grid-template-columns: 210px minmax(0, 1fr);
+
     flex: 1 1 auto;
+
+    grid-template-columns: 210px minmax(0, 1fr);
+
     min-height: 0;
+
     overflow: hidden;
 }
 
 .sidebar {
     display: flex;
+
     flex-direction: column;
+
     gap: 6px;
+
     min-width: 0;
+
     padding: 18px 10px;
+
     background: var(--surface-secondary);
     border-right: 1px solid var(--border);
 }
 
 .sidebarTitle {
     padding: 0 10px 8px;
-    color: var(--text-muted);
+
     font-size: 11px;
     font-weight: 800;
+
     line-height: 1.2;
-    letter-spacing: 0.08em;
+
+    color: var(--text-muted);
+
     text-transform: uppercase;
+    letter-spacing: 0.08em;
 }
 
 .sidebarTitleSpaced {
@@ -95,27 +128,38 @@
 }
 
 .sidebarItem {
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
     width: 100%;
     min-height: 38px;
+
     padding: 0 10px;
-    box-sizing: border-box;
-    border: 0;
-    border-radius: 8px;
-    background: transparent;
-    color: var(--text-secondary);
+
     font-size: 14px;
     font-weight: 700;
+
+    color: var(--text-secondary);
+
     text-align: left;
+
     cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+
     transition:
         color 0.15s ease,
         background 0.15s ease;
 
     &:hover {
         color: var(--text-primary);
+
         background: var(--hover);
     }
 
@@ -127,13 +171,16 @@
 
 .sidebarItemActive,
 .sidebarItemActive:hover {
-    background: var(--active);
     color: var(--text-primary);
+
+    background: var(--active);
 }
 
 .content {
     min-width: 0;
+
     padding: 24px 26px 28px;
+
     overflow-y: auto;
 }
 
@@ -143,15 +190,20 @@
 
 .contentTitle {
     margin: 0;
-    color: var(--text-primary);
+
     font-size: 22px;
     font-weight: 800;
+
     line-height: 1.2;
+
+    color: var(--text-primary);
 }
 
 .settingsGroup {
     display: flex;
+
     flex-direction: column;
+
     gap: 8px;
 
     & + & {
@@ -160,40 +212,56 @@
 }
 
 .groupTitle {
-    color: var(--text-muted);
     font-size: 12px;
     font-weight: 800;
+
     line-height: 1.3;
-    letter-spacing: 0.04em;
+
+    color: var(--text-muted);
+
     text-transform: uppercase;
+    letter-spacing: 0.04em;
 }
 
 .groupHeader {
     display: flex;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
 }
 
 .groupMeta {
     min-width: 0;
+
     overflow: hidden;
-    color: var(--text-secondary);
+    text-overflow: ellipsis;
+
     font-size: 12px;
     font-weight: 700;
+
     line-height: 1.3;
-    text-overflow: ellipsis;
+
+    color: var(--text-secondary);
+
     white-space: nowrap;
 }
 
 .settingRow {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 18px;
-    min-height: 48px;
-    padding: 10px 14px;
     box-sizing: border-box;
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    gap: 18px;
+
+    align-items: center;
+
+    min-height: 48px;
+
+    padding: 10px 14px;
+
     background: var(--surface-secondary);
     border: 1px solid var(--border);
     border-radius: 12px;
@@ -204,33 +272,47 @@
 }
 
 .settingTitle {
-    color: var(--text-primary);
     font-size: 14px;
     font-weight: 700;
+
     line-height: 1.3;
+
+    color: var(--text-primary);
 }
 
 .settingDescription {
-    margin-top: 5px;
     max-width: 430px;
-    color: var(--text-secondary);
+
+    margin-top: 5px;
+
     font-size: 12px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .settingsCheckbox {
     display: inline-flex;
+
+    flex: 0 0 20px;
+
     align-items: center;
     justify-content: center;
+
     width: 20px;
     height: 20px;
-    flex: 0 0 20px;
+
     padding: 0;
+
+    color: var(--accent-foreground);
+
+    cursor: pointer;
+
+    background: var(--surface-elevated);
     border: 1px solid var(--border-hover);
     border-radius: 5px;
-    background: var(--surface-elevated);
-    color: var(--accent-foreground);
-    cursor: pointer;
+
     transition:
         border-color 0.15s ease,
         background 0.15s ease;
@@ -246,44 +328,58 @@
 }
 
 .settingsCheckboxChecked {
-    border-color: var(--accent);
     background: var(--accent);
+    border-color: var(--accent);
 }
 
 .settingsCheckbox:disabled {
-    opacity: 0.45;
     cursor: not-allowed;
+
+    opacity: 0.45;
 }
 
 .actionGrid {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr);
+
     gap: 8px;
 }
 
 .actionButton {
     display: flex;
+
+    gap: 12px;
+
     align-items: center;
     justify-content: space-between;
-    gap: 12px;
+
     min-height: 48px;
+
     padding: 0 12px 0 14px;
-    border: 1px solid var(--border);
-    border-radius: 10px;
-    background: var(--surface-secondary);
-    color: var(--text-primary);
+
     font-size: 13px;
     font-weight: 700;
+
     line-height: 1.3;
+
+    color: var(--text-primary);
+
     text-align: left;
+
     cursor: pointer;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
     transition:
         border-color 0.15s ease,
         background 0.15s ease;
 
     &:hover:not(:disabled) {
-        border-color: var(--border-hover);
         background: var(--surface-elevated);
+        border-color: var(--border-hover);
     }
 
     &:focus-visible {
@@ -293,8 +389,10 @@
 
     &:disabled {
         color: var(--text-muted);
-        opacity: 0.5;
+
         cursor: not-allowed;
+
+        opacity: 0.5;
     }
 
     > span {
@@ -303,40 +401,51 @@
 
     > svg {
         flex: 0 0 auto;
+
         color: var(--text-muted);
     }
 }
 
 .emptyState {
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
     justify-content: center;
+
     min-height: 260px;
+
     text-align: center;
 }
 
 .emptyTitle {
     margin-bottom: 6px;
-    color: var(--text-primary);
+
     font-size: 18px;
     font-weight: 800;
+
+    color: var(--text-primary);
 }
 
 .emptyDescription {
     max-width: 360px;
-    color: var(--text-secondary);
+
     font-size: 14px;
+
     line-height: 1.5;
+
+    color: var(--text-secondary);
 }
 
-@media (max-width: 700px) {
+@media (width <= 700px) {
     .settingsShell {
         grid-template-columns: 1fr;
     }
 
     .sidebar {
         padding: 10px;
+
         border-right: 0;
         border-bottom: 1px solid var(--border);
     }
@@ -351,6 +460,7 @@
 
     .settingRow {
         grid-template-columns: 1fr;
+
         gap: 14px;
     }
 

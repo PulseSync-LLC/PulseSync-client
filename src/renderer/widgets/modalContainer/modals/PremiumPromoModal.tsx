@@ -1,8 +1,10 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
+
+import config from '@common/appConfig'
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import config from '@common/appConfig'
 
 const PremiumPromoModal: React.FC = () => {
     const { t } = useTranslation()

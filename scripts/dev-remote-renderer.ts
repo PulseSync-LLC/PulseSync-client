@@ -1,7 +1,9 @@
+import { fileURLToPath } from 'node:url'
+
 import fs from 'fs'
 import path from 'path'
-import { fileURLToPath } from 'node:url'
-import { createServer, type ViteDevServer, type Plugin } from 'vite'
+import { createServer, type Plugin,type ViteDevServer } from 'vite'
+
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 import { remoteRendererDevConfig } from './dev-remote-config.js'
 

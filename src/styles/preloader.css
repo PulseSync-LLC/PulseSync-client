@@ -5,73 +5,100 @@
 html,
 body {
     box-sizing: border-box;
+
     width: 250px;
     height: 271px;
+
     overflow: hidden;
-    background: var(--Main);
+
     color: #fff;
+
+    background: var(--Main);
     -webkit-app-region: drag;
 }
 
 .bootstrap {
-    display: flex;
     box-sizing: border-box;
-    width: 100%;
-    height: 100%;
-    padding: 18px 16px 14px;
+    display: flex;
+
     flex-direction: column;
+
     align-items: center;
     justify-content: center;
+
+    width: 100%;
+    height: 100%;
+
+    padding: 18px 16px 14px;
 }
 
 .preloader {
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
 }
 
 .preloader__logo {
     flex: none;
+
     color: #fff;
 }
 
 .status {
     display: grid;
+
+    place-items: center;
+
     width: 100%;
     min-height: 32px;
+
     margin-top: 28px;
-    place-items: center;
+
     text-align: center;
 }
 
 .status p {
     margin: 0;
-    color: #fff;
+
     font-size: 13px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
+
     line-height: 16px;
+
+    color: #fff;
 }
 
 .progress {
     display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    align-items: center;
+
     width: 186px;
     min-height: 21px;
+
     margin-top: 4px;
-    flex-direction: column;
-    align-items: center;
-    gap: 3px;
 }
 
 .progress progress {
     display: none;
+
     width: 186px;
     height: 5px;
+
     overflow: hidden;
+
     appearance: none;
+
+    background: rgb(210 229 241 / 18%);
     border: 0;
     border-radius: 3px;
-    background: rgb(210 229 241 / 18%);
 }
 
 .bootstrap[data-progress='bytes'] .progress progress {
@@ -79,26 +106,32 @@ body {
 }
 
 .progress progress::-webkit-progress-bar {
-    border-radius: 3px;
     background: rgb(210 229 241 / 18%);
+    border-radius: 3px;
 }
 
 .progress progress::-webkit-progress-value {
-    border-radius: 3px;
     background: #d2e5f1;
+    border-radius: 3px;
+
     transition: width 160ms ease-out;
 }
 
 .progress__text {
-    display: flex;
     box-sizing: border-box;
+    display: flex;
+
+    justify-content: space-between;
+
     width: 100%;
     min-height: 14px;
-    justify-content: space-between;
-    color: #8f94a8;
+
     font-size: 10px;
     font-variant-numeric: tabular-nums;
+
     line-height: 14px;
+
+    color: #8f94a8;
 }
 
 .bootstrap[data-progress='indeterminate'] .progress__text {
@@ -106,35 +139,45 @@ body {
 }
 
 .bootstrap[data-progress='indeterminate'] #bootstrap-progress-percent {
-    color: #8f94a8;
     font-weight: 500;
+
+    color: #8f94a8;
 }
 
 #bootstrap-progress-percent {
-    color: #d2e5f1;
     font-weight: 600;
+
+    color: #d2e5f1;
 }
 
 .actions {
     display: flex;
-    min-height: 30px;
-    margin-top: 5px;
+
     gap: 8px;
+
+    min-height: 30px;
+
+    margin-top: 5px;
     -webkit-app-region: no-drag;
 }
 
 .actions button {
     min-width: 88px;
     height: 30px;
+
     padding: 0 11px;
-    border: 1px solid var(--BorderColor);
-    border-radius: 6px;
-    background: var(--MainBG);
-    color: #fff;
-    cursor: pointer;
+
     font: inherit;
     font-size: 11px;
     font-weight: 600;
+
+    color: #fff;
+
+    cursor: pointer;
+
+    background: var(--MainBG);
+    border: 1px solid var(--BorderColor);
+    border-radius: 6px;
 }
 
 .actions button:hover:not(:disabled) {
@@ -143,13 +186,15 @@ body {
 
 .actions button:disabled {
     cursor: default;
+
     opacity: 0.55;
 }
 
 .actions .actions__primary {
-    border-color: #d2e5f1;
-    background: #d2e5f1;
     color: var(--Main);
+
+    background: #d2e5f1;
+    border-color: #d2e5f1;
 }
 
 .actions .actions__primary:hover:not(:disabled) {

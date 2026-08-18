@@ -1,13 +1,17 @@
 import React from 'react'
+
 import cn from 'clsx'
-import * as styles from '@shared/ui/PSUI/Shimmer/Shimmer.module.scss'
-import type { ShimmerProps, ShimmerVariant } from '@shared/ui/PSUI/Shimmer/model/types'
+
+import ExtensionShimmer from '@shared/ui/PSUI/Shimmer/variants/ExtensionShimmer'
+import ModChangelogShimmer from '@shared/ui/PSUI/Shimmer/variants/ModChangelogShimmer'
+import PanelShimmer from '@shared/ui/PSUI/Shimmer/variants/PanelShimmer'
+import ProfileShimmer from '@shared/ui/PSUI/Shimmer/variants/ProfileShimmer'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
 import UsersShimmer from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer'
-import ExtensionShimmer from '@shared/ui/PSUI/Shimmer/variants/ExtensionShimmer'
-import ProfileShimmer from '@shared/ui/PSUI/Shimmer/variants/ProfileShimmer'
-import PanelShimmer from '@shared/ui/PSUI/Shimmer/variants/PanelShimmer'
-import ModChangelogShimmer from '@shared/ui/PSUI/Shimmer/variants/ModChangelogShimmer'
+
+import * as styles from '@shared/ui/PSUI/Shimmer/Shimmer.module.scss'
+
+import type { ShimmerProps, ShimmerVariant } from '@shared/ui/PSUI/Shimmer/model/types'
 
 export type { ShimmerProps, ShimmerVariant }
 

@@ -1,18 +1,19 @@
-import { exec, execFile, spawn, execSync } from 'child_process'
-import { promisify } from 'util'
+import { app, dialog, shell } from 'electron'
+
+import axios from 'axios'
+import { exec, execFile, execSync,spawn } from 'child_process'
+import fso, { promises as fsp } from 'original-fs'
 import os from 'os'
 import path from 'path'
-import fso, { promises as fsp } from 'original-fs'
-import { asarBackup, musicPath } from '../../startup/runtimeState'
-import { app, dialog, shell } from 'electron'
-import RendererEvents from '../../../common/types/rendererEvents'
-import axios from 'axios'
-import { mainWindow } from '../../modules/createWindow'
-import logger from '../../modules/logger'
-import { getState } from '../../modules/state'
-import { t } from '../../i18n'
+import { promisify } from 'util'
 import * as yaml from 'yaml'
+
+import RendererEvents from '../../../common/types/rendererEvents'
 import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
+import { t } from '../../i18n'
+import { mainWindow } from '../../modules/createWindow'
+import { HandleErrorsElectron } from '../../modules/handlers/handleErrorsElectron'
+import logger from '../../modules/logger'
 import {
     nativeCopyFile,
     nativeFileExists,
@@ -20,11 +21,13 @@ import {
     nativePatchWindowsIntegrity,
     nativeReadAsarVersion,
 } from '../../modules/nativeModules'
-import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
-import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+import { getState } from '../../modules/state'
+import { asarBackup, musicPath } from '../../startup/runtimeState'
 import { isLinuxAccessError } from './elevation'
 import { runPowerShell } from './powershell'
-import { HandleErrorsElectron } from '../../modules/handlers/handleErrorsElectron'
+import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+
+import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
 const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)

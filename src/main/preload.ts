@@ -1,5 +1,6 @@
 import '../styles/globals.css'
 import '../styles/preloader.css'
+
 import type { BootstrapAction, BootstrapStatusKey, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const STATUS_TEXT: Record<BootstrapStatusKey, string> = {

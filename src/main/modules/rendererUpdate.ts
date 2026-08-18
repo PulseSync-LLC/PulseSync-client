@@ -1,7 +1,9 @@
-import type { BrowserWindow } from 'electron'
 import RendererEvents from '@common/types/rendererEvents'
+
 import logger from './logger'
-import { resolveMainRendererSource, type MainRendererSource } from './rendererSource'
+import { type MainRendererSource,resolveMainRendererSource } from './rendererSource'
+
+import type { BrowserWindow } from 'electron'
 
 const RENDERER_UPDATE_INTERVAL_MS = 60 * 60 * 1000
 

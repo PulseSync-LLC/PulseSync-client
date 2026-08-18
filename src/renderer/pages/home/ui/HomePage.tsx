@@ -1,19 +1,20 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
-import type { SubcomponentsMeta } from '@common/types/subcomponentsMeta'
-import UserContext from '@entities/user/model/context'
-import PageLayout from '@widgets/layout/PageLayout'
-import toast from '@shared/ui/toast'
-import { desktopApi } from '@shared/desktop/desktopApi'
-
-import { primaryComponents, secondaryComponents, type HomeSecondaryComponent } from '@pages/home/model/homeDashboard'
-import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'
+import { type HomeSecondaryComponent,primaryComponents, secondaryComponents } from '@pages/home/model/homeDashboard'
 import HomeNewsSection from '@pages/home/ui/HomeNewsSection'
 import HomePrimaryComponentsSection from '@pages/home/ui/HomePrimaryComponentsSection'
+import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'
+import PageLayout from '@widgets/layout/PageLayout'
+import UserContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
 
 import * as styles from './home.module.scss'
+
+import type { SubcomponentsMeta } from '@common/types/subcomponentsMeta'
 
 export default function HomePage() {
     const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(UserContext)

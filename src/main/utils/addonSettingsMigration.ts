@@ -1,6 +1,8 @@
-import path from 'path'
 import * as fs from 'original-fs'
+import path from 'path'
+
 import { collectAddonSettingsValuesFromConfig, HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
 import logger from '../modules/logger'
 
 const isNonEmptyObject = (value: Record<string, unknown>): boolean => Object.keys(value).length > 0

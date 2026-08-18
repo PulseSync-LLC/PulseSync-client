@@ -1,6 +1,7 @@
 import 'dotenv/config'
-import path from 'path'
+
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
+import path from 'path'
 import semver from 'semver'
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu

@@ -1,5 +1,7 @@
 import { app, Notification } from 'electron'
+
 import process from 'process'
+
 import { t } from '../i18n'
 
 export function checkCLIArguments(isAppDev: boolean): boolean {

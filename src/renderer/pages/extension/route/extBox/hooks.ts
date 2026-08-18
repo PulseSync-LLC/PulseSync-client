@@ -1,13 +1,15 @@
 import { useEffect, useMemo, useState } from 'react'
+
 import path from 'path'
 import { useTranslation } from 'react-i18next'
 
-import appConfig from '@common/appConfig'
 import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
-import { DocTab } from '@pages/extension/route/extBox/types'
-import AddonInterface from '@entities/addon/model/addon.interface'
-import { AddonConfig } from '@features/configurationSettings/types'
+import appConfig from '@common/appConfig'
 import rendererHttpClient from '@shared/api/http/client'
+
+import type AddonInterface from '@entities/addon/model/addon.interface'
+import type { AddonConfig } from '@features/configurationSettings/types'
+import type { DocTab } from '@pages/extension/route/extBox/types'
 
 interface HookResult {
     docs: DocTab[]

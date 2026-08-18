@@ -1,4 +1,5 @@
 import React, { useCallback, useEffect, useRef, useState } from 'react'
+
 import ColorInput from '@shared/ui/PSUI/ColorInput'
 
 type ColorProps = React.ComponentProps<typeof ColorInput>

@@ -1,5 +1,7 @@
 import React, { useContext, useEffect, useRef, useState } from 'react'
+
 import PlayerContext from '@entities/track/model/player.context'
+
 import * as styles from '@shared/ui/PSUI/PlayerTimeline/PlayerTimeline.module.scss'
 
 const formatTime = (seconds: number): string => {

@@ -1,7 +1,8 @@
 import 'dotenv/config'
-import path from 'path'
-import chalk from 'chalk'
+
 import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
+import chalk from 'chalk'
+import path from 'path'
 import semver from 'semver'
 import { parse as parseYaml } from 'yaml'
 

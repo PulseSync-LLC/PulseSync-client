@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+
 import * as semver from 'semver'
 
 import { isDev } from '@common/appConfig'
-import toast from '@shared/ui/toast'
-import { errorTypesToShow } from '@shared/lib/utils'
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type { ModInterface } from '@entities/mod/model/modInterface'
-import type { ModalName } from '@app/providers/modal/types'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { errorTypesToShow } from '@shared/lib/utils'
+import toast from '@shared/ui/toast'
+
+import type { ModalName } from '@app/providers/modal/types'
+import type { ModInterface } from '@entities/mod/model/modInterface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
 

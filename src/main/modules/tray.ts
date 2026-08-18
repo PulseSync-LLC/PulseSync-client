@@ -1,11 +1,13 @@
 import { app, Menu, MenuItem, shell, Tray } from 'electron'
-import { getNativeImg } from '../utils/electronNative'
-import { checkOrFindUpdate } from '../events'
-import { isMac, isWindows } from '../utils/appUtils'
+
 import path from 'path'
-import { mainWindow } from './createWindow'
+
 import RendererEvents from '../../common/types/rendererEvents'
+import { checkOrFindUpdate } from '../events'
 import { t } from '../i18n'
+import { isMac, isWindows } from '../utils/appUtils'
+import { getNativeImg } from '../utils/electronNative'
+import { mainWindow } from './createWindow'
 
 let tray: Tray
 let menu: Menu

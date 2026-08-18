@@ -1,13 +1,16 @@
+import './i18n'
+
 import React from 'react'
-import { Toaster } from 'react-hot-toast'
-import AppPage from '@app/AppShell'
-import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
-import client from '@shared/api/apolloClient'
+
 import { ApolloProvider } from '@apollo/client/react'
-import ModalContainer from '@widgets/modalContainer/ModalContainer'
+import { Toaster } from 'react-hot-toast'
+
+import AppPage from '@app/AppShell'
 import { ModalProvider } from '@app/providers/modal'
 import BrowserDownloadBanner from '@widgets/browserDownloadBanner'
-import './i18n'
+import ModalContainer from '@widgets/modalContainer/ModalContainer'
+import client from '@shared/api/apolloClient'
+import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
 
 function App() {
     if (!window.pulsesyncDesktop) {

@@ -1,5 +1,6 @@
-import MainEvents from '../../../../common/types/mainEvents'
 import { ipcMain } from 'electron'
+
+import MainEvents from '../../../../common/types/mainEvents'
 
 interface StateLike {
     get: (key: string) => any

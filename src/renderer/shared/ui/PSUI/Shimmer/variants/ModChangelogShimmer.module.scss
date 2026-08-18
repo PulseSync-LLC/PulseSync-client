@@ -7,8 +7,11 @@
 
 .item {
     position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     outline: 1px solid var(--modal-border);
 
     &:first-child {
@@ -29,15 +32,22 @@
     top: 0;
     left: 50%;
     z-index: 1;
+
+    box-sizing: border-box;
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
     width: max-content;
     max-width: calc(100% - 48px);
+
     padding: 5px 10px;
-    box-sizing: border-box;
-    border-radius: 999px;
+
     background: var(--background);
+    border-radius: 999px;
+
     transform: translate(-50%, -50%);
 }
 
@@ -49,9 +59,10 @@
 
 .separator {
     @include shimmer.text-surface;
+    flex: 0 0 auto;
+
     width: 4px;
     height: 4px;
-    flex: 0 0 auto;
 }
 
 .date {
@@ -61,18 +72,24 @@
 }
 
 .content {
-    display: flex;
-    flex-direction: column;
-    gap: 20px;
-    min-width: 0;
-    width: 100%;
-    padding: 30px 24px 24px;
     box-sizing: border-box;
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 20px;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 30px 24px 24px;
 }
 
 .section {
     display: flex;
+
     flex-direction: column;
+
     gap: 16px;
 }
 
@@ -84,21 +101,26 @@
 
 .bullets {
     display: flex;
+
     flex-direction: column;
+
     gap: 14px;
 }
 
 .bulletRow {
     display: flex;
-    align-items: center;
+
     gap: 18px;
+
+    align-items: center;
 }
 
 .bulletDot {
     @include shimmer.text-surface;
+    flex-shrink: 0;
+
     width: 6px;
     height: 6px;
-    flex-shrink: 0;
 }
 
 .bulletLine {
@@ -112,7 +134,7 @@
     width: 64%;
 }
 
-@media (max-width: 640px) {
+@media (width <= 640px) {
     .content {
         padding-inline: 18px;
     }

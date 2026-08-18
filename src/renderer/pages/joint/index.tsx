@@ -1,6 +1,7 @@
+import { useTranslation } from 'react-i18next'
+
 import PageLayout from '@widgets/layout/PageLayout'
 import Container from '@shared/ui/containerV2'
-import { useTranslation } from 'react-i18next'
 
 export default function JointPage() {
     const { t } = useTranslation()

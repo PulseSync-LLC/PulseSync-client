@@ -1,15 +1,18 @@
 import { app, type BrowserWindow } from 'electron'
+
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
+
 import RendererEvents from '../../../common/types/rendererEvents'
+import { getBootstrapperRuntimePaths } from '../bootstrapper/paths'
 import { mainWindow } from '../createWindow'
 import { state } from '../handlers/state'
 import logger from '../logger'
-import { getBootstrapperRuntimePaths } from '../bootstrapper/paths'
 import { discardPreparedUpdate, type PrepareDesktopUpdateOptions, type PrepareUpdateResultV1 } from './bootstrapperUpdateService'
 import { UpdateStatus } from './constants/updateStatus'
 import { getDesktopUpdateManifestRequest } from './desktopManifestSource'
 import { getUpdateSource, type UpdateSource } from './updateSource'
+
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const UPDATE_INTERVAL_MS = 15 * 60 * 1000
 

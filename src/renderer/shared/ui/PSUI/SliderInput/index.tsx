@@ -1,9 +1,12 @@
 import React, { useEffect, useRef, useState } from 'react'
+
 import clsx from 'clsx'
-import * as s from '@shared/ui/PSUI/SliderInput/SliderInput.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdHelp } from 'react-icons/md'
+
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as s from '@shared/ui/PSUI/SliderInput/SliderInput.module.scss'
 
 type Props = {
     label: string

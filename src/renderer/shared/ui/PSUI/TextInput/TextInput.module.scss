@@ -1,15 +1,23 @@
 .inputContainer {
     position: relative;
-    cursor: pointer;
+
     display: flex;
+
     flex-direction: column;
+
+    gap: 2px;
+
     align-items: flex-start;
-    padding: 10px 16px;
+
     width: -webkit-fill-available;
+
+    padding: 10px 16px;
+
+    cursor: pointer;
+    outline: transparent solid 2px;
+
     background: var(--border);
     border-radius: 8px;
-    gap: 2px;
-    outline: transparent solid 2px;
 
     transition: var(--transition);
 
@@ -19,37 +27,53 @@
 }
 
 .label {
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
     display: flex;
+
     gap: 5px;
+
     align-items: center;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 140%;
+
+    color: #fff;
 }
 
 .textInput {
     position: relative;
-    cursor: auto;
-    font-weight: 500;
-    font-size: 18px;
-    line-height: 140%;
-    color: var(--text-secondary);
-    background: transparent;
-    outline: none;
-    transition: var(--transition);
-    overflow-wrap: break-word;
-    word-break: break-word;
+
     width: -webkit-fill-available;
 
-    &:empty:before {
-        content: attr(data-placeholder);
-        color: var(--text-secondary);
+    font-size: 18px;
+    font-weight: 500;
+
+    line-height: 140%;
+
+    color: var(--text-secondary);
+
+    word-break: break-word;
+    overflow-wrap: break-word;
+
+    cursor: auto;
+    outline: none;
+
+    background: transparent;
+
+    transition: var(--transition);
+
+    &:empty::before {
         position: absolute;
+
+        color: var(--text-secondary);
+
         pointer-events: none;
+
+        content: attr(data-placeholder);
     }
 
-    &:not(:focus):has(br:only-child):before {
+    &:not(:focus):has(br:only-child)::before {
         content: attr(data-placeholder);
     }
 
@@ -61,16 +85,20 @@
         outline: none;
     }
 
-    &[contenteditable='true']:empty:before {
-        content: attr(data-placeholder);
-        color: var(--text-secondary);
-        pointer-events: none;
+    &[contenteditable='true']:empty::before {
         display: block;
+
+        color: var(--text-secondary);
+
+        pointer-events: none;
+
+        content: attr(data-placeholder);
     }
 
     &.placeholder {
-        border: 0;
         color: var(--text-secondary);
+
+        border: 0;
     }
 
     &.focused {
@@ -80,51 +108,69 @@
 
 .error {
     font-size: 0.75rem;
+
     color: var(--warning);
+
     animation: fadeIn 0.2s ease-in-out;
 }
 
 @keyframes fadeIn {
     from {
         opacity: 0;
+
         transform: translateY(-5px);
     }
+
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }
 
 .commandWrapper {
     position: absolute;
+    top: 100%;
     right: 0;
     left: 0;
+    z-index: 20;
+
     width: -webkit-fill-available;
     max-height: fit-content;
-    top: 100%;
-    transform: translateY(10px);
-    z-index: 20;
-    background: var(--border);
-    box-shadow: 0px 0px 9px 5px rgba(0, 0, 0, 0.25);
-    border-radius: 8px;
+
     overflow: hidden;
-    animation: fadeInUp 0.2s ease-in-out;
+
+    background: var(--border);
+    border-radius: 8px;
+    box-shadow: 0 0 9px 5px rgb(0, 0, 0, 0.25);
+
+    transform: translateY(10px);
+
     transition: var(--transition);
+
+    animation: fadeInUp 0.2s ease-in-out;
 }
 
 .commandList {
     display: flex;
+
     flex-direction: column;
 }
 
 .commandButton {
     display: flex;
+
     align-items: center;
     justify-content: space-between;
-    background: var(--surface-elevated);
+
     padding: 10px 16px;
-    cursor: pointer;
+
     color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: var(--surface-elevated);
+
     transition: var(--transition);
 
     &:hover {
@@ -134,43 +180,60 @@
 
 .commandInfo {
     display: flex;
+
     flex-direction: row;
-    align-items: center;
+
     gap: 6px;
-    font-size: 13px;
-    color: var(--text-secondary);
-    white-space: nowrap;
+
+    align-items: center;
+
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+    white-space: nowrap;
 }
 
 .commandPreview {
     font-weight: 600;
+
     color: var(--text-secondary);
 }
 
 @keyframes fadeInUp {
     from {
-        opacity: 0;
         height: calc(0% * 2);
+
+        opacity: 0;
     }
+
     to {
-        opacity: 1;
         height: calc(100% * 2);
+
+        opacity: 1;
     }
 }
 
 .control {
     display: flex;
+
     flex-direction: row;
+
     gap: 6px;
+
     width: -webkit-fill-available;
 }
 
 .controlButton {
     position: relative;
-    cursor: pointer;
+
     padding: 1px;
+
+    cursor: pointer;
+
     background: transparent;
 
     &:hover {
@@ -182,13 +245,15 @@
     }
 
     svg {
-        transition: var(--transition);
         color: var(--text-secondary);
+
+        transition: var(--transition);
     }
 }
 
 .itemName {
     display: flex;
+
     flex-direction: column;
 
     & > img {

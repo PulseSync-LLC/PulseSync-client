@@ -1,7 +1,9 @@
 import fs from 'node:fs'
 import path from 'node:path'
-import type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1 } from '../bootstrapper/contracts'
+
 import { ackLaunchRequest, claimLaunchRequests, enqueueLaunchRequest } from '../bootstrapper/runtimeCommands'
+
+import type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1 } from '../bootstrapper/contracts'
 import type { BootstrapperLauncher } from '../bootstrapper/paths'
 
 export type LaunchRequestDelivery = (request: LaunchRequestEnvelopeV1) => Promise<boolean>

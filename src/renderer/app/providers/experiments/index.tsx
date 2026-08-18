@@ -1,5 +1,7 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+
 import { fetchExperiments } from '@entities/experiment/api/experiments'
+
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
 import type { DesktopExperiment, ExperimentOverrideMap, ExperimentsContextValue, ExperimentsProviderProps } from '@app/providers/experiments/types'
 
@@ -218,5 +220,5 @@ export function useExperiments() {
     return useContext(ExperimentsContext)
 }
 
-export { CLIENT_EXPERIMENTS, KNOWN_CLIENT_EXPERIMENT_KEYS, isKnownClientExperimentKey } from '@app/providers/experiments/constants'
 export type { ClientExperimentKey, KnownClientExperimentKey } from '@app/providers/experiments/constants'
+export { CLIENT_EXPERIMENTS, isKnownClientExperimentKey,KNOWN_CLIENT_EXPERIMENT_KEYS } from '@app/providers/experiments/constants'

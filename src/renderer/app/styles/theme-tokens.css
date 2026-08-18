@@ -11,36 +11,29 @@
     --background: #040404;
     --background-rgb: 4, 4, 4;
     --background-toast: #040404;
-    --foreground: #ffffff;
-
+    --foreground: #fff;
     --surface-primary: #0a0a0a;
-    --surface-secondary: #111111;
+    --surface-secondary: #111;
     --surface-tertiary: #1a1a1a;
-    --surface-elevated: #222222;
-
+    --surface-elevated: #222;
     --border: #2a2a2a;
     --border-hover: #404040;
-    --line: rgba(255, 255, 255, 0.1);
-
-    --text-primary: #ffffff;
+    --line: rgb(255, 255, 255, 0.1);
+    --text-primary: #fff;
     --text-secondary: #a0a0a0;
-    --text-muted: #666666;
+    --text-muted: #666;
     --text-disabled: #404040;
-
-    --hover: rgba(255, 255, 255, 0.05);
-    --active: rgba(255, 255, 255, 0.1);
-    --focus-ring: rgba(255, 255, 255, 0.3);
-
-    --accent: #ffffff;
-    --accent-muted: #888888;
+    --hover: rgb(255, 255, 255, 0.05);
+    --active: rgb(255, 255, 255, 0.1);
+    --focus-ring: rgb(255, 255, 255, 0.3);
+    --accent: #fff;
+    --accent-muted: #888;
     --accent-foreground: #040404;
-
-    --danger: #ff4444;
-    --success: #44ff88;
-    --warning: #ffaa44;
-    --rating: #ffff00;
+    --danger: #f44;
+    --success: #4f8;
+    --warning: #fa4;
+    --rating: #ff0;
     --development-build: #fff34c;
-
     --skeleton-base: #1a1a1a;
     --skeleton-highlight: #2a2a2a;
     --font-family: 'Nunito';

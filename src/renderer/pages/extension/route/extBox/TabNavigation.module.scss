@@ -1,5 +1,6 @@
 .root {
     position: relative;
+
     width: 100%;
     min-width: 0;
 }
@@ -11,10 +12,14 @@
 
 .list {
     position: relative;
+
+    box-sizing: border-box;
+
     width: 100%;
     min-width: 0;
-    box-sizing: border-box;
+
     overflow-x: auto;
+
     scrollbar-width: none;
 
     &::-webkit-scrollbar {
@@ -28,13 +33,16 @@
 
 .indicator {
     position: absolute;
-    z-index: 0;
     top: 4px;
     bottom: 4px;
     left: 0;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    z-index: 0;
+
     pointer-events: none;
+
+    background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    border-radius: 6px;
+
     transition:
         width 0.22s ease,
         transform 0.22s ease,
@@ -48,18 +56,25 @@
 .tab {
     position: relative;
     z-index: 1;
+
     display: inline-flex;
+
     flex: 1 1 0;
+
+    gap: 10px;
+
     align-items: center;
     justify-content: center;
-    gap: 10px;
+
     min-width: max-content;
 
     svg,
     img {
         flex: 0 0 auto;
+
         width: 18px;
         height: 18px;
+
         object-fit: contain;
     }
 }

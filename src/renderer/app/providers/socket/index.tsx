@@ -1,17 +1,20 @@
 import React, { createContext, useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
-import { Socket } from 'socket.io-client'
+
 import { useTranslation } from 'react-i18next'
-import toast from '@shared/ui/toast'
-import { createRealtimeSocket, updateRealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
-import IncomingSocketEvents from '@shared/api/socket/enums/incomingSocketEvents'
-import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
-import type { SocketContextValue, SocketProviderProps } from '@app/providers/socket/types'
-import { createGatewayHandler } from '@app/providers/socket/gateway'
-import { buildRealtimeSocketAuth, CONNECTION_ERROR_TOAST_THRESHOLD, emitCompressedGateway } from '@app/providers/socket/utils'
-import { useZstdCodec } from '@app/providers/socket/useZstdCodec'
-import { desktopApi } from '@shared/desktop/desktopApi'
+
 import { useModalContext } from '@app/providers/modal'
+import { createGatewayHandler } from '@app/providers/socket/gateway'
+import { useZstdCodec } from '@app/providers/socket/useZstdCodec'
+import { buildRealtimeSocketAuth, CONNECTION_ERROR_TOAST_THRESHOLD, emitCompressedGateway } from '@app/providers/socket/utils'
+import IncomingSocketEvents from '@shared/api/socket/enums/incomingSocketEvents'
+import { createRealtimeSocket, updateRealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
+
+import type { SocketContextValue, SocketProviderProps } from '@app/providers/socket/types'
 import type { DesktopRuntimeInfo } from '@common/desktopApi/contract'
+import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
+import type { Socket } from 'socket.io-client'
 
 const noopEmitGateway = (_event: OutgoingGatewayEvent, _payload: unknown): void => {}
 
@@ -227,7 +230,7 @@ export function SocketProvider({
             if (!active) return
 
             currentSocket.auth = {
-                ...(currentSocket.auth || {}),
+                ...currentSocket.auth,
                 token,
                 compression: 'zstd-stream',
                 inboundCompression: 'zstd-stream',

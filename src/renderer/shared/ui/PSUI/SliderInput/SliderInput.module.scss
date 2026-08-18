@@ -5,93 +5,135 @@
 
 .inputContainer {
     position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 6px;
+
     padding: 10px 16px;
+
+    outline: transparent solid 2px;
+
     background: var(--border);
     border-radius: 8px;
-    outline: transparent solid 2px;
+
     transition: var(--transition);
+
     &:hover {
         outline: var(--text-secondary) solid 2px;
     }
 }
 
 .label {
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
     display: flex;
+
     gap: 5px;
+
     align-items: center;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 140%;
+
+    color: #fff;
 }
 
 .row {
     display: grid;
+
     grid-template-columns: auto 1fr;
+
     gap: 12px;
+
     align-items: center;
 }
 
 .valBox {
     position: relative;
 }
+
 .val {
     width: -webkit-fill-available;
-    border-radius: 8px;
-    color: var(--text-primary);
+
     padding: 7px 10px;
+
+    color: var(--text-primary);
+
     text-align: left;
-    transition: var(--transition);
+
     cursor: text;
+
+    border-radius: 8px;
+
+    transition: var(--transition);
 }
+
 .unitLabel {
     margin-left: 6px;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
+    color: var(--text-secondary);
 }
+
 .valInput {
     width: fit-content;
     max-width: 30px;
+
+    padding: 6px 10px;
+
+    font-size: 16px;
+
+    color: var(--text-primary);
+
+    outline: none;
+
     background: var(--border);
     border: 1px solid var(--text-secondary);
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 18%, transparent);
     border-radius: 8px;
-    color: var(--text-primary);
-    padding: 6px 10px;
-    font-size: 16px;
-    outline: none;
+    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 18%, transparent);
 }
 
 .track {
     position: relative;
+
     height: var(--sl-h);
-    border-radius: 999px;
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-hover);
+
     cursor: pointer;
     outline: 1px solid var(--border-hover);
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 999px;
 }
+
 .fill {
     position: absolute;
-    left: 0;
     top: 0;
     bottom: 0;
-    border-radius: 999px;
+    left: 0;
+
     background: linear-gradient(90deg, var(--text-secondary), var(--accent));
+    border-radius: 999px;
 }
+
 .thumb {
     position: absolute;
     top: 50%;
-    transform: translate(-50%, -50%);
+
     width: var(--sl-thumb);
-    height: var(--sl-thumb);
     min-width: var(--sl-thumb);
-    border-radius: 50%;
-    background: #ffffff;
-    border: 2px solid var(--surface-tertiary);
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.6);
+    height: var(--sl-thumb);
+
     pointer-events: none;
+
+    background: #fff;
+    border: 2px solid var(--surface-tertiary);
+    border-radius: 50%;
+    box-shadow: 0 1px 3px rgb(0, 0, 0, 0.6);
+
+    transform: translate(-50%, -50%);
 }

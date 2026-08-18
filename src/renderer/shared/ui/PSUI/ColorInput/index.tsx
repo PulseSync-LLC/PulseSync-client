@@ -1,10 +1,13 @@
 import React, { useEffect, useLayoutEffect, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+
 import clsx from 'clsx'
-import * as s from '@shared/ui/PSUI/ColorInput/ColorInput.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
+
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as s from '@shared/ui/PSUI/ColorInput/ColorInput.module.scss'
 
 type HSVA = { h: number; s: number; v: number; a: number }
 type Mode = 'hex' | 'rgb' | 'hsl' | 'hsb'

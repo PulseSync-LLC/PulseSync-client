@@ -2,55 +2,74 @@
 
 .shell {
     @include shimmer.shell;
+    flex-direction: row;
+
+    gap: 0;
+
     height: 100%;
     min-height: 0;
-    flex-direction: row;
-    gap: 0;
+
     background: var(--background);
 }
 
 .summaryPane {
+    box-sizing: border-box;
+
     flex: 0 0 460px;
+
     width: 460px;
     height: 100%;
+
     padding: 15px 24px 32px;
-    box-sizing: border-box;
-    border-right: 1px solid var(--border);
+
     background: var(--surface-primary);
+    border-right: 1px solid var(--border);
 }
 
 .banner {
     @include shimmer.surface;
     width: 100%;
     height: 170px;
+
     border-radius: 12px;
 }
 
 .identityRow {
     display: flex;
+
+    gap: 12px;
+
     align-items: flex-end;
     justify-content: space-between;
+
     min-height: 68px;
-    gap: 12px;
+
     padding: 0 14px;
 }
 
 .logo {
     @include shimmer.surface;
+    box-sizing: border-box;
+
     flex: 0 0 104px;
+
     width: 104px;
     height: 104px;
+
     margin-top: -48px;
-    box-sizing: border-box;
+
     border: 6px solid var(--surface-primary);
     border-radius: 17px;
 }
 
 .actions {
     display: flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+
     padding-bottom: 2px;
 }
 
@@ -58,6 +77,7 @@
 .action {
     @include shimmer.surface;
     height: 46px;
+
     border-radius: 10px;
 }
 
@@ -71,8 +91,11 @@
 
 .copy {
     display: flex;
+
     flex-direction: column;
+
     gap: 9px;
+
     padding: 14px 14px 0;
 }
 
@@ -84,22 +107,31 @@
 
 .meta {
     display: grid;
+
     grid-template-columns: repeat(4, minmax(0, 1fr));
+
     gap: 12px;
+
     padding: 18px 14px 0;
 }
 
 .metaItem {
     display: flex;
+
     flex-direction: column;
-    min-width: 0;
+
     gap: 5px;
+
+    min-width: 0;
 }
 
 .section {
     display: flex;
+
     flex-direction: column;
+
     gap: 7px;
+
     padding: 15px 14px 0;
 }
 
@@ -111,6 +143,7 @@
 
 .chips {
     display: flex;
+
     gap: 5px;
 }
 
@@ -118,6 +151,7 @@
 .chipWide {
     @include shimmer.surface;
     height: 24px;
+
     border-radius: 6px;
 }
 
@@ -130,20 +164,27 @@
 }
 
 .detailPane {
+    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
+
     flex: 1 1 auto;
+    flex-direction: column;
+
     min-width: 0;
     height: 100%;
+
     padding: 15px 24px 0;
-    box-sizing: border-box;
+
     background: var(--background);
 }
 
 .tabs {
     display: grid;
+
     grid-template-columns: repeat(4, minmax(90px, 1fr));
+
     min-height: 46px;
+
     border-bottom: 1px solid var(--border);
 }
 
@@ -151,13 +192,17 @@
     @include shimmer.text-surface;
     width: 62%;
     height: 16px;
+
     margin: 15px auto;
 }
 
 .content {
     display: flex;
+
     flex-direction: column;
+
     gap: 18px;
+
     padding: 30px 0 32px;
 }
 
@@ -178,20 +223,25 @@
 
 .paragraph {
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
 }
 
 .codeBlock {
     @include shimmer.surface;
     height: 220px;
+
     border-radius: 12px;
 }
 
-@media (max-width: 1350px) {
+@media (width <= 1350px) {
     .summaryPane {
         flex-basis: 410px;
+
         width: 410px;
+
         padding-inline: 18px;
     }
 

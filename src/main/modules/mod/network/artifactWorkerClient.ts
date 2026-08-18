@@ -1,7 +1,10 @@
 import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { Worker } from 'node:worker_threads'
+
 import isAppDev from '../../../utils/isAppDev'
+import { getActiveComponentPath } from '../../bootstrap/activeComponents'
+
 import type {
     ArtifactWorkerRequest,
     ArtifactWorkerRequestMessage,
@@ -12,7 +15,6 @@ import type {
     InstallUnpackedArtifactRequest,
     PrepareAsarArtifactRequest,
 } from './artifactWorker.types'
-import { getActiveComponentPath } from '../../bootstrap/activeComponents'
 
 const ARTIFACT_WORKER_TIMEOUT_MS = 5 * 60 * 1000
 const ARTIFACT_WORKER_IDLE_TIMEOUT_MS = 15 * 1000

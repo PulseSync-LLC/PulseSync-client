@@ -79,8 +79,8 @@ function buildRequestUrl(baseUrl: string | undefined, url: string, query?: HttpQ
 export function createHttpClient({ baseUrl, defaultHeaders, getAuthToken, transport }: CreateHttpClientOptions) {
     async function request<TResponse = unknown>(options: HttpRequestOptions): Promise<HttpResponse<TResponse>> {
         const headers: Record<string, string> = {
-            ...(defaultHeaders || {}),
-            ...(options.headers || {}),
+            ...defaultHeaders,
+            ...options.headers,
         }
 
         const authToken = options.authToken ?? (options.auth ? getAuthToken?.() : null)

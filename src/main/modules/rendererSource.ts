@@ -1,14 +1,16 @@
 import axios from 'axios'
 import * as semver from 'semver'
-import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
+
 import { isDevmark } from '@common/appConfig'
+import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
+
 import isAppDev from '../utils/isAppDev'
-import logger from './logger'
 import { readBootstrapSettings } from './bootstrap/bootstrapSettings'
+import logger from './logger'
 import {
     BACKEND_REMOTE_RENDERER_BASE_URL,
-    GITHUB_REMOTE_RENDERER_BASE_URL,
     getUrlOrigin,
+    GITHUB_REMOTE_RENDERER_BASE_URL,
     isAllowedRemoteRendererUrl,
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'

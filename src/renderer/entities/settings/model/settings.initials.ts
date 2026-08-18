@@ -1,4 +1,4 @@
-import SettingsInterface from '@entities/settings/model/settings.interface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const settingsInitials: SettingsInterface = {
     settings: {

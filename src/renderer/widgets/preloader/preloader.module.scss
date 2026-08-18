@@ -1,37 +1,48 @@
 .preloader {
-    transition: ease-in-out all 0.2s;
-    width: -webkit-fill-available;
-    border-radius: 8px;
-    background: var(--Main);
-    outline: 1px solid var(--BorderColor);
-    color: var(--text-primary);
-    font-family: Arial, sans-serif;
     position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
+    inset: 0;
+
     display: flex;
+
     align-items: center;
     justify-content: center;
+
+    width: -webkit-fill-available;
+
+    font-family: Arial, sans-serif;
+
+    color: var(--text-primary);
+
+    outline: 1px solid var(--BorderColor);
+
+    background: var(--Main);
+    border-radius: 8px;
+
+    transition: ease-in-out all 0.2s;
     -webkit-app-region: drag;
 
     .container {
         display: flex;
+
         flex-direction: column;
-        grid-gap: 3em;
+
+        gap: 3em;
+
         align-items: center;
-        height: -webkit-fill-available;
         justify-content: center;
 
+        height: -webkit-fill-available;
+
         .load {
-            animation: spin 6s ease-in-out infinite;
-            box-shadow: inset var(--Main) 0px 0px 0px 30px;
             border-radius: 200px;
+            box-shadow: inset var(--Main) 0 0 0 30px;
+
+            animation: spin 6s ease-in-out infinite;
 
             & > path {
-                animation: path 3s ease-in-out infinite;
                 box-shadow: var(--surface-tertiary) 1px 1px;
+
+                animation: path 3s ease-in-out infinite;
             }
         }
     }

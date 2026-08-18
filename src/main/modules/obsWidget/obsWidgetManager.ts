@@ -1,15 +1,20 @@
-import { BrowserWindow, ipcMain } from 'electron'
-import path from 'path'
-import fs from 'original-fs'
-import * as fsp from 'fs/promises'
-import axios from 'axios'
+import { ipcMain } from 'electron'
+
 import AdmZip from 'adm-zip'
+import axios from 'axios'
+import * as fsp from 'fs/promises'
+import fs from 'original-fs'
+import path from 'path'
+
 import MainEvents from '../../../common/types/mainEvents'
-import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
-import logger from '../logger'
+import RendererEvents from '../../../common/types/rendererEvents'
 import { OBS_WIDGET_RELEASE_URL } from '../../constants/urls'
-import { sendToRenderer } from '../mod/download.helpers'
 import { t } from '../../i18n'
+import logger from '../logger'
+import { sendToRenderer } from '../mod/download.helpers'
+
+import type { RendererEvent } from '../../../common/types/rendererEvents';
+import type { BrowserWindow} from 'electron';
 
 const WIDGET_INSTALL_DIR = (app: any) => path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
 

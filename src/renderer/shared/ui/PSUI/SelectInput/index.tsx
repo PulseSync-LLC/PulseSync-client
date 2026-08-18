@@ -1,10 +1,15 @@
-import React, { ReactElement, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 import { createPortal } from 'react-dom'
+
 import clsx from 'clsx'
-import * as s from '@shared/ui/PSUI/SelectInput/SelectInput.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp, MdKeyboardArrowDown, MdCheck } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdCheck,MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
+
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as s from '@shared/ui/PSUI/SelectInput/SelectInput.module.scss'
+
+import type { ReactElement} from 'react';
 
 type Option = { value: string | number; label: string; searchText?: string }
 

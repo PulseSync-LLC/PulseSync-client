@@ -1,12 +1,15 @@
 import React from 'react'
-import clsx from 'clsx'
 
-import { Item } from '@features/configurationSettings/types'
+import clsx from 'clsx'
+import { MdAddCircleOutline, MdContentCopy, MdDelete, MdDragIndicator, MdRestartAlt } from 'react-icons/md'
+
 import ConfigurationItemBody from '@features/configurationSettings/ui/ConfigurationItemBody'
-import { AddonConfig } from '@features/configurationSettings/types'
 import TextInput from '@shared/ui/PSUI/TextInput'
-import { MdDragIndicator, MdContentCopy, MdDelete, MdAddCircleOutline, MdRestartAlt } from 'react-icons/md'
+
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
+
+import type { Item } from '@features/configurationSettings/types'
+import type { AddonConfig } from '@features/configurationSettings/types'
 
 type Props = {
     addItemAt: (si: number, index: number, type: Item['type']) => void

@@ -1,62 +1,81 @@
 .modal.modal {
+    gap: 0;
+
     width: min(1200px, calc(100vw - 32px));
     max-width: min(1200px, calc(100vw - 32px));
     height: min(720px, calc(100vh - 32px));
     max-height: calc(100vh - 32px);
+
     padding: 0;
-    gap: 0;
+
     overflow: hidden;
 }
 
 .modalLayout {
+    display: grid;
+
+    grid-template-columns: 460px minmax(0, 1fr);
+
     width: 100%;
     height: 100%;
     min-height: 0;
-    display: grid;
-    grid-template-columns: 460px minmax(0, 1fr);
 }
 
 .summaryPane {
     min-width: 0;
     min-height: 0;
+
     overflow-y: auto;
+
     border-right: 1px solid var(--border);
 }
 
 .detailPane {
+    display: flex;
+
+    flex-direction: column;
+
     min-width: 0;
     min-height: 0;
-    display: flex;
-    flex-direction: column;
 }
 
 .modalTabsRoot {
-    width: calc(100% - 48px);
-    margin: 15px 24px 0;
     flex: 0 0 auto;
+
+    width: calc(100% - 48px);
+
+    margin: 15px 24px 0;
 }
 
 .modalTabs {
     width: 100%;
     height: 43px;
     min-height: 43px;
+
     padding: 0;
+
     background: var(--surface-secondary);
 }
 
 .modalTabs button {
+    box-sizing: border-box;
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
     width: 50%;
     height: 43px;
     min-height: 43px;
+
     padding: 0;
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    box-sizing: border-box;
-    border-radius: 8px;
+
     font-size: 14px;
     font-weight: 700;
+
     line-height: 19px;
+
+    border-radius: 8px;
 }
 
 .modalTabs button:only-of-type {
@@ -66,32 +85,43 @@
 .modalTabs :global([class*='_tabIndicator_']) {
     top: 0;
     bottom: 0;
-    border-radius: 6px;
+
     background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+    border-radius: 6px;
 }
 
 .summary {
-    width: 100%;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
     box-sizing: border-box;
+    display: flex;
+
+    flex-direction: column;
+
+    width: 100%;
+
+    padding: 16px;
+
     color: var(--text-primary);
 }
 
 .detailContent {
+    box-sizing: border-box;
+
+    flex: 1 1 auto;
+
     min-width: 0;
     min-height: 0;
-    flex: 1 1 auto;
+
     padding: 15px 24px 32px;
-    box-sizing: border-box;
+
     overflow-y: auto;
 }
 
 .descriptionPanel {
-    color: var(--text-secondary);
     font-size: 15px;
+
     line-height: 1.5;
+
+    color: var(--text-secondary);
 }
 
 .descriptionPanel > p {
@@ -101,25 +131,33 @@
 .banner {
     width: 100%;
     aspect-ratio: 2.42 / 1;
+
     overflow: hidden;
-    border-radius: 12px;
+
     background: var(--surface-elevated);
+    border-radius: 12px;
 }
 
 .banner img {
+    display: block;
+
     width: 100%;
     height: 100%;
-    display: block;
+
     object-fit: cover;
 }
 
 .identityRow {
-    min-height: 68px;
-    padding: 0 14px;
     display: flex;
+
+    gap: 12px;
+
     align-items: flex-end;
     justify-content: space-between;
-    gap: 12px;
+
+    min-height: 68px;
+
+    padding: 0 14px;
 }
 
 .identityRowWithoutLogo {
@@ -127,50 +165,68 @@
 }
 
 .libraryLogo {
+    flex: 0 0 104px;
+
     width: 104px;
     height: 104px;
-    flex: 0 0 104px;
+
     margin-top: -48px;
+
     overflow: hidden;
+
+    background: var(--surface-tertiary);
     border: 6px solid var(--surface-tertiary);
     border-radius: 17px;
-    background: var(--surface-tertiary);
 }
 
 .libraryLogo img {
+    display: block;
+
     width: 100%;
     height: 100%;
-    display: block;
+
     object-fit: cover;
 }
 
 .actions {
     display: flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: flex-end;
-    gap: 6px;
+
     padding-bottom: 2px;
 }
 
 .actionButton,
 .closeButton {
-    height: 46px;
     display: inline-flex;
+
+    gap: 7px;
+
     align-items: center;
     justify-content: center;
-    gap: 7px;
-    border: 0;
-    border-radius: 10px;
-    color: var(--text-primary);
+
+    height: 46px;
+
     font: inherit;
     font-size: 14px;
     font-weight: 700;
+
+    color: var(--text-primary);
+
     cursor: pointer;
+
+    border: 0;
+    border-radius: 10px;
+
     transition: var(--transition);
 }
 
 .actionButton {
     min-width: 140px;
+
     padding: 0 20px;
 }
 
@@ -182,23 +238,29 @@
 
 .actionButton:disabled {
     cursor: default;
+
     opacity: 0.48;
 }
 
 .installAction {
-    background: color-mix(in srgb, var(--success) 18%, var(--surface-elevated));
     color: var(--success);
+
+    background: color-mix(in srgb, var(--success) 18%, var(--surface-elevated));
 }
 
 .dangerAction {
-    background: color-mix(in srgb, var(--danger) 18%, var(--surface-elevated));
     color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 18%, var(--surface-elevated));
 }
 
 .closeButton {
-    width: 46px;
     flex: 0 0 46px;
+
+    width: 46px;
+
     padding: 0;
+
     background: var(--surface-elevated);
 }
 
@@ -214,113 +276,154 @@
 
 .headingRow {
     display: flex;
-    align-items: center;
+
     gap: 7px;
+
+    align-items: center;
 }
 
 .headingRow h1 {
     min-width: 0;
+
     margin: 0;
+
     overflow: hidden;
-    color: var(--text-primary);
+    text-overflow: ellipsis;
+
     font-size: 28px;
     font-weight: 800;
+
     line-height: 1.15;
-    text-overflow: ellipsis;
+
+    color: var(--text-primary);
+
     white-space: nowrap;
 }
 
 .verified {
+    flex: 0 0 auto;
+
     width: 20px;
     height: 20px;
-    flex: 0 0 auto;
+
     color: var(--accent);
 }
 
 .copy p {
     margin: 7px 0 0;
-    color: var(--text-secondary);
+
     font-size: 12px;
+
     line-height: 1.4;
+
+    color: var(--text-secondary);
 }
 
 .metadata {
-    padding: 18px 14px 0;
     display: grid;
+
     grid-template-columns: repeat(4, minmax(0, 1fr));
+
     gap: 12px;
+
+    padding: 18px 14px 0;
 }
 
 .metaItem {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
+
     gap: 5px;
+
+    min-width: 0;
 }
 
 .metaLabel,
 .metaValue {
     overflow: hidden;
-    font-size: 12px;
     text-overflow: ellipsis;
+
+    font-size: 12px;
+
     white-space: nowrap;
 }
 
 .metaLabel {
-    color: var(--text-primary);
     font-weight: 700;
+
+    color: var(--text-primary);
 }
 
 .metaValue {
-    color: var(--text-secondary);
     font-weight: 500;
+
+    color: var(--text-secondary);
 }
 
 .ratingSection {
-    padding: 15px 14px 0;
     display: flex;
+
+    gap: 10px;
+
     align-items: center;
     justify-content: flex-start;
-    gap: 10px;
+
+    padding: 15px 14px 0;
 }
 
 .ratingSummary {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     gap: 7px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .ratingSummary span {
     font-size: 11px;
     font-weight: 600;
+
     line-height: 16px;
+
     white-space: nowrap;
 }
 
 .ratingSummary .ratingPrompt {
-    color: var(--text-primary);
     font-size: 12px;
     font-weight: 700;
+
+    color: var(--text-primary);
 }
 
 .ratingStars {
     display: flex;
-    align-items: center;
+
     gap: 1px;
+
+    align-items: center;
 }
 
 .ratingStars button {
+    display: grid;
+
+    place-items: center;
+
     width: 24px;
     height: 24px;
+
     padding: 0;
-    display: grid;
-    place-items: center;
+
+    color: var(--text-muted);
+
+    cursor: pointer;
+
+    background: transparent;
     border: 0;
     border-radius: 6px;
-    background: transparent;
-    color: var(--text-muted);
-    cursor: pointer;
+
     transition:
         background-color 140ms ease,
         transform 140ms ease;
@@ -329,15 +432,20 @@
 .ratingStars button:hover,
 .ratingStars button:focus-visible,
 .ratingStars button.ratingStarActive {
-    background: color-mix(in srgb, var(--rating) 15%, transparent);
     color: var(--rating);
-    transform: translateY(-1px);
+
     outline: none;
+
+    background: color-mix(in srgb, var(--rating) 15%, transparent);
+
+    transform: translateY(-1px);
 }
 
 .ratingStars button:disabled {
     cursor: wait;
+
     opacity: 0.6;
+
     transform: none;
 }
 
@@ -347,52 +455,71 @@
 }
 
 .section {
-    padding: 15px 14px 0;
     display: flex;
+
     flex-direction: column;
+
     gap: 7px;
+
+    padding: 15px 14px 0;
 }
 
 .section h2 {
     margin: 0;
-    color: var(--text-primary);
+
     font-size: 12px;
     font-weight: 800;
+
+    color: var(--text-primary);
 }
 
 .authorRow,
 .tagRow {
     display: flex;
+
     flex-wrap: wrap;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
 }
 
 .authorButton,
 .githubButton {
-    min-height: 24px;
-    padding: 4px 9px;
     display: inline-flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: center;
-    gap: 6px;
-    border: 0;
-    border-radius: 6px;
-    background: var(--surface-elevated);
-    color: var(--text-primary);
+
+    min-height: 24px;
+
+    padding: 4px 9px;
+
     font: inherit;
     font-size: 11px;
     font-weight: 600;
+
     line-height: 1;
+
+    color: var(--text-primary);
+
     cursor: pointer;
+
+    background: var(--surface-elevated);
+    border: 0;
+    border-radius: 6px;
+
     transition: var(--transition);
 }
 
 .authorButton > span {
     width: 8px;
     height: 8px;
-    border-radius: 50%;
+
     background: var(--text-primary);
+    border-radius: 50%;
 }
 
 .authorButton:first-child {
@@ -418,16 +545,23 @@
 }
 
 .tagChip {
-    min-height: 24px;
-    padding: 4px 9px;
     display: inline-flex;
+
     align-items: center;
-    border-radius: 6px;
-    background: var(--surface-elevated);
-    color: var(--text-primary);
+
+    min-height: 24px;
+
+    padding: 4px 9px;
+
     font-size: 11px;
     font-weight: 600;
+
     line-height: 1;
+
+    color: var(--text-primary);
+
+    background: var(--surface-elevated);
+    border-radius: 6px;
 }
 
 .changelogSection {
@@ -436,23 +570,34 @@
 
 .changelogSection h2 {
     margin: 0 0 8px;
-    color: var(--text-primary);
+
     font-size: 14px;
     font-weight: 800;
+
+    color: var(--text-primary);
 }
 
 .changelog {
-    padding: 12px;
     display: flex;
+
     flex-direction: column;
+
     gap: 10px;
+
+    padding: 12px;
+
     overflow-y: auto;
-    border-radius: 8px;
-    background: var(--surface-secondary);
-    color: var(--text-secondary);
+
     font-size: 12px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
+
     white-space: pre-wrap;
+
+    background: var(--surface-secondary);
+    border-radius: 8px;
 }
 
 .readmePanel {
@@ -460,20 +605,23 @@
 }
 
 .readmeState {
-    min-height: 100%;
     display: grid;
+
     place-items: center;
+
+    min-height: 100%;
+
     color: var(--text-secondary);
 }
 
-@media (max-width: 900px) {
+@media (width <= 900px) {
     .modal.modal {
         height: calc(100vh - 32px);
     }
 
     .modalLayout {
-        grid-template-columns: 1fr;
         grid-template-rows: minmax(0, 1fr) minmax(0, 1fr);
+        grid-template-columns: 1fr;
     }
 
     .summaryPane {
@@ -490,9 +638,11 @@
     }
 
     .libraryLogo {
+        flex-basis: 84px;
+
         width: 84px;
         height: 84px;
-        flex-basis: 84px;
+
         margin-top: -38px;
     }
 
@@ -509,6 +659,7 @@
 
     .modalTabsRoot {
         width: calc(100% - 24px);
+
         margin-inline: 12px;
     }
 

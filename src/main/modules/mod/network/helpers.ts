@@ -1,5 +1,6 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
+
 import logger from '../../logger'
 import { hashArtifactInWorker } from './artifactWorkerClient'
 

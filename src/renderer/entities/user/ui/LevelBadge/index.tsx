@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as styleBadge from '@entities/user/ui/LevelBadge/levelBadge.module.scss'
 
 interface LevelBadgeProps {

@@ -1,6 +1,7 @@
-import { defineConfig, type UserConfig } from 'vite'
-import path from 'path'
 import { fileURLToPath } from 'node:url'
+
+import path from 'path'
+import { defineConfig, type UserConfig } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

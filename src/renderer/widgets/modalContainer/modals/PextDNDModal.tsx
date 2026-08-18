@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react'
-import { staticAsset } from '@shared/lib/staticAssets'
+
 import { useModalContext } from '@app/providers/modal'
+import { staticAsset } from '@shared/lib/staticAssets'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 import styles from '@widgets/modalContainer/modals/PextDNDModal.module.scss'

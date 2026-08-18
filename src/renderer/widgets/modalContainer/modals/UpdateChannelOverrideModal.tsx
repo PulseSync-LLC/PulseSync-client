@@ -1,13 +1,16 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
+import { IoCloseSharp } from 'react-icons/io5'
+
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
-import { useModalContext } from '@app/providers/modal'
-import { useTranslation } from 'react-i18next'
-import { IoCloseSharp } from 'react-icons/io5'
+
 import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideModal.module.scss'
-import { desktopApi } from '@shared/desktop/desktopApi'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 
 type UpdateChannel = 'beta' | 'dev'
 type ChannelSelection = UpdateChannel | 'default'

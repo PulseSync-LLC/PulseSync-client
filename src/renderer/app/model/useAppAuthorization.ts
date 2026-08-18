@@ -1,17 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { useQuery } from '@apollo/client/react'
-import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
 
-import UserMeQuery from '@entities/user/api/getMe.query'
-import UserInterface from '@entities/user/model/user.interface'
-import userInitials from '@entities/user/model/user.initials'
-import toast from '@shared/ui/toast'
-import { clearCachedUserToken, getUserTokenAsync } from '@shared/lib/auth/getUserToken'
+import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
+import { useQuery } from '@apollo/client/react'
+
 import config from '@common/appConfig'
-import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
-import type { GetMeData, GetMeVars } from '@app/AppShell.types'
 import { setRendererErrorTrackingUser } from '@app/errorTracking'
+import UserMeQuery from '@entities/user/api/getMe.query'
+import userInitials from '@entities/user/model/user.initials'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { clearCachedUserToken, getUserTokenAsync } from '@shared/lib/auth/getUserToken'
+import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
+import toast from '@shared/ui/toast'
+
+import type { GetMeData, GetMeVars } from '@app/AppShell.types'
+import type UserInterface from '@entities/user/model/user.interface'
 
 type Params = {
     router: {

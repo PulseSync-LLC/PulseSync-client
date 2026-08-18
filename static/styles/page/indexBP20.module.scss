@@ -1,49 +1,66 @@
 .page {
-    font-family: 'Open Runde', sans-serif;
     width: -webkit-fill-available;
     height: -webkit-fill-available;
+
+    padding: 0;
+
     overflow-y: scroll;
 
-    padding: 0px;
-    background: var(--Main);
+    font-family: 'Open Runde', sans-serif;
 
-    filter: drop-shadow(0px 0px 4px rgba(6, 10, 23, 0.65));
+    background: var(--Main);
     border-radius: 10px;
+
+    filter: drop-shadow(0 0 4px rgb(6, 10, 23, 0.65));
 }
 
 .container {
     display: flex;
+
     flex-direction: column;
-    justify-content: center;
-    align-items: flex-start;
+
     gap: 15px;
+
+    align-items: flex-start;
+    justify-content: center;
+
     width: -webkit-fill-available;
     height: -webkit-fill-available;
 
     .main_container {
         display: flex;
+
         flex-direction: column;
-        align-items: flex-start;
-        padding: 20px 40px 20px 40px;
+
         gap: 20px;
+
+        align-items: flex-start;
 
         width: -webkit-fill-available;
         height: -webkit-fill-available;
 
-        border-radius: 10px;
+        padding: 20px 40px;
+
+        overflow: hidden;
+
         background: var(--MainBG);
         border: solid 1px var(--border);
-        overflow: hidden;
+        border-radius: 10px;
 
         .container_witch_text {
             display: flex;
+
             flex-direction: column;
-            color: #ffffff;
+
             gap: 12px;
+
             width: 100%;
+
+            color: #fff;
 
             .container_patcher {
                 display: flex;
+
                 width: 100%;
             }
         }

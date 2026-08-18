@@ -1,18 +1,19 @@
 import React from 'react'
+
 import clsx from 'clsx'
+import { MdAdd, MdDelete } from 'react-icons/md'
 
-import { Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, AddonConfig } from '@features/configurationSettings/types'
 import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
-
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
-import TextInput from '@shared/ui/PSUI/TextInput'
 import ColorInput from '@shared/ui/PSUI/ColorInput'
+import FileInput from '@shared/ui/PSUI/FileInput'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import SliderInput from '@shared/ui/PSUI/SliderInput'
-import FileInput from '@shared/ui/PSUI/FileInput'
+import TextInput from '@shared/ui/PSUI/TextInput'
 
-import { MdAdd, MdDelete } from 'react-icons/md'
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
+
+import type { AddonConfig,ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
 
 type Props = {
     cfg: AddonConfig

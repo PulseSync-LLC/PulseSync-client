@@ -1,5 +1,6 @@
 .cardMount {
     flex: 0 0 auto;
+
     min-width: 0;
 }
 
@@ -15,12 +16,18 @@
 
 .card {
     position: relative;
+
     box-sizing: border-box;
+
     width: 100%;
+
     overflow: hidden;
-    border-radius: 6px;
-    background: var(--surface-secondary);
+
     color: var(--text-primary);
+
+    background: var(--surface-secondary);
+    border-radius: 6px;
+
     animation: cardEnter 0.28s ease-out both;
 }
 
@@ -40,10 +47,13 @@
 @keyframes cardEnter {
     from {
         opacity: 0;
+
         transform: translateY(8px);
     }
+
     to {
         opacity: 1;
+
         transform: translateY(0);
     }
 }
@@ -52,92 +62,123 @@
     from {
         opacity: 0;
     }
+
     to {
         opacity: 1;
     }
 }
 
 .listCard {
-    min-height: 111px;
     display: grid;
+
     grid-template-columns: 81px minmax(0, 1fr) 145px;
-    align-items: center;
+
     gap: 15px;
+
+    align-items: center;
+
+    min-height: 111px;
+
     padding: 15px 30px;
 }
 
 .listIcon,
 .listIconFallback {
+    display: block;
+
     width: 81px;
     height: 81px;
-    display: block;
-    border-radius: 12px;
+
     object-fit: cover;
+
     background: var(--surface-tertiary);
+    border-radius: 12px;
 }
 
 .posterCard {
-    min-height: 402px;
     display: flex;
+
     flex-direction: column;
+
+    min-height: 402px;
+
     padding: 5px;
+
     background: var(--surface-secondary);
 }
 
 .posterMedia {
     position: relative;
-    height: 227px;
+
     flex: 0 0 227px;
-    border-radius: 6px;
+
+    height: 227px;
+
     overflow: hidden;
+
     background: var(--surface-secondary);
+    border-radius: 6px;
 }
 
 .posterBanner {
+    display: block;
+
     width: 100%;
     height: 171px;
-    display: block;
-    border-radius: 6px;
+
     object-fit: cover;
+
+    border-radius: 6px;
 }
 
 .posterIcon,
 .posterIconFallback {
     position: absolute;
-    left: 25px;
     bottom: 0;
+    left: 25px;
+
+    display: block;
+
     width: 100px;
     height: 100px;
-    display: block;
-    border-radius: 12px;
+
     object-fit: cover;
+
     background: var(--surface-tertiary);
     border: var(--surface-secondary) 6px solid;
+    border-radius: 12px;
 }
 
 .posterAction,
 .listAction {
     box-sizing: border-box;
-    border: 0;
-    border-radius: 6px;
-    background: color-mix(in srgb, var(--success) 15%, transparent);
-    color: var(--success);
+
     font: inherit;
     font-size: 12px;
     font-weight: 600;
+
+    color: var(--success);
+
     cursor: pointer;
+
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+    border: 0;
+    border-radius: 6px;
+
     transition:
         background 0.15s ease,
         color 0.15s ease;
 
     &:hover:not(:disabled) {
-        background: var(--success);
         color: var(--background);
+
+        background: var(--success);
     }
 
     &:disabled {
-        opacity: 0.5;
         cursor: default;
+
+        opacity: 0.5;
     }
 }
 
@@ -145,23 +186,33 @@
     position: absolute;
     right: 25px;
     bottom: 0;
-    width: 123px;
-    height: 40px;
-    padding: 0 18px;
+
     display: inline-flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: center;
-    gap: 6px;
+
+    width: 123px;
+    height: 40px;
+
+    padding: 0 18px;
 }
 
 .listAction {
-    width: 145px;
-    height: 52px;
-    padding: 0 15px;
     display: inline-flex;
+
+    gap: 6px;
+
     align-items: center;
     justify-content: center;
-    gap: 6px;
+
+    width: 145px;
+    height: 52px;
+
+    padding: 0 15px;
+
     font-size: 16px;
 }
 
@@ -176,12 +227,14 @@
 }
 
 .removeAction {
-    background: color-mix(in srgb, var(--danger) 15%, transparent);
     color: var(--danger);
 
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+
     &:hover:not(:disabled) {
-        background: var(--danger);
         color: var(--text-primary);
+
+        background: var(--danger);
     }
 }
 
@@ -190,69 +243,98 @@
 }
 
 .cardCopy {
-    min-width: 0;
     display: flex;
+
     flex-direction: column;
+
     gap: 2px;
+
+    min-width: 0;
 }
 
 .titleRow {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     gap: 10px;
+
+    align-items: center;
+
+    min-width: 0;
 }
 
 .titleRow h3 {
     min-width: 0;
+
     margin: 0;
+
     overflow: hidden;
-    color: var(--text-primary);
+    text-overflow: ellipsis;
+
     font-size: 16px;
     font-weight: 800;
+
     line-height: 22px;
-    text-overflow: ellipsis;
+
+    color: var(--text-primary);
+
     white-space: nowrap;
 }
 
 .posterCard .titleRow h3 {
     font-size: 28px;
+
     line-height: 38px;
 }
 
 .cardCopy > p {
     min-width: 0;
+
     margin: 0;
+
     overflow: hidden;
-    color: var(--text-secondary);
+    text-overflow: ellipsis;
+
     font-size: 12px;
     font-weight: 600;
+
     line-height: 16px;
-    text-overflow: ellipsis;
+
+    color: var(--text-secondary);
+
     white-space: nowrap;
 }
 
 .posterCard .cardCopy > p {
-    min-height: 32px;
     display: -webkit-box;
+
+    min-height: 32px;
+
+    -webkit-line-clamp: 2;
+
     white-space: normal;
     -webkit-box-orient: vertical;
-    -webkit-line-clamp: 2;
 }
 
 .metaRow {
-    min-width: 0;
     display: flex;
-    align-items: center;
+
     gap: 5px;
+
+    align-items: center;
+
+    min-width: 0;
+
     margin-top: 13px;
+
     overflow: hidden;
 }
 
 .posterCard .metaRow {
-    height: 53px;
     flex-wrap: wrap;
+
     align-content: flex-start;
+
+    height: 53px;
 }
 
 .metaRow > * {
@@ -260,52 +342,63 @@
 }
 
 .verified {
+    flex: 0 0 auto;
+
     width: 18px;
     height: 18px;
-    flex: 0 0 auto;
+
     color: var(--ps-accent, var(--accent));
 }
 
 .authorButton {
     padding: 0;
-    border: 0;
-    background: transparent;
+
     cursor: pointer;
+
+    background: transparent;
+    border: 0;
 }
 
 .authorBadge,
 .metaBadge {
     padding: 4px 7px;
+
     font-size: 12px;
     font-weight: 600;
+
     line-height: 16px;
 }
 
 .neutralBadge {
-    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
     color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
 }
 
 .toneSuccess {
-    background: color-mix(in srgb, var(--ps-success, var(--success)) 15%, transparent);
     color: var(--ps-success, var(--success));
+
+    background: color-mix(in srgb, var(--ps-success, var(--success)) 15%, transparent);
 }
 
 .toneWarning {
-    background: color-mix(in srgb, var(--ps-warning, var(--warning)) 15%, transparent);
     color: var(--ps-warning, var(--warning));
+
+    background: color-mix(in srgb, var(--ps-warning, var(--warning)) 15%, transparent);
 }
 
 .toneInfo {
-    background: color-mix(in srgb, var(--ps-info, #44aaff) 15%, transparent);
-    color: var(--ps-info, #44aaff);
+    color: var(--ps-info, #4af);
+
+    background: color-mix(in srgb, var(--ps-info, #4af) 15%, transparent);
 }
 
 .authorBadge > span {
     width: 8px;
     height: 8px;
+
+    background: currentcolor;
     border-radius: 50%;
-    background: currentColor;
 }
 
 .metaBadge svg {
@@ -317,10 +410,12 @@
     display: inline-flex;
 }
 
-@media (max-width: 760px) {
+@media (width <= 760px) {
     .listCard {
         grid-template-columns: 60px minmax(0, 1fr);
+
         min-height: 126px;
+
         padding: 14px;
     }
 
@@ -336,8 +431,10 @@
 
     .listAction {
         grid-column: 1 / -1;
+
         width: 100%;
         height: 40px;
+
         font-size: 13px;
     }
 

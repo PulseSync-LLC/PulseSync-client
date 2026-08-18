@@ -4,28 +4,37 @@
 
 .content {
     display: flex;
-    max-width: 310px;
+
     flex-direction: column;
+
     gap: 5px;
+
+    max-width: 310px;
+
     padding: 4px 2px;
 }
 
 .title {
-    color: #fff;
     font-size: 14px;
     font-weight: 800;
+
+    color: #fff;
 }
 
 .description {
-    color: rgba(255, 255, 255, 0.72);
     font-size: 13px;
     font-weight: 500;
+
     line-height: 1.35;
+
+    color: rgb(255, 255, 255, 0.72);
 }
 
 .action {
-    color: #ffb7b7;
     font-size: 12px;
     font-weight: 700;
+
     line-height: 1.35;
+
+    color: #ffb7b7;
 }

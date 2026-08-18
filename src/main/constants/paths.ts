@@ -1,5 +1,6 @@
-import path from 'path'
 import electron from 'electron'
+
+import path from 'path'
 
 export const TMP_PATH = path.join(electron.app.getPath('userData'), '/temp')
 export const ASAR_TMP_PATH = path.join(TMP_PATH, 'app.asar')

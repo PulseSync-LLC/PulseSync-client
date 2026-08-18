@@ -1,7 +1,7 @@
-import type { Dispatch, ReactNode, SetStateAction } from 'react'
-import type { Socket } from 'socket.io-client'
 import type UserInterface from '@entities/user/model/user.interface'
 import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
+import type { Dispatch, ReactNode, SetStateAction } from 'react'
+import type { Socket } from 'socket.io-client'
 
 export type EmitGateway = (event: OutgoingGatewayEvent, payload: unknown) => void
 

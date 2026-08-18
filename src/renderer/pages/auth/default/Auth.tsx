@@ -1,14 +1,15 @@
 import { useContext, useEffect, useRef } from 'react'
+
+import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
+import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 import Header from '@widgets/layout/header'
 import userContext from '@entities/user/model/context'
-import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 
 import AppNameLogo from '@shared/assets/icon/AppName.svg'
 
 import * as pageStyles from '@pages/auth/default/auth.module.scss'
-import { useTranslation } from 'react-i18next'
 
 export default function AuthPage() {
     const { t } = useTranslation()

@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer.module.scss'
 
 type StoreShimmerProps = {

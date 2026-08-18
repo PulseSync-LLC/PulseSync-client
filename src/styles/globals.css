@@ -1,48 +1,40 @@
-@import url('./fonts.css');
+@import './fonts.css';
 
 :root {
     /* Legacy compatibility aliases. Exact fallbacks preserve bootstrap/preload. */
     --white: var(--ps-foreground, #f0f0f0);
-    --primary: var(--ps-warning, #ffcc66);
+    --primary: var(--ps-warning, #fc6);
     --red: var(--ps-danger, #ed4245);
-
     --medium: var(--ps-surface-secondary, #131317);
     --mediumer: var(--ps-surface-tertiary, #1c1c22);
     --dark: var(--ps-surface-primary, #08070d);
-
     --gray: var(--ps-text-muted, #777);
     --grayer: var(--ps-surface-elevated, #25252d);
     --Main: var(--ps-background, #16181e);
     --MainBG: var(--ps-surface-secondary, #232631);
-
     --BorderColor: var(--ps-border, #363944);
     --BorderRadius: var(--ps-radius-sm, 8px);
-
     --textInputContainer: var(--ps-text-secondary, #a3abc6);
     --inputColor: var(--ps-surface-secondary, #16181e);
     --inputPlaceholderColor: var(--ps-text-secondary, #909bbe);
-
     --HeaderBarTextColor: var(--ps-text-primary, #e4e5ea);
-
     --NavigationOnColor: var(--ps-active, #3e424c);
     --NavigationIconDefaultSvgColor: var(--ps-text-secondary, #8f94a8);
-
     --downloadColor: var(--ps-success, #75ff9c);
     --download: color-mix(in srgb, var(--ps-success, #75ff9c) 0%, transparent);
     --downloadH: color-mix(in srgb, var(--ps-success, #75ff9c) 16%, transparent);
-
     --panelsColor: var(--ps-surface-elevated, #292c36);
-
     --transition: cubic-bezier(0.45, 0.65, 0.395, 1) all 0.2s;
-
     --online: var(--ps-success, #afffad);
 }
 
 * {
-    user-select: none;
-    font-family: 'Nunito';
-    font-style: normal;
     max-width: -webkit-fill-available;
+
+    font-family: Nunito;
+    font-style: normal;
+
+    user-select: none;
 }
 
 .discord_svg__noStroke,
@@ -66,6 +58,7 @@ a {
 
 a.disabled {
     cursor: default;
+
     opacity: 0.5;
 }
 
@@ -83,18 +76,20 @@ a.active > button {
 }
 
 body {
-    display: flex;
-    background: var(--Main);
+    position: absolute;
+    inset: 0;
+
     box-sizing: border-box;
-    overflow: hidden;
+    display: flex;
+
+    flex-direction: column;
+
     padding: 0;
     margin: 0;
-    flex-direction: column;
-    position: absolute;
-    left: 0;
-    right: 0;
-    top: 0;
-    bottom: 0;
+
+    overflow: hidden;
+
+    background: var(--Main);
 }
 
 body.devmark-border {
@@ -102,19 +97,25 @@ body.devmark-border {
 }
 
 body.devmark-border::after {
-    content: '';
     position: fixed;
     inset: 0;
     z-index: 2147483647;
+
     box-sizing: border-box;
+
+    pointer-events: none;
+
+    content: '';
+
     border: 3px solid var(--development-build, #fff34c);
     border-radius: 10px;
-    pointer-events: none;
 }
 
 .app-wrapper {
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
 }
 
@@ -123,40 +124,45 @@ form {
 }
 
 :focus-visible {
-    outline: 1px double var(--ps-focus-ring, #ffffff);
+    outline: 1px double var(--ps-focus-ring, #fff);
 }
 
 ::-webkit-scrollbar {
-    width: 0px;
-    height: 0px;
+    width: 0;
+    height: 0;
 }
 
 :disabled {
     cursor: default;
+
     opacity: 0.5;
 }
 
 .highlight {
     opacity: 1;
-    transition: all 0.3s ease;
+
     transform: scale(1);
+
+    transition: all 0.3s ease;
 }
 
 .dimmed {
     opacity: 0.5;
-    transition: all 0.3s ease;
+
     transform: scale(0.95);
+
+    transition: all 0.3s ease;
 }
 
 @keyframes animate-svg-stroke-1 {
     0% {
-        stroke-dashoffset: 322.2289123535156px;
         stroke-dasharray: 322.2289123535156px;
+        stroke-dashoffset: 322.2289123535156px;
     }
 
     100% {
-        stroke-dashoffset: 644.4578247070312px;
         stroke-dasharray: 322.2289123535156px;
+        stroke-dashoffset: 644.4578247070312px;
     }
 }
 
@@ -178,13 +184,13 @@ form {
 
 @keyframes animate-svg-stroke-2 {
     0% {
-        stroke-dashoffset: 35.941123962402344px;
         stroke-dasharray: 35.941123962402344px;
+        stroke-dashoffset: 35.941123962402344px;
     }
 
     100% {
-        stroke-dashoffset: 71.88224792480469px;
         stroke-dasharray: 35.941123962402344px;
+        stroke-dashoffset: 71.88224792480469px;
     }
 }
 
@@ -196,13 +202,13 @@ form {
 
 @keyframes animate-svg-stroke-3 {
     0% {
-        stroke-dashoffset: 175.69618225097656px;
         stroke-dasharray: 175.69618225097656px;
+        stroke-dashoffset: 175.69618225097656px;
     }
 
     100% {
-        stroke-dashoffset: 351.3923645019531px;
         stroke-dasharray: 175.69618225097656px;
+        stroke-dashoffset: 351.3923645019531px;
     }
 }
 

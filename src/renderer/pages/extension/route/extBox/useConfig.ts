@@ -1,16 +1,19 @@
 import { useCallback, useEffect, useState } from 'react'
+
 import path from 'path'
+
 import {
-    HANDLE_EVENTS_FILENAME,
-    HANDLE_EVENTS_SETTINGS_FILENAME,
     applyAddonSettingsValuesToConfig,
     collectAddonSettingsValuesFromConfig,
+    HANDLE_EVENTS_FILENAME,
+    HANDLE_EVENTS_SETTINGS_FILENAME,
     normalizeAddonSettingsValues,
 } from '@common/addons/handleEvents'
-
-import { AddonConfig, normalizeAddonConfig } from '@features/configurationSettings/types'
-import Addon from '@entities/addon/model/addon.interface'
+import { normalizeAddonConfig } from '@features/configurationSettings/types'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AddonConfig} from '@features/configurationSettings/types';
 
 type UseConfigResult = {
     configExists: boolean | null

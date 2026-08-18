@@ -1,7 +1,8 @@
-import type Addon from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 
 type OwnAddonsResponse = {
     addons?: StoreAddon[]

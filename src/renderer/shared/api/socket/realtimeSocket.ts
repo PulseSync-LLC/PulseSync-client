@@ -1,7 +1,10 @@
-import { io, Socket } from 'socket.io-client'
+import { io } from 'socket.io-client'
+
 import config from '@common/appConfig'
+
 import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
+import type { Socket } from 'socket.io-client';
 
 export type GatewayFrame<T = any> = {
     e?: string

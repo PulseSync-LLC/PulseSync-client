@@ -1,9 +1,10 @@
-import { MdClose } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdClose } from 'react-icons/md'
 
 import { useModalContext } from '@app/providers/modal'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ProfileView from '@widgets/userProfileModal/ProfileView'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+
 import * as styles from '@widgets/userProfileModal/profileOverlay.module.scss'
 
 export default function UserProfileModal() {

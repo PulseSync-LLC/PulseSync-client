@@ -4,9 +4,9 @@ import { useTranslation } from 'react-i18next'
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
 
-import type { HomePrimaryComponent } from '@pages/home/model/homeDashboard'
-
 import * as styles from './home.module.scss'
+
+import type { HomePrimaryComponent } from '@pages/home/model/homeDashboard'
 
 type Props = {
     items: HomePrimaryComponent[]

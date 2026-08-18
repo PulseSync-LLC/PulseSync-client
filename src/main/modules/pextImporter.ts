@@ -1,16 +1,19 @@
-import { app } from 'electron'
-import AdmZip from 'adm-zip'
-import path from 'path'
-import fs from 'original-fs'
-import * as fsp from 'fs/promises'
 import { fileURLToPath } from 'node:url'
-import logger from './logger'
-import { getState } from './state'
-import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
+
+import { app } from 'electron'
+
+import AdmZip from 'adm-zip'
+import * as fsp from 'fs/promises'
+import fs from 'original-fs'
+import path from 'path'
+
 import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
+import { getAddonsRoot } from '../utils/addonPaths'
 import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
 import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
-import { getAddonsRoot } from '../utils/addonPaths'
+import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
+import logger from './logger'
+import { getState } from './state'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])

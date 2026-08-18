@@ -1,7 +1,8 @@
-import logger from '../logger'
 import { app } from 'electron'
-import { HandleErrorsElectron } from './handleErrorsElectron'
+
 import { captureRendererTermination, flushErrorTracking } from '../errorTracking'
+import logger from '../logger'
+import { HandleErrorsElectron } from './handleErrorsElectron'
 
 const firstLine = (message: string | Error) => {
     if (typeof message === 'string') {

@@ -1,12 +1,15 @@
 import React, { useContext, useMemo } from 'react'
+
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
 import { MdChevronRight, MdExtension, MdIntegrationInstructions, MdInvertColors } from 'react-icons/md'
+import { useNavigate } from 'react-router-dom'
 
-import AddonInterface from '@entities/addon/model/addon.interface'
 import UserContext from '@entities/user/model/context'
+
 import * as s from '@pages/extension/route/extensionview.module.scss'
+
+import type AddonInterface from '@entities/addon/model/addon.interface'
 
 interface Props {
     addon: AddonInterface

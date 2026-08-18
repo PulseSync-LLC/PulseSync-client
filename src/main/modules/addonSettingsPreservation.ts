@@ -1,5 +1,5 @@
-import path from 'path'
 import * as fsp from 'fs/promises'
+import path from 'path'
 
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '../../common/addons/handleEvents'
 

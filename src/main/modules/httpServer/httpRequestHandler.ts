@@ -1,10 +1,12 @@
-import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import type { Track } from '@entities/track/model/track.interface'
+
+import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../../utils/addonPaths'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
 import { buildCorsHeaders } from './cors'
-import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../../utils/addonPaths'
+
+import type { Track } from '@entities/track/model/track.interface'
+import type * as http from 'http'
 
 interface LoggerLike {
     http: {

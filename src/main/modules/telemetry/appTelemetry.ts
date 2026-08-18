@@ -1,12 +1,15 @@
-import path from 'node:path'
+import { randomUUID } from 'node:crypto'
 import fs from 'node:fs/promises'
 import os from 'node:os'
-import { randomUUID } from 'node:crypto'
+import path from 'node:path'
+
 import { app } from 'electron'
+
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+
+import { APP_TELEMETRY_CONFIG } from '../../constants/telemetry'
 import logger from '../logger'
 import { getState } from '../state'
-import { APP_TELEMETRY_CONFIG } from '../../constants/telemetry'
 
 const State = getState()
 

@@ -1,9 +1,11 @@
 import React, { useContext, useEffect, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
-import UserContext from '@entities/user/model/context'
+
 import { useModalContext } from '@app/providers/modal'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import UserContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const AppUpdateDialog: React.FC = () => {
     const { t } = useTranslation()

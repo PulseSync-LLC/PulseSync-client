@@ -1,10 +1,11 @@
+import { fileURLToPath } from 'node:url'
+
 import babel from '@rolldown/plugin-babel'
 import react, { reactCompilerPreset } from '@vitejs/plugin-react'
-import svgr from 'vite-plugin-svgr'
-import { defineConfig } from 'vite'
-import path from 'path'
 import fs from 'fs'
-import { fileURLToPath } from 'node:url'
+import path from 'path'
+import { defineConfig } from 'vite'
+import svgr from 'vite-plugin-svgr'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {

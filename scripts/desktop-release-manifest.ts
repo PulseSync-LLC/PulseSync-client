@@ -1,11 +1,13 @@
+import { execFileSync } from 'node:child_process'
+import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
-import crypto from 'node:crypto'
-import { execFileSync } from 'node:child_process'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import AdmZip from 'adm-zip'
+
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 

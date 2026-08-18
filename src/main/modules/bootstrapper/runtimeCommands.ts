@@ -1,26 +1,27 @@
 import { runBootstrapperCommand } from './command'
 import {
-    parseAckResult,
-    parseClaimRequestsResult,
-    parseClaimResult,
-    parseEnqueueResult,
-    parseHandoffArmedProgress,
-    parseStartResult,
-    parseActiveRuntimeV3,
-    parseRuntimeAcknowledgementV3,
-    parseRepairRuntimeResultV3,
-    unwrapSemanticResult,
     type AckLaunchRequestResultV1,
+    type ActiveRuntimeV3,
     type ClaimActiveAppResultV1,
     type ClaimLaunchRequestsResultV1,
     type EnqueueLaunchRequestResultV1,
     type LaunchRequestInputV1,
+    parseAckResult,
+    parseActiveRuntimeV3,
+    parseClaimRequestsResult,
+    parseClaimResult,
+    parseEnqueueResult,
+    parseHandoffArmedProgress,
+    parseRepairRuntimeResultV3,
+    parseRuntimeAcknowledgementV3,
+    parseStartResult,
+    type RepairRuntimeResultV3,
+    type RuntimeAcknowledgementV3,
     type RustHandoffArmedEventV1,
     type StartResultV1,
-    type ActiveRuntimeV3,
-    type RuntimeAcknowledgementV3,
-    type RepairRuntimeResultV3,
+    unwrapSemanticResult,
 } from './contracts'
+
 import type { BootstrapperLauncher } from './paths'
 
 function pushArg(args: string[], name: string, value: string | undefined): void {

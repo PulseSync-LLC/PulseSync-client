@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
 import type NewsInterface from '@entities/news/model/news.interface'
+import type { ReactNode } from 'react'
 
 export type GetVisibleNewsData = {
     getVisibleNews?: NewsInterface[] | null

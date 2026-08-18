@@ -1,8 +1,10 @@
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
+
 import yaml from 'js-yaml'
 import semver from 'semver'
+
 import { resolveStructuredPublishPath } from './s3-upload.js'
 
 const LEGACY_UPDATE_BRIDGE_BASE_VERSIONS: Readonly<Record<'beta' | 'dev', ReadonlySet<string>>> = {

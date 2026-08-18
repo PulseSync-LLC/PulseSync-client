@@ -1,12 +1,15 @@
 import React, { useCallback, useContext, useMemo, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
-import LevelProgress from '@entities/user/ui/LevelProgress'
-import AchievementList from '@widgets/userProfileModal/tabs/ProfileTab/AchievementList'
-import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
-import userContext from '@entities/user/model/context'
+
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import AchievementList from '@widgets/userProfileModal/tabs/ProfileTab/AchievementList'
+import userContext from '@entities/user/model/context'
+import LevelProgress from '@entities/user/ui/LevelProgress'
 import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 import { isProfileSlugForUser } from '@shared/lib/profileSlug'
+
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface AchievementsSectionProps {
     userProfile: any

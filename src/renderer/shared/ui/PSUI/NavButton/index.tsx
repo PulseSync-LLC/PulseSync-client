@@ -1,7 +1,10 @@
 import React from 'react'
+
 import { NavLink } from 'react-router'
-import * as styles from '@shared/ui/PSUI/NavButton/nav_button_pulse.module.scss'
+
 import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@shared/ui/PSUI/NavButton/nav_button_pulse.module.scss'
 
 interface NavButtonPulseProps {
     to?: string

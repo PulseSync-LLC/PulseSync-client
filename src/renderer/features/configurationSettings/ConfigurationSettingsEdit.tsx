@@ -1,13 +1,16 @@
 import React, { useRef } from 'react'
-import clsx from 'clsx'
-import { AddonConfig } from '@features/configurationSettings/types'
 
-import { MdAdd, MdUnfoldMore, MdUnfoldLess } from 'react-icons/md'
-import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
-import ChangesBar from '@shared/ui/PSUI/ChangesBar'
+import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdAdd, MdUnfoldLess,MdUnfoldMore } from 'react-icons/md'
+
 import { typeList, useConfigurationEditor } from '@features/configurationSettings/model/useConfigurationEditor'
 import ConfigurationSection from '@features/configurationSettings/ui/ConfigurationSection'
+import ChangesBar from '@shared/ui/PSUI/ChangesBar'
+
+import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
+
+import type { AddonConfig } from '@features/configurationSettings/types'
 
 type Props = {
     configData: AddonConfig

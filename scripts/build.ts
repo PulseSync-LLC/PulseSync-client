@@ -1,24 +1,27 @@
 import 'dotenv/config'
+
+import { fileURLToPath } from 'node:url'
+
+import chalk from 'chalk'
+import { exec as _exec, execFileSync, execSync } from 'child_process'
+import crypto from 'crypto'
 import fs from 'fs'
+import yaml from 'js-yaml'
 import os from 'os'
 import path from 'path'
-import crypto from 'crypto'
-import { promisify } from 'util'
-import { exec as _exec, execFileSync, execSync } from 'child_process'
 import { performance } from 'perf_hooks'
-import chalk from 'chalk'
-import yaml from 'js-yaml'
 import * as semver from 'semver'
 import * as tar from 'tar'
-import { fileURLToPath } from 'node:url'
+import { promisify } from 'util'
 import { build as viteBuild } from 'vite'
-import { publishToS3 } from './s3-upload.js'
-import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
-import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
+
 import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
-import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
+import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
+import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
+import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
+import { publishToS3 } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 

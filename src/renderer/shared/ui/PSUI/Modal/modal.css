@@ -1,6 +1,6 @@
 :root {
     --modal-bg: var(--border);
-    --modal-text: #ffffff;
+    --modal-text: #fff;
     --modal-border: rgb(255 255 255 / 6%);
 }
 
@@ -10,18 +10,21 @@
 
 .modal-overlay {
     position: fixed;
-    top: 0;
-    left: 0;
-    right: 0;
-    bottom: 0;
+    inset: 0;
     z-index: 9006;
-    background-color: rgba(0, 0, 0, 0.75);
+
     display: flex;
+
     align-items: center;
     justify-content: center;
-    opacity: 0;
-    transition: opacity 0.5s ease;
+
     overflow: hidden;
+
+    background-color: rgb(0, 0, 0, 0.75);
+
+    opacity: 0;
+
+    transition: opacity 0.5s ease;
 }
 
 .ReactModal__Overlay--after-open {
@@ -33,52 +36,71 @@
 }
 
 .modal-content {
-    outline: none !important;
-    max-width: 720px;
+    display: flex;
+
+    flex-direction: column;
+
     width: 92%;
+    max-width: 720px;
     max-height: 80vh;
+
+    padding: 0;
+
+    overflow-y: auto;
+
+    color: var(--modal-text);
+
+    outline: none !important;
+
+    background-color: var(--modal-bg);
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgb(0, 0, 0, 0.35);
+
     transform: translateY(-20px);
+
     transition:
         transform 0.3s ease,
         opacity 0.3s ease;
-    display: flex;
-    flex-direction: column;
-    background-color: var(--modal-bg);
-    color: var(--modal-text);
-    padding: 0;
-    overflow-y: auto;
-    border-radius: 12px;
-    box-shadow: 0 20px 40px rgba(0, 0, 0, 0.35);
 }
 
 .ReactModal__Content--after-open {
     opacity: 1;
+
     transform: translateY(0);
 }
 
 .ReactModal__Content--before-close {
     opacity: 0;
+
     transform: translateY(-20px);
 }
 
 .modal-header {
-    z-index: 2;
-    display: flex;
-    flex: 0 0 auto;
-    justify-content: space-between;
-    align-items: center;
-    padding: 24px;
-    outline: 1px solid var(--modal-border);
     position: sticky;
     top: 0;
+    z-index: 2;
+
+    display: flex;
+
+    flex: 0 0 auto;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 24px;
+
+    outline: 1px solid var(--modal-border);
+
     background: var(--border);
 }
 
 .modal-header h2 {
     margin: 0;
+
     font-size: 1.25rem;
     font-weight: 600;
-    color: #ffffff;
+
+    color: #fff;
 }
 
 .modal-header button svg {
@@ -87,15 +109,21 @@
 }
 
 .close-button {
-    transition: background 0.2s ease;
-    cursor: pointer;
     display: flex;
+
     align-items: center;
+
     padding: 6px;
-    border-radius: 50%;
-    border: none;
+
+    color: #fff;
+
+    cursor: pointer;
+
     background: transparent;
-    color: #ffffff;
+    border: none;
+    border-radius: 50%;
+
+    transition: background 0.2s ease;
 }
 
 .close-button:hover {
@@ -107,6 +135,7 @@ em {
 }
 
 del {
+    color: rgb(255, 255, 255, 0.5);
+
     text-decoration: line-through;
-    color: rgba(255, 255, 255, 0.5);
 }

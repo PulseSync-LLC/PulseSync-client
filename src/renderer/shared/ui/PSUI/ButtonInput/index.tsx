@@ -1,9 +1,12 @@
 import React, { useEffect, useState } from 'react'
-import * as styles from '@shared/ui/PSUI/ButtonInput/ButtonInput.module.scss'
+
 import clsx from 'clsx'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { MdHelp } from 'react-icons/md'
 import { useTranslation } from 'react-i18next'
+import { MdHelp } from 'react-icons/md'
+
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@shared/ui/PSUI/ButtonInput/ButtonInput.module.scss'
 
 interface ButtonInputProps {
     label: string

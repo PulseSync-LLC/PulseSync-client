@@ -1,5 +1,7 @@
 import React from 'react'
+
 import * as Tooltip from '@radix-ui/react-tooltip'
+
 import * as styles from '@shared/ui/tooltip_button/tooltip.module.scss'
 
 type Side = 'top' | 'right' | 'bottom' | 'left'

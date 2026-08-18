@@ -1,6 +1,7 @@
-import { timeAgo } from '@shared/lib/utils'
-import UserInterface from '@entities/user/model/user.interface'
 import { t } from '@app/i18n'
+import { timeAgo } from '@shared/lib/utils'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 export const getStatusColor = (user: UserInterface, dark = false): string => {
     if (user.status === 'online' && user.currentTrack?.status === 'playing') {

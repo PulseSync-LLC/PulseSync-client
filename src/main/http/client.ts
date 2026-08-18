@@ -1,5 +1,6 @@
 import config from '@common/appConfig'
 import { createHttpClient } from '@common/http/createHttpClient'
+
 import type { HttpResponse, HttpResponseType, PreparedHttpRequest } from '@common/http/types'
 
 function headersToRecord(headers: Headers): Record<string, string> {

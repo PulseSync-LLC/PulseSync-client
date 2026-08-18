@@ -1,23 +1,12 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router'
 
-import userContext from '@entities/user/model/context'
-import Addon from '@entities/addon/model/addon.interface'
-import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
-import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
-import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
-import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
-import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
-import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
-
-import toast from '@shared/ui/toast'
-
-import PageLayout from '@widgets/layout/PageLayout'
-import Loader from '@shared/ui/PSUI/Loader'
-
-import ExtensionView from '@pages/extension/route/extensionview'
-import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
 import {
+    type AddonTypeFilter,
     buildAddonImagePath,
     checkAddonVersionSupported,
     createWhitelistedAddonNames,
@@ -26,13 +15,9 @@ import {
     getUniqueAddonCreators,
     getUniqueAddonTags,
     isAddonWhitelisted,
-    type AddonTypeFilter,
     type SortKey,
     useDebouncedValue,
 } from '@pages/extension/model/addonCatalog'
-import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
-import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
-import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
 import {
     assignAddonCategory,
     createAddonCategory,
@@ -41,20 +26,34 @@ import {
     normalizeAddonOrganization,
     setAddonFavorite,
 } from '@pages/extension/model/addonOrganization'
-
-import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
-import { staticAsset } from '@shared/lib/staticAssets'
-import apolloClient from '@shared/api/apolloClient'
+import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import ExtensionView from '@pages/extension/route/extensionview'
+import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
+import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
+import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
+import PageLayout from '@widgets/layout/PageLayout'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
-import { useTranslation } from 'react-i18next'
 import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, submitAddonForStore } from '@entities/addon/api/storeAddons'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
-import { compareVersions } from '@shared/lib/utils'
-import { useModalContext } from '@app/providers/modal'
+import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
+import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
+import userContext from '@entities/user/model/context'
+import apolloClient from '@shared/api/apolloClient'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { compareVersions } from '@shared/lib/utils'
+import Loader from '@shared/ui/PSUI/Loader'
+import toast from '@shared/ui/toast'
+
+import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload

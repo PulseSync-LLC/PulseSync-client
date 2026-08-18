@@ -1,8 +1,9 @@
-import { defineConfig, type UserConfig } from 'vite'
-import path from 'path'
-import fs from 'fs'
-import { fileURLToPath } from 'node:url'
 import { builtinModules } from 'node:module'
+import { fileURLToPath } from 'node:url'
+
+import fs from 'fs'
+import path from 'path'
+import { defineConfig, type UserConfig } from 'vite'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const packageJson = JSON.parse(fs.readFileSync(path.resolve(__dirname, 'package.json'), 'utf-8')) as {
