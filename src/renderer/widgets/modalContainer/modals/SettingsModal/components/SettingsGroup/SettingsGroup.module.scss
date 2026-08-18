@@ -1,0 +1,56 @@
+.group {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    & + & {
+        margin-top: 18px;
+    }
+}
+
+.header {
+    display: flex;
+
+    gap: 12px;
+
+    align-items: center;
+    justify-content: space-between;
+}
+
+.title {
+    font-size: 12px;
+    font-weight: 800;
+
+    line-height: 1.3;
+
+    color: var(--text-muted);
+
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+}
+
+.meta {
+    min-width: 0;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    line-height: 1.3;
+
+    color: var(--text-secondary);
+
+    white-space: nowrap;
+}
+
+.items {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+}
