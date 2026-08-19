@@ -1,3 +1,5 @@
+#[cfg(windows)]
+use crate::core::install_state::collect_runtime_garbage;
 use crate::{
     cli::args::{Args, arg_value, state_root_arg},
     core::{
@@ -225,7 +227,14 @@ pub fn start(args: &Args) -> Result<Value> {
             }
             SelfUpdateMutationGate::Clear => {}
         }
-        match (verified_live_lease(install_root)?, handoff_request.as_ref()) {
+        let live_lease = verified_live_lease(install_root)?;
+        #[cfg(windows)]
+        if live_lease.is_none()
+            && let Err(error) = collect_runtime_garbage(install_root)
+        {
+            eprintln!("runtime cleanup deferred during start: {error}");
+        }
+        match (live_lease, handoff_request.as_ref()) {
             (Some(lease), None) => return active_lease_result(install_root, args, lease),
             (Some(lease), Some(request)) => {
                 if lease.lease_id != request.active_lease_id
