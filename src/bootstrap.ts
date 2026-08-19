@@ -8,6 +8,7 @@ import { applyHardwareAccelerationPreference } from './main/modules/bootstrap/ha
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
 import { type ApplicationBootstrapRuntime, type ApplicationStartupHandle,StartupCoordinator } from './main/modules/bootstrap/startupCoordinator'
+import { repairWindowsShortcuts } from './main/modules/bootstrap/windowsShortcuts'
 import {
     canonicalStartSucceeded,
     claimShouldUseCanonicalStart,
@@ -197,6 +198,11 @@ async function startPackagedBootstrap(): Promise<void> {
         await showBootstrapFailure(bootstrapWindow, 'bootstrapper-missing')
         return
     }
+    repairWindowsShortcuts({
+        appUserModelId: APP_ID,
+        installRoot: runtimePaths.stateRoot,
+        launcher: runtimePaths.launcher.command,
+    })
 
     const launchReservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
     const handoffId = process.env.PULSESYNC_HANDOFF_ID
