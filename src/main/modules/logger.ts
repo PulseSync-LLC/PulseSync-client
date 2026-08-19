@@ -4,6 +4,8 @@ import log4js from 'log4js'
 import path from 'path'
 
 const LOG_PATH = path.join(app.getPath('userData'), 'logs')
+const includeConsoleAppender = !process.env.PULSESYNC_LAUNCH_RESERVATION_ID
+const categoryAppenders = (...appenders: string[]): string[] => (includeConsoleAppender ? ['out', ...appenders] : appenders)
 
 log4js.configure({
     appenders: {
@@ -74,39 +76,39 @@ log4js.configure({
     },
     categories: {
         date: {
-            appenders: ['out', 'alldateFileLog'],
+            appenders: categoryAppenders('alldateFileLog'),
             level: 'debug',
         },
         http: {
-            appenders: ['out', 'httpLog'],
+            appenders: categoryAppenders('httpLog'),
             level: 'debug',
         },
         main: {
-            appenders: ['out', 'mainProcessLog'],
+            appenders: categoryAppenders('mainProcessLog'),
             level: 'debug',
         },
         modManager: {
-            appenders: ['out', 'modManagerLog'],
+            appenders: categoryAppenders('modManagerLog'),
             level: 'debug',
         },
         socketManager: {
-            appenders: ['out', 'socketManagerLog'],
+            appenders: categoryAppenders('socketManagerLog'),
             level: 'debug',
         },
         nativeModuleManager: {
-            appenders: ['out', 'nativeModuleManagerLog'],
+            appenders: categoryAppenders('nativeModuleManagerLog'),
             level: 'debug',
         },
         renderer: {
-            appenders: ['out', 'renderProcessLog'],
+            appenders: categoryAppenders('renderProcessLog'),
             level: 'debug',
         },
         updater: {
-            appenders: ['out', 'updaterLog'],
+            appenders: categoryAppenders('updaterLog'),
             level: 'debug',
         },
         default: {
-            appenders: ['out', 'alldateFileLog'],
+            appenders: categoryAppenders('alldateFileLog'),
             level: 'debug',
         },
     },
