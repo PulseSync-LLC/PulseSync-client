@@ -112,6 +112,7 @@ pub(super) fn launch_self_update_handoff(
         .unwrap_or(current_process_identity()?);
     let mut command = Command::new(prepared_bootstrapper);
     command
+        .current_dir(install_root)
         .arg("complete-self-update")
         .arg("--json")
         .arg("--transaction-file")
@@ -170,7 +171,7 @@ pub(super) fn launch_self_update_handoff(
         let _ = macos_bundle::signal_process(child_identity.pid, false);
         let _ = remove_self_update_reservation(install_root);
         let _ = macos_bundle::recover_transaction(transaction_file);
-        let _ = launch_app(app_executable, &[]);
+        let _ = launch_app(app_executable, &[], Some(install_root));
         return Err(error);
     }
     let result = write_self_update_result(install_root, "reserved", &reservation)?;

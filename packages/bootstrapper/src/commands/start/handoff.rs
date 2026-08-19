@@ -143,7 +143,7 @@ pub(crate) fn launch_with_active_lease(
     args: &[OsString],
 ) -> Result<(u32, Option<ActiveAppLease>)> {
     let Some(install_root) = install_root else {
-        return Ok((launch_app(app_executable, args)?, None));
+        return Ok((launch_app(app_executable, args, None)?, None));
     };
 
     let launcher = current_process_identity()?;
@@ -153,13 +153,15 @@ pub(crate) fn launch_with_active_lease(
         OsString::from(&reservation.id),
     )];
     let successor_log = install_root.join("logs/bootstrap-successor.log");
-    let pid = match launch_app_with_env_and_log(app_executable, args, &env, &successor_log) {
-        Ok(pid) => pid,
-        Err(error) => {
-            let _ = remove_launch_reservation(install_root);
-            return Err(error);
-        }
-    };
+    let pid =
+        match launch_app_with_env_and_log(app_executable, args, &env, &successor_log, install_root)
+        {
+            Ok(pid) => pid,
+            Err(error) => {
+                let _ = remove_launch_reservation(install_root);
+                return Err(error);
+            }
+        };
     let child = inspect_process_with_retry(pid, app_executable, Duration::from_secs(5))?;
     let lease = finish_launch_reservation(install_root, &mut reservation, &child)?;
     bind_inbox_to_lease(install_root, &lease)?;
@@ -189,14 +191,16 @@ pub(crate) fn launch_handoff_successor(
         ),
     ];
     let successor_log = install_root.join("logs/bootstrap-successor.log");
-    let pid = match launch_app_with_env_and_log(app_executable, args, &env, &successor_log) {
-        Ok(pid) => pid,
-        Err(error) => {
-            context.transfer = mark_handoff_launch_failed(install_root, &context.transfer)?;
-            let _ = remove_launch_reservation(install_root);
-            return Err(error);
-        }
-    };
+    let pid =
+        match launch_app_with_env_and_log(app_executable, args, &env, &successor_log, install_root)
+        {
+            Ok(pid) => pid,
+            Err(error) => {
+                context.transfer = mark_handoff_launch_failed(install_root, &context.transfer)?;
+                let _ = remove_launch_reservation(install_root);
+                return Err(error);
+            }
+        };
     let child = match inspect_process_with_retry(pid, app_executable, Duration::from_secs(5)) {
         Ok(child) => child,
         Err(error) => {

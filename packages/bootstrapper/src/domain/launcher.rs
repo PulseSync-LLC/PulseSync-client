@@ -6,16 +6,24 @@ use std::{
     process::{Command, Stdio},
 };
 
-pub fn launch_app(app_executable: &Path, args: &[OsString]) -> Result<u32> {
-    launch_app_with_env(app_executable, args, &[])
+pub fn launch_app(
+    app_executable: &Path,
+    args: &[OsString],
+    working_directory: Option<&Path>,
+) -> Result<u32> {
+    launch_app_with_env(app_executable, args, &[], working_directory)
 }
 
 pub fn launch_app_with_env(
     app_executable: &Path,
     args: &[OsString],
     env: &[(OsString, OsString)],
+    working_directory: Option<&Path>,
 ) -> Result<u32> {
     let mut command = Command::new(app_executable);
+    if let Some(working_directory) = working_directory {
+        command.current_dir(working_directory);
+    }
     command
         .args(args)
         .envs(env.iter().cloned())
@@ -36,6 +44,7 @@ pub fn launch_app_with_env_and_log(
     args: &[OsString],
     env: &[(OsString, OsString)],
     log_path: &Path,
+    working_directory: &Path,
 ) -> Result<u32> {
     if let Some(parent) = log_path.parent() {
         fs::create_dir_all(parent)?;
@@ -47,6 +56,7 @@ pub fn launch_app_with_env_and_log(
     let stderr = stdout.try_clone()?;
     let mut command = Command::new(app_executable);
     command
+        .current_dir(working_directory)
         .args(args)
         .envs(env.iter().cloned())
         .stdin(Stdio::null())
