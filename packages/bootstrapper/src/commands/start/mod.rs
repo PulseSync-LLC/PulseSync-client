@@ -385,7 +385,7 @@ pub fn start(args: &Args) -> Result<Value> {
                         match macos_bundle::arm_transaction(&selected.path, &current_helper) {
                             Ok(helper) => helper,
                             Err(error) => {
-                                let _ = launch_app(&app_executable, &[]);
+                                let _ = launch_app(&app_executable, &[], install_root.as_deref());
                                 return Err(error);
                             }
                         };

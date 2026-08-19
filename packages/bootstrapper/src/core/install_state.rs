@@ -685,6 +685,7 @@ fn state_root_app_path(
 
 fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result<Vec<PathBuf>> {
     let mut removed = Vec::new();
+    let mut deferred_apps = Vec::new();
     let mut snapshots = vec![
         &state.latest,
         &state.running,
@@ -714,8 +715,10 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
         let name = entry.file_name().to_string_lossy().to_string();
         if entry.file_type()?.is_dir() && name.starts_with("app-") && !keep_apps.contains(&path) {
             assert_inside(state_root, &path, "inactive app")?;
-            fs::remove_dir_all(&path)?;
-            removed.push(path);
+            match fs::remove_dir_all(&path) {
+                Ok(()) => removed.push(path),
+                Err(error) => deferred_apps.push(format!("{}: {error}", path.display())),
+            }
         }
     }
 
@@ -776,7 +779,15 @@ fn cleanup_inactive_runtime(state_root: &Path, state: &InstallStateV3) -> Result
             }
         }
     }
-    Ok(removed)
+    if deferred_apps.is_empty() {
+        Ok(removed)
+    } else {
+        Err(format!(
+            "inactive app cleanup deferred: {}",
+            deferred_apps.join("; ")
+        )
+        .into())
+    }
 }
 
 pub fn collect_runtime_garbage(state_root: &Path) -> Result<Vec<PathBuf>> {
