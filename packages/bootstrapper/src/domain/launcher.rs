@@ -51,7 +51,8 @@ pub fn launch_app_with_env_and_log(
     }
     let stdout = OpenOptions::new()
         .create(true)
-        .append(true)
+        .write(true)
+        .truncate(true)
         .open(log_path)?;
     let stderr = stdout.try_clone()?;
     let mut command = Command::new(app_executable);
