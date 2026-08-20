@@ -1,27 +1,41 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 
-import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdClose, MdDownload, MdStar, MdStarBorder, MdVerifiedUser } from 'react-icons/md'
+import {
+    MdChevronLeft,
+    MdChevronRight,
+    MdClose,
+    MdDataArray,
+    MdDownload,
+    MdInventory2,
+    MdLabel,
+    MdLanguage,
+    MdLightMode,
+    MdMenuBook,
+    MdSchedule,
+    MdStar,
+    MdStarBorder,
+    MdVerifiedUser,
+} from 'react-icons/md'
 
 import GetStoreAddonMetaQuery from '@entities/addon/api/getStoreAddonMeta.query'
 import RateStoreAddonMutation from '@entities/addon/api/rateStoreAddon.mutation'
 import apolloClient from '@shared/api/apolloClient'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
-import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
+import { Avatar } from '@shared/ui/PSUI/Image'
 import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
 import toast from '@shared/ui/toast'
+import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as st from '@pages/store/ui/StoreAddonDetailsModal.module.scss'
 
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import type { Components } from 'react-markdown'
-
-type ModalTab = 'description' | 'readme'
 
 type StoreAddonMetaQuery = {
     getStoreAddonMeta: {
@@ -58,13 +72,28 @@ const MarkdownLink: Components['a'] = ({ href, children }) => {
     )
 }
 
+const formatAge = (value: string, locale: string) => {
+    const timestamp = new Date(value).getTime()
+    if (Number.isNaN(timestamp)) return value
+
+    const days = Math.max(0, Math.round((Date.now() - timestamp) / 86_400_000))
+    return locale === 'ru' ? `${days}д` : `${days}d`
+}
+
 type StoreAddonDetailsModalProps = {
     addon: StoreAddon | null
     isOpen: boolean
     isInstalled: boolean
     actionDisabled: boolean
     actionLabel: string
+    currentUserAvatarHash?: string | null
+    currentUserAvatarType?: string | null
+    relatedAddons: StoreAddon[]
+    installingAddonId: string | null
+    isAddonInstalled: (addonId: string) => boolean
     onAction: () => void
+    onRelatedAddonAction: (addon: StoreAddon) => void
+    onRelatedAddonSelect: (addon: StoreAddon) => void
     onAuthorClick: (author: string) => void
     onRatingChange: (addonId: string, summary: AddonRatingSummary) => void
     onClose: () => void
@@ -76,39 +105,37 @@ export default function StoreAddonDetailsModal({
     isInstalled,
     actionDisabled,
     actionLabel,
+    currentUserAvatarHash,
+    currentUserAvatarType,
+    relatedAddons,
+    installingAddonId,
+    isAddonInstalled,
     onAction,
+    onRelatedAddonAction,
+    onRelatedAddonSelect,
     onAuthorClick,
     onRatingChange,
     onClose,
 }: StoreAddonDetailsModalProps) {
     const { t, i18n } = useTranslation()
-    const [displayedAddon, setDisplayedAddon] = useState(addon)
-    const [activeTab, setActiveTab] = useState<ModalTab>('readme')
     const [readme, setReadme] = useState<string | null>(null)
     const [readmeAddonId, setReadmeAddonId] = useState<string | null>(null)
-    const [readmeLoading, setReadmeLoading] = useState(false)
+    const [readmeLoading, setReadmeLoading] = useState(true)
     const [hoveredRating, setHoveredRating] = useState(0)
     const [ratingSaving, setRatingSaving] = useState(false)
+    const scrollAreaRef = useRef<HTMLDivElement>(null)
+    const relatedRowRef = useRef<HTMLDivElement>(null)
 
     useEffect(() => {
-        if (!addon) return
-        setDisplayedAddon(addon)
-    }, [addon])
-
-    useEffect(() => {
-        if (!addon?.id) return
-        setActiveTab('readme')
         setReadme(null)
         setReadmeAddonId(null)
         setHoveredRating(0)
+        scrollAreaRef.current?.scrollTo({ top: 0 })
     }, [addon?.id])
 
-    const visibleAddon = addon || displayedAddon
-    const release = visibleAddon?.currentRelease
-
     useEffect(() => {
-        const addonId = visibleAddon?.id
-        if (!isOpen || activeTab !== 'readme' || !addonId || readmeAddonId === addonId) return
+        const addonId = addon?.id
+        if (!isOpen || !addonId || readmeAddonId === addonId) return
 
         let active = true
         setReadmeLoading(true)
@@ -121,17 +148,14 @@ export default function StoreAddonDetailsModal({
             })
             .then(response => {
                 if (!active) return
-                const nextReadme = response.data?.getStoreAddonMeta?.readme?.trim() || null
-                setReadme(nextReadme)
+                setReadme(response.data?.getStoreAddonMeta?.readme?.trim() || null)
                 setReadmeAddonId(addonId)
-                if (!nextReadme) setActiveTab('description')
             })
             .catch(error => {
                 console.error('[Store] failed to load addon README', error)
                 if (!active) return
                 setReadme(null)
                 setReadmeAddonId(addonId)
-                setActiveTab('description')
             })
             .finally(() => {
                 if (active) setReadmeLoading(false)
@@ -140,35 +164,31 @@ export default function StoreAddonDetailsModal({
         return () => {
             active = false
         }
-    }, [activeTab, isOpen, readmeAddonId, visibleAddon?.id])
+    }, [addon?.id, isOpen, readmeAddonId])
 
-    if (!visibleAddon || !release) return null
+    if (!addon?.currentRelease) return null
 
-    const readmeUnavailable = readmeAddonId === visibleAddon.id && !readme
-    const changelog = Array.isArray(release.changelog) ? release.changelog : release.changelog ? [release.changelog] : []
+    const release = addon.currentRelease
     const updatedAt = release.approvedAt || release.updatedAt
-    const updatedLabel = new Intl.DateTimeFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US', {
-        day: 'numeric',
-        month: 'short',
-        year: 'numeric',
-    }).format(new Date(updatedAt))
-    const downloadsLabel = new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(visibleAddon.downloadCount)
-    const hasLogo = Boolean(release.avatarUrl)
-    const displayedRating = hoveredRating || visibleAddon.myRating || 0
+    const updatedLabel = formatAge(updatedAt, i18n.language)
+    const downloadsLabel = new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)
+    const displayedRating = hoveredRating || addon.myRating || 0
+    const kindIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
+    const kindClass = addon.type === 'theme' ? st.kindTheme : addon.type === 'script' ? st.kindScript : st.kindWebAddon
 
     const submitRating = async (rating: number) => {
         if (ratingSaving) return
         setRatingSaving(true)
-        const nextRating = visibleAddon.myRating === rating ? null : rating
+        const nextRating = addon.myRating === rating ? null : rating
 
         try {
             const response = await apolloClient.mutate<RateStoreAddonMutationData>({
                 mutation: RateStoreAddonMutation,
-                variables: { id: visibleAddon.id, rating: nextRating },
+                variables: { id: addon.id, rating: nextRating },
             })
             const summary = response.data?.rateStoreAddon
             if (!summary) throw new Error('EMPTY_ADDON_RATING_RESPONSE')
-            onRatingChange(visibleAddon.id, summary)
+            onRatingChange(addon.id, summary)
             setHoveredRating(0)
         } catch (error) {
             console.error('[Store] failed to rate addon', error)
@@ -178,12 +198,167 @@ export default function StoreAddonDetailsModal({
         }
     }
 
+    const scrollRelated = (direction: -1 | 1) => {
+        const row = relatedRowRef.current
+        if (!row) return
+        row.scrollBy({ left: direction * Math.max(470, row.clientWidth * 0.8), behavior: 'smooth' })
+    }
+
     return (
-        <CustomModalPS isOpen={isOpen} onClose={onClose} className={st.modal}>
-            <div className={st.modalLayout}>
-                <div className={st.summaryPane}>
-                    <div className={st.summary}>
-                        <div className={st.banner}>
+        <CustomModalPS inline isOpen={isOpen} onClose={onClose} className={st.modal} backdropClassName={st.backdrop}>
+            <button type="button" className={st.closeButton} onClick={onClose} aria-label={t('common.done')}>
+                <MdClose aria-hidden="true" />
+            </button>
+
+            <div ref={scrollAreaRef} className={st.scrollArea}>
+                <div className={st.heroBackdrop} aria-hidden="true">
+                    <img
+                        src={release.bannerUrl || fallbackBanner}
+                        alt=""
+                        onError={event => {
+                            event.currentTarget.onerror = null
+                            event.currentTarget.src = fallbackBanner
+                        }}
+                    />
+                </div>
+
+                <div className={st.contentShell}>
+                    <header className={st.heroHeader}>
+                        <div className={st.heroIdentity}>
+                            {release.avatarUrl ? (
+                                <img src={release.avatarUrl} alt="" className={st.heroAvatar} />
+                            ) : (
+                                <span className={st.heroAvatarFallback} />
+                            )}
+                            <h1 id="store-addon-details-title">{addon.name}</h1>
+                            {release.usesOfficialTemplate ? (
+                                <TooltipButton
+                                    as="span"
+                                    side="bottom"
+                                    className={st.verifiedTooltip}
+                                    tooltipText={t('store.badges.officialTemplate')}
+                                >
+                                    <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
+                                </TooltipButton>
+                            ) : null}
+                            <span className={st.metaChip}>
+                                <MdInventory2 aria-hidden="true" />v{release.version}
+                            </span>
+                            <span className={st.metaChip}>
+                                <MdSchedule aria-hidden="true" />
+                                {updatedLabel}
+                            </span>
+                            <span className={st.metaChip}>
+                                <MdDownload aria-hidden="true" />
+                                {downloadsLabel}
+                            </span>
+                        </div>
+
+                        <button
+                            type="button"
+                            className={cn(st.actionButton, isInstalled ? st.dangerAction : st.installAction)}
+                            onClick={onAction}
+                            disabled={actionDisabled}
+                        >
+                            <MdDownload aria-hidden="true" />
+                            {actionLabel}
+                        </button>
+                    </header>
+
+                    <section className={st.overview}>
+                        <div className={st.overviewCopy}>
+                            {release.status === 'accepted' ? (
+                                <div className={st.ratingSection}>
+                                    <Avatar
+                                        className={st.ratingAvatar}
+                                        hash={currentUserAvatarHash}
+                                        ext={currentUserAvatarType || undefined}
+                                        sizes="34px"
+                                        alt=""
+                                        allowAnimate
+                                    />
+                                    <div className={st.ratingControl}>
+                                        <div className={st.ratingStars} onMouseLeave={() => setHoveredRating(0)}>
+                                            {[1, 2, 3, 4, 5].map(rating => {
+                                                const active = rating <= displayedRating
+                                                return (
+                                                    <button
+                                                        key={rating}
+                                                        type="button"
+                                                        className={cn(active && st.ratingStarActive)}
+                                                        onMouseEnter={() => setHoveredRating(rating)}
+                                                        onFocus={() => setHoveredRating(rating)}
+                                                        onBlur={() => setHoveredRating(0)}
+                                                        onClick={() => void submitRating(rating)}
+                                                        disabled={ratingSaving}
+                                                        aria-label={t('store.rating.set', { rating })}
+                                                        aria-pressed={addon.myRating === rating}
+                                                    >
+                                                        {active ? <MdStar /> : <MdStarBorder />}
+                                                    </button>
+                                                )
+                                            })}
+                                        </div>
+                                        <span>{t('store.rating.hint')}</span>
+                                    </div>
+                                    <div className={st.ratingScore}>
+                                        <strong>{addon.ratingAverage.toFixed(2)}</strong>
+                                        <span>{t('store.rating.votesShort', { count: addon.ratingCount })}</span>
+                                    </div>
+                                </div>
+                            ) : null}
+
+                            <p className={st.description}>{release.description}</p>
+
+                            <section className={st.infoSection}>
+                                <h2>{t('store.catalog.authors')}</h2>
+                                <div className={st.chipRow}>
+                                    {release.authors.map((author, index) => (
+                                        <button
+                                            key={`${author}:${index}`}
+                                            type="button"
+                                            className={cn(st.authorChip, index === 0 && st.primaryAuthorChip)}
+                                            onClick={() => onAuthorClick(author)}
+                                        >
+                                            <span aria-hidden="true" />
+                                            {author}
+                                        </button>
+                                    ))}
+                                </div>
+                            </section>
+
+                            <section className={st.infoSection}>
+                                <h2>{t('store.catalog.tags')}</h2>
+                                <div className={st.chipRow}>
+                                    <span className={cn(st.tagChip, st.kindChip, kindClass)}>
+                                        {kindIcon}
+                                        {t(`store.kind.${addon.type}`)}
+                                    </span>
+                                    {release.tags.map(tag => (
+                                        <span key={tag} className={st.tagChip}>
+                                            <MdLabel aria-hidden="true" />
+                                            {tag}
+                                        </span>
+                                    ))}
+                                </div>
+                            </section>
+
+                            {release.githubUrl ? (
+                                <section className={st.infoSection}>
+                                    <h2>{t('store.catalog.links')}</h2>
+                                    <button
+                                        type="button"
+                                        className={st.githubButton}
+                                        onClick={() => void desktopApi.system.openExternal(release.githubUrl!)}
+                                    >
+                                        <FaGithub aria-hidden="true" />
+                                        {t('store.catalog.openGithub')}
+                                    </button>
+                                </section>
+                            ) : null}
+                        </div>
+
+                        <div className={st.overviewMedia}>
                             <img
                                 src={release.bannerUrl || fallbackBanner}
                                 alt=""
@@ -193,165 +368,86 @@ export default function StoreAddonDetailsModal({
                                 }}
                             />
                         </div>
+                    </section>
 
-                        <div className={cn(st.identityRow, !hasLogo && st.identityRowWithoutLogo)}>
-                            {release.avatarUrl ? (
-                                <div className={st.libraryLogo}>
-                                    <img src={release.avatarUrl} alt="" />
-                                </div>
-                            ) : null}
-
-                            <div className={st.actions}>
-                                <button
-                                    type="button"
-                                    className={cn(st.actionButton, isInstalled ? st.dangerAction : st.installAction)}
-                                    onClick={onAction}
-                                    disabled={actionDisabled}
-                                >
-                                    <MdDownload aria-hidden="true" />
-                                    {actionLabel}
-                                </button>
-                                <button type="button" className={st.closeButton} onClick={onClose} aria-label={t('common.done')}>
-                                    <MdClose aria-hidden="true" />
-                                </button>
-                            </div>
+                    <section className={st.descriptionSection}>
+                        <div className={st.sectionTitle}>
+                            <MdMenuBook aria-hidden="true" />
+                            <h2>{t('extensions.tabs.description')}</h2>
                         </div>
 
-                        <div className={st.copy}>
-                            <div className={st.headingRow}>
-                                <h1>{visibleAddon.name}</h1>
-                                {release.usesOfficialTemplate ? (
-                                    <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
-                                ) : null}
-                            </div>
-                            <p>{release.description}</p>
+                        <div className={st.readmePanel}>
+                            {readmeLoading ? (
+                                <div className={st.readmeState}>{t('common.loading')}</div>
+                            ) : readme ? (
+                                <MarkdownContent className={st.markdown} components={{ a: MarkdownLink }}>
+                                    {readme}
+                                </MarkdownContent>
+                            ) : (
+                                <div className={st.fallbackDescription}>{release.description}</div>
+                            )}
                         </div>
+                    </section>
 
-                        <div className={st.metadata}>
-                            <div className={st.metaItem}>
-                                <span className={st.metaLabel}>{t('extensions.meta.version')}</span>
-                                <span className={st.metaValue}>{release.version}</span>
-                            </div>
-                            <div className={st.metaItem}>
-                                <span className={st.metaLabel}>{t('extensions.meta.updated')}</span>
-                                <span className={st.metaValue}>{updatedLabel}</span>
-                            </div>
-                            <div className={st.metaItem}>
-                                <span className={st.metaLabel}>{t('store.filters.downloads')}</span>
-                                <span className={st.metaValue}>{downloadsLabel}</span>
-                            </div>
-                            <div className={st.metaItem}>
-                                <span className={st.metaLabel}>{t('extensions.meta.source')}</span>
-                                <span className={st.metaValue}>{t('extensions.source.store')}</span>
-                            </div>
-                        </div>
-
-                        {release.status === 'accepted' ? (
-                            <section className={st.ratingSection}>
-                                <div className={st.ratingSummary}>
-                                    {visibleAddon.ratingCount > 0 ? (
-                                        <>
-                                            <AddonRatingBadge average={visibleAddon.ratingAverage} count={visibleAddon.ratingCount} />
-                                            <span>{t('store.rating.votes', { count: visibleAddon.ratingCount })}</span>
-                                        </>
-                                    ) : (
-                                        <span className={st.ratingPrompt}>{t('store.rating.title')}</span>
-                                    )}
-                                </div>
-                                <div className={st.ratingStars} onMouseLeave={() => setHoveredRating(0)}>
-                                    {[1, 2, 3, 4, 5].map(rating => {
-                                        const active = rating <= displayedRating
-                                        return (
-                                            <button
-                                                key={rating}
-                                                type="button"
-                                                className={cn(active && st.ratingStarActive)}
-                                                onMouseEnter={() => setHoveredRating(rating)}
-                                                onFocus={() => setHoveredRating(rating)}
-                                                onBlur={() => setHoveredRating(0)}
-                                                onClick={() => void submitRating(rating)}
-                                                disabled={ratingSaving}
-                                                aria-label={t('store.rating.set', { rating })}
-                                                aria-pressed={visibleAddon.myRating === rating}
-                                            >
-                                                {active ? <MdStar /> : <MdStarBorder />}
-                                            </button>
-                                        )
-                                    })}
-                                </div>
-                            </section>
-                        ) : null}
-
-                        <section className={st.section}>
-                            <h2>{t('store.catalog.authors')}</h2>
-                            <div className={st.authorRow}>
-                                {release.authors.map(author => (
-                                    <button key={author} type="button" className={st.authorButton} onClick={() => onAuthorClick(author)}>
-                                        <span aria-hidden="true" />
-                                        {author}
+                    {relatedAddons.length ? (
+                        <section className={st.relatedSection}>
+                            <header className={st.relatedHeader}>
+                                <h2>{t('store.catalog.otherAddons')}</h2>
+                                <div className={st.relatedControls}>
+                                    <button type="button" onClick={() => scrollRelated(-1)} aria-label={t('store.catalog.previous')}>
+                                        <MdChevronLeft aria-hidden="true" />
                                     </button>
-                                ))}
+                                    <button type="button" onClick={() => scrollRelated(1)} aria-label={t('store.catalog.next')}>
+                                        <MdChevronRight aria-hidden="true" />
+                                    </button>
+                                </div>
+                            </header>
+
+                            <div ref={relatedRowRef} className={st.relatedRow}>
+                                {relatedAddons.map(relatedAddon => {
+                                    const relatedRelease = relatedAddon.currentRelease
+                                    if (!relatedRelease) return null
+                                    const relatedInstalled = isAddonInstalled(relatedAddon.id)
+                                    const relatedInstalling = installingAddonId === relatedAddon.id
+
+                                    return (
+                                        <ExtensionCardStore
+                                            key={relatedAddon.id}
+                                            variant="poster"
+                                            title={relatedAddon.name}
+                                            subtitle={relatedRelease.description}
+                                            authors={relatedRelease.authors}
+                                            downloads={formatAge(relatedRelease.approvedAt || relatedRelease.updatedAt, i18n.language)}
+                                            topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(
+                                                relatedAddon.downloadCount,
+                                            )}
+                                            ratingAverage={relatedAddon.ratingAverage}
+                                            ratingCount={relatedAddon.ratingCount}
+                                            iconImage={relatedRelease.avatarUrl || undefined}
+                                            backgroundImage={relatedRelease.bannerUrl || undefined}
+                                            kind={relatedAddon.type}
+                                            tags={relatedRelease.tags}
+                                            usedAiDuringDevelopment={relatedRelease.usedAiDuringDevelopment}
+                                            usesOfficialTemplate={relatedRelease.usesOfficialTemplate}
+                                            downloadLabel={
+                                                relatedInstalled
+                                                    ? t('store.remove')
+                                                    : relatedInstalling
+                                                      ? t('common.importing')
+                                                      : t('layout.installAction')
+                                            }
+                                            downloadDisabled={relatedInstalling || (!relatedInstalled && !relatedRelease.downloadUrl?.trim())}
+                                            downloadInstalled={relatedInstalled}
+                                            downloadVariant={relatedInstalled ? 'remove' : 'default'}
+                                            onClick={() => onRelatedAddonSelect(relatedAddon)}
+                                            onDownloadClick={() => onRelatedAddonAction(relatedAddon)}
+                                            onAuthorClick={onAuthorClick}
+                                        />
+                                    )
+                                })}
                             </div>
                         </section>
-
-                        {release.tags?.length ? (
-                            <section className={st.section}>
-                                <h2>{t('store.catalog.tags')}</h2>
-                                <div className={st.tagRow}>
-                                    {release.tags.map(tag => (
-                                        <span key={tag} className={st.tagChip}>
-                                            {tag}
-                                        </span>
-                                    ))}
-                                </div>
-                            </section>
-                        ) : null}
-
-                        {release.githubUrl ? (
-                            <section className={st.section}>
-                                <h2>{t('store.catalog.links')}</h2>
-                                <button type="button" className={st.githubButton} onClick={() => desktopApi.system.openExternal(release.githubUrl!)}>
-                                    <FaGithub aria-hidden="true" />
-                                    {t('store.catalog.openGithub')}
-                                </button>
-                            </section>
-                        ) : null}
-                    </div>
-                </div>
-
-                <div className={st.detailPane}>
-                    <Tabs value={activeTab} onChange={value => setActiveTab(value as ModalTab)} className={st.modalTabsRoot}>
-                        <TabList className={st.modalTabs}>
-                            {!readmeUnavailable ? <Tab value="readme">README</Tab> : null}
-                            <Tab value="description">{t('extensions.tabs.description')}</Tab>
-                        </TabList>
-                    </Tabs>
-
-                    <div className={st.detailContent}>
-                        {activeTab === 'description' || readmeUnavailable ? (
-                            <div className={st.descriptionPanel}>
-                                <p>{release.description}</p>
-                                {changelog.length ? (
-                                    <section className={st.changelogSection}>
-                                        <h2>{t('extensions.tabs.changelog')}</h2>
-                                        <div className={st.changelog}>
-                                            {changelog.map((entry, index) => (
-                                                <div key={index}>{entry}</div>
-                                            ))}
-                                        </div>
-                                    </section>
-                                ) : null}
-                            </div>
-                        ) : (
-                            <div className={st.readmePanel}>
-                                {readmeLoading ? (
-                                    <div className={st.readmeState}>{t('common.loading')}</div>
-                                ) : readme ? (
-                                    <MarkdownContent components={{ a: MarkdownLink }}>{readme}</MarkdownContent>
-                                ) : null}
-                            </div>
-                        )}
-                    </div>
+                    ) : null}
                 </div>
             </div>
         </CustomModalPS>
