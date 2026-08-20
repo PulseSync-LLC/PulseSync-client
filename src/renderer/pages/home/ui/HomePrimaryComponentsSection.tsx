@@ -1,5 +1,6 @@
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdArticle, MdRefresh } from 'react-icons/md'
 
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
@@ -14,6 +15,7 @@ type Props = {
     isModInstalled: boolean
     isMusicInstalled: boolean
     onWhatsNewClick: (componentId: string) => void
+    onCheckUpdatesClick: (componentId: string) => void
 }
 
 const itemClassnameMap = {
@@ -22,7 +24,14 @@ const itemClassnameMap = {
     music: styles.ymItem,
 }
 
-export default function HomePrimaryComponentsSection({ items, versions, isModInstalled, isMusicInstalled, onWhatsNewClick }: Props) {
+export default function HomePrimaryComponentsSection({
+    items,
+    versions,
+    isModInstalled,
+    isMusicInstalled,
+    onWhatsNewClick,
+    onCheckUpdatesClick,
+}: Props) {
     const { t } = useTranslation()
 
     return (
@@ -38,14 +47,40 @@ export default function HomePrimaryComponentsSection({ items, versions, isModIns
                             <div className={styles.componentVersion}>{versions[item.id]}</div>
                         </div>
 
-                        <ButtonV2
-                            type="button"
-                            className={styles.actionButton}
-                            onClick={() => onWhatsNewClick(item.id)}
-                            disabled={(item.id === 'music' && !isMusicInstalled) || (item.id === 'mod' && !isModInstalled)}
-                        >
-                            {t('pages.home.whatsNew')}
-                        </ButtonV2>
+                        {item.id === 'music' ? (
+                            <ButtonV2
+                                type="button"
+                                className={styles.actionButton}
+                                onClick={() => onWhatsNewClick(item.id)}
+                                disabled={!isMusicInstalled}
+                            >
+                                {t('pages.home.whatsNew')}
+                            </ButtonV2>
+                        ) : (
+                            <div className={styles.primaryActions}>
+                                <ButtonV2
+                                    type="button"
+                                    className={styles.changelogButton}
+                                    onClick={() => onWhatsNewClick(item.id)}
+                                    disabled={item.id === 'mod' && !isModInstalled}
+                                    aria-label={t('pages.home.whatsNew')}
+                                    title={t('pages.home.whatsNew')}
+                                >
+                                    <MdArticle aria-hidden="true" />
+                                </ButtonV2>
+                                <ButtonV2
+                                    type="button"
+                                    className={cn(styles.actionButton, styles.updateButton)}
+                                    onClick={() => onCheckUpdatesClick(item.id)}
+                                    disabled={item.id === 'mod' && !isModInstalled}
+                                    aria-label={t('contextMenu.misc.checkUpdates')}
+                                    title={t('contextMenu.misc.checkUpdates')}
+                                >
+                                    <MdRefresh aria-hidden="true" />
+                                    {t('pages.home.checkUpdatesAction')}
+                                </ButtonV2>
+                            </div>
+                        )}
                     </article>
                 ))}
             </div>

@@ -1058,6 +1058,7 @@
             "newsEmptyDescription": "Как только команда PulseSync опубликует новый материал, он появится здесь.",
             "newsError": "Не удалось загрузить новости",
             "whatsNew": "Что нового?",
+            "checkUpdatesAction": "Проверить",
             "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
             "musicReleaseNotesFallbackVersion": "По умолчанию",
             "installed": "Установлено",
