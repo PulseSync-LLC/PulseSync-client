@@ -17,9 +17,9 @@ import TooltipButton from '@shared/ui/tooltip_button'
 import * as headerStyles from '@widgets/layout/header.module.scss'
 import * as styles from '@widgets/layout/NotificationsBell.module.scss'
 
-import type { NotificationTone } from '@app/providers/notifications/presentation';
+import type { NotificationTone } from '@app/providers/notifications/presentation'
 import type { NotificationItem } from '@app/providers/notifications/types'
-import type { MouseEvent} from 'react';
+import type { MouseEvent } from 'react'
 
 const WEBSITE_ORIGIN = (() => {
     try {

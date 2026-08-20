@@ -1,16 +1,6 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
 
-import {
-    CategoryScale,
-    Chart as ChartJS,
-    Filler,
-    Legend,
-    LinearScale,
-    LineElement,
-    PointElement,
-    Title,
-    Tooltip,
-} from 'chart.js'
+import { CategoryScale, Chart as ChartJS, Filler, Legend, LinearScale, LineElement, PointElement, Title, Tooltip } from 'chart.js'
 import { Line } from 'react-chartjs-2'
 import { useTranslation } from 'react-i18next'
 import { MdAccessTime, MdGroups, MdOnlinePrediction, MdTrendingUp } from 'react-icons/md'
@@ -23,9 +13,7 @@ import toast from '@shared/ui/toast'
 
 import * as styles from '@features/developerTools/DeveloperToolsPanel.module.scss'
 
-import type {
-    InteractionMode,
-    ScriptableContext} from 'chart.js';
+import type { InteractionMode, ScriptableContext } from 'chart.js'
 
 ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, Tooltip, Filler, Legend)
 

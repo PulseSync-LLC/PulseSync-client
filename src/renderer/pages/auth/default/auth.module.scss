@@ -47,13 +47,11 @@
 .stars1 {
     background-image: radial-gradient(2px 2px at 20px 30px, #fff, transparent),
         radial-gradient(2px 2px at 40px 70px, rgb(255, 255, 255, 0.9), transparent), radial-gradient(1.5px 1.5px at 90px 40px, #fff, transparent),
-        radial-gradient(2px 2px at 160px 120px, rgb(255, 255, 255, 0.95), transparent),
-        radial-gradient(1.5px 1.5px at 250px 80px, #fff, transparent),
-        radial-gradient(2px 2px at 300px 150px, rgb(255, 255, 255, 0.85), transparent),
-        radial-gradient(1.5px 1.5px at 370px 200px, #fff, transparent), radial-gradient(2px 2px at 450px 50px, rgb(255, 255, 255, 0.9), transparent),
-        radial-gradient(1.5px 1.5px at 520px 180px, #fff, transparent),
-        radial-gradient(2px 2px at 600px 100px, rgb(255, 255, 255, 0.95), transparent),
-        radial-gradient(1.5px 1.5px at 680px 250px, #fff, transparent), radial-gradient(2px 2px at 750px 170px, rgb(255, 255, 255, 0.8), transparent);
+        radial-gradient(2px 2px at 160px 120px, rgb(255, 255, 255, 0.95), transparent), radial-gradient(1.5px 1.5px at 250px 80px, #fff, transparent),
+        radial-gradient(2px 2px at 300px 150px, rgb(255, 255, 255, 0.85), transparent), radial-gradient(1.5px 1.5px at 370px 200px, #fff, transparent),
+        radial-gradient(2px 2px at 450px 50px, rgb(255, 255, 255, 0.9), transparent), radial-gradient(1.5px 1.5px at 520px 180px, #fff, transparent),
+        radial-gradient(2px 2px at 600px 100px, rgb(255, 255, 255, 0.95), transparent), radial-gradient(1.5px 1.5px at 680px 250px, #fff, transparent),
+        radial-gradient(2px 2px at 750px 170px, rgb(255, 255, 255, 0.8), transparent);
     background-size: 800px 300px;
 
     animation: starsMove1 120s linear infinite;

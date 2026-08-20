@@ -2,7 +2,7 @@ import React, { useMemo } from 'react'
 
 import { resolveCdnMedia } from '@shared/ui/PSUI/Image/shared'
 
-import type { CdnImageBaseProps} from '@shared/ui/PSUI/Image/shared';
+import type { CdnImageBaseProps } from '@shared/ui/PSUI/Image/shared'
 
 export type CdnAnimatedImageProps = CdnImageBaseProps & {
     allowAnimate?: boolean

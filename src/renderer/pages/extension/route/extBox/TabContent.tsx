@@ -1,4 +1,4 @@
-import React, { useEffect,useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
 
 import path from 'path'
 import { useTranslation } from 'react-i18next'
@@ -19,7 +19,7 @@ import * as styles from '@pages/extension/route/extensionview.module.scss'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 import type { AddonConfig } from '@features/configurationSettings/types'
-import type { ActiveTab, DocTab} from '@pages/extension/route/extBox/types';
+import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
 
 interface Props {
     active: ActiveTab

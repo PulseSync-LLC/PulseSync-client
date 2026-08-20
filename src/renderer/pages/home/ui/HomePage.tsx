@@ -3,7 +3,7 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
-import { type HomeSecondaryComponent,primaryComponents, secondaryComponents } from '@pages/home/model/homeDashboard'
+import { type HomeSecondaryComponent, primaryComponents, secondaryComponents } from '@pages/home/model/homeDashboard'
 import HomeNewsSection from '@pages/home/ui/HomeNewsSection'
 import HomePrimaryComponentsSection from '@pages/home/ui/HomePrimaryComponentsSection'
 import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'

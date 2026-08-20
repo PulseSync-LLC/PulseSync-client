@@ -9,7 +9,7 @@ import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
 import { getAddonsRoot } from './addonPaths'
-import { formatSizeUnits,getFolderSize } from './appUtils'
+import { formatSizeUnits, getFolderSize } from './appUtils'
 
 import type Addon from '@entities/addon/model/addon.interface'
 

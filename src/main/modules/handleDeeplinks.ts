@@ -6,7 +6,7 @@ import logger from './logger'
 import { extractInstallModUpdateFromDeepLink, installModUpdateFromAsar } from './mod/installModUpdateFrom'
 import { isUiReady, runWhenUiReady } from './uiReady'
 
-import type { BrowserAuthCredentials} from './auth/browserAuth';
+import type { BrowserAuthCredentials } from './auth/browserAuth'
 
 let pendingInstallModUpdateFrom: { path: string; source: 'deeplink' } | null = null
 let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null

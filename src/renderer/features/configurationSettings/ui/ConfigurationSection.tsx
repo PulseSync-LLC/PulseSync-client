@@ -1,7 +1,7 @@
 import React from 'react'
 
 import clsx from 'clsx'
-import { MdAdd, MdContentCopy, MdDelete, MdDragIndicator, MdUnfoldLess,MdUnfoldMore } from 'react-icons/md'
+import { MdAdd, MdContentCopy, MdDelete, MdDragIndicator, MdUnfoldLess, MdUnfoldMore } from 'react-icons/md'
 
 import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
 import ConfigurationItemCard from '@features/configurationSettings/ui/ConfigurationItemCard'

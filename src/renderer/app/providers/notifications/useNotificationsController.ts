@@ -5,7 +5,7 @@ import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
 
-import type { NotificationItem,NotificationsContextValue } from '@app/providers/notifications/types'
+import type { NotificationItem, NotificationsContextValue } from '@app/providers/notifications/types'
 
 type NotificationsListResponse = {
     notifications: NotificationItem[]

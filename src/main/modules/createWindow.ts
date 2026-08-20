@@ -1,6 +1,6 @@
 import { fileURLToPath } from 'node:url'
 
-import { app, BrowserWindow, powerMonitor, screen,shell } from 'electron'
+import { app, BrowserWindow, powerMonitor, screen, shell } from 'electron'
 
 import fs from 'original-fs'
 import path from 'path'
@@ -16,7 +16,7 @@ import { refreshRemoteLocalization } from './localization'
 import logger from './logger'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import { importPextFile, isPextFilePath } from './pextImporter'
-import { type MainRendererSource,resolveMainRendererSources } from './rendererSource'
+import { type MainRendererSource, resolveMainRendererSources } from './rendererSource'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
 import {
     buildRemoteRendererContentSecurityPolicy,

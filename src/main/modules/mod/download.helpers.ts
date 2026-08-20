@@ -2,7 +2,7 @@ import axios from 'axios'
 import crypto from 'crypto'
 import * as https from 'https'
 import * as fs from 'original-fs'
-import { pipeline as nodePipeline,Transform } from 'stream'
+import { pipeline as nodePipeline, Transform } from 'stream'
 import { promisify } from 'util'
 
 import RendererEvents from '../../../common/types/rendererEvents'
@@ -10,9 +10,9 @@ import { t } from '../../i18n'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import logger from '../logger'
 
-import type { RendererEvent } from '../../../common/types/rendererEvents';
+import type { RendererEvent } from '../../../common/types/rendererEvents'
 import type { BrowserWindow } from 'electron'
-import type { Readable} from 'stream';
+import type { Readable } from 'stream'
 
 const pipeline = promisify(nodePipeline)
 const DOWNLOAD_REQUEST_TIMEOUT_MS = 30_000

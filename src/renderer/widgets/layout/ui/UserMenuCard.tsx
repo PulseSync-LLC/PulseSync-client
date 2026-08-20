@@ -12,7 +12,7 @@ import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/header.module.scss'
 
 import type UserInterface from '@entities/user/model/user.interface'
-import type { CSSProperties } from 'react';
+import type { CSSProperties } from 'react'
 
 type Props = {
     avatarInputRef: React.RefObject<HTMLInputElement | null>

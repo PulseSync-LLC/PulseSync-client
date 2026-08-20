@@ -5,7 +5,7 @@ import ButtonV2 from '@shared/ui/buttonV2'
 
 import * as styles from '@shared/ui/containerV2/container.module.scss'
 
-import type { CSSProperties } from 'react';
+import type { CSSProperties } from 'react'
 
 interface p {
     titleName: string

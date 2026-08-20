@@ -22,7 +22,7 @@ import { registerSocketClientEvents } from './events/registerSocketClientEvents'
 import { createHttpRequestHandler } from './httpRequestHandler'
 
 import type { Track } from '@entities/track/model/track.interface'
-import type { Socket } from 'socket.io';
+import type { Socket } from 'socket.io'
 
 let data: Track = trackInitials
 let server: http.Server | null = null

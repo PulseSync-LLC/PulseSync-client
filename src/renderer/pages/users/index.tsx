@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef,useState } from 'react'
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import cn from 'clsx'
 import debounce from 'lodash.debounce'
@@ -6,7 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
 
 import { useModalContext } from '@app/providers/modal'
-import { getUserGridMetrics, SORT_FIELDS, sortUsers,USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH } from '@pages/users/model/userList'
+import { getUserGridMetrics, SORT_FIELDS, sortUsers, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH } from '@pages/users/model/userList'
 import PageLayout from '@widgets/layout/PageLayout'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
 import UserCardV2 from '@entities/user/ui/userCardV2'

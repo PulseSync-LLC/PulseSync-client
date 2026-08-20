@@ -10,7 +10,7 @@ import { staticAsset } from '@shared/lib/staticAssets'
 
 import * as s from './TabNavigation.module.scss'
 
-import type { ActiveTab, DocTab} from '@pages/extension/route/extBox/types';
+import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
 
 interface TabItem {
     title: string

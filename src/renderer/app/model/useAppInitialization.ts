@@ -1,4 +1,4 @@
-import { type Dispatch, type MutableRefObject, type SetStateAction,useEffect, useRef } from 'react'
+import { type Dispatch, type MutableRefObject, type SetStateAction, useEffect, useRef } from 'react'
 
 import config from '@common/appConfig'
 import { fetchSettings } from '@entities/settings/api/settings'

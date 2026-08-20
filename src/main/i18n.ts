@@ -5,7 +5,7 @@ import i18next from 'i18next'
 import en from '../locales/bundled/en/main.json'
 import ru from '../locales/bundled/ru/main.json'
 
-import type { TOptions } from 'i18next';
+import type { TOptions } from 'i18next'
 
 type MainTranslateOptions = Omit<TOptions, 'defaultValue'>
 

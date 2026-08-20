@@ -30,7 +30,7 @@ import { downloadAndExtractUnpacked, downloadAndUpdateFile } from './network'
 import { getGithubModRelease } from './network/releaseCatalog'
 
 import type { ModDownloadFailure } from './network/types'
-import type { BrowserWindow} from 'electron';
+import type { BrowserWindow } from 'electron'
 
 const State = getState()
 const PROGRESS_ASAR_ONLY = { base: 0, scale: 0.95, resetOnComplete: false }

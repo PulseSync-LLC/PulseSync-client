@@ -13,7 +13,7 @@ import { normalizeAddonConfig } from '@features/configurationSettings/types'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
 import type Addon from '@entities/addon/model/addon.interface'
-import type { AddonConfig} from '@features/configurationSettings/types';
+import type { AddonConfig } from '@features/configurationSettings/types'
 
 type UseConfigResult = {
     configExists: boolean | null

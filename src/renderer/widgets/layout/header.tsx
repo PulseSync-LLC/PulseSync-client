@@ -38,8 +38,8 @@ import * as inputStyle from '../../../../static/styles/page/textInputContainer.m
 import * as styles from '@widgets/layout/header.module.scss'
 
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-import type { PlayStatus } from '@widgets/layout/model/playStatus';
-import type { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals';
+import type { PlayStatus } from '@widgets/layout/model/playStatus'
+import type { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 
 interface p {
     goBack?: boolean

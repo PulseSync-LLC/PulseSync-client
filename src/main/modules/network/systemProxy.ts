@@ -1,4 +1,4 @@
-import { app, net, type Session,session } from 'electron'
+import { app, net, type Session, session } from 'electron'
 
 import axios, { type AxiosAdapter, AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
 import { PassThrough } from 'stream'
