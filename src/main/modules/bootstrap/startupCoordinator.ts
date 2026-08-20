@@ -6,7 +6,7 @@ import { acknowledgeActiveRuntime } from '../bootstrapper/runtimeCommands'
 import logger from '../logger'
 import { getDesktopUpdateManifestRequest } from '../updater/desktopManifestSource'
 import { getUpdateSource } from '../updater/updateSource'
-import { handoffPreparedUpdate,setLaunchHandoffRuntime } from './launchHandoff'
+import { handoffPreparedUpdate, setLaunchHandoffRuntime } from './launchHandoff'
 import { updateCoordinator } from './updateCoordinator'
 
 import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'

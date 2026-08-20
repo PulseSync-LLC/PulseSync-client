@@ -3,7 +3,7 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 import { Modals } from '@app/providers/modal/modals'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
-import type { ModalName, ModalProviderProps, ModalsContextValue, ModalsState,ModalState, ModalStatePatch } from '@app/providers/modal/types'
+import type { ModalName, ModalProviderProps, ModalsContextValue, ModalsState, ModalState, ModalStatePatch } from '@app/providers/modal/types'
 
 const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },

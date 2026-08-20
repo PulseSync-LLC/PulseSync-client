@@ -14,8 +14,7 @@
 
     overflow: auto;
 
-    background:
-        radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
+    background: radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
         radial-gradient(ellipse 38% 34% at 100% 0, color-mix(in srgb, var(--catalog-edge-right, #040404) 58%, #040404) 0%, transparent 100%), #040404;
 }
 

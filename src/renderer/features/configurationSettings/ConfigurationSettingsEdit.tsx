@@ -2,7 +2,7 @@ import React, { useRef } from 'react'
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { MdAdd, MdUnfoldLess,MdUnfoldMore } from 'react-icons/md'
+import { MdAdd, MdUnfoldLess, MdUnfoldMore } from 'react-icons/md'
 
 import { typeList, useConfigurationEditor } from '@features/configurationSettings/model/useConfigurationEditor'
 import ConfigurationSection from '@features/configurationSettings/ui/ConfigurationSection'

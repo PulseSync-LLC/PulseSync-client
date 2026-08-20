@@ -16,7 +16,7 @@ import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 
 import * as s from '@pages/extension/route/extensionview.module.scss'
 
-import type { ActiveTab, ExtensionViewProps} from '@pages/extension/route/extBox/types';
+import type { ActiveTab, ExtensionViewProps } from '@pages/extension/route/extBox/types'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({
     addon,

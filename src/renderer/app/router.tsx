@@ -1,6 +1,6 @@
 import React, { lazy, Suspense, useContext } from 'react'
 
-import { createHashRouter,Navigate } from 'react-router'
+import { createHashRouter, Navigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import HomePage from '@pages/home'

@@ -221,4 +221,4 @@ export function useExperiments() {
 }
 
 export type { ClientExperimentKey, KnownClientExperimentKey } from '@app/providers/experiments/constants'
-export { CLIENT_EXPERIMENTS, isKnownClientExperimentKey,KNOWN_CLIENT_EXPERIMENT_KEYS } from '@app/providers/experiments/constants'
+export { CLIENT_EXPERIMENTS, isKnownClientExperimentKey, KNOWN_CLIENT_EXPERIMENT_KEYS } from '@app/providers/experiments/constants'

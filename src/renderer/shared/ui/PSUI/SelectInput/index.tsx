@@ -3,13 +3,13 @@ import { createPortal } from 'react-dom'
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { MdCheck,MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
+import { MdCheck, MdHelp, MdKeyboardArrowDown } from 'react-icons/md'
 
 import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as s from '@shared/ui/PSUI/SelectInput/SelectInput.module.scss'
 
-import type { ReactElement} from 'react';
+import type { ReactElement } from 'react'
 
 type Option = { value: string | number; label: string; searchText?: string }
 

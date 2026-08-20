@@ -1,5 +1,5 @@
-import type { PulseSyncDesktopApi } from './src/common/desktopApi/contract'
-import type { BootstrapWindowApi } from './src/common/types/bootstrapEvents'
+import type { PulseSyncDesktopApi } from '@common/desktopApi/contract'
+import type { BootstrapWindowApi } from '@common/types/bootstrapEvents'
 
 declare global {
     interface Window {

@@ -18,10 +18,10 @@ import { resetProgress, sendProgress, sendToRenderer, setProgress } from './down
 import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
 
-import type { RendererEvent } from '../../../common/types/rendererEvents';
+import type { RendererEvent } from '../../../common/types/rendererEvents'
 import type { Paths } from './mod-files'
 import type { RemoteModInfo } from './network/modCatalog'
-import type { BrowserWindow } from 'electron';
+import type { BrowserWindow } from 'electron'
 
 const State = getState()
 const MUSIC_CLOSE_TIMEOUT_MS = 5000

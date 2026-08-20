@@ -5,7 +5,7 @@ import isAppDev from '../../utils/isAppDev'
 import logger from '../logger'
 import { getState } from '../state'
 
-import type { BrowserWindow} from 'electron';
+import type { BrowserWindow } from 'electron'
 
 const State = getState()
 const BROWSER_AUTH_ACTION = 'BROWSER_AUTH'

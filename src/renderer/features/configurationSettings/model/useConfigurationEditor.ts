@@ -1,8 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-import {
-    normalizeAddonConfig
-} from '@features/configurationSettings/types'
+import { normalizeAddonConfig } from '@features/configurationSettings/types'
 
 import type {
     AddonConfig,
@@ -13,7 +11,8 @@ import type {
     Section,
     SelectorItem,
     SliderItem,
-    TextItem} from '@features/configurationSettings/types';
+    TextItem,
+} from '@features/configurationSettings/types'
 
 export function produce<S>(state: S, mut: (draft: S) => void): S {
     const copy: S = structuredClone(state as any)

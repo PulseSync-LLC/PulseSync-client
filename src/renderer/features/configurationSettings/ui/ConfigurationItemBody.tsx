@@ -13,7 +13,7 @@ import TextInput from '@shared/ui/PSUI/TextInput'
 
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
 
-import type { AddonConfig,ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
+import type { AddonConfig, ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
 
 type Props = {
     cfg: AddonConfig

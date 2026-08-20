@@ -1,4 +1,4 @@
-import { app, BrowserWindow, type BrowserWindow as BrowserWindowType,dialog, ipcMain } from 'electron'
+import { app, BrowserWindow, type BrowserWindow as BrowserWindowType, dialog, ipcMain } from 'electron'
 
 import * as fsp from 'fs/promises'
 import * as fs from 'original-fs'
@@ -20,7 +20,6 @@ import { registerLocalizationIpc } from './main/modules/localization'
 import logger from './main/modules/logger'
 import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
 import { modManager } from './main/modules/mod/modManager'
-import { startThemeWatcher } from './main/modules/nativeModules'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
 import {
     consumePendingBrowserAuthFromDeepLink,
@@ -34,11 +33,10 @@ import createTray from './main/modules/tray'
 import { runWhenUiReady } from './main/modules/uiReady'
 import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './main/modules/updater/updater'
 import { prestartCheck } from './main/startup/prestartCheck'
-import { asarFilename, musicPath, selectedAddon, setMusicPath, setSelectedAddon, setUpdated } from './main/startup/runtimeState'
+import { selectedAddon, setMusicPath, setSelectedAddon, setUpdated } from './main/startup/runtimeState'
 import { getAddonsRoot, resolveExistingDirectoryInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from './main/utils/addonPaths'
-import { migrateLegacyAddonSettings } from './main/utils/addonSettingsMigration'
-import { createDefaultAddonIfNotExists, loadAddons } from './main/utils/addonUtils'
-import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
+import { loadAddons } from './main/utils/addonUtils'
+import { findAppByName, getPathToYandexMusic, isMac, isWindows } from './main/utils/appUtils'
 import isAppDev from './main/utils/isAppDev'
 import { checkCLIArguments } from './main/utils/processUtils'
 import { readBufResilient } from './main/utils/readBufResilient'
@@ -64,9 +62,11 @@ const registerPulseSyncProtocol = (): void => {
     try {
         const entryFile = process.argv[1]
         const isDevProtocolRegistration = Boolean(process.defaultApp || (isAppDev && entryFile))
-        isDevProtocolRegistration
-            ? app.setAsDefaultProtocolClient('pulsesync', process.execPath, entryFile ? [path.resolve(entryFile)] : [])
-            : app.setAsDefaultProtocolClient('pulsesync')
+        if (isDevProtocolRegistration && entryFile) {
+            app.setAsDefaultProtocolClient('pulsesync', process.execPath, [path.resolve(entryFile)])
+        } else {
+            app.setAsDefaultProtocolClient('pulsesync')
+        }
     } catch (error) {
         logger.main.warn('Failed to register pulsesync:// protocol handler:', error)
     }

@@ -3,7 +3,7 @@ import React, { useEffect, useMemo, useRef, useState } from 'react'
 import clsx from 'clsx'
 import path from 'path'
 import { useTranslation } from 'react-i18next'
-import { MdClose,MdFolderOpen, MdHelp } from 'react-icons/md'
+import { MdClose, MdFolderOpen, MdHelp } from 'react-icons/md'
 
 import { desktopApi } from '@shared/desktop/desktopApi'
 import TooltipButton from '@shared/ui/tooltip_button'

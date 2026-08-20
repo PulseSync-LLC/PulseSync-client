@@ -7,7 +7,7 @@ import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporte
 
 import type { LaunchRequestEnvelopeV1 } from './bootstrapper/contracts'
 
-export { consumePendingBrowserAuthFromDeepLink,consumePendingInstallModUpdateFromPath } from './handleDeeplinks'
+export { consumePendingBrowserAuthFromDeepLink, consumePendingInstallModUpdateFromPath } from './handleDeeplinks'
 
 export let isFirstInstance = false
 

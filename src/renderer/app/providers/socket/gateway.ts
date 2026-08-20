@@ -6,7 +6,7 @@ import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
 
 import type UserInterface from '@entities/user/model/user.interface'
-import type { SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents';
+import type { SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents'
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import type { Socket } from 'socket.io-client'
 

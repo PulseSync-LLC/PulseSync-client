@@ -4,7 +4,7 @@ import cn from 'clsx'
 
 import * as styles from '@shared/ui/buttonV2/button.module.scss'
 
-import type { ButtonHTMLAttributes, CSSProperties} from 'react';
+import type { ButtonHTMLAttributes, CSSProperties } from 'react'
 
 interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     onClick?: (event: React.MouseEvent<HTMLButtonElement>) => void

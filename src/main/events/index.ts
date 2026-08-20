@@ -1,6 +1,6 @@
 import os from 'node:os'
 
-import { app, clipboard, dialog, ipcMain, Notification, session as electronSession,session, shell } from 'electron'
+import { app, clipboard, dialog, ipcMain, Notification, session as electronSession, session, shell } from 'electron'
 
 import AdmZip from 'adm-zip'
 import axios from 'axios'
@@ -63,7 +63,7 @@ import { readBufResilient } from '../utils/readBufResilient'
 
 import type { DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
 import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
-import type { BrowserWindow} from 'electron';
+import type { BrowserWindow } from 'electron'
 
 const updater = getUpdater()
 const State = getState()

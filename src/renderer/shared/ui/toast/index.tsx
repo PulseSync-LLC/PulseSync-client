@@ -1,14 +1,14 @@
-import React, { useCallback,useEffect, useLayoutEffect, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
 
 import cn from 'clsx'
 import toast from 'react-hot-toast'
-import { MdCheckCircle, MdClose,MdDownload, MdError, MdImportExport, MdInfo, MdLoop, MdWarning } from 'react-icons/md'
+import { MdCheckCircle, MdClose, MdDownload, MdError, MdImportExport, MdInfo, MdLoop, MdWarning } from 'react-icons/md'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
 
 import * as styles from '@shared/ui/toast/toast.module.scss'
 
-import type { JSX } from 'react';
-import type { Renderable, ToastOptions } from 'react-hot-toast';
+import type { JSX } from 'react'
+import type { Renderable, ToastOptions } from 'react-hot-toast'
 
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 

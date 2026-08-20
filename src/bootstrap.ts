@@ -3,11 +3,11 @@ import path from 'node:path'
 
 import { app } from 'electron'
 
-import { type BootstrapWindowController,createBootstrapWindow } from './main/modules/bootstrap/bootstrapWindow'
+import { type BootstrapWindowController, createBootstrapWindow } from './main/modules/bootstrap/bootstrapWindow'
 import { applyHardwareAccelerationPreference } from './main/modules/bootstrap/hardwareAcceleration'
 import { LaunchInbox } from './main/modules/bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './main/modules/bootstrap/launchQueue'
-import { type ApplicationBootstrapRuntime, type ApplicationStartupHandle,StartupCoordinator } from './main/modules/bootstrap/startupCoordinator'
+import { type ApplicationBootstrapRuntime, type ApplicationStartupHandle, StartupCoordinator } from './main/modules/bootstrap/startupCoordinator'
 import { repairWindowsShortcuts } from './main/modules/bootstrap/windowsShortcuts'
 import {
     canonicalStartSucceeded,
@@ -15,7 +15,7 @@ import {
     normalizeSecondInstanceArgv,
     requiresCanonicalStart,
 } from './main/modules/bootstrapper/launchRouting'
-import { type BootstrapperRuntimePaths,getBootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
+import { type BootstrapperRuntimePaths, getBootstrapperRuntimePaths } from './main/modules/bootstrapper/paths'
 import {
     claimActiveApp,
     repairActiveRuntime,

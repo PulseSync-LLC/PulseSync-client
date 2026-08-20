@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useState } from 'react'
 import { staticAsset } from '@shared/lib/staticAssets'
 import CdnAnimatedImage from '@shared/ui/PSUI/Image/CdnAnimatedImage'
 
-import type { CdnAnimatedImageProps } from '@shared/ui/PSUI/Image/CdnAnimatedImage';
+import type { CdnAnimatedImageProps } from '@shared/ui/PSUI/Image/CdnAnimatedImage'
 
 export type AvatarProps = Omit<CdnAnimatedImageProps, 'type'>
 

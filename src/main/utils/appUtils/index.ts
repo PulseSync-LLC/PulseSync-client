@@ -1,7 +1,7 @@
 import { app, dialog, shell } from 'electron'
 
 import axios from 'axios'
-import { exec, execFile, execSync,spawn } from 'child_process'
+import { exec, execFile, execSync, spawn } from 'child_process'
 import fso, { promises as fsp } from 'original-fs'
 import os from 'os'
 import path from 'path'

@@ -1,7 +1,7 @@
 import RendererEvents from '@common/types/rendererEvents'
 
 import logger from './logger'
-import { type MainRendererSource,resolveMainRendererSource } from './rendererSource'
+import { type MainRendererSource, resolveMainRendererSource } from './rendererSource'
 
 import type { BrowserWindow } from 'electron'
 

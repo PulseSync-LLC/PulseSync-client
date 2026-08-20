@@ -162,20 +162,17 @@
 }
 
 .ymItem {
-    background:
-        conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
+    background: conic-gradient(from 0deg at 100% 100%, #fed42b -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #fed42b 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .modItem {
-    background:
-        conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
+    background: conic-gradient(from 0deg at 100% 100%, #5865f2 -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #5865f2 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
 .clientItem {
-    background:
-        conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
+    background: conic-gradient(from 0deg at 100% 100%, #3e6aff -1.26deg, rgb(0, 0, 0, 0.31) 8.08deg, #3e6aff 358.74deg, rgb(0, 0, 0, 0.31) 368.08deg),
         var(--surface-secondary);
 }
 
@@ -570,8 +567,7 @@
     position: absolute;
     inset: 0;
 
-    background:
-        radial-gradient(circle at top right, rgb(255, 255, 255, 0.24) 0%, rgb(255, 255, 255, 0) 30%),
+    background: radial-gradient(circle at top right, rgb(255, 255, 255, 0.24) 0%, rgb(255, 255, 255, 0) 30%),
         linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-tertiary) 55%, var(--surface-secondary) 100%);
 }
 
@@ -744,8 +740,7 @@
 
     text-align: center;
 
-    background:
-        radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%),
+    background: radial-gradient(circle at top, color-mix(in srgb, var(--text-secondary) 20%, transparent) 0%, transparent 45%),
         color-mix(in srgb, var(--surface-elevated) 76%, transparent);
     border: 1px solid color-mix(in srgb, var(--text-secondary) 24%, transparent);
     border-radius: 18px;

@@ -2,7 +2,7 @@ import isAppDev from '../utils/isAppDev'
 import logger from './logger'
 import { getStore } from './storage'
 
-import type { StoreType } from './storage';
+import type { StoreType } from './storage'
 
 class State {
     private store: StoreType

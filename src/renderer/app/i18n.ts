@@ -4,7 +4,7 @@ import { initReactI18next } from 'react-i18next'
 import en from '../../locales/bundled/en/renderer.json'
 import ru from '../../locales/bundled/ru/renderer.json'
 
-import type { TOptions } from 'i18next';
+import type { TOptions } from 'i18next'
 
 const normalizeLocale = (locale?: string): string => {
     if (!locale) return 'ru'

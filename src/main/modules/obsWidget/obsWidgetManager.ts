@@ -13,8 +13,8 @@ import { t } from '../../i18n'
 import logger from '../logger'
 import { sendToRenderer } from '../mod/download.helpers'
 
-import type { RendererEvent } from '../../../common/types/rendererEvents';
-import type { BrowserWindow} from 'electron';
+import type { RendererEvent } from '../../../common/types/rendererEvents'
+import type { BrowserWindow } from 'electron'
 
 const WIDGET_INSTALL_DIR = (app: any) => path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
 
