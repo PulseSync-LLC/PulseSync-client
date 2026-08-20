@@ -837,7 +837,17 @@ export default function StorePage() {
     )
 
     return (
-        <PageLayout title={t('pages.store.title')}>
+        <PageLayout
+            title={selectedAddon ? t('extensions.pageTitle') : t('pages.store.title')}
+            titleDetail={
+                selectedAddon
+                    ? {
+                          label: selectedAddon.name,
+                          icon: selectedAddon.currentRelease?.avatarUrl || undefined,
+                      }
+                    : undefined
+            }
+        >
             <>
                 <Scrollbar
                     ref={scrollContainerRef}
@@ -881,36 +891,48 @@ export default function StorePage() {
                         {content}
                     </main>
                 </Scrollbar>
-                <StoreAddonDetailsModal
-                    addon={selectedAddon}
-                    isOpen={Boolean(selectedAddon)}
-                    isInstalled={Boolean(selectedAddon && installedStoreAddons.has(selectedAddon.id))}
-                    actionDisabled={
-                        !selectedAddon ||
-                        installingAddonId === selectedAddon.id ||
-                        (!installedStoreAddons.has(selectedAddon.id) && !selectedAddon.currentRelease?.downloadUrl?.trim())
-                    }
-                    actionLabel={
-                        selectedAddon && installedStoreAddons.has(selectedAddon.id)
-                            ? t('store.remove')
-                            : selectedAddon && installingAddonId === selectedAddon.id
-                              ? t('common.importing')
-                              : selectedAddon?.currentRelease?.downloadUrl?.trim()
-                                ? t('store.download')
-                                : t('common.notAvailable')
-                    }
-                    onAction={() => {
-                        if (!selectedAddon?.currentRelease) return
-                        setSelectedAddon(null)
-                        void handleStoreAddonAction(selectedAddon, selectedAddon.currentRelease, installedStoreAddons.get(selectedAddon.id))
-                    }}
-                    onAuthorClick={author => {
-                        setSelectedAddon(null)
-                        openModal(Modals.USER_PROFILE, { profileName: author })
-                    }}
-                    onRatingChange={handleRatingChange}
-                    onClose={() => setSelectedAddon(null)}
-                />
+                {modalAddon ? (
+                    <StoreAddonDetailsModal
+                        key={modalAddon.id}
+                        addon={modalAddon}
+                        isOpen={Boolean(selectedAddon)}
+                        isInstalled={installedStoreAddons.has(modalAddon.id)}
+                        actionDisabled={
+                            installingAddonId === modalAddon.id ||
+                            (!installedStoreAddons.has(modalAddon.id) && !modalAddon.currentRelease?.downloadUrl?.trim())
+                        }
+                        actionLabel={
+                            installedStoreAddons.has(modalAddon.id)
+                                ? t('store.remove')
+                                : installingAddonId === modalAddon.id
+                                  ? t('common.importing')
+                                  : modalAddon.currentRelease?.downloadUrl?.trim()
+                                    ? t('layout.installAction')
+                                    : t('common.notAvailable')
+                        }
+                        currentUserAvatarHash={user.avatarHash}
+                        currentUserAvatarType={user.avatarType}
+                        relatedAddons={addons.filter(addon => addon.id !== modalAddon.id && addon.currentRelease).slice(0, 8)}
+                        installingAddonId={installingAddonId}
+                        isAddonInstalled={addonId => installedStoreAddons.has(addonId)}
+                        onAction={() => {
+                            if (!modalAddon.currentRelease) return
+                            setSelectedAddon(null)
+                            void handleStoreAddonAction(modalAddon, modalAddon.currentRelease, installedStoreAddons.get(modalAddon.id))
+                        }}
+                        onRelatedAddonAction={relatedAddon => {
+                            if (!relatedAddon.currentRelease) return
+                            void handleStoreAddonAction(relatedAddon, relatedAddon.currentRelease, installedStoreAddons.get(relatedAddon.id))
+                        }}
+                        onRelatedAddonSelect={setSelectedAddon}
+                        onAuthorClick={author => {
+                            setSelectedAddon(null)
+                            openModal(Modals.USER_PROFILE, { profileName: author })
+                        }}
+                        onRatingChange={handleRatingChange}
+                        onClose={() => setSelectedAddon(null)}
+                    />
+                ) : null}
             </>
         </PageLayout>
     )

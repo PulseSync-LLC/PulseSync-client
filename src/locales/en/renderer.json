@@ -1256,6 +1256,7 @@
             "openGithub": "Open GitHub page",
             "newAddons": "New add-ons",
             "recentlyUpdated": "Recently updated",
+            "otherAddons": "Other add-ons",
             "previous": "Previous add-ons",
             "next": "Next add-ons"
         },
@@ -1263,6 +1264,8 @@
             "title": "Rating",
             "average": "Average",
             "votes": "Ratings: {{count}}",
+            "votesShort": "{{count}} votes",
+            "hint": "Click a star",
             "set": "Rate {{rating}} out of 5",
             "failed": "Failed to save rating"
         },
