@@ -2,11 +2,25 @@ import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'r
 
 import { Badge } from '@pulsesync/uikit/data-display'
 import { SearchBox } from '@pulsesync/uikit/inputs'
-import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
+import { DropdownMenu, type DropdownMenuItem, Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdChevronLeft, MdChevronRight, MdDataArray, MdDownload, MdInventory2, MdLabel, MdLanguage, MdLightMode, MdSchedule } from 'react-icons/md'
+import {
+    MdChevronLeft,
+    MdChevronRight,
+    MdDataArray,
+    MdDownload,
+    MdFilterAlt,
+    MdInventory2,
+    MdLabel,
+    MdLanguage,
+    MdLightMode,
+    MdSchedule,
+    MdSort,
+    MdSwapVert,
+    MdViewModule,
+} from 'react-icons/md'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useModalContext } from '@app/providers/modal'
@@ -44,6 +58,8 @@ type OwnStoreAddonsQuery = {
 }
 
 type CatalogTab = 'main' | 'owned' | 'moderation'
+type StoreSearchSort = 'downloads' | 'latestRelease' | 'name'
+type StoreSearchType = 'all' | StoreAddon['type']
 
 type StoreRouteState = {
     openAddon?: StoreAddon
@@ -84,12 +100,17 @@ export default function StorePage() {
     const [featuredDirection, setFeaturedDirection] = useState<-1 | 1>(1)
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [searchSort, setSearchSort] = useState<StoreSearchSort>('latestRelease')
+    const [searchSortOrder, setSearchSortOrder] = useState<'asc' | 'desc'>('desc')
+    const [searchType, setSearchType] = useState<StoreSearchType>('all')
     const [loading, setLoading] = useState(true)
     const [ownAddonsLoading, setOwnAddonsLoading] = useState(true)
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
     const [selectedAddon, setSelectedAddon] = useState<StoreAddon | null>(null)
     const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
     const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
+    const modalAddonRef = useRef<StoreAddon | null>(null)
     const animationsEnabledRef = useRef(false)
     const shimmerFadeTimeoutRef = useRef<number | null>(null)
     const shimmerFadeRafRef = useRef<number | null>(null)
@@ -97,6 +118,21 @@ export default function StorePage() {
     const newAddonsRef = useRef<HTMLDivElement>(null)
     const isDeveloperUser = user?.perms === 'developer'
     const routeState = location.state as StoreRouteState | null
+
+    useEffect(() => {
+        if (selectedAddon) modalAddonRef.current = selectedAddon
+    }, [selectedAddon])
+
+    const closeSearch = () => {
+        setIsSearchOpen(false)
+        setSearchQuery('')
+        setDebouncedSearchQuery('')
+    }
+
+    const handleCatalogTabChange = (value: string) => {
+        closeSearch()
+        setCatalogTab(value as CatalogTab)
+    }
 
     const handleRatingChange = useCallback((addonId: string, summary: AddonRatingSummary) => {
         const updateAddon = (addon: StoreAddon): StoreAddon =>
@@ -154,8 +190,9 @@ export default function StorePage() {
                             page: 1,
                             pageSize: 50,
                             search: debouncedSearchQuery || undefined,
-                            sortBy: 'latestRelease',
-                            sortOrder: 'desc',
+                            type: (isSearchOpen || debouncedSearchQuery) && searchType !== 'all' ? searchType : undefined,
+                            sortBy: isSearchOpen || debouncedSearchQuery ? searchSort : 'latestRelease',
+                            sortOrder: isSearchOpen || debouncedSearchQuery ? searchSortOrder : 'desc',
                         },
                         fetchPolicy: 'no-cache',
                     }),
@@ -209,7 +246,7 @@ export default function StorePage() {
         return () => {
             active = false
         }
-    }, [catalogTab, debouncedSearchQuery])
+    }, [catalogTab, debouncedSearchQuery, isSearchOpen, searchSort, searchSortOrder, searchType])
 
     useEffect(() => {
         let active = true
@@ -295,17 +332,33 @@ export default function StorePage() {
     const visibleAddons = useMemo(() => {
         const source = catalogTab === 'main' ? addons : catalogTab === 'moderation' ? pendingAddons : ownAddons
         const targetStatus = catalogTab === 'moderation' ? 'pending' : 'accepted'
-        const relevantAddons = source.filter(addon => addon.currentRelease?.status === targetStatus)
+        let relevantAddons = source.filter(addon => addon.currentRelease?.status === targetStatus)
         const normalizedSearch = debouncedSearchQuery.toLocaleLowerCase()
-        if (!normalizedSearch || catalogTab === 'main') return relevantAddons
+        if (!normalizedSearch && !isSearchOpen) return relevantAddons
 
-        return relevantAddons.filter(addon => {
-            const release = addon.currentRelease
-            return [addon.name, release?.description, ...(release?.authors || []), ...(release?.tags || [])]
-                .filter(Boolean)
-                .some(value => value!.toLocaleLowerCase().includes(normalizedSearch))
+        if (normalizedSearch && catalogTab !== 'main') {
+            relevantAddons = relevantAddons.filter(addon => {
+                const release = addon.currentRelease
+                return [addon.name, release?.description, ...(release?.authors || []), ...(release?.tags || [])]
+                    .filter(Boolean)
+                    .some(value => value!.toLocaleLowerCase().includes(normalizedSearch))
+            })
+        }
+
+        if (searchType !== 'all') {
+            relevantAddons = relevantAddons.filter(addon => addon.type === searchType)
+        }
+
+        const direction = searchSortOrder === 'asc' ? 1 : -1
+        return relevantAddons.slice().sort((left, right) => {
+            if (searchSort === 'name') return left.name.localeCompare(right.name, i18n.language) * direction
+            if (searchSort === 'downloads') return (left.downloadCount - right.downloadCount) * direction
+
+            const leftUpdatedAt = new Date(left.currentRelease?.approvedAt || left.currentRelease?.updatedAt || left.updatedAt).getTime() || 0
+            const rightUpdatedAt = new Date(right.currentRelease?.approvedAt || right.currentRelease?.updatedAt || right.updatedAt).getTime() || 0
+            return (leftUpdatedAt - rightUpdatedAt) * direction
         })
-    }, [addons, catalogTab, debouncedSearchQuery, ownAddons, pendingAddons])
+    }, [addons, catalogTab, debouncedSearchQuery, i18n.language, isSearchOpen, ownAddons, pendingAddons, searchSort, searchSortOrder, searchType])
 
     const featuredAddons = popularAddons.slice(0, 5)
     const featuredAddon = featuredAddons[featuredIndex] ?? featuredAddons[0] ?? null
@@ -313,7 +366,48 @@ export default function StorePage() {
     const featuredRightColor = featuredAddon?.currentRelease?.bannerRightColor?.trim() || ''
     const shouldRenderCards = visibleAddons.length > 0
     const hasSearchOrFilter = Boolean(debouncedSearchQuery)
+    const isSearchMode = Boolean(isSearchOpen || searchQuery.trim() || debouncedSearchQuery)
+    const isSearchDebouncing = searchQuery.trim() !== debouncedSearchQuery
     const activeLoading = catalogTab === 'main' ? loading : ownAddonsLoading
+
+    const searchFilterItems: DropdownMenuItem[] = [
+        {
+            key: 'sort',
+            label: t('store.filters.sort'),
+            icon: <MdSort />,
+            children: (['latestRelease', 'name', 'downloads'] as StoreSearchSort[]).map(option => ({
+                key: `sort-${option}`,
+                label: t(`store.filters.${option}`),
+                radio: true,
+                checked: searchSort === option,
+                onClick: () => setSearchSort(option),
+            })),
+        },
+        {
+            key: 'type',
+            label: t('store.filters.type'),
+            icon: <MdViewModule />,
+            children: (['all', 'theme', 'script', 'web-addon'] as StoreSearchType[]).map(option => ({
+                key: `type-${option}`,
+                label: t(`store.filters.types.${option}`),
+                radio: true,
+                checked: searchType === option,
+                onClick: () => setSearchType(option),
+            })),
+        },
+        {
+            key: 'order',
+            label: t('store.filters.order'),
+            icon: <MdSwapVert />,
+            children: (['desc', 'asc'] as const).map(order => ({
+                key: `order-${order}`,
+                label: t(order === 'asc' ? 'store.filters.orderAsc' : 'store.filters.orderDesc'),
+                radio: true,
+                checked: searchSortOrder === order,
+                onClick: () => setSearchSortOrder(order),
+            })),
+        },
+    ]
 
     useEffect(() => {
         const container = scrollContainerRef.current
@@ -397,7 +491,7 @@ export default function StorePage() {
     )
 
     const renderStoreCard = useCallback(
-        (addon: StoreAddon, variant: 'poster' | 'list', options?: { forceStatus?: 'pending' | 'rejected' | 'accepted' }) => {
+        (addon: StoreAddon, variant: 'poster' | 'list', options?: { forceStatus?: 'pending' | 'rejected' | 'accepted'; installLabel?: string }) => {
             const release = addon.currentRelease
             if (!release) return null
 
@@ -433,7 +527,7 @@ export default function StorePage() {
                             : installingAddonId === addon.id
                               ? t('common.importing')
                               : hasDownloadUrl
-                                ? t('store.download')
+                                ? options?.installLabel || t('store.download')
                                 : t('common.notAvailable')
                     }
                     onDownloadClick={() => void handleStoreAddonAction(addon, release, installedStoreAddon)}
@@ -618,7 +712,40 @@ export default function StorePage() {
         )
     }
 
-    const content = activeLoading ? (
+    const searchResults = (
+        <section className={st.searchResults}>
+            <header className={st.searchResultsHeader}>
+                <div className={st.searchResultsHeading}>
+                    <h2>{t('store.catalog.results')}</h2>
+                    <div className={st.searchResultsSort}>
+                        <MdFilterAlt aria-hidden="true" />
+                        <span>{t(`store.catalog.searchSort.${searchSort}`)}</span>
+                    </div>
+                </div>
+                <DropdownMenu items={searchFilterItems} menuClassName={st.searchFilterMenu} placement="left-start" closeOnSelect={false}>
+                    <button type="button" className={st.searchFilterButton} aria-label={t('store.catalog.openFilters')}>
+                        <MdFilterAlt aria-hidden="true" />
+                    </button>
+                </DropdownMenu>
+            </header>
+            {activeLoading || isSearchDebouncing ? (
+                <div className={st.searchResultsLoading}>
+                    <StoreShimmer count={6} variant="list" />
+                </div>
+            ) : !visibleAddons.length ? (
+                <div className={st.storeState}>{t('store.noResults')}</div>
+            ) : (
+                <div className={st.storeList}>
+                    {visibleAddons.map(addon => renderStoreCard(addon, 'list', { installLabel: t('layout.installAction') }))}
+                </div>
+            )}
+        </section>
+    )
+
+    const modalAddon = selectedAddon ?? modalAddonRef.current
+    const content = isSearchMode ? (
+        searchResults
+    ) : activeLoading ? (
         <div className={st.storeLoading}>
             <StoreShimmer count={6} variant={catalogTab === 'main' ? 'catalog' : 'list'} />
         </div>
@@ -722,7 +849,12 @@ export default function StorePage() {
                 >
                     <main className={st.store}>
                         <div className={st.catalogToolbar}>
-                            <Tabs value={catalogTab} onChange={value => setCatalogTab(value as CatalogTab)} className={st.catalogTabsRoot}>
+                            <Tabs
+                                key={isSearchMode ? 'search' : 'catalog'}
+                                value={isSearchMode ? '__search__' : catalogTab}
+                                onChange={handleCatalogTabChange}
+                                className={st.catalogTabsRoot}
+                            >
                                 <TabList className={st.catalogTabs}>
                                     <Tab value="main">{t('store.catalog.main')}</Tab>
                                     <Tab value="owned">{t('store.catalog.myAddons')}</Tab>
@@ -734,6 +866,12 @@ export default function StorePage() {
                                 <SearchBox
                                     value={searchQuery}
                                     onChange={setSearchQuery as never}
+                                    onFocus={() => setIsSearchOpen(true)}
+                                    onKeyDown={event => {
+                                        if (event.key !== 'Escape') return
+                                        closeSearch()
+                                        if (event.target instanceof HTMLElement) event.target.blur()
+                                    }}
                                     placeholder={t('store.catalog.search')}
                                     className={st.catalogSearch}
                                 />

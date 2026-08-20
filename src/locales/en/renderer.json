@@ -1243,6 +1243,13 @@
             "myAddons": "My add-ons",
             "moderation": "In moderation",
             "search": "Search",
+            "results": "Results",
+            "openFilters": "Open filters",
+            "searchSort": {
+                "latestRelease": "by update date",
+                "name": "by name",
+                "downloads": "by downloads"
+            },
             "authors": "Authors",
             "tags": "Tags",
             "links": "Links",
@@ -1271,7 +1278,13 @@
             "downloads": "Downloads",
             "order": "Sort order",
             "orderAsc": "Ascending",
-            "orderDesc": "Descending"
+            "orderDesc": "Descending",
+            "types": {
+                "all": "All types",
+                "theme": "Themes",
+                "script": "Scripts",
+                "web-addon": "Web add-ons"
+            }
         },
         "pendingSectionTitle": "Add-ons under moderation",
         "pendingSectionSubtitle": "Add-ons undergoing moderation",

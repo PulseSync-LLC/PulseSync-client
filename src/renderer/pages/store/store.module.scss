@@ -14,7 +14,8 @@
 
     overflow: auto;
 
-    background: radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
+    background:
+        radial-gradient(ellipse 38% 32% at 0 0, color-mix(in srgb, var(--catalog-edge-left, #040404) 58%, #040404) 0%, transparent 100%),
         radial-gradient(ellipse 38% 34% at 100% 0, color-mix(in srgb, var(--catalog-edge-right, #040404) 58%, #040404) 0%, transparent 100%), #040404;
 }
 
@@ -181,6 +182,102 @@
 
 .catalogSearch :global(input)::placeholder {
     color: var(--text-secondary);
+}
+
+.searchResults {
+    width: 100%;
+
+    margin-top: 15px;
+}
+
+.searchResultsHeader {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    width: 100%;
+    height: 52px;
+
+    margin-bottom: 15px;
+}
+
+.searchResultsHeading {
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+    justify-content: center;
+}
+
+.searchResultsHeading h2 {
+    margin: 0;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    line-height: 30px;
+}
+
+.searchResultsSort {
+    display: flex;
+
+    gap: 5px;
+
+    align-items: center;
+
+    font-size: 16px;
+    font-weight: 700;
+
+    line-height: 22px;
+
+    color: var(--text-secondary);
+}
+
+.searchResultsSort svg,
+.searchFilterButton svg {
+    width: 22px;
+    height: 22px;
+}
+
+.searchFilterButton {
+    display: grid;
+
+    place-items: center;
+
+    width: 42px;
+    height: 42px;
+
+    padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: var(--active);
+    border: 0;
+    border-radius: 6px;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--text-primary);
+
+        background: var(--hover);
+    }
+
+    &:focus-visible {
+        outline: 1px solid var(--focus-ring);
+    }
+}
+
+.searchFilterMenu {
+    width: 260px;
+    max-width: calc(100vw - 30px);
+}
+
+.searchResultsLoading {
+    width: 100%;
 }
 
 .featured {

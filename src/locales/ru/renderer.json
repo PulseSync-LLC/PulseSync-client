@@ -1243,6 +1243,13 @@
             "myAddons": "Мои аддоны",
             "moderation": "На модерации",
             "search": "Поиск",
+            "results": "Результаты",
+            "openFilters": "Открыть фильтры",
+            "searchSort": {
+                "latestRelease": "по дате обновления",
+                "name": "по названию",
+                "downloads": "по скачиваниям"
+            },
             "authors": "Авторы",
             "tags": "Теги",
             "links": "Ссылки",
@@ -1271,7 +1278,13 @@
             "downloads": "Скачивания",
             "order": "Порядок сортировки",
             "orderAsc": "По возрастанию",
-            "orderDesc": "По убыванию"
+            "orderDesc": "По убыванию",
+            "types": {
+                "all": "Все типы",
+                "theme": "Темы",
+                "script": "Скрипты",
+                "web-addon": "Web-аддоны"
+            }
         },
         "pendingSectionTitle": "Аддоны на модерации",
         "pendingSectionSubtitle": "Аддоны проходящие модерацию",
