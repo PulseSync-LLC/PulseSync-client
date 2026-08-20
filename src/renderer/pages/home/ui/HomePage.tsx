@@ -17,7 +17,7 @@ import * as styles from './home.module.scss'
 import type { SubcomponentsMeta } from '@common/types/subcomponentsMeta'
 
 export default function HomePage() {
-    const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode } = useContext(UserContext)
+    const { app, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } = useContext(UserContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
 
@@ -169,6 +169,20 @@ export default function HomePage() {
         [openAppChangelogModal, openModModal, openYandexMusicChangelogModal],
     )
 
+    const handleCheckUpdatesClick = useCallback(
+        (componentId: string) => {
+            if (componentId === 'client') {
+                desktopApi.updates.check({ manual: true })
+                return
+            }
+
+            if (componentId === 'mod') {
+                void checkModUpdates(app, { manual: true })
+            }
+        },
+        [app, checkModUpdates],
+    )
+
     return (
         <PageLayout title={t('pages.home.title')}>
             <div className={styles.home}>
@@ -181,6 +195,7 @@ export default function HomePage() {
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
+                            onCheckUpdatesClick={handleCheckUpdatesClick}
                         />
                         <HomeSecondaryComponentsSection
                             items={secondaryComponentsWithVersionLabels}
