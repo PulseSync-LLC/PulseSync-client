@@ -204,7 +204,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         </div>
                         <p>{subtitle}</p>
                         <div className={st.metaRow}>
-                            {ratingCount !== undefined ? <AddonRatingBadge average={ratingAverage} count={ratingCount} /> : null}
+                            {ratingCount !== undefined ? <AddonRatingBadge average={ratingAverage} /> : null}
                             {status ? (
                                 <Badge uppercase={false} size="md" variant={getStatusVariant(status)} className={st.metaBadge}>
                                     {t(`store.status.${status}`)}

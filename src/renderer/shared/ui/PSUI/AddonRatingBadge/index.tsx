@@ -6,12 +6,11 @@ import * as st from '@shared/ui/PSUI/AddonRatingBadge/AddonRatingBadge.module.sc
 
 type AddonRatingBadgeProps = {
     average: number
-    count: number
     className?: string
 }
 
-export default function AddonRatingBadge({ average, count, className }: AddonRatingBadgeProps) {
-    if (count <= 0) return null
+export default function AddonRatingBadge({ average, className }: AddonRatingBadgeProps) {
+    if (average <= 0) return null
 
     return (
         <Badge uppercase={false} size="md" icon={<MdStar />} className={cn(st.badge, className)}>

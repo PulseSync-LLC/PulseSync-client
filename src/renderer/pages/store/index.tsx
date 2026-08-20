@@ -620,7 +620,7 @@ export default function StorePage() {
                     <div className={st.featuredIdentity}>
                         {release.avatarUrl ? <img src={release.avatarUrl} alt="" className={st.featuredAvatar} /> : null}
                         <h1 className={st.featuredTitle}>{addon.name}</h1>
-                        <AddonRatingBadge average={addon.ratingAverage} count={addon.ratingCount} />
+                        <AddonRatingBadge average={addon.ratingAverage} />
                         <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdInventory2 />}>
                             {`v${release.version}`}
                         </Badge>
@@ -910,6 +910,7 @@ export default function StorePage() {
                                     ? t('layout.installAction')
                                     : t('common.notAvailable')
                         }
+                        currentUserId={user.id}
                         currentUserAvatarHash={user.avatarHash}
                         currentUserAvatarType={user.avatarType}
                         relatedAddons={addons.filter(addon => addon.id !== modalAddon.id && addon.currentRelease).slice(0, 8)}

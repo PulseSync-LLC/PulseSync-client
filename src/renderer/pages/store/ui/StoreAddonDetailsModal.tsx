@@ -86,6 +86,7 @@ type StoreAddonDetailsModalProps = {
     isInstalled: boolean
     actionDisabled: boolean
     actionLabel: string
+    currentUserId: string
     currentUserAvatarHash?: string | null
     currentUserAvatarType?: string | null
     relatedAddons: StoreAddon[]
@@ -105,6 +106,7 @@ export default function StoreAddonDetailsModal({
     isInstalled,
     actionDisabled,
     actionLabel,
+    currentUserId,
     currentUserAvatarHash,
     currentUserAvatarType,
     relatedAddons,
@@ -173,6 +175,8 @@ export default function StoreAddonDetailsModal({
     const updatedLabel = formatAge(updatedAt, i18n.language)
     const downloadsLabel = new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)
     const displayedRating = hoveredRating || addon.myRating || 0
+    const canRateAddon = addon.submittedById !== currentUserId
+    const isRatingPublic = addon.ratingAverage > 0
     const kindIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
     const kindClass = addon.type === 'theme' ? st.kindTheme : addon.type === 'script' ? st.kindScript : st.kindWebAddon
 
@@ -267,44 +271,50 @@ export default function StoreAddonDetailsModal({
 
                     <section className={st.overview}>
                         <div className={st.overviewCopy}>
-                            {release.status === 'accepted' ? (
+                            {release.status === 'accepted' && (canRateAddon || isRatingPublic) ? (
                                 <div className={st.ratingSection}>
-                                    <Avatar
-                                        className={st.ratingAvatar}
-                                        hash={currentUserAvatarHash}
-                                        ext={currentUserAvatarType || undefined}
-                                        sizes="34px"
-                                        alt=""
-                                        allowAnimate
-                                    />
-                                    <div className={st.ratingControl}>
-                                        <div className={st.ratingStars} onMouseLeave={() => setHoveredRating(0)}>
-                                            {[1, 2, 3, 4, 5].map(rating => {
-                                                const active = rating <= displayedRating
-                                                return (
-                                                    <button
-                                                        key={rating}
-                                                        type="button"
-                                                        className={cn(active && st.ratingStarActive)}
-                                                        onMouseEnter={() => setHoveredRating(rating)}
-                                                        onFocus={() => setHoveredRating(rating)}
-                                                        onBlur={() => setHoveredRating(0)}
-                                                        onClick={() => void submitRating(rating)}
-                                                        disabled={ratingSaving}
-                                                        aria-label={t('store.rating.set', { rating })}
-                                                        aria-pressed={addon.myRating === rating}
-                                                    >
-                                                        {active ? <MdStar /> : <MdStarBorder />}
-                                                    </button>
-                                                )
-                                            })}
+                                    {canRateAddon ? (
+                                        <>
+                                            <Avatar
+                                                className={st.ratingAvatar}
+                                                hash={currentUserAvatarHash}
+                                                ext={currentUserAvatarType || undefined}
+                                                sizes="34px"
+                                                alt=""
+                                                allowAnimate
+                                            />
+                                            <div className={st.ratingControl}>
+                                                <div className={st.ratingStars} onMouseLeave={() => setHoveredRating(0)}>
+                                                    {[1, 2, 3, 4, 5].map(rating => {
+                                                        const active = rating <= displayedRating
+                                                        return (
+                                                            <button
+                                                                key={rating}
+                                                                type="button"
+                                                                className={cn(active && st.ratingStarActive)}
+                                                                onMouseEnter={() => setHoveredRating(rating)}
+                                                                onFocus={() => setHoveredRating(rating)}
+                                                                onBlur={() => setHoveredRating(0)}
+                                                                onClick={() => void submitRating(rating)}
+                                                                disabled={ratingSaving}
+                                                                aria-label={t('store.rating.set', { rating })}
+                                                                aria-pressed={addon.myRating === rating}
+                                                            >
+                                                                {active ? <MdStar /> : <MdStarBorder />}
+                                                            </button>
+                                                        )
+                                                    })}
+                                                </div>
+                                                <span>{t('store.rating.hint')}</span>
+                                            </div>
+                                        </>
+                                    ) : null}
+                                    {isRatingPublic ? (
+                                        <div className={st.ratingScore}>
+                                            <strong>{addon.ratingAverage.toFixed(2)}</strong>
+                                            <span>{t('store.rating.votesShort', { count: addon.ratingCount })}</span>
                                         </div>
-                                        <span>{t('store.rating.hint')}</span>
-                                    </div>
-                                    <div className={st.ratingScore}>
-                                        <strong>{addon.ratingAverage.toFixed(2)}</strong>
-                                        <span>{t('store.rating.votesShort', { count: addon.ratingCount })}</span>
-                                    </div>
+                                    ) : null}
                                 </div>
                             ) : null}
 

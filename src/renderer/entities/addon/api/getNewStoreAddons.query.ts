@@ -13,6 +13,7 @@ export default gql`
                 ratingAverage
                 ratingCount
                 myRating
+                submittedById
                 currentRelease {
                     id
                     version
