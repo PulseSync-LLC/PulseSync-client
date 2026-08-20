@@ -4,6 +4,7 @@ import { MdArticle, MdRefresh } from 'react-icons/md'
 
 import { staticAsset } from '@shared/lib/staticAssets'
 import ButtonV2 from '@shared/ui/buttonV2'
+import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as styles from './home.module.scss'
 
@@ -58,27 +59,34 @@ export default function HomePrimaryComponentsSection({
                             </ButtonV2>
                         ) : (
                             <div className={styles.primaryActions}>
-                                <ButtonV2
-                                    type="button"
-                                    className={styles.changelogButton}
-                                    onClick={() => onWhatsNewClick(item.id)}
-                                    disabled={item.id === 'mod' && !isModInstalled}
-                                    aria-label={t('pages.home.whatsNew')}
-                                    title={t('pages.home.whatsNew')}
+                                <TooltipButton side="top" tooltipText={t('pages.home.whatsNew')} as="span" className={styles.primaryActionTooltip}>
+                                    <ButtonV2
+                                        type="button"
+                                        className={styles.changelogButton}
+                                        onClick={() => onWhatsNewClick(item.id)}
+                                        disabled={item.id === 'mod' && !isModInstalled}
+                                        aria-label={t('pages.home.whatsNew')}
+                                    >
+                                        <MdArticle aria-hidden="true" />
+                                    </ButtonV2>
+                                </TooltipButton>
+                                <TooltipButton
+                                    side="top"
+                                    tooltipText={t('contextMenu.misc.checkUpdates')}
+                                    as="span"
+                                    className={styles.primaryActionTooltip}
                                 >
-                                    <MdArticle aria-hidden="true" />
-                                </ButtonV2>
-                                <ButtonV2
-                                    type="button"
-                                    className={cn(styles.actionButton, styles.updateButton)}
-                                    onClick={() => onCheckUpdatesClick(item.id)}
-                                    disabled={item.id === 'mod' && !isModInstalled}
-                                    aria-label={t('contextMenu.misc.checkUpdates')}
-                                    title={t('contextMenu.misc.checkUpdates')}
-                                >
-                                    <MdRefresh aria-hidden="true" />
-                                    {t('pages.home.checkUpdatesAction')}
-                                </ButtonV2>
+                                    <ButtonV2
+                                        type="button"
+                                        className={cn(styles.actionButton, styles.updateButton)}
+                                        onClick={() => onCheckUpdatesClick(item.id)}
+                                        disabled={item.id === 'mod' && !isModInstalled}
+                                        aria-label={t('contextMenu.misc.checkUpdates')}
+                                    >
+                                        <MdRefresh aria-hidden="true" />
+                                        {t('pages.home.checkUpdatesAction')}
+                                    </ButtonV2>
+                                </TooltipButton>
                             </div>
                         )}
                     </article>
