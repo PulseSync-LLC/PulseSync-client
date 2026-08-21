@@ -42,7 +42,8 @@ function createS3Client(): S3Client {
         },
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: true,
-        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
+        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 5,
+        retryMode: 'standard',
     })
 }
 

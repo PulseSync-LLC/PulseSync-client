@@ -10,6 +10,7 @@ import { build as viteBuild } from 'vite'
 
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import { emitRuntimeComponentUpdateManifest, getDesktopHybridReleaseManifestName, getDesktopReleaseManifestName } from './desktop-release-manifest.js'
+import { fetchWithRetry } from './network-retry.js'
 import { publishToS3 } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -74,7 +75,11 @@ function manifestName(dist: string): string {
 
 async function readManifest(url: string): Promise<any> {
     const separator = url.includes('?') ? '&' : '?'
-    const response = await fetch(`${url}${separator}_=${Date.now()}`, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    const response = await fetchWithRetry(
+        `${url}${separator}_=${Date.now()}`,
+        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
+        { label: 'runtime component manifest' },
+    )
     if (!response.ok) throw new Error(`Cannot read published manifest (${response.status}): ${url}`)
     const value = (await response.json()) as any
     if (!value || typeof value !== 'object' || !value.targets || typeof value.targets !== 'object') {
@@ -226,18 +231,20 @@ async function main(): Promise<void> {
     const packageVersion = JSON.parse(fs.readFileSync(path.join(projectRoot, 'packages', 'desktop-core', 'package.json'), 'utf8')).version as string
     const baseVersion = packageVersion.split('-')[0]
     const tag = argValue(args, '--github-tag') || `v${baseVersion}-${channel}.components.${metadataVersion}`
-    run(process.execPath, [
-        path.join(projectRoot, 'scripts', 'github-release-runtime.mjs'),
-        'check-component-base',
-        '--repository',
-        repository,
-        '--tag',
-        tag,
-        '--channel',
-        channel,
-        '--dist',
-        dist,
-    ])
+    run(
+        process.execPath,
+        tsxArgs(path.join(projectRoot, 'scripts', 'github-release-runtime.ts'), [
+            'check-component-base',
+            '--repository',
+            repository,
+            '--tag',
+            tag,
+            '--channel',
+            channel,
+            '--dist',
+            dist,
+        ]),
+    )
 
     const baseUrl = `${(process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')}/builds/app/${channel}`
     let releaseDir: string
@@ -253,26 +260,28 @@ async function main(): Promise<void> {
     const descriptor = selectedDescriptor(generatedManifest, dist, component)
     const sourceAsset = releaseAssetFromDescriptor(releaseDir, descriptor)
     const githubTarget = path.join(projectRoot, 'out', 'component-github-release', dist)
-    run(process.execPath, [
-        path.join(projectRoot, 'scripts', 'github-release-runtime.mjs'),
-        'prepare-component',
-        '--source-manifest',
-        generatedManifestFile,
-        '--source-asset',
-        sourceAsset,
-        '--target',
-        githubTarget,
-        '--repository',
-        repository,
-        '--tag',
-        tag,
-        '--channel',
-        channel,
-        '--dist',
-        dist,
-        '--component',
-        component,
-    ])
+    run(
+        process.execPath,
+        tsxArgs(path.join(projectRoot, 'scripts', 'github-release-runtime.ts'), [
+            'prepare-component',
+            '--source-manifest',
+            generatedManifestFile,
+            '--source-asset',
+            sourceAsset,
+            '--target',
+            githubTarget,
+            '--repository',
+            repository,
+            '--tag',
+            tag,
+            '--channel',
+            channel,
+            '--dist',
+            dist,
+            '--component',
+            component,
+        ]),
+    )
 
     if (args.includes('--publish-github')) publishGitHub(repository, tag, channel, githubTarget)
     console.log(`Runtime component published: ${component} (${channel}/${dist})`)

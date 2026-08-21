@@ -356,7 +356,7 @@ jobs:
               exit 1
             fi
 
-            node scripts/github-release-runtime.mjs prepare-component \
+            yarn tsx scripts/github-release-runtime.ts prepare-component \
               --source-manifest "$manifest" \
               --source-asset "$source_asset" \
               --target "rebased-component-release/$dist" \
