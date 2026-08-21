@@ -172,6 +172,8 @@
 - Check that process boundaries are still respected.
 - Check for duplicated types, strings, or helpers.
 - Check that generated artifacts or unrelated files were not changed by accident.
+- Before committing or pushing any change that can alter the packaged host bytes, verify the host/component boundary. If `out/<platform>/host` can change, bump the root `package.json` version in the same change before CI; a bootstrapper or desktop-core version/revision bump does not replace the host-version bump.
+- Treat `Host content changed without a host version bump` as evidence of a missing host-version bump. Do not weaken or bypass the immutable-host check.
 - If the change affects build, preload, or cross-process contracts, verify every touched side.
 
 ## Validation
