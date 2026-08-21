@@ -27,7 +27,7 @@ use serde_json::{Value, json};
 use std::{
     env,
     ffi::OsString,
-    path::Path,
+    path::{Path, PathBuf},
     thread,
     time::{Duration, Instant},
 };
@@ -44,6 +44,31 @@ pub(crate) struct HandoffContext {
     pub(crate) predecessor: ActiveAppLease,
     pub(crate) transfer: HandoffTransfer,
     pub(crate) rust_process: ProcessIdentity,
+}
+
+fn shared_app_data_root() -> Option<PathBuf> {
+    if cfg!(windows) {
+        return env::var_os("APPDATA").map(PathBuf::from);
+    }
+    if cfg!(target_os = "macos") {
+        return env::var_os("HOME")
+            .map(PathBuf::from)
+            .map(|home| home.join("Library/Application Support"));
+    }
+
+    env::var_os("XDG_CONFIG_HOME")
+        .map(PathBuf::from)
+        .or_else(|| {
+            env::var_os("HOME")
+                .map(PathBuf::from)
+                .map(|home| home.join(".config"))
+        })
+}
+
+fn successor_log_path(install_root: &Path) -> PathBuf {
+    shared_app_data_root()
+        .map(|root| root.join("PulseSync/logs/bootstrap-successor.log"))
+        .unwrap_or_else(|| install_root.join("logs/bootstrap-successor.log"))
 }
 
 pub(super) fn handoff_request(args: &Args) -> Result<Option<HandoffRequest>> {
@@ -152,7 +177,7 @@ pub(crate) fn launch_with_active_lease(
         OsString::from("PULSESYNC_LAUNCH_RESERVATION_ID"),
         OsString::from(&reservation.id),
     )];
-    let successor_log = install_root.join("logs/bootstrap-successor.log");
+    let successor_log = successor_log_path(install_root);
     let pid =
         match launch_app_with_env_and_log(app_executable, args, &env, &successor_log, install_root)
         {
@@ -190,7 +215,7 @@ pub(crate) fn launch_handoff_successor(
             OsString::from(&reservation.id),
         ),
     ];
-    let successor_log = install_root.join("logs/bootstrap-successor.log");
+    let successor_log = successor_log_path(install_root);
     let pid =
         match launch_app_with_env_and_log(app_executable, args, &env, &successor_log, install_root)
         {
