@@ -82,6 +82,19 @@ const resolveDroppedPextPath = (navigationUrl: string): string | null => {
     }
 }
 
+const importDroppedPext = (url: string): boolean => {
+    const droppedPextPath = resolveDroppedPextPath(url)
+    if (!droppedPextPath) return false
+
+    void (async () => {
+        const addonName = await importPextFile(droppedPextPath)
+        if (addonName) {
+            queueAddonOpen(addonName)
+        }
+    })()
+    return true
+}
+
 const getMainWindowPreloadPath = (): string => {
     return path.join(__dirname, 'mainWindowPreload.cjs')
 }
@@ -388,26 +401,24 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
     })
 
     mainWindow.webContents.on('will-navigate', (event, navigationUrl) => {
+        if (importDroppedPext(navigationUrl)) {
+            event.preventDefault()
+            return
+        }
+
         if (mainRendererSource && !isAllowedRemoteRendererNavigation(navigationUrl, mainRendererSource.origin)) {
             event.preventDefault()
             logger.main.warn('Blocked remote renderer navigation', { navigationUrl })
             return
         }
-
-        const droppedPextPath = resolveDroppedPextPath(navigationUrl)
-        if (!droppedPextPath) return
-
-        event.preventDefault()
-        void (async () => {
-            const addonName = await importPextFile(droppedPextPath)
-            if (addonName) {
-                queueAddonOpen(addonName)
-            }
-        })()
     })
 
     mainWindow.webContents.setWindowOpenHandler(data => {
         const url = data.url
+        if (importDroppedPext(url)) {
+            return { action: 'deny' }
+        }
+
         if (mainRendererSource) {
             if (!isAllowedRemoteRendererWindowOpen(url, mainRendererSource.origin)) {
                 logger.main.warn('Blocked remote renderer window open', { url })
