@@ -200,7 +200,16 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                     <div className={st.cardCopy}>
                         <div className={st.titleRow}>
                             <h3>{title}</h3>
-                            {usesOfficialTemplate ? <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} /> : null}
+                            {usesOfficialTemplate ? (
+                                <TooltipButton
+                                    as="span"
+                                    side="top"
+                                    className={st.verifiedTooltip}
+                                    tooltipText={t('store.badges.officialTemplate')}
+                                >
+                                    <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
+                                </TooltipButton>
+                            ) : null}
                         </div>
                         <p>{subtitle}</p>
                         <div className={st.metaRow}>
@@ -250,7 +259,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                                 </Badge>
                             ) : null}
                             {usedAiDuringDevelopment ? (
-                                <TooltipButton as="span" className={st.aiTooltip} tooltipText={t('store.badges.aiUsageTooltip')} side="bottom">
+                                <TooltipButton as="span" className={st.aiTooltip} tooltipText={t('store.badges.aiUsageTooltip')} side="top">
                                     <Badge uppercase={false} size="md" variant="warning" icon={<MdStar />} className={st.metaBadge}>
                                         {t('store.badges.aiUsage')}
                                     </Badge>

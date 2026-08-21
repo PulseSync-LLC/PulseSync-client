@@ -238,7 +238,7 @@ export default function StoreAddonDetailsModal({
                             {release.usesOfficialTemplate ? (
                                 <TooltipButton
                                     as="span"
-                                    side="bottom"
+                                    side="top"
                                     className={st.verifiedTooltip}
                                     tooltipText={t('store.badges.officialTemplate')}
                                 >
