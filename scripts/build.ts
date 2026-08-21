@@ -21,6 +21,7 @@ import { componentContainerName, readRuntimeComponentMetadata } from './componen
 import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
 import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
+import { fetchWithRetry } from './network-retry.js'
 import { publishToS3 } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -213,7 +214,13 @@ function generateBuildInfo(): { coreVersion: string; hostVersion: string; coreCo
 }
 
 async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: string): Promise<number> {
-    const response = await fetch(previousManifestUrl, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    const response = await fetchWithRetry(
+        previousManifestUrl,
+        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
+        {
+            label: 'desktop core revision manifest',
+        },
+    )
     if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${previousManifestUrl}`)
     const manifest = (await response.json()) as {
         targets?: Record<string, { components?: { desktopCore?: { revision?: number } } }>
@@ -944,10 +951,14 @@ function findPackagedComponentModule(
 
 async function readPublishedRevisionManifest(url: string): Promise<PublishedRevisionManifest | null> {
     const separator = url.includes('?') ? '&' : '?'
-    const response = await fetch(`${url}${separator}_=${Date.now()}`, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-    })
+    const response = await fetchWithRetry(
+        `${url}${separator}_=${Date.now()}`,
+        {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+        },
+        { label: 'published revision manifest' },
+    )
     if (response.status === 403 || response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
     return (await response.json()) as PublishedRevisionManifest

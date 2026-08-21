@@ -12,6 +12,8 @@ import {
 } from '@common/errorTracking'
 import { getDesktopErrorTrackingRelease } from '@common/errorTrackingRelease'
 
+import { BootstrapperCommandError } from './bootstrapper/command'
+import { isUpdateErrorV1 } from './bootstrapper/contracts'
 import logger from './logger'
 
 const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
@@ -99,6 +101,27 @@ export const captureMainException = (error: unknown, source: string): void => {
     try {
         Sentry.withScope(scope => {
             scope.setTag('source', source)
+            if (error instanceof BootstrapperCommandError) {
+                const result = isUpdateErrorV1(error.result) ? error.result : null
+                const operation = result?.command ?? error.invocation.operation
+                const errorCode = result?.error.code ?? `exit-${error.exitCode ?? 'unknown'}`
+                const phase = result?.error.phase ?? 'unknown'
+                scope.setFingerprint(['bootstrapper-command', operation, errorCode, phase])
+                scope.setTags({
+                    'bootstrapper.command': operation,
+                    'bootstrapper.error_code': errorCode,
+                    'bootstrapper.phase': phase,
+                })
+                scope.setContext('bootstrapper', {
+                    operation,
+                    exitCode: error.exitCode,
+                    launcherKind: error.invocation.launcherKind,
+                    launcherSource: error.invocation.launcherSource,
+                    retryable: result?.error.retryable,
+                    safeToContinue: result?.error.safeToContinue,
+                    diagnostics: error.diagnostics.slice(0, 8).map(line => line.slice(0, 1_000)),
+                })
+            }
             Sentry.captureException(error instanceof Error ? error : new Error(String(error)))
         })
     } catch (captureError) {

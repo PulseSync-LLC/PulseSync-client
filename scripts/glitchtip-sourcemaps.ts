@@ -4,6 +4,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { getDesktopErrorTrackingRelease, getRendererErrorTrackingRelease } from '../src/common/errorTrackingRelease.js'
+import { fetchWithRetry } from './network-retry.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const stagingRoot = path.resolve(__dirname, '..', '.glitchtip-sourcemaps')
@@ -102,24 +103,29 @@ async function ensureGlitchTipRelease(release: string): Promise<void> {
         Authorization: `Bearer ${process.env.SENTRY_AUTH_TOKEN!.trim()}`,
     }
 
-    const existingRelease = await fetch(releaseUrl, { headers })
+    const existingRelease = await fetchWithRetry(releaseUrl, { headers }, { label: 'GlitchTip release lookup' })
     if (existingRelease.ok) return
     if (existingRelease.status !== 404) {
         throw new Error(`Failed to check GlitchTip release: HTTP ${existingRelease.status}`)
     }
 
-    const createRelease = await fetch(`${baseUrl}/api/0/organizations/${encodeURIComponent(organization)}/releases/`, {
-        method: 'POST',
-        headers: {
-            ...headers,
-            'Content-Type': 'application/json',
+    const createRelease = await fetchWithRetry(
+        `${baseUrl}/api/0/organizations/${encodeURIComponent(organization)}/releases/`,
+        {
+            method: 'POST',
+            headers: {
+                ...headers,
+                'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+                version: release,
+                projects: [project],
+                dateStarted: new Date().toISOString(),
+            }),
         },
-        body: JSON.stringify({
-            version: release,
-            projects: [project],
-            dateStarted: new Date().toISOString(),
-        }),
-    })
+        // Release creation is keyed by version; a replay conflict is verified by the lookup below.
+        { label: `GlitchTip release ${release}`, retryUnsafe: true },
+    )
     if (createRelease.ok) {
         console.log(`Created GlitchTip release ${release}`)
         return
@@ -127,7 +133,7 @@ async function ensureGlitchTipRelease(release: string): Promise<void> {
 
     // Matrix jobs may race while creating the same release. Accept the race only
     // when the release is now visible; surface every other API failure.
-    const releaseAfterConflict = await fetch(releaseUrl, { headers })
+    const releaseAfterConflict = await fetchWithRetry(releaseUrl, { headers }, { label: 'GlitchTip release verification' })
     if (!releaseAfterConflict.ok) {
         throw new Error(`Failed to create GlitchTip release: HTTP ${createRelease.status}`)
     }

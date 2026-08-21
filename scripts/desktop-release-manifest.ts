@@ -10,6 +10,7 @@ import AdmZip from 'adm-zip'
 
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
+import { fetchWithRetry } from './network-retry.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -257,7 +258,7 @@ async function materializePublishedArtifact(artifact: BootstrapperArtifact, targ
         if ((artifact.size === undefined || artifact.size === stat.size) && (await sha256File(targetPath)) === artifact.sha256) return
     }
 
-    const response = await fetch(artifact.url, { cache: 'no-store' })
+    const response = await fetchWithRetry(artifact.url, { cache: 'no-store' }, { label: `published ${label}` })
     if (!response.ok) throw new Error(`Cannot reuse published ${label} (${response.status}): ${artifact.url}`)
     if (!response.body) throw new Error(`Cannot reuse published ${label}: empty response body`)
 
@@ -289,7 +290,13 @@ function deltaToolPath(): string {
 
 async function readPreviousManifest(url: string | undefined): Promise<BootstrapperUpdateManifest | null> {
     if (!url) return null
-    const response = await fetch(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } })
+    const response = await fetchWithRetry(
+        url,
+        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
+        {
+            label: 'previous desktop manifest',
+        },
+    )
     if (response.status === 403 || response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read previous desktop manifest (${response.status}): ${url}`)
     const payload: unknown = await response.json()
@@ -303,7 +310,7 @@ async function readPreviousManifest(url: string | undefined): Promise<Bootstrapp
 }
 
 async function downloadDeltaSource(url: string, targetPath: string): Promise<void> {
-    const response = await fetch(url, { cache: 'no-store' })
+    const response = await fetchWithRetry(url, { cache: 'no-store' }, { label: 'delta source artifact' })
     if (!response.ok) throw new Error(`Cannot download delta source (${response.status}): ${url}`)
     const bytes = Buffer.from(await response.arrayBuffer())
     fs.writeFileSync(targetPath, bytes)

@@ -1,6 +1,8 @@
 import { spawn } from 'node:child_process'
 import { StringDecoder } from 'node:string_decoder'
 
+import { isUpdateErrorV1 } from './contracts'
+
 import type { BootstrapperLauncher } from './paths'
 
 const MAX_STDOUT_BYTES = 1024 * 1024
@@ -13,6 +15,7 @@ export type BootstrapperCommandInvocation = {
     command: string
     launcherKind: BootstrapperLauncher['kind']
     launcherSource: BootstrapperLauncher['source']
+    operation: string
 }
 
 export type RunBootstrapperCommandOptions<TResult, TProgress = never> = {
@@ -60,7 +63,16 @@ export function createBootstrapperCommandInvocation(
         args: [...options.launcher.args, options.command, '--json', ...(options.progressJson ? ['--progress-json'] : []), ...(options.args ?? [])],
         launcherKind: options.launcher.kind,
         launcherSource: options.launcher.source,
+        operation: options.command,
     }
+}
+
+function commandExitMessage(operation: string, exitCode: number | null, result: unknown): string {
+    const exit = exitCode ?? 'unknown'
+    if (isUpdateErrorV1(result)) {
+        return `Bootstrapper ${result.command} failed: ${result.error.code} (${result.error.phase}); exit code ${exit}`
+    }
+    return `Bootstrapper ${operation} exited with code ${exit}`
 }
 
 export async function runBootstrapperCommand<TResult, TProgress = never>(
@@ -234,7 +246,7 @@ export async function runBootstrapperCommand<TResult, TProgress = never>(
                         diagnostics,
                         exitCode: code,
                         invocation,
-                        message: `Bootstrapper command exited with code ${code ?? 'unknown'}`,
+                        message: commandExitMessage(options.command, code, result),
                         result,
                     }),
                 )

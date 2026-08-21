@@ -6,6 +6,8 @@ import chalk from 'chalk'
 import fs from 'fs'
 import path from 'path'
 
+import { fetchWithRetry } from './network-retry.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
 enum LogLevel {
@@ -87,14 +89,19 @@ export async function publishChangelogToApi(version?: string): Promise<void> {
     const rawPatch = readPatchNotes()
 
     try {
-        const res = await fetch(`${apiUrl}/cdn/app/changelog`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                Authorization: `Bearer ${token}`,
+        const res = await fetchWithRetry(
+            `${apiUrl}/cdn/app/changelog`,
+            {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    Authorization: `Bearer ${token}`,
+                },
+                body: JSON.stringify({ version: resolvedVersion, changelog: rawPatch }),
             },
-            body: JSON.stringify({ version: resolvedVersion, changelog: rawPatch }),
-        })
+            // The backend upserts this exact version, so replaying the payload cannot create a duplicate changelog.
+            { label: 'changelog publication', retryUnsafe: true },
+        )
         if (!res.ok) {
             log(LogLevel.ERROR, `Failed to send changelog: ${res.status} ${res.statusText}`)
             const text = await res.text().catch(() => '')
@@ -313,14 +320,18 @@ function chunkV2Messages(version: string, sectionContainers: Container[]): V2Mes
 }
 
 async function discordApiRequest(method: string, url: string, botToken: string, body?: any) {
-    const res = await fetch(url, {
-        method,
-        headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bot ${botToken}`,
+    const res = await fetchWithRetry(
+        url,
+        {
+            method,
+            headers: {
+                'Content-Type': 'application/json',
+                Authorization: `Bot ${botToken}`,
+            },
+            body: body ? JSON.stringify(body) : undefined,
         },
-        body: body ? JSON.stringify(body) : undefined,
-    })
+        { label: `Discord ${method}`, retryUnsafe: method.toUpperCase() === 'PATCH' },
+    )
     const text = await res.text().catch(() => '')
     let json: any = null
     if (text) {

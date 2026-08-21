@@ -117,7 +117,7 @@ jobs:
 
       - name: Prepare GitHub Release assets
         run: >-
-          node scripts/github-release-runtime.mjs prepare
+          yarn tsx scripts/github-release-runtime.ts prepare
           --source github-release-artifacts
           --target github-release-assets
           --repository ${{ github.repository }}

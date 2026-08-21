@@ -11,6 +11,7 @@ import {
     prepareRemoteRendererGlitchTipSourceMaps,
     uploadRemoteRendererGlitchTipSourceMaps,
 } from '../glitchtip-sourcemaps.js'
+import { fetchWithRetry } from '../network-retry.js'
 import { publishDirectoryToS3 } from '../s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -136,10 +137,14 @@ function hashRendererArtifact(outRoot: string, manifestPath: string): string {
 
 async function readPublishedManifest(options: RemoteRendererBuildOptions): Promise<RendererManifest | null> {
     const manifestUrl = `${joinUrl(options.cdnBaseUrl, 'desktop', 'manifest.json')}?_=${Date.now()}`
-    const response = await fetch(manifestUrl, {
-        cache: 'no-store',
-        headers: { 'Cache-Control': 'no-cache' },
-    })
+    const response = await fetchWithRetry(
+        manifestUrl,
+        {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+        },
+        { label: `remote renderer ${options.channel} manifest` },
+    )
     if (response.status === 403 || response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read published renderer manifest (${response.status}): ${manifestUrl}`)
 

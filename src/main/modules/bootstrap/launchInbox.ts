@@ -2,6 +2,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 
 import { ackLaunchRequest, claimLaunchRequests, enqueueLaunchRequest } from '../bootstrapper/runtimeCommands'
+import { captureMainException } from '../errorTracking'
+import logger from '../logger'
 
 import type { ActiveAppLeaseV1, LaunchRequestEnvelopeV1, LaunchRequestInputV1 } from '../bootstrapper/contracts'
 import type { BootstrapperLauncher } from '../bootstrapper/paths'
@@ -15,6 +17,7 @@ export class LaunchInbox {
     private watcher: fs.FSWatcher | null = null
     private pollTimer: NodeJS.Timeout | null = null
     private pollPromise: Promise<void> | null = null
+    private reportedBackgroundError: string | null = null
 
     public constructor(
         private readonly options: {
@@ -31,7 +34,7 @@ export class LaunchInbox {
             stateRoot: this.options.stateRoot,
             launcher: this.options.launcher,
         })
-        void this.reconcile()
+        this.runInBackground(() => this.reconcile())
     }
 
     public async start(delivery: LaunchRequestDelivery): Promise<void> {
@@ -94,12 +97,28 @@ export class LaunchInbox {
         this.closeWatcher()
         const inboxDir = path.join(this.options.stateRoot, 'runtime', 'launch-inbox', this.options.lease.inboxId)
         try {
-            this.watcher = fs.watch(inboxDir, () => void this.reconcile())
+            this.watcher = fs.watch(inboxDir, () => this.runInBackground(() => this.reconcile()))
         } catch {
             this.watcher = null
         }
-        this.pollTimer = setInterval(() => void this.poll(inboxDir), 1_000)
+        this.pollTimer = setInterval(() => this.runInBackground(() => this.poll(inboxDir)), 1_000)
         this.pollTimer.unref()
+    }
+
+    private runInBackground(task: () => Promise<void>): void {
+        void task()
+            .then(() => {
+                this.reportedBackgroundError = null
+            })
+            .catch(error => {
+                const normalizedError = error instanceof Error ? error : new Error(String(error))
+                const signature = `${normalizedError.name}:${normalizedError.message}`
+                if (signature === this.reportedBackgroundError) return
+
+                this.reportedBackgroundError = signature
+                logger.main.error('Launch inbox background reconciliation failed', normalizedError)
+                captureMainException(normalizedError, 'LaunchInbox/background-reconcile')
+            })
     }
 
     private poll(inboxDir: string): Promise<void> {

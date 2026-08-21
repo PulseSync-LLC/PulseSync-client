@@ -4,34 +4,75 @@ import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
+import { fetchWithRetry } from './network-retry.js'
+
 const GITHUB_RENDERER_BASE_URL = 'https://static.pulsesync.dev/app'
 const DESKTOP_MANIFEST_PATTERN = /^desktop-update(?:-hybrid)?-[a-z0-9_-]+\.json$/iu
 const RUNTIME_ARTIFACT_PATTERN = /^pulsesync-(?:host|component|bootstrapper)-/iu
+const RUNTIME_COMPONENTS = ['desktopCore', 'artifactWorker', 'pulsesyncNative', 'bootstrapper'] as const
 
-function rendererManifestUrlForChannel(channel) {
+type RuntimeComponent = (typeof RUNTIME_COMPONENTS)[number]
+type RuntimeArtifact = {
+    name?: string
+    sha256: string
+    size?: number
+    url: string
+}
+type RuntimeDescriptor = {
+    artifact: RuntimeArtifact
+    files?: unknown
+}
+type DesktopTarget = {
+    bootstrapper?: RuntimeDescriptor
+    components: Record<string, RuntimeDescriptor>
+    host: RuntimeDescriptor
+    layout?: unknown
+}
+type DesktopManifest = Record<string, unknown> & {
+    channel: string
+    rendererManifestUrl?: string
+    schemaVersion: number
+    targets: Record<string, DesktopTarget>
+}
+type ReleaseContext = {
+    canonicalArtifactRoot?: string
+    fileIndex: Map<string, string[]>
+    referencedAssets: Map<string, string>
+    rendererManifestUrl?: string | null
+    repository: string
+    tag: string
+}
+type GitHubRelease = {
+    assets?: Array<{ browser_download_url?: string; name?: string }>
+    draft?: boolean
+    prerelease?: boolean
+    tag_name?: string
+}
+
+function rendererManifestUrlForChannel(channel: string | undefined): string {
     const rendererChannel = channel?.trim().toLowerCase() === 'beta' ? 'beta' : 'dev'
     return `${GITHUB_RENDERER_BASE_URL}/${rendererChannel}/desktop/manifest.json`
 }
 
-function argValue(args, flag) {
+function argValue(args: string[], flag: string): string | null {
     const index = args.indexOf(flag)
     return index === -1 ? null : args[index + 1] || null
 }
 
-function requiredArg(args, flag) {
+function requiredArg(args: string[], flag: string): string {
     const value = argValue(args, flag)
     if (!value) throw new Error(`${flag} is required`)
     return value
 }
 
-function requireRepository(value) {
+function requireRepository(value: string): string {
     if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(value)) {
         throw new Error(`Invalid GitHub repository: ${value}`)
     }
     return value
 }
 
-function resolveInsideWorkspace(value, label) {
+function resolveInsideWorkspace(value: string, label: string): string {
     const resolved = path.resolve(value)
     const relative = path.relative(process.cwd(), resolved)
     if (!relative || relative.startsWith('..') || path.isAbsolute(relative)) {
@@ -40,7 +81,7 @@ function resolveInsideWorkspace(value, label) {
     return resolved
 }
 
-function resolveFileInsideWorkspace(value, label) {
+function resolveFileInsideWorkspace(value: string, label: string): string {
     const resolved = path.resolve(value)
     const relative = path.relative(process.cwd(), resolved)
     if (!relative || relative.startsWith('..') || path.isAbsolute(relative) || !fs.existsSync(resolved) || !fs.statSync(resolved).isFile()) {
@@ -49,15 +90,15 @@ function resolveFileInsideWorkspace(value, label) {
     return resolved
 }
 
-function requireDirectory(directory, label) {
+function requireDirectory(directory: string, label: string): void {
     if (!fs.existsSync(directory) || !fs.statSync(directory).isDirectory()) {
         throw new Error(`${label} does not exist: ${directory}`)
     }
 }
 
-function listFiles(root) {
-    const files = []
-    const visit = directory => {
+function listFiles(root: string): string[] {
+    const files: string[] = []
+    const visit = (directory: string): void => {
         for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
             const entryPath = path.join(directory, entry.name)
             if (entry.isDirectory()) {
@@ -71,17 +112,17 @@ function listFiles(root) {
     return files.sort((left, right) => left.localeCompare(right))
 }
 
-function isNestedPublicationFile(file, sourceRoot) {
+function isNestedPublicationFile(file: string, sourceRoot: string): boolean {
     const parentSegments = path.relative(sourceRoot, file).split(path.sep).slice(0, -1)
     return parentSegments.some(segment => segment === 'bootstrapper' || segment === 'desktop-core')
 }
 
-function sha256File(file) {
+function sha256File(file: string): string {
     return crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex')
 }
 
-function buildFileIndex(files) {
-    const index = new Map()
+function buildFileIndex(files: string[]): Map<string, string[]> {
+    const index = new Map<string, string[]>()
     for (const file of files) {
         const name = path.basename(file)
         const matches = index.get(name) || []
@@ -91,7 +132,7 @@ function buildFileIndex(files) {
     return index
 }
 
-function uniqueSourceFile(index, name) {
+function uniqueSourceFile(index: Map<string, string[]>, name: string): string {
     const matches = index.get(name) || []
     if (!matches.length) throw new Error(`Release artifact is missing: ${name}`)
     if (matches.length === 1) return matches[0]
@@ -103,7 +144,7 @@ function uniqueSourceFile(index, name) {
     return matches[0]
 }
 
-function copyExact(source, destination) {
+function copyExact(source: string, destination: string): boolean {
     fs.mkdirSync(path.dirname(destination), { recursive: true })
     if (fs.existsSync(destination)) {
         if (sha256File(source) !== sha256File(destination)) {
@@ -115,11 +156,11 @@ function copyExact(source, destination) {
     return true
 }
 
-function releaseDownloadUrl(repository, tag, assetName) {
+function releaseDownloadUrl(repository: string, tag: string, assetName: string): string {
     return `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/${encodeURIComponent(assetName)}`
 }
 
-function artifactAssetName(artifact, label) {
+function artifactAssetName(artifact: RuntimeArtifact, label: string): string {
     if (!artifact || typeof artifact !== 'object' || typeof artifact.url !== 'string') {
         throw new Error(`${label} has no artifact URL`)
     }
@@ -141,7 +182,7 @@ function artifactAssetName(artifact, label) {
     return name
 }
 
-async function downloadCanonicalArtifact(artifact, assetName, label, context) {
+async function downloadCanonicalArtifact(artifact: RuntimeArtifact, assetName: string, label: string, context: ReleaseContext): Promise<string> {
     if (!context.canonicalArtifactRoot) {
         throw new Error(`${label} SHA-256 does not match ${assetName}`)
     }
@@ -150,7 +191,7 @@ async function downloadCanonicalArtifact(artifact, assetName, label, context) {
     const targetFile = path.join(targetDir, assetName)
     if (fs.existsSync(targetFile) && sha256File(targetFile) === artifact.sha256.toLowerCase()) return targetFile
 
-    const response = await fetch(artifact.url, { headers: githubHeaders() })
+    const response = await fetchWithRetry(artifact.url, { headers: githubHeaders() }, { label: `GitHub artifact ${assetName}` })
     if (!response.ok) throw new Error(`${label} canonical artifact download failed (${response.status}): ${artifact.url}`)
     if (!response.body) throw new Error(`${label} canonical artifact response is empty: ${artifact.url}`)
 
@@ -171,7 +212,7 @@ async function downloadCanonicalArtifact(artifact, assetName, label, context) {
     return targetFile
 }
 
-async function rewriteVersionedArtifact(descriptor, label, context) {
+async function rewriteVersionedArtifact(descriptor: RuntimeDescriptor, label: string, context: ReleaseContext): Promise<void> {
     if (!descriptor || typeof descriptor !== 'object') throw new Error(`${label} descriptor is invalid`)
     delete descriptor.files
     const artifact = descriptor.artifact
@@ -192,14 +233,8 @@ async function rewriteVersionedArtifact(descriptor, label, context) {
     context.referencedAssets.set(assetName, resolvedSourceFile)
 }
 
-async function transformManifest(sourceFile, context) {
-    const manifest = JSON.parse(fs.readFileSync(sourceFile, 'utf8'))
-    if (!manifest || typeof manifest !== 'object' || ![3, 4, 5].includes(manifest.schemaVersion)) {
-        throw new Error(`Unsupported desktop manifest schema: ${sourceFile}`)
-    }
-    if (!manifest.targets || typeof manifest.targets !== 'object') {
-        throw new Error(`Desktop manifest has no targets: ${sourceFile}`)
-    }
+async function transformManifest(sourceFile: string, context: ReleaseContext): Promise<DesktopManifest> {
+    const manifest = requireManifest(JSON.parse(fs.readFileSync(sourceFile, 'utf8')), sourceFile)
 
     for (const [dist, target] of Object.entries(manifest.targets)) {
         if (!target || typeof target !== 'object') throw new Error(`Desktop target is invalid: ${dist}`)
@@ -219,14 +254,16 @@ async function transformManifest(sourceFile, context) {
     return manifest
 }
 
-function requireManifest(value, label) {
-    if (!value || typeof value !== 'object' || ![3, 4, 5].includes(value.schemaVersion) || !value.targets || typeof value.targets !== 'object') {
+function requireManifest(value: unknown, label: string): DesktopManifest {
+    if (!value || typeof value !== 'object') throw new Error(`${label} is not a supported desktop manifest`)
+    const candidate = value as Partial<DesktopManifest>
+    if (!candidate.schemaVersion || ![3, 4, 5].includes(candidate.schemaVersion) || !candidate.targets || typeof candidate.targets !== 'object') {
         throw new Error(`${label} is not a supported desktop manifest`)
     }
-    return value
+    return candidate as DesktopManifest
 }
 
-function prereleaseChannel(tag) {
+function prereleaseChannel(tag: string): string | null {
     const normalized = tag.trim().replace(/^v/u, '')
     const separator = normalized.indexOf('-')
     if (separator === -1) return null
@@ -236,7 +273,7 @@ function prereleaseChannel(tag) {
         .toLowerCase()
 }
 
-function githubHeaders() {
+function githubHeaders(): Record<string, string> {
     const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
     return {
         Accept: 'application/vnd.github+json',
@@ -246,20 +283,25 @@ function githubHeaders() {
     }
 }
 
-async function fetchJson(url, label) {
-    const response = await fetch(url, { headers: githubHeaders() })
+async function fetchJson(url: string, label: string): Promise<unknown> {
+    const response = await fetchWithRetry(url, { headers: githubHeaders() }, { label })
     if (!response.ok) throw new Error(`${label} request failed (${response.status}): ${url}`)
     return await response.json()
 }
 
-async function findPreviousGitHubManifest(repository, channel, manifestName, currentTag) {
+async function findPreviousGitHubManifest(
+    repository: string,
+    channel: string,
+    manifestName: string,
+    currentTag: string,
+): Promise<{ manifest: DesktopManifest; tag: string }> {
     const wantPrerelease = channel === 'dev'
     for (let page = 1; page <= 10; page += 1) {
         const releases = await fetchJson(`https://api.github.com/repos/${repository}/releases?per_page=100&page=${page}`, 'GitHub releases')
         if (!Array.isArray(releases)) throw new Error('GitHub releases response is invalid')
-        for (const release of releases) {
-            if (!release || release.draft === true || release.tag_name === currentTag || release.prerelease !== wantPrerelease) continue
-            if (wantPrerelease && prereleaseChannel(release.tag_name || '') !== channel) continue
+        for (const release of releases as GitHubRelease[]) {
+            if (!release?.tag_name || release.draft === true || release.tag_name === currentTag || release.prerelease !== wantPrerelease) continue
+            if (wantPrerelease && prereleaseChannel(release.tag_name) !== channel) continue
             const asset = Array.isArray(release.assets) ? release.assets.find(candidate => candidate?.name === manifestName) : null
             if (!asset?.browser_download_url) continue
             const manifest = requireManifest(await fetchJson(asset.browser_download_url, 'Previous GitHub manifest'), 'Previous GitHub manifest')
@@ -271,7 +313,7 @@ async function findPreviousGitHubManifest(repository, channel, manifestName, cur
     throw new Error(`No previous GitHub ${channel} manifest ${manifestName} found in ${repository}; publish a full release first`)
 }
 
-function copyManifestTopLevel(source, target) {
+function copyManifestTopLevel(source: DesktopManifest, target: DesktopManifest): void {
     const fields = [
         'schemaVersion',
         'metadataVersion',
@@ -289,14 +331,21 @@ function copyManifestTopLevel(source, target) {
     }
 }
 
-function verifyComponentManifest(manifest, targetRoot, repository, tag, dist, component) {
+function verifyComponentManifest(
+    manifest: DesktopManifest,
+    targetRoot: string,
+    repository: string,
+    tag: string,
+    dist: string,
+    component: RuntimeComponent,
+): void {
     const repositoryPrefix = `https://github.com/${repository}/releases/download/`
     const currentPrefix = `${repositoryPrefix}${encodeURIComponent(tag)}/`
     const target = manifest.targets[dist]
-    const descriptors = [
+    const descriptors: Array<[string, RuntimeDescriptor]> = [
         ['host', target.host],
-        ...Object.entries(target.components).map(([name, value]) => [`component:${name}`, value]),
-        ...(target.bootstrapper ? [['bootstrapper', target.bootstrapper]] : []),
+        ...Object.entries(target.components).map<[string, RuntimeDescriptor]>(([name, value]) => [`component:${name}`, value]),
+        ...(target.bootstrapper ? ([['bootstrapper', target.bootstrapper]] as Array<[string, RuntimeDescriptor]>) : []),
     ]
     for (const [key, descriptor] of descriptors) {
         if ('files' in descriptor) throw new Error(`${key} still contains file/delta delivery`)
@@ -316,7 +365,7 @@ function verifyComponentManifest(manifest, targetRoot, repository, tag, dist, co
     }
 }
 
-async function prepareComponentRelease(args) {
+async function prepareComponentRelease(args: string[]): Promise<void> {
     const sourceManifestFile = resolveFileInsideWorkspace(requiredArg(args, '--source-manifest'), 'Source manifest')
     const sourceAssetFile = resolveFileInsideWorkspace(requiredArg(args, '--source-asset'), 'Source component asset')
     const targetRoot = resolveInsideWorkspace(requiredArg(args, '--target'), 'Target')
@@ -324,12 +373,13 @@ async function prepareComponentRelease(args) {
     const tag = requiredArg(args, '--tag')
     const channel = requiredArg(args, '--channel').toLowerCase()
     const dist = requiredArg(args, '--dist').toLowerCase()
-    const component = requiredArg(args, '--component')
+    const componentValue = requiredArg(args, '--component')
     if (!['beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
     if (!/^(?:win32|linux|darwin)-[a-z0-9_-]+$/u.test(dist)) throw new Error(`Invalid component release dist: ${dist}`)
-    if (!['desktopCore', 'artifactWorker', 'pulsesyncNative', 'bootstrapper'].includes(component)) {
-        throw new Error(`Unsupported runtime component: ${component}`)
+    if (!RUNTIME_COMPONENTS.includes(componentValue as RuntimeComponent)) {
+        throw new Error(`Unsupported runtime component: ${componentValue}`)
     }
+    const component = componentValue as RuntimeComponent
 
     const sourceManifest = requireManifest(JSON.parse(fs.readFileSync(sourceManifestFile, 'utf8')), 'Source manifest')
     if (sourceManifest.channel !== channel) throw new Error(`Source manifest channel mismatch: ${sourceManifest.channel}`)
@@ -362,7 +412,7 @@ async function prepareComponentRelease(args) {
     }
     const context = {
         fileIndex: buildFileIndex([sourceAssetFile]),
-        referencedAssets: new Map(),
+        referencedAssets: new Map<string, string>(),
         rendererManifestUrl: rendererManifestUrlForChannel(channel),
         repository,
         tag,
@@ -386,7 +436,7 @@ async function prepareComponentRelease(args) {
     console.log(`Prepared release directory: ${targetRoot}`)
 }
 
-async function checkComponentBase(args) {
+async function checkComponentBase(args: string[]): Promise<void> {
     const repository = requireRepository(requiredArg(args, '--repository'))
     const channel = requiredArg(args, '--channel').toLowerCase()
     const dist = requiredArg(args, '--dist').toLowerCase()
@@ -398,12 +448,12 @@ async function checkComponentBase(args) {
     console.log(`GitHub component baseline: ${previous.tag}/${name}`)
 }
 
-function ordinaryReleaseAssetName(baseName) {
+function ordinaryReleaseAssetName(baseName: string): string {
     return /^pulsesync-app-.+-universal\.dmg$/iu.test(baseName) ? baseName.replace(/-universal\.dmg$/iu, '-x64-arm64.dmg') : baseName
 }
 
-function flattenOrdinaryAssets(files, sourceRoot, targetRoot) {
-    const copyCounts = new Map()
+function flattenOrdinaryAssets(files: string[], sourceRoot: string, targetRoot: string): number {
+    const copyCounts = new Map<string, number>()
     let copied = 0
     for (const file of files) {
         const baseName = path.basename(file)
@@ -423,13 +473,13 @@ function flattenOrdinaryAssets(files, sourceRoot, targetRoot) {
     return copied
 }
 
-function verifyPreparedManifest(manifest, targetRoot, repository, tag) {
+function verifyPreparedManifest(manifest: DesktopManifest, targetRoot: string, repository: string, tag: string): void {
     const expectedPrefix = `https://github.com/${repository}/releases/download/${encodeURIComponent(tag)}/`
     for (const [dist, target] of Object.entries(manifest.targets)) {
-        const descriptors = [
+        const descriptors: Array<[string, RuntimeDescriptor]> = [
             [`targets.${dist}.host`, target.host],
-            ...Object.entries(target.components).map(([name, value]) => [`targets.${dist}.components.${name}`, value]),
-            ...(target.bootstrapper ? [[`targets.${dist}.bootstrapper`, target.bootstrapper]] : []),
+            ...Object.entries(target.components).map<[string, RuntimeDescriptor]>(([name, value]) => [`targets.${dist}.components.${name}`, value]),
+            ...(target.bootstrapper ? ([[`targets.${dist}.bootstrapper`, target.bootstrapper]] as Array<[string, RuntimeDescriptor]>) : []),
         ]
         for (const [label, descriptor] of descriptors) {
             if ('files' in descriptor) throw new Error(`${label} still contains file/delta delivery`)
@@ -443,7 +493,7 @@ function verifyPreparedManifest(manifest, targetRoot, repository, tag) {
     }
 }
 
-async function prepareRelease(args) {
+async function prepareRelease(args: string[]): Promise<void> {
     const sourceRoot = resolveInsideWorkspace(requiredArg(args, '--source'), 'Source')
     const targetRoot = resolveInsideWorkspace(requiredArg(args, '--target'), 'Target')
     const repository = requireRepository(requiredArg(args, '--repository'))
@@ -463,10 +513,10 @@ async function prepareRelease(args) {
     const manifestFiles = files.filter(file => DESKTOP_MANIFEST_PATTERN.test(path.basename(file)))
     if (!manifestFiles.length) throw new Error(`No desktop update manifests found under ${sourceRoot}`)
 
-    const referencedAssets = new Map()
+    const referencedAssets = new Map<string, string>()
     const context = { canonicalArtifactRoot, fileIndex, referencedAssets, rendererManifestUrl, repository, tag }
-    const transformedManifests = []
-    let ordinaryCount
+    const transformedManifests: Array<[string, DesktopManifest]> = []
+    let ordinaryCount = 0
     try {
         for (const manifestFile of manifestFiles) {
             const name = path.basename(manifestFile)
@@ -493,7 +543,7 @@ async function prepareRelease(args) {
     console.log(`Prepared release directory: ${targetRoot}`)
 }
 
-async function main() {
+async function main(): Promise<void> {
     const [command, ...args] = process.argv.slice(2)
     if (command === 'prepare') {
         await prepareRelease(args)
@@ -507,7 +557,7 @@ async function main() {
         await checkComponentBase(args)
         return
     }
-    throw new Error('Usage: node scripts/github-release-runtime.mjs <prepare|prepare-component|check-component-base> [options]')
+    throw new Error('Usage: tsx scripts/github-release-runtime.ts <prepare|prepare-component|check-component-base> [options]')
 }
 
 main().catch(error => {
