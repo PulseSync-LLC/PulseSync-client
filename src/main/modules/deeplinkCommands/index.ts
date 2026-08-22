@@ -1,5 +1,6 @@
 import auth from './auth'
 import patch from './patch'
+import settings from './settings'
 
 import type { BrowserAuthCredentials } from '../auth/browserAuth'
 import type { BrowserWindow } from 'electron'
@@ -26,6 +27,7 @@ export default class deeplinkCommands {
         return [
             { name: 'browser_auth', run: auth },
             { name: 'patch', run: patch },
+            { name: 'settings', run: settings },
         ]
     }
 

@@ -155,6 +155,8 @@
         "emptyDescription": "New settings sections will appear here later.",
         "emptyTitle": "No settings available yet",
         "movedHint": "Settings now open from the button in the bottom-left corner.",
+        "searchEmpty": "No settings found",
+        "searchPlaceholder": "Find a setting...",
         "sections": {
             "general": "General",
             "integrations": "Components"

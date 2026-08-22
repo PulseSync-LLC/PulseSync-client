@@ -1,5 +1,6 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
 
+import { isSettingsDeepLinkSection } from '@common/settingsDeepLink'
 import { Modals } from '@app/providers/modal/modals'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
@@ -29,7 +30,7 @@ const initialModalsState: ModalsState = {
         onChangeGithubUrl: null,
     },
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: { isOpen: false, addonName: '', onConfirm: null },
-    [Modals.SETTINGS]: { isOpen: false },
+    [Modals.SETTINGS]: { isOpen: false, activeSection: undefined },
     [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
     [Modals.SUBSCRIPTION_GIVEAWAYS]: { isOpen: false },
     [Modals.BASIC_CONFIRMATION]: { isOpen: false, title: '', description: '', confirmLabel: undefined, onConfirm: undefined },
@@ -110,21 +111,38 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         [openModal],
     )
 
-    useEffect(() => {
-        const unsubscribe = desktopApi.system.onOpenModal(modalName => {
-            if (typeof modalName !== 'string') {
-                return
+    const openModalFromPayload = useCallback(
+        (payload: unknown) => {
+            if (typeof payload === 'string') {
+                return openModalByName(payload)
             }
-            const ok = openModalByName(modalName)
+            if (!payload || typeof payload !== 'object') {
+                return false
+            }
+
+            const { activeSection, modalName } = payload as { activeSection?: unknown; modalName?: unknown }
+            if (modalName !== Modals.SETTINGS || !isSettingsDeepLinkSection(activeSection)) {
+                return false
+            }
+
+            openModal(Modals.SETTINGS, { activeSection })
+            return true
+        },
+        [openModal, openModalByName],
+    )
+
+    useEffect(() => {
+        const unsubscribe = desktopApi.system.onOpenModal(payload => {
+            const ok = openModalFromPayload(payload)
             if (!ok) {
-                console.warn('[ModalProvider] Unknown modal name for open:', modalName)
+                console.warn('[ModalProvider] Unknown modal request:', payload)
             }
         })
 
         return () => {
             unsubscribe()
         }
-    }, [openModalByName])
+    }, [openModalFromPayload])
 
     const value = useMemo<ModalsContextValue>(
         () => ({
