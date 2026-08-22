@@ -22,6 +22,8 @@
     box-sizing: border-box;
     display: flex;
 
+    gap: 16px;
+
     align-items: center;
     justify-content: space-between;
 
@@ -35,12 +37,21 @@
 }
 
 .modalTitle {
+    flex: 0 0 auto;
+
     font-size: 19px;
     font-weight: 800;
 
     line-height: 1.2;
 
     color: var(--text-primary);
+}
+
+.searchBox {
+    max-width: 300px;
+
+    padding: 8px 12px;
+    margin-left: auto;
 }
 
 .closeButton {
@@ -106,6 +117,20 @@
     padding: 24px 26px 28px;
 
     overflow-y: auto;
+}
+
+.searchEmpty {
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 100%;
+
+    font-size: 15px;
+    font-weight: 600;
+
+    color: var(--text-muted);
 }
 
 @media (width <= 700px) {

@@ -1,4 +1,5 @@
 import type { Modals } from '@app/providers/modal/modals'
+import type { SettingsDeepLinkSection } from '@common/settingsDeepLink'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
 import type { ReactNode } from 'react'
@@ -27,6 +28,9 @@ export type ModalAdditionalStateMap = {
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string
         onConfirm?: (() => void) | null
+    }
+    [Modals.SETTINGS]: {
+        activeSection?: SettingsDeepLinkSection
     }
     [Modals.BASIC_CONFIRMATION]: {
         title: string

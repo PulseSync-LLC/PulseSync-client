@@ -1,10 +1,9 @@
-import type { DeveloperToolsSection } from '@features/developerTools/DeveloperToolsPanel'
+import type { SettingsDeepLinkSection } from '@common/settingsDeepLink'
 import type { ReactNode } from 'react'
 import type { IconType } from 'react-icons'
 
 export type DeveloperSetting = 'devSocket' | 'showDevFrame'
-export type GeneralSettingsSection = 'general' | 'integrations' | 'updates' | 'system'
-export type SettingsSectionId = GeneralSettingsSection | 'developer' | 'experiments' | DeveloperToolsSection
+export type SettingsSectionId = SettingsDeepLinkSection
 
 export interface SettingsToggleItem {
     checked: boolean
