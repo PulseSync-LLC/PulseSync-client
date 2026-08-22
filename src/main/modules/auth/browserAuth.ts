@@ -1,5 +1,8 @@
 import { app } from 'electron'
 
+import axios from 'axios'
+
+import config from '../../../common/appConfig'
 import RendererEvents from '../../../common/types/rendererEvents'
 import isAppDev from '../../utils/isAppDev'
 import logger from '../logger'
@@ -8,8 +11,8 @@ import { getState } from '../state'
 import type { BrowserWindow } from 'electron'
 
 const State = getState()
-const BROWSER_AUTH_ACTION = 'BROWSER_AUTH'
 const BROWSER_AUTH_CANCELLED_KEY = 'auth.browserAuthCancelled'
+const AUTH_EXCHANGE_CODE_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
 export interface BrowserAuthCredentials {
     userId: string
@@ -21,10 +24,6 @@ interface BrowserAuthClientLike {
 }
 
 const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/g, '')
-
-const normalizeActionToken = (value: string): string => trimQuotes(value).replace(/-/g, '_').toUpperCase()
-
-const isBrowserAuthAction = (value: string): boolean => normalizeActionToken(value) === BROWSER_AUTH_ACTION
 
 export const beginBrowserAuthFlow = (): void => {
     State.set(BROWSER_AUTH_CANCELLED_KEY, false)
@@ -49,32 +48,17 @@ const pickAuthCredentials = (raw: unknown): BrowserAuthCredentials | null => {
     return { userId, token }
 }
 
-export const readBrowserAuthFromParams = (params: URLSearchParams): BrowserAuthCredentials | null => {
-    const userId = params.get('userId') || params.get('userID') || params.get('user_id') || params.get('id')
-    const token = params.get('token') || params.get('accessToken') || params.get('access_token')
-    if (!userId || !token) return null
-    return { userId: trimQuotes(userId), token: trimQuotes(token) }
-}
-
-export const extractBrowserAuthCredentialsFromUrl = (rawUrl: string): BrowserAuthCredentials | null => {
+export const extractBrowserAuthCodeFromUrl = (rawUrl: string): string | null => {
     if (!rawUrl || !rawUrl.toLowerCase().startsWith('pulsesync://')) return null
 
     try {
         const parsed = new URL(rawUrl)
         if (parsed.protocol !== 'pulsesync:') return null
-
-        const queryCredentials = readBrowserAuthFromParams(parsed.searchParams)
-        if (queryCredentials) return queryCredentials
-
-        if (parsed.hash?.startsWith('#')) {
-            const hashCredentials = readBrowserAuthFromParams(new URLSearchParams(parsed.hash.slice(1)))
-            if (hashCredentials) return hashCredentials
-        }
+        const code = trimQuotes(parsed.searchParams.get('code') || '')
+        return AUTH_EXCHANGE_CODE_PATTERN.test(code) ? code : null
     } catch {
         return null
     }
-
-    return null
 }
 
 export const extractBrowserAuthFromPayload = (payload: unknown): BrowserAuthCredentials | null => {
@@ -89,29 +73,19 @@ export const extractBrowserAuthFromPayload = (payload: unknown): BrowserAuthCred
     return null
 }
 
-export const extractBrowserAuthFromDeepLink = (rawUrl: string): BrowserAuthCredentials | null => {
-    if (!rawUrl || !rawUrl.toLowerCase().startsWith('pulsesync://')) return null
-
+export const exchangeBrowserAuthCode = async (code: string): Promise<BrowserAuthCredentials | null> => {
+    if (!AUTH_EXCHANGE_CODE_PATTERN.test(code)) return null
     try {
-        const parsed = new URL(rawUrl)
-        if (parsed.protocol !== 'pulsesync:') return null
-
-        const pathParts = parsed.pathname.split('/').filter(Boolean)
-        const hasAction = isBrowserAuthAction(parsed.hostname) || pathParts.some(isBrowserAuthAction)
-        if (!hasAction) return null
-
-        const queryCredentials = readBrowserAuthFromParams(parsed.searchParams)
-        if (queryCredentials) return queryCredentials
-
-        if (parsed.hash?.startsWith('#')) {
-            const hashCredentials = readBrowserAuthFromParams(new URLSearchParams(parsed.hash.slice(1)))
-            if (hashCredentials) return hashCredentials
-        }
-    } catch {
+        const response = await axios.post<BrowserAuthCredentials>(
+            `${config.SERVER_URL}/auth/oauth/exchange`,
+            { code },
+            { headers: { 'Content-Type': 'application/json' }, timeout: 15_000 },
+        )
+        return pickAuthCredentials(response.data)
+    } catch (error) {
+        logger.socketManager.error(`Failed to exchange browser authentication code: ${error instanceof Error ? error.message : String(error)}`)
         return null
     }
-
-    return null
 }
 
 const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: BrowserAuthClientLike | null): void => {

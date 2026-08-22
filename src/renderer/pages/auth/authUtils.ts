@@ -22,7 +22,10 @@ export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
 
 export const openAuthCallback = (navigate: NavigateFunction) => {
     void Promise.resolve(desktopApi.auth.startBrowserAuth()).finally(() => {
-        window.open(config.WEBSITE_URL + '/callback?source=app')
+        const callbackUrl = new URL('/callback', config.WEBSITE_URL)
+        callbackUrl.searchParams.set('source', 'app')
+        callbackUrl.searchParams.set('clientAuth', 'v2')
+        window.open(callbackUrl.toString())
         navigate('/auth/callback', { replace: true })
     })
 }
