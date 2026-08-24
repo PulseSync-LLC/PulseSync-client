@@ -276,6 +276,10 @@
     max-width: calc(100vw - 30px);
 }
 
+.searchFilterMenu > div > div {
+    overflow-x: hidden;
+}
+
 .searchResultsLoading {
     width: 100%;
 }
