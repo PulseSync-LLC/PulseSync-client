@@ -549,11 +549,6 @@
     transition: var(--transition);
 }
 
-.addonCardWithLegacyRestriction:hover .legacyRestrictionBadge,
-.addonCardWithLegacyRestriction:focus-within .legacyRestrictionBadge {
-    opacity: 0;
-}
-
 .addonOrganizerTooltip {
     width: 24px;
     height: 24px;
