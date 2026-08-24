@@ -256,6 +256,19 @@ export default function StoreAddonDetailsModal({
                                 <MdDownload aria-hidden="true" />
                                 {downloadsLabel}
                             </span>
+                            {release.usedAiDuringDevelopment ? (
+                                <TooltipButton
+                                    as="span"
+                                    side="top"
+                                    className={st.aiTooltip}
+                                    tooltipText={t('store.badges.aiUsageTooltip')}
+                                >
+                                    <span className={cn(st.metaChip, st.aiChip)}>
+                                        <MdStar aria-hidden="true" />
+                                        {t('store.badges.aiUsage')}
+                                    </span>
+                                </TooltipButton>
+                            ) : null}
                         </div>
 
                         <button

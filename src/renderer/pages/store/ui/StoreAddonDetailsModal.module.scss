@@ -258,6 +258,18 @@
     flex: 0 0 auto;
 }
 
+.aiTooltip {
+    display: inline-flex;
+
+    flex: 0 0 auto;
+}
+
+.aiChip {
+    color: var(--warning);
+
+    background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+
 .metaChip svg,
 .tagChip svg,
 .githubButton svg {
@@ -277,13 +289,13 @@
     align-items: center;
     justify-content: center;
 
-    min-width: 115px;
-    height: 30px;
+    min-width: 143px;
+    height: 36px;
 
-    padding: 0 14px;
+    padding: 0 18px;
 
     font: inherit;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: 600;
 
     cursor: pointer;
@@ -297,8 +309,8 @@
 }
 
 .actionButton svg {
-    width: 16px;
-    height: 16px;
+    width: 18px;
+    height: 18px;
 }
 
 .actionButton:disabled {
