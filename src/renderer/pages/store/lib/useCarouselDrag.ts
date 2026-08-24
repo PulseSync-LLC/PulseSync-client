@@ -45,7 +45,6 @@ export default function useCarouselDrag<T extends HTMLElement>(options: Carousel
             scrollLeft: event.currentTarget.scrollLeft,
             moved: false,
         }
-        event.currentTarget.setPointerCapture(event.pointerId)
     }
 
     const onPointerMove: PointerEventHandler<T> = event => {
@@ -55,6 +54,7 @@ export default function useCarouselDrag<T extends HTMLElement>(options: Carousel
         const deltaX = event.clientX - drag.startX
         if (!drag.moved && Math.abs(deltaX) < 5) return
 
+        if (!drag.moved) event.currentTarget.setPointerCapture(event.pointerId)
         drag.moved = true
         event.currentTarget.classList.add(options.draggingClassName)
         if (options.mode === 'scroll') event.currentTarget.scrollLeft = drag.scrollLeft - deltaX
