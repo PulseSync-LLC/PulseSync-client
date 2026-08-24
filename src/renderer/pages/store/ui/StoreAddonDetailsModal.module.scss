@@ -524,6 +524,12 @@
     transition: background-color 150ms ease;
 }
 
+.authorChip {
+    color: var(--info, #2a89f9);
+
+    background: color-mix(in srgb, var(--info, #2a89f9) 15%, transparent);
+}
+
 .authorChip > span {
     flex: 0 0 8px;
 
@@ -532,12 +538,6 @@
 
     background: currentcolor;
     border-radius: 50%;
-}
-
-.primaryAuthorChip {
-    color: var(--info, #2a89f9);
-
-    background: color-mix(in srgb, var(--info, #2a89f9) 15%, transparent);
 }
 
 .authorChip:hover,

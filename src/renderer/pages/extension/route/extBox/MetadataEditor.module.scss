@@ -630,8 +630,8 @@
 
     padding: 1px 7px;
 
-    background: color-mix(in srgb, var(--accent) 12%, transparent);
-    border: 1px solid color-mix(in srgb, var(--text-secondary) 22%, transparent);
+    background: color-mix(in srgb, var(--ps-info, #4af) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ps-info, #4af) 28%, transparent);
     border-radius: 999px;
 }
 
@@ -644,7 +644,7 @@
 
     line-height: 1.3;
 
-    color: var(--text-primary);
+    color: var(--ps-info, #4af);
 
     white-space: nowrap;
 }
