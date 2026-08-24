@@ -35,7 +35,13 @@ import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
 import PageLayout from '@widgets/layout/PageLayout'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
-import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, submitAddonForStore } from '@entities/addon/api/storeAddons'
+import {
+    AddonStoreSubmitError,
+    fetchOwnStoreAddons,
+    persistAddonPreview,
+    persistAddonStoreLink,
+    submitAddonForStore,
+} from '@entities/addon/api/storeAddons'
 import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
@@ -938,7 +944,13 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedAddonIsRestrictedLegacy, selectedCatalogPublication, selectedPublication])
 
     const handleSubmitAddon = useCallback(
-        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
+        async (
+            mode: 'create' | 'update',
+            changelogTextOverride?: string,
+            githubUrlOverride?: string,
+            usedAiDuringDevelopmentOverride?: boolean,
+            previewPathOverride?: string,
+        ) => {
             if (!selectedAddon || !storePublishingEnabled) return
             if (publicationSubmitBusyRef.current) return
             if (selectedAddonIsRestrictedLegacy) {
@@ -980,6 +992,7 @@ export default function ExtensionPage() {
             publicationSubmitBusyRef.current = true
             setPublicationBusy(true)
             try {
+                await persistAddonPreview(selectedAddon, previewPathOverride ?? selectedAddon.preview ?? '')
                 let linkedStoreAddonId = await submitAddonForStore(
                     selectedAddon,
                     changelog,
@@ -1056,8 +1069,8 @@ export default function ExtensionPage() {
     const handlePublishAddon = useMemo(
         () =>
             publicationActionMode === 'publish'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
-                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment)
+                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => {
+                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -1066,8 +1079,8 @@ export default function ExtensionPage() {
     const handleUpdateAddon = useMemo(
         () =>
             publicationActionMode === 'update'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
-                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment)
+                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => {
+                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],

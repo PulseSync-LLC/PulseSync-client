@@ -1,3 +1,5 @@
+import path from 'path'
+
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
@@ -199,6 +201,42 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
     } catch (error) {
         console.error('[AddonStore] failed to persist store addon link', error)
     }
+}
+
+export async function persistAddonPreview(addon: Addon, previewPath: string): Promise<void> {
+    if (!addon?.path) {
+        throw new Error('ADDON_PATH_MISSING')
+    }
+
+    const metadataPath = `${addon.path}/metadata.json`
+    const rawMetadata = await desktopApi.addons.files.readText(metadataPath, 'utf8')
+    if (!rawMetadata) {
+        throw new Error('ADDON_METADATA_MISSING')
+    }
+
+    const parsedMetadata = JSON.parse(rawMetadata) as Partial<Addon>
+    let normalizedPreviewPath = previewPath.trim()
+
+    if (normalizedPreviewPath && path.isAbsolute(normalizedPreviewPath)) {
+        const extension = path.extname(normalizedPreviewPath)
+        const copyResult = await desktopApi.addons.files.copyInto({
+            addonPath: addon.path,
+            preferredName: `preview${extension}`,
+            sourcePath: normalizedPreviewPath,
+        })
+        if (!copyResult.success || !copyResult.relativePath) {
+            throw new Error(copyResult.error || 'ADDON_PREVIEW_COPY_FAILED')
+        }
+        normalizedPreviewPath = copyResult.relativePath
+    }
+
+    if (normalizedPreviewPath) {
+        parsedMetadata.preview = normalizedPreviewPath
+    } else {
+        delete parsedMetadata.preview
+    }
+
+    await desktopApi.addons.files.writeText(metadataPath, JSON.stringify(parsedMetadata, null, 4))
 }
 
 export async function submitAddonForStore(

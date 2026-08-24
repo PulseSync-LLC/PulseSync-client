@@ -13,6 +13,7 @@ export interface StoreAddonRelease {
     usesOfficialTemplate: boolean
     avatarUrl?: string | null
     bannerUrl?: string | null
+    previewUrl?: string | null
     bannerLeftColor?: string | null
     bannerRightColor?: string | null
     downloadUrl?: string | null

@@ -5,7 +5,9 @@ import { useTranslation } from 'react-i18next'
 import { MdClose } from 'react-icons/md'
 
 import { useModalContext } from '@app/providers/modal'
+import { staticAsset } from '@shared/lib/staticAssets'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import FileInput from '@shared/ui/PSUI/FileInput'
 
 import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModal.module.scss'
 
@@ -60,6 +62,7 @@ const ExtensionPublicationModal: React.FC = () => {
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)
     const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
+    const [previewPath, setPreviewPath] = useState('')
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
@@ -69,7 +72,11 @@ const ExtensionPublicationModal: React.FC = () => {
     useEffect(() => {
         setRulesAccepted(false)
         setUsedAiDuringDevelopment(Boolean(publicationRelease?.usedAiDuringDevelopment))
-    }, [addon?.path, isPublicationModalOpen, publication?.id, publicationRelease?.id, publicationRelease?.usedAiDuringDevelopment])
+        setPreviewPath(addon?.preview || '')
+    }, [addon?.path, addon?.preview, isPublicationModalOpen, publication?.id, publicationRelease?.id, publicationRelease?.usedAiDuringDevelopment])
+
+    const fallbackPreview = staticAsset('assets/images/no_themeBackground.png')
+    const publishedPreview = publicationRelease?.previewUrl || publicationRelease?.bannerUrl || fallbackPreview
 
     const handleClose = () => {
         closeModal(Modals.EXTENSION_PUBLICATION_MODAL)
@@ -147,7 +154,7 @@ const ExtensionPublicationModal: React.FC = () => {
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment)
+                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath)
               },
               disabled: !canSubmit,
           }
@@ -155,7 +162,7 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment)
+                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath)
                 },
                 disabled: !canSubmit,
             }
@@ -185,7 +192,6 @@ const ExtensionPublicationModal: React.FC = () => {
                     <div className={styles.header}>
                         <div className={styles.headerTop}>
                             <div className={styles.statusLine}>
-                                <span className={styles.eyebrow}>{t('extensions.publication.modalTitle')}</span>
                                 <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
                             </div>
                             {!isEditingMode ? (
@@ -201,21 +207,49 @@ const ExtensionPublicationModal: React.FC = () => {
                                     <span className={styles.authorsLabel}>{t('extensions.meta.authors')}</span>
                                     <span>{authorsDisplay || t('common.emDash')}</span>
                                 </p>
+                                <div className={styles.addonMeta}>
+                                    <span>
+                                        {t('extensions.meta.version')}:{' '}
+                                        <strong>{addon?.version || publicationRelease?.version || t('common.emDash')}</strong>
+                                    </span>
+                                    {publicationDate ? (
+                                        <span>
+                                            {t('extensions.meta.updated')}: <strong>{publicationDate}</strong>
+                                        </span>
+                                    ) : null}
+                                </div>
                             </div>
                         </div>
                     </div>
 
-                    <div className={styles.infoGrid}>
-                        <div className={styles.infoCard}>
-                            <span className={styles.label}>{t('extensions.meta.version')}</span>
-                            <span className={styles.value}>{addon?.version || publicationRelease?.version || t('common.emDash')}</span>
-                        </div>
-                        {publicationDate ? (
-                            <div className={styles.infoCard}>
-                                <span className={styles.label}>{t('extensions.meta.updated')}</span>
-                                <span className={styles.value}>{publicationDate}</span>
+                    <div className={styles.previewSection}>
+                        {isEditingMode ? (
+                            <FileInput
+                                className={styles.previewInput}
+                                label={t('extensions.publication.previewLabel')}
+                                description={t('extensions.publication.previewHint')}
+                                value={previewPath}
+                                onChange={setPreviewPath}
+                                placeholder={t('extensions.publication.previewPlaceholder')}
+                                disabled={publicationBusy || !addon?.path}
+                                metadata
+                                addonPath={addon?.path}
+                                preferredBaseName="preview"
+                                accept=".png,.jpg,.jpeg,.webp,.gif"
+                            />
+                        ) : (
+                            <div className={styles.publishedPreview}>
+                                <img
+                                    src={publishedPreview}
+                                    alt={t('extensions.publication.previewAlt', { name: addon?.name || publication?.name || '' })}
+                                    onError={event => {
+                                        event.currentTarget.onerror = null
+                                        event.currentTarget.src = fallbackPreview
+                                    }}
+                                />
+                                <span>{t('extensions.publication.previewPublishedHint')}</span>
                             </div>
-                        ) : null}
+                        )}
                     </div>
 
                     {shouldShowModerationNote ? (
@@ -234,6 +268,10 @@ const ExtensionPublicationModal: React.FC = () => {
                 </div>
 
                 <div className={styles.formPane}>
+                    <div className={styles.formHeader}>
+                        <h3>{t('extensions.publication.detailsTitle')}</h3>
+                    </div>
+
                     {shouldShowGithubField ? (
                         <div className={styles.fieldGroup}>
                             <span className={styles.label}>

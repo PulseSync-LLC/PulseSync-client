@@ -13,6 +13,7 @@ export default interface Addon {
 
     image: string
     banner: string
+    preview?: string
     libraryLogo: string
 
     path: string

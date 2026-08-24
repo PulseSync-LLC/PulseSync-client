@@ -24,6 +24,7 @@ export default gql`
                 usesOfficialTemplate
                 avatarUrl
                 bannerUrl
+                previewUrl
                 bannerLeftColor
                 bannerRightColor
                 downloadUrl
