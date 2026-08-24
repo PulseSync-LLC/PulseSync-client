@@ -171,7 +171,6 @@ export default function AddonCard({
                 extensionStylesV2.addonCard,
                 isActive && extensionStylesV2.addonCardSelected,
                 isDragging && extensionStylesV2.addonCardDragging,
-                showLegacyRestriction && extensionStylesV2.addonCardWithLegacyRestriction,
             )}
             onClick={() => onClick(addon)}
             onDragStart={event => onDragStart(addon, event)}
