@@ -241,7 +241,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                                         uppercase={false}
                                         size="md"
                                         variant="info"
-                                        className={cn(st.authorBadge, index === 0 ? st.toneInfo : st.neutralBadge)}
+                                        className={cn(st.authorBadge, st.toneInfo)}
                                     >
                                         <span aria-hidden="true" />
                                         {author}

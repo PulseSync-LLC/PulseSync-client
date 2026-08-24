@@ -670,7 +670,7 @@ export default function StorePage() {
                                     <button
                                         key={`${author}:${index}`}
                                         type="button"
-                                        className={cn(st.authorBadge, index === 0 ? st.toneInfo : st.neutralBadge)}
+                                        className={cn(st.authorBadge, st.toneInfo)}
                                         onClick={() => author && openModal(Modals.USER_PROFILE, { profileName: author })}
                                     >
                                         <span aria-hidden="true" />

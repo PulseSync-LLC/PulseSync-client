@@ -327,7 +327,7 @@ export default function StoreAddonDetailsModal({
                                         <button
                                             key={`${author}:${index}`}
                                             type="button"
-                                            className={cn(st.authorChip, index === 0 && st.primaryAuthorChip)}
+                                            className={st.authorChip}
                                             onClick={() => onAuthorClick(author)}
                                         >
                                             <span aria-hidden="true" />
