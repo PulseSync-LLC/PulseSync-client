@@ -538,13 +538,8 @@
     transition: var(--transition);
 }
 
-.addonCardWithLegacyRestriction .addonType {
-    grid-row: 1;
-    grid-column: 5;
-}
-
-.addonCardWithLegacyRestriction:hover .addonType,
-.addonCardWithLegacyRestriction:focus-within .addonType {
+.addonCardWithLegacyRestriction:hover .legacyRestrictionBadge,
+.addonCardWithLegacyRestriction:focus-within .legacyRestrictionBadge {
     opacity: 0;
 }
 
