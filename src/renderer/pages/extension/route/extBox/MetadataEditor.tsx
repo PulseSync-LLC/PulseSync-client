@@ -1198,6 +1198,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                         text: t('common.cancel'),
                         onClick: closeCompatibilityEditor,
                         variant: 'secondary',
+                        className: css.listEditorCancelButton,
                     },
                     {
                         text: t('common.done'),

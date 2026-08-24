@@ -15,7 +15,10 @@
 
     overflow: auto;
 
-    background: var(--surface-primary);
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border-hover);
+    border-radius: 16px;
+    box-shadow: none;
 }
 
 .content {
@@ -84,8 +87,8 @@
 
     cursor: pointer;
 
-    background: var(--hover);
-    border: 0;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
     border-radius: 8px;
 
     transition: var(--transition);
@@ -93,7 +96,8 @@
     &:hover:not(:disabled) {
         color: var(--text-primary);
 
-        background: var(--active);
+        background: var(--border);
+        border-color: var(--border-hover);
     }
 
     &:disabled {
@@ -190,8 +194,8 @@
 
     overflow: hidden;
 
-    background: var(--surface-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
     border-radius: 8px;
 }
 
@@ -232,7 +236,7 @@
 
     overflow: hidden;
 
-    background: var(--surface-elevated);
+    background: var(--border);
     border-radius: 999px;
 
     &::after {
@@ -289,8 +293,8 @@
 
     padding: 13px 14px;
 
-    background: var(--surface-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
     border-radius: 8px;
 
     transition:
@@ -298,14 +302,14 @@
         background 0.15s ease;
 
     &:hover {
-        background: var(--surface-tertiary);
+        background: var(--border);
         border-color: var(--border-hover);
     }
 }
 
 .cardEntered {
-    background: var(--surface-secondary);
-    border-color: var(--border);
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
 }
 
 .cardEnded {
@@ -545,8 +549,8 @@
     pointer-events: none;
     cursor: default;
 
-    background: var(--hover);
-    border-color: var(--border);
+    background: var(--border);
+    border-color: var(--border-hover);
 }
 
 .actionMuted {
@@ -555,8 +559,8 @@
     pointer-events: none;
     cursor: default;
 
-    background: var(--hover);
-    border-color: var(--border);
+    background: var(--border);
+    border-color: var(--border-hover);
 }
 
 .state {
@@ -574,8 +578,8 @@
 
     text-align: center;
 
-    background: var(--surface-secondary);
-    border: 1px solid var(--border);
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
     border-radius: 8px;
 }
 
@@ -590,7 +594,8 @@
 
     color: var(--text-secondary);
 
-    background: var(--surface-tertiary);
+    background: var(--border);
+    border: 1px solid var(--border-hover);
     border-radius: 8px;
 }
 
