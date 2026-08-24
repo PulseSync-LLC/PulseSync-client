@@ -622,8 +622,10 @@ export default function StorePage() {
         const installedAddon = installedStoreAddons.get(addon.id)
         const isInstalled = Boolean(installedAddon)
         const hasDownloadUrl = Boolean(release.downloadUrl?.trim())
-        const hasBanner = Boolean(release.bannerUrl?.trim())
-        const image = hasBanner ? release.bannerUrl! : fallbackBanner
+        const previewImage = release.previewUrl?.trim()
+        const bannerImage = release.bannerUrl?.trim()
+        const image = previewImage || bannerImage || fallbackBanner
+        const hasImage = Boolean(previewImage || bannerImage)
         const releaseTags = release.tags || []
         const kindBadgeIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
         const kindBadgeVariant = addon.type === 'theme' ? 'info' : addon.type === 'script' ? 'warning' : 'success'
@@ -729,7 +731,7 @@ export default function StorePage() {
                         <img
                             src={image}
                             alt=""
-                            className={cn(!hasBanner && st.featuredMediaFallback)}
+                            className={cn(!hasImage && st.featuredMediaFallback)}
                             onError={event => {
                                 event.currentTarget.onerror = null
                                 event.currentTarget.src = fallbackBanner
