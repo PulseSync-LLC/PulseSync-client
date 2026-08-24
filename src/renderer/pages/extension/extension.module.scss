@@ -502,10 +502,21 @@
     white-space: nowrap;
 }
 
-.addonType {
+.addonMeta {
     display: flex;
 
     grid-column: 4;
+
+    gap: 7px;
+
+    align-items: center;
+    justify-content: flex-end;
+}
+
+.addonType {
+    display: flex;
+
+    flex: 0 0 24px;
 
     align-items: center;
     justify-content: center;

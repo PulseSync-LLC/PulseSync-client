@@ -196,12 +196,14 @@ export default function AddonCard({
             </div>
             <AddonImage key={imagePath} src={imagePath} fallbackSrc={fallbackAddonImage} alt={addon.name} ready={imageReady} />
             <div className={extensionStylesV2.addonName}>{addon.name}</div>
-            {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
-            <div className={extensionStylesV2.addonType} aria-hidden>
-                <img
-                    src={staticAsset(addon.type === 'theme' ? 'assets/icons/ui/addon-type-sun.svg' : 'assets/icons/ui/addon-type-array.svg')}
-                    alt=""
-                />
+            <div className={extensionStylesV2.addonMeta}>
+                {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
+                <div className={extensionStylesV2.addonType} aria-hidden>
+                    <img
+                        src={staticAsset(addon.type === 'theme' ? 'assets/icons/ui/addon-type-sun.svg' : 'assets/icons/ui/addon-type-array.svg')}
+                        alt=""
+                    />
+                </div>
             </div>
             <div className={extensionStylesV2.addonOrganizerSlot} onClick={event => event.stopPropagation()}>
                 <DropdownMenu items={organizationItems} menuClassName={extensionStylesV2.addonOrganizerMenu} placement="right-start">
