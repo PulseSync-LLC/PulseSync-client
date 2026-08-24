@@ -48,6 +48,14 @@ export function useAppDesktopBindings({
 
     const handleOpenAddon = useCallback(
         (data: unknown) => {
+            if (data && typeof data === 'object' && 'storeAddonId' in data) {
+                const storeAddonId = String((data as { storeAddonId?: unknown }).storeAddonId || '').trim()
+                if (storeAddonId) {
+                    void router.navigate('/store', { state: { openAddonId: storeAddonId } })
+                }
+                return
+            }
+
             const addonName = String(data || '')
             desktopApi.addons
                 .list()
@@ -75,7 +83,7 @@ export function useAppDesktopBindings({
                 })
                 .catch(error => console.error('Error getting themes:', error))
         },
-        [setAddons, setNavigateState, setNavigateTo, t],
+        [router, setAddons, setNavigateState, setNavigateTo, t],
     )
 
     useEffect(() => {

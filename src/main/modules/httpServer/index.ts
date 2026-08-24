@@ -1,4 +1,4 @@
-import { app, dialog } from 'electron'
+import { app, BrowserWindow, dialog } from 'electron'
 
 import * as http from 'http'
 import { Server as IOServer } from 'socket.io'
@@ -13,6 +13,7 @@ import { selectedAddon } from '../../startup/runtimeState'
 import isAppDev from '../../utils/isAppDev'
 import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
 import { mainWindow } from '../createWindow'
+import { checkIsDeeplink, createDeeplinkCommandsHandler, navigateToDeeplink } from '../handleDeeplinks'
 import logger from '../logger'
 import { isFirstInstance } from '../singleInstance'
 import { getState } from '../state'
@@ -43,7 +44,17 @@ let userValidationTokenGeneration = 0
 let userValidationTokenRequest: { authToken: string; promise: Promise<UserValidationToken | null> } | null = null
 let userValidationTokenRefreshTimer: ReturnType<typeof setTimeout> | null = null
 
-const allowedOrigins = ['music-application://desktop', 'https://dev-web.pulsesync.dev', 'https://pulsesync.dev', 'http://localhost:3000']
+const allowedOrigins = [
+    'music-application://desktop',
+    'https://dev-web.pulsesync.dev',
+    'https://pulsesync.dev',
+    'http://localhost:3000',
+    'http://localhost:3100',
+    'http://127.0.0.1:3000',
+    'http://127.0.0.1:3100',
+]
+const allowedWebOrigins = allowedOrigins.filter(origin => origin.startsWith('http://') || origin.startsWith('https://'))
+let deeplinkCommandsHandlerPromise: ReturnType<typeof createDeeplinkCommandsHandler> | null = null
 
 const addonService = createAddonService({
     state: State,
@@ -52,6 +63,24 @@ const addonService = createAddonService({
     getAuthorized: () => authorized,
     getSelectedAddon: () => selectedAddon,
 })
+
+const handleWebDeeplink = async (url: string): Promise<boolean> => {
+    if (!checkIsDeeplink(url)) return false
+
+    deeplinkCommandsHandlerPromise ??= createDeeplinkCommandsHandler()
+    const deeplinkCommandsHandler = await deeplinkCommandsHandlerPromise
+    const targetWindow = !mainWindow.isDestroyed() ? mainWindow : BrowserWindow.getAllWindows().find(window => !window.isDestroyed())
+
+    await navigateToDeeplink(url, deeplinkCommandsHandler, targetWindow)
+
+    if (targetWindow) {
+        if (targetWindow.isMinimized()) targetWindow.restore()
+        targetWindow.show()
+        targetWindow.focus()
+    }
+
+    return true
+}
 
 const getUserValidationToken = async (): Promise<UserValidationToken | null> => {
     const authToken = State.get('tokens.token')
@@ -184,12 +213,14 @@ const initializeServer = () => {
             state: State,
             logger,
             mainWindow,
+            allowedWebOrigins,
             getAuthorized: () => authorized,
             getTrackData: () => data,
             sendDataToMusic: addonService.sendDataToMusic,
             sendUserValidationToken,
             updateData,
             handleBrowserAuth,
+            handleWebDeeplink,
         })
     })
 

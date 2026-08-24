@@ -30,6 +30,7 @@ import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.qu
 import GetNewStoreAddonsQuery from '@entities/addon/api/getNewStoreAddons.query'
 import GetOwnStoreAddonsQuery from '@entities/addon/api/getOwnStoreAddons.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
+import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import UserContext from '@entities/user/model/context'
 import apolloClient from '@shared/api/apolloClient'
 import { desktopApi } from '@shared/desktop/desktopApi'
@@ -160,12 +161,29 @@ export default function StorePage() {
         const routeAddon = routeState?.openAddon?.currentRelease
             ? routeState.openAddon
             : [...addons, ...newAddons, ...popularAddons, ...ownAddons, ...pendingAddons].find(addon => addon.id === requestedAddonId)
-        if (!routeAddon?.currentRelease) return
+        const openRouteAddon = (addon: StoreAddon) => {
+            setCatalogTab('main')
+            setSelectedAddon(addon)
+            navigate('/store', { replace: true, state: null })
+        }
 
-        setCatalogTab('main')
-        setSelectedAddon(routeAddon)
-        navigate('/store', { replace: true, state: null })
-    }, [addons, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState])
+        if (routeAddon?.currentRelease) {
+            openRouteAddon(routeAddon)
+            return
+        }
+        if (loading) return
+
+        let active = true
+        void fetchStoreAddonUpdates([requestedAddonId])
+            .then(([addon]) => {
+                if (active && addon?.currentRelease) openRouteAddon(addon)
+            })
+            .catch(error => console.error('[Store] failed to open requested addon', error))
+
+        return () => {
+            active = false
+        }
+    }, [addons, loading, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState])
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 250)

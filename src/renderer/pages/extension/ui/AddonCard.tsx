@@ -4,13 +4,16 @@ import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz } from 'react-icons/md'
+import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz, MdShare } from 'react-icons/md'
 
+import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
 import userContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
+import toast from '@shared/ui/toast'
 import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
@@ -99,8 +102,23 @@ export default function AddonCard({
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
+    const storeAddonId = String(addon.storeAddonId || '').trim()
     const imagePath = getImagePath(addon)
     const organizationLabel = t('extensions.organization.organizeAddon', { name: addon.name })
+    const copyShareLink = async () => {
+        if (!storeAddonId) return
+
+        const shareUrl = new URL('/open', config.WEBSITE_URL)
+        shareUrl.search = `?url=store/${encodeURIComponent(storeAddonId)}`
+
+        try {
+            await desktopApi.system.writeClipboardText(shareUrl.toString())
+            toast.custom('success', t('common.doneTitle'), t('store.shareCopied'))
+        } catch (error) {
+            console.error('[Extensions] failed to copy addon share link', error)
+            toast.custom('error', t('common.errorTitle'), t('store.shareFailed'))
+        }
+    }
     const organizationItems: DropdownMenuItem[] = [
         {
             key: 'favorite',
@@ -109,8 +127,19 @@ export default function AddonCard({
             toggle: true,
             checked: isFavorite,
             onClick: () => onSetFavorite(addon, !isFavorite),
-            divider: true,
+            divider: !storeAddonId,
         },
+        ...(storeAddonId
+            ? [
+                  {
+                      key: 'share',
+                      label: t('store.share'),
+                      icon: <MdShare />,
+                      onClick: () => void copyShareLink(),
+                      divider: true,
+                  },
+              ]
+            : []),
         {
             key: 'category',
             label: t('extensions.organization.moveToCategory'),

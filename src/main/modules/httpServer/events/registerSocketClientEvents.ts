@@ -23,6 +23,7 @@ interface RegisterSocketClientEventsOptions {
     state: StateLike
     logger: LoggerLike
     mainWindow: BrowserWindow
+    allowedWebOrigins: readonly string[]
     getAuthorized: () => boolean
     getTrackData: () => Track
     sendDataToMusic: (options?: {
@@ -34,19 +35,24 @@ interface RegisterSocketClientEventsOptions {
     sendUserValidationToken: (targetSocket?: Socket) => Promise<void>
     updateData: (newData: any) => void
     handleBrowserAuth: (payload: any, client: Socket) => void
+    handleWebDeeplink: (url: string) => Promise<boolean>
 }
+
+type WebDeeplinkAck = (result: { ok: boolean; error?: 'forbidden' | 'invalid_deeplink' | 'open_failed' }) => void
 
 export const registerSocketClientEvents = ({
     socket,
     state,
     logger,
     mainWindow,
+    allowedWebOrigins,
     getAuthorized,
     getTrackData,
     sendDataToMusic,
     sendUserValidationToken,
     updateData,
     handleBrowserAuth,
+    handleWebDeeplink,
 }: RegisterSocketClientEventsOptions) => {
     const sendToRenderer = (channel: string, ...args: any[]) => {
         if (mainWindow.isDestroyed() || mainWindow.webContents.isDestroyed()) return
@@ -106,6 +112,31 @@ export const registerSocketClientEvents = ({
     socket.on('BROWSER_BAN', (args: any) => {
         logger.http.log('BROWSER_BAN received:', args)
         sendToRenderer(RendererEvents.AUTH_BANNED, { reason: args.reason })
+    })
+
+    socket.on('OPEN_DEEPLINK', async (payload: { url?: unknown } | undefined, acknowledge?: WebDeeplinkAck) => {
+        const origin = socket.handshake.headers.origin
+        const isTrustedWebClient = clientType === 'web' && typeof origin === 'string' && allowedWebOrigins.includes(origin)
+        if (!isTrustedWebClient) {
+            logger.http.warn('OPEN_DEEPLINK rejected: untrusted web client')
+            acknowledge?.({ ok: false, error: 'forbidden' })
+            return
+        }
+
+        const url = typeof payload?.url === 'string' ? payload.url.trim() : ''
+        if (!url || url.length > 4_096) {
+            logger.http.warn('OPEN_DEEPLINK rejected: invalid payload')
+            acknowledge?.({ ok: false, error: 'invalid_deeplink' })
+            return
+        }
+
+        try {
+            const opened = await handleWebDeeplink(url)
+            acknowledge?.(opened ? { ok: true } : { ok: false, error: 'invalid_deeplink' })
+        } catch (error) {
+            logger.http.error('OPEN_DEEPLINK failed:', error)
+            acknowledge?.({ ok: false, error: 'open_failed' })
+        }
     })
 
     socket.on('UPDATE_DATA', (payload: any) => {
