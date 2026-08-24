@@ -298,20 +298,14 @@
 .authorChip {
     gap: 6px;
 
+    color: #198cff;
+
     span {
         width: 8px;
         height: 8px;
 
-        background: var(--text-primary);
+        background: #198cff;
         border-radius: 50%;
-    }
-
-    &:first-child {
-        color: #198cff;
-
-        span {
-            background: #198cff;
-        }
     }
 }
 
