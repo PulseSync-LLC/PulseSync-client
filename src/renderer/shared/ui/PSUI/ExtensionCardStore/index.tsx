@@ -260,7 +260,13 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                             ) : null}
                             {usedAiDuringDevelopment ? (
                                 <TooltipButton as="span" className={st.aiTooltip} tooltipText={t('store.badges.aiUsageTooltip')} side="top">
-                                    <Badge uppercase={false} size="md" variant="warning" icon={<MdStar />} className={st.metaBadge}>
+                                    <Badge
+                                        uppercase={false}
+                                        size="md"
+                                        variant="warning"
+                                        icon={<MdStar />}
+                                        className={cn(st.metaBadge, st.toneWarning)}
+                                    >
                                         {t('store.badges.aiUsage')}
                                     </Badge>
                                 </TooltipButton>
