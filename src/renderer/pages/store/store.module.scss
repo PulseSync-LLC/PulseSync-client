@@ -287,7 +287,9 @@
 }
 
 .featuredClickable {
-    cursor: pointer;
+    touch-action: pan-y;
+    cursor: grab;
+    user-select: none;
 
     border-radius: 10px;
 
@@ -295,6 +297,10 @@
         outline: 2px solid var(--focus-ring);
         outline-offset: 4px;
     }
+}
+
+.featuredDragging {
+    cursor: grabbing;
 }
 
 .featuredEnterNext {
@@ -762,11 +768,21 @@
 
     overflow-x: auto;
 
+    touch-action: pan-y;
+    cursor: grab;
+    user-select: none;
+
     scroll-snap-type: x mandatory;
 
     scrollbar-width: none;
 
     mask-image: linear-gradient(to right, #000 0, #000 calc(100% - 180px), transparent 100%);
+}
+
+.posterRailDragging {
+    cursor: grabbing;
+
+    scroll-snap-type: none;
 }
 
 .posterRail::-webkit-scrollbar {

@@ -24,6 +24,7 @@ import {
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useModalContext } from '@app/providers/modal'
+import useCarouselDrag from '@pages/store/lib/useCarouselDrag'
 import StoreAddonDetailsModal from '@pages/store/ui/StoreAddonDetailsModal'
 import PageLayout from '@widgets/layout/PageLayout'
 import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.query'
@@ -603,6 +604,16 @@ export default function StorePage() {
         })
     }
 
+    const featuredDragProps = useCarouselDrag<HTMLElement>({
+        mode: 'swipe',
+        draggingClassName: st.featuredDragging,
+        onSwipe: scrollFeatured,
+    })
+    const newAddonsDragProps = useCarouselDrag<HTMLDivElement>({
+        mode: 'scroll',
+        draggingClassName: st.posterRailDragging,
+    })
+
     const renderFeatured = () => {
         const addon = featuredAddon
         const release = addon?.currentRelease
@@ -621,6 +632,7 @@ export default function StorePage() {
             <section
                 key={addon.id}
                 className={cn(st.featured, st.featuredClickable, featuredDirection === 1 ? st.featuredEnterNext : st.featuredEnterPrevious)}
+                {...featuredDragProps}
                 onClick={event => {
                     if (event.target instanceof Element && event.target.closest('button, a')) return
                     setSelectedAddon(addon)
@@ -833,7 +845,7 @@ export default function StorePage() {
                         </button>
                     </div>
                 </header>
-                <div ref={newAddonsRef} className={st.posterRail}>
+                <div ref={newAddonsRef} className={st.posterRail} {...newAddonsDragProps}>
                     {newAddons.map(addon => renderStoreCard(addon, 'poster'))}
                 </div>
             </section>
