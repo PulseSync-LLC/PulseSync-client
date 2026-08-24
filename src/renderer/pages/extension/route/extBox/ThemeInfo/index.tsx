@@ -5,7 +5,7 @@ import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdMoreHoriz, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
 import { useNavigate } from 'react-router-dom'
 
 import config from '@common/appConfig'
@@ -19,6 +19,7 @@ import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import Button from '@shared/ui/buttonV2'
+import toast from '@shared/ui/toast'
 
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 
@@ -174,6 +175,20 @@ const ThemeInfo: React.FC<Props> = ({
             state: publication?.currentRelease ? { openAddon: publication, openAddonId: storeAddonId } : { openAddonId: storeAddonId },
         })
     }
+    const copyShareLink = async () => {
+        if (!storeAddonId) return
+
+        const shareUrl = new URL('/open', config.WEBSITE_URL)
+        shareUrl.search = `?url=store/${encodeURIComponent(storeAddonId)}`
+
+        try {
+            await desktopApi.system.writeClipboardText(shareUrl.toString())
+            toast.custom('success', t('common.doneTitle'), t('store.shareCopied'))
+        } catch (error) {
+            console.error('[Extensions] failed to copy addon share link', error)
+            toast.custom('error', t('common.errorTitle'), t('store.shareFailed'))
+        }
+    }
     const openPublication = () => {
         if (showLegacyRestriction) {
             openLegacyAddonMigrationModal()
@@ -201,6 +216,17 @@ const ThemeInfo: React.FC<Props> = ({
                       label: t('extensions.publication.statusLabel'),
                       icon: <MdSync size={18} />,
                       onClick: openPublication,
+                      divider: !storeAddonId,
+                  },
+              ]
+            : []),
+        ...(storeAddonId
+            ? [
+                  {
+                      key: 'share',
+                      label: t('store.share'),
+                      icon: <MdShare size={18} />,
+                      onClick: () => void copyShareLink(),
                       divider: true,
                   },
               ]
