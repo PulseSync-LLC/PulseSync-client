@@ -11,6 +11,7 @@ import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModa
 
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const ADDON_PUBLISHING_RULES_URL = 'https://pulsesync.dev/wiki/main/app/addons/publishing'
+const INTERNAL_MODERATION_NOTES = new Set(['AUTO_APPROVED_TRUSTED_AUTHOR'])
 
 function isGithubUrl(value: string): boolean {
     const trimmed = value.trim()
@@ -62,6 +63,8 @@ const ExtensionPublicationModal: React.FC = () => {
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
+    const moderationNote = publicationRelease?.moderationNote
+    const shouldShowModerationNote = Boolean(moderationNote && !INTERNAL_MODERATION_NOTES.has(moderationNote))
 
     useEffect(() => {
         setRulesAccepted(false)
@@ -215,10 +218,10 @@ const ExtensionPublicationModal: React.FC = () => {
                         ) : null}
                     </div>
 
-                    {publicationRelease?.moderationNote ? (
+                    {shouldShowModerationNote ? (
                         <div className={styles.noteCard}>
                             <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
-                            <span className={styles.subValue}>{publicationRelease.moderationNote}</span>
+                            <span className={styles.subValue}>{moderationNote}</span>
                         </div>
                     ) : null}
 

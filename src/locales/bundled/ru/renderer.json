@@ -484,6 +484,7 @@
                 "ADDON_DESCRIPTION_REQUIRED": "Укажи описание аддона перед отправкой.",
                 "ADDON_GITHUB_URL_REQUIRED": "Укажи ссылку на GitHub перед отправкой.",
                 "ADDON_GITHUB_URL_INVALID": "Укажи корректную ссылку на GitHub.",
+                "ADDON_VERSION_INVALID": "Версия аддона должна быть в формате SemVer, например 1.0.0.",
                 "ADDON_AUTHORS_REQUIRED": "Укажи хотя бы одного автора аддона.",
                 "ADDON_NOT_FOUND": "Публикация аддона не найдена.",
                 "AUTHENTICATED_USER_ID_REQUIRED": "Не удалось определить текущего пользователя для публикации.",

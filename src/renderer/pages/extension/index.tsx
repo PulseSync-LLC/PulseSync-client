@@ -2,6 +2,7 @@ import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } 
 
 import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router'
+import semver from 'semver'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
@@ -946,6 +947,12 @@ export default function ExtensionPage() {
                 } else {
                     toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.publicationBlocked'))
                 }
+                return
+            }
+
+            const addonVersion = selectedAddon.version?.trim() || ''
+            if (semver.valid(addonVersion) !== addonVersion.split('+', 1)[0]) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.errors.ADDON_VERSION_INVALID'))
                 return
             }
 

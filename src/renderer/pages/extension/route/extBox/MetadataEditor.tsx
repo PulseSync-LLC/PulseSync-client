@@ -83,7 +83,6 @@ type PulseAuthorOption = {
     nickname: string
 }
 
-const SEMVER = /^\d+\.\d+\.\d+$/
 const ADDON_TYPES: Metadata['type'][] = ['theme', 'script', 'web-addon']
 
 const DEFAULT_META: Metadata = {
@@ -275,9 +274,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
+        const version = draft.version.trim()
         if (!draft.name.trim()) return false
         if (splitAuthorEntries(draft.author).length === 0) return false
-        if (!SEMVER.test(draft.version.trim())) return false
+        if (semver.valid(version) !== version.split('+', 1)[0]) return false
         if (!ADDON_TYPES.includes(draft.type)) return false
         if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(version => semver.validRange(version))) return false
         return true
@@ -923,7 +923,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                 label={t('metadata.labels.version')}
                                 value={draft.version}
                                 onChange={value => setField('version', value)}
-                                description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
+                                description={
+                                    semver.valid(draft.version.trim()) !== draft.version.trim().split('+', 1)[0]
+                                        ? t('metadata.versionFormat')
+                                        : undefined
+                                }
                             />
                         </div>
                     </div>

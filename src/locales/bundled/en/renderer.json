@@ -484,6 +484,7 @@
                 "ADDON_DESCRIPTION_REQUIRED": "Set an add-on description before submitting.",
                 "ADDON_GITHUB_URL_REQUIRED": "Add a GitHub link before submitting.",
                 "ADDON_GITHUB_URL_INVALID": "Enter a valid GitHub link.",
+                "ADDON_VERSION_INVALID": "The add-on version must use SemVer, for example 1.0.0.",
                 "ADDON_AUTHORS_REQUIRED": "Specify at least one add-on author.",
                 "ADDON_NOT_FOUND": "The add-on publication was not found.",
                 "AUTHENTICATED_USER_ID_REQUIRED": "Failed to determine the current user for publication.",
