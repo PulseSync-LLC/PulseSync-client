@@ -23,7 +23,7 @@ export default function LegacyAddonRestrictionBadge({ className }: Props) {
         <span className={styles.wrapper} onClick={stopPropagation}>
             <TooltipButton
                 className={className}
-                side="bottom"
+                side="top"
                 onClick={openMigrationModal}
                 tooltipText={
                     <div className={styles.content}>
