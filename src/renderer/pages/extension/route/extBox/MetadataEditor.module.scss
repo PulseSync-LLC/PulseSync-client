@@ -401,6 +401,23 @@
 .listEditorModal {
     min-width: min(760px, calc(100vw - 32px)) !important;
     max-width: min(760px, calc(100vw - 32px)) !important;
+
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    border-radius: var(--ps-radius-xl);
+    box-shadow: none;
+}
+
+.listEditorCancelButton {
+    color: var(--text-primary) !important;
+
+    background: var(--surface-elevated) !important;
+    border: 1px solid var(--border-hover) !important;
+}
+
+.listEditorCancelButton:hover:not(:disabled) {
+    background: var(--border) !important;
+    border-color: var(--border-hover) !important;
 }
 
 .relationsModal {
@@ -460,9 +477,9 @@
 
     color: var(--text-primary);
 
-    background: var(--surface-secondary);
-    border: 1px solid var(--border);
-    border-radius: 14px;
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 12px;
 }
 
 .listEditorSectionHeader {
@@ -512,8 +529,8 @@
 
     color: var(--cfg-text);
 
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-hover);
+    background: var(--surface-tertiary);
+    border: 2px solid var(--border-hover);
     border-radius: 12px;
 }
 
@@ -700,8 +717,8 @@
 
     overflow: auto;
 
-    background: var(--surface-elevated);
-    border: 1px solid var(--border);
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
 }
 
