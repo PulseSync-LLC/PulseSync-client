@@ -8,8 +8,9 @@ import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import logger from '../modules/logger'
 import { getState } from '../modules/state'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
-import { getAddonsRoot } from './addonPaths'
+import { getAddonsRoot, resolveExistingFileInsideBase } from './addonPaths'
 import { formatSizeUnits, getFolderSize } from './appUtils'
+import { isValidWebHostAddonRuntime } from './webHostAddonRuntime'
 
 import type Addon from '@entities/addon/model/addon.interface'
 
@@ -238,6 +239,18 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.conflictsWith = normalizeRelationValues(metadata.conflictsWith)
                 metadata.allowedUrls = normalizeRelationValues(metadata.allowedUrls)
                 metadata.supportedVersions = normalizeRelationValues(metadata.supportedVersions)
+                metadata.runtime = 'legacy'
+                if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
+                    const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
+                    if (scriptPath) {
+                        try {
+                            const scriptContent = await fs.promises.readFile(scriptPath, 'utf8')
+                            if (isValidWebHostAddonRuntime(scriptContent)) metadata.runtime = 'isolated'
+                        } catch (err) {
+                            logger.main.warn(`Addons: failed to validate WebHost runtime in ${currentFolder}: ${String(err)}`)
+                        }
+                    }
+                }
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
                     metadata.rootFiles = rootEntries

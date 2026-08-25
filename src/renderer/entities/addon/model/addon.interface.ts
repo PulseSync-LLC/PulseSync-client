@@ -22,6 +22,7 @@ export default interface Addon {
     size: string
 
     type: 'theme' | 'script' | 'web-addon'
+    runtime?: 'legacy' | 'isolated'
     tags: string[]
 
     enabled: boolean
