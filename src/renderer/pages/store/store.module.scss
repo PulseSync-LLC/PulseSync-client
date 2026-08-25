@@ -455,7 +455,7 @@
     padding: 0 14px;
 
     font: inherit;
-    font-size: 12px;
+    font-size: 16px;
     font-weight: 600;
 
     color: var(--success);
@@ -465,6 +465,8 @@
     background: color-mix(in srgb, var(--success) 15%, transparent);
     border: 0;
     border-radius: 6px;
+
+    transition: background 0.15s ease, color 0.15s ease;
 
     &:hover:not(:disabled) {
         color: var(--background);

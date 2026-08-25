@@ -1275,7 +1275,7 @@
             "average": "Average",
             "votes": "Ratings: {{count}}",
             "votesShort": "{{count}} votes",
-            "hint": "Click a star",
+            "hint": "Rate this add-on",
             "set": "Rate {{rating}} out of 5",
             "failed": "Failed to save rating"
         },

@@ -120,8 +120,8 @@
 
 .closeButton {
     position: absolute;
-    top: 36px;
-    right: 38px;
+    top: 40px;
+    right: 45px;
     z-index: 5;
 
     display: grid;
@@ -289,13 +289,13 @@
     align-items: center;
     justify-content: center;
 
-    min-width: 143px;
+    min-width: 115px;
     height: 36px;
 
     padding: 0 18px;
 
     font: inherit;
-    font-size: 13px;
+    font-size: 16px;
     font-weight: 600;
 
     cursor: pointer;
@@ -408,7 +408,9 @@
 }
 
 .ratingControl > span {
-    font-size: 11px;
+    margin: 0 5px;
+
+    font-size: 12px;
     font-weight: 600;
 
     line-height: 15px;
