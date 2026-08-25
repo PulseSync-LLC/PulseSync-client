@@ -57,10 +57,10 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
-"@aws-sdk/client-s3@^3.1117.0":
-  version "3.1117.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1117.0.tgz#43aacd46d4f4e4b12b4edd5f65a437e898824b0e"
-  integrity sha512-M/zyjg0u0Sxm73sInvyDb9+/YUuAOz8/xxmcmj0quJ7NXllZqXPxzjti3oVDz/lQ5mDf7iuxBLc0Y3deJI2hRw==
+"@aws-sdk/client-s3@^3.1118.0":
+  version "3.1118.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1118.0.tgz#c8fe7eb3bb218ac881a2e31c3c8de1d4156c8834"
+  integrity sha512-nh46pLKeRNFvTOZAJMfYR7kZ/KzhSqzhXVIJSwl4jJ/b2D+KOXL2jeOCryOvGgwpUQo9YNWFUg63cm2qr5MX9g==
   dependencies:
     "@aws-sdk/checksums" "^3.1000.29"
     "@aws-sdk/core" "^3.977.9"
@@ -4904,10 +4904,10 @@ electron@*:
     "@types/node" "^24.9.0"
     extract-zip "^2.0.1"
 
-electron@43.4.1:
-  version "43.4.1"
-  resolved "https://registry.yarnpkg.com/electron/-/electron-43.4.1.tgz#38fe7deff46c1c848b30ac46ad8e57c942704a34"
-  integrity sha512-5b+EuiwkgG5iRcsEL34rimgRpkYp15SsfZOa0pC5kXs0Tb82TH4n95rpQzTZa7yRCbA7tm0WoEbuBL6NaAhAcA==
+electron@44.0.0:
+  version "44.0.0"
+  resolved "https://registry.yarnpkg.com/electron/-/electron-44.0.0.tgz#fdb4e911833d47252a716699a0766aca1efc4711"
+  integrity sha512-FkTqPrFPZYljdPI5b7KORGsJTd6FgUQDefl5MrU3Xz9R87pAj9JLreIjDqcRN8hJIkFHIou0o8kKzvcpT9qiRQ==
   dependencies:
     "@electron-internal/extract-zip" "^1.0.1"
     "@electron/get" "^5.0.0"
@@ -8607,10 +8607,10 @@ resedit@^2.0.0:
   dependencies:
     pe-library "^1.0.1"
 
-resedit@^3.0.2:
-  version "3.0.2"
-  resolved "https://registry.yarnpkg.com/resedit/-/resedit-3.0.2.tgz#9f4a6045f0abe6c4a9f12512436cac9e209ec387"
-  integrity sha512-FnqVDJYX4etlEnz2AaJYE1c1FTcgrsHiI2U4DXRxO4CIzbGP7r0jml9uZIMlvzCom2pbBLZjIhF26wj92y1cVQ==
+resedit@^3.1.0:
+  version "3.1.0"
+  resolved "https://registry.yarnpkg.com/resedit/-/resedit-3.1.0.tgz#fa57f590846779ca87852f8d4a91508f49e3803d"
+  integrity sha512-i6CN8E6FzTpzsGq/oUnm2GTWhddpZEbnAE+zeNwqTppucTK7xd178q1xWEMrFb+nLnCh+geDqZ4QwhFN8VEgVQ==
   dependencies:
     pe-library "^2.0.1"
 
@@ -9395,10 +9395,10 @@ systeminformation@*:
   resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.30.5.tgz#0b8840ff697b8f036901bf4f8586c9278c7c9e88"
   integrity sha512-DpWmpCckhwR3hG+6udb6/aQB7PpiqVnvSljrjbKxNSvTRsGsg7NVE3/vouoYf96xgwMxXFKcS4Ux+cnkFwYM7A==
 
-systeminformation@^5.33.2:
-  version "5.33.2"
-  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.33.2.tgz#e62e12659d93e70d9310d8fc39dc409bac1c11e3"
-  integrity sha512-T0w9cJPXe0AVMOukHTBNMrqU9mf3LdRR6dxLdnNbM9LdKEcH5yWT5FEN7ljvgh4cjliLy7pICtViQtVeYqaZxg==
+systeminformation@^5.33.3:
+  version "5.33.3"
+  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.33.3.tgz#840db1357bc61630897dd5f4d9a6bbff599b71d3"
+  integrity sha512-CFdkRa2yfWBXtRtinSm7QbFGRntq1nC2V2hPAjfRTGwncZbNw/UWyiKDT8rZQz6MB70/3ndzP0scIR0dJHJjBA==
 
 table@^6.9.0:
   version "6.9.0"

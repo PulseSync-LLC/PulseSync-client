@@ -8,6 +8,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonPaths'
 import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
 import { sanitizeScript } from '../../utils/addonUtils'
+import { isValidWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
 import { readAddonSettings } from './addonSettings'
 
 import type { Server as IOServer, Socket } from 'socket.io'
@@ -323,13 +324,14 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     if (!scripts.includes(folderName) && !(metaName.length > 0 && scripts.includes(metaName))) return null
 
                     const id = typeof meta.id === 'string' && meta.id.trim() ? meta.id.trim() : folderName
-                    const cssFile = meta.css ? path.join(addonsFolder, folderName, meta.css) : null
-                    const scriptFile = meta.script ? path.join(addonsFolder, folderName, meta.script) : null
+                    const addonRoot = path.join(addonsFolder, folderName)
+                    const cssFile = typeof meta.css === 'string' ? resolveExistingFileInsideBase(addonRoot, meta.css) : null
+                    const scriptFile = typeof meta.script === 'string' ? resolveExistingFileInsideBase(addonRoot, meta.script) : null
                     const css = cssFile && fs.existsSync(cssFile) && fs.statSync(cssFile).isFile() ? fs.readFileSync(cssFile, 'utf8') : ''
-                    const code =
-                        scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile()
-                            ? sanitizeScript(fs.readFileSync(scriptFile, 'utf8'))
-                            : ''
+                    const rawCode =
+                        scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile() ? fs.readFileSync(scriptFile, 'utf8') : ''
+                    if (!isValidWebHostAddonRuntime(rawCode)) return null
+                    const code = sanitizeScript(rawCode)
 
                     return {
                         id,

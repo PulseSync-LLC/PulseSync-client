@@ -6,7 +6,7 @@ import type Addon from '@entities/addon/model/addon.interface'
 const DEFAULT_NEWS_SLUG = 'legacy-addons-webhost-migration'
 
 export function isRestrictedLegacyAddon(addon: Addon | null | undefined, restrictionsEnabled: boolean): boolean {
-    return restrictionsEnabled && Boolean(addon && addon.type !== 'web-addon')
+    return restrictionsEnabled && Boolean(addon && addon.runtime !== 'isolated')
 }
 
 export function isAddonAuthor(
