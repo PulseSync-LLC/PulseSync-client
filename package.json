@@ -8,6 +8,7 @@
     "main": ".vite/main/bootstrap.cjs",
     "scripts": {
         "start": "tsx scripts/dev-remote.ts",
+        "dev": "tsx scripts/dev-remote.ts",
         "dev:renderer": "tsx scripts/dev-remote-renderer.ts",
         "dev:remote": "tsx scripts/dev-remote.ts",
         "dev:native": "electron-forge start -- --remote-debugging-port=9222",
