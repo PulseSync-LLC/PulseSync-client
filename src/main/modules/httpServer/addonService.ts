@@ -7,8 +7,8 @@ import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonPaths'
 import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
-import { sanitizeScript } from '../../utils/addonUtils'
-import { isValidWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
+import { sanitizeLegacyScript } from '../../utils/legacyScriptSanitizer'
+import { validateWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
 import { readAddonSettings } from './addonSettings'
 
 import type { Server as IOServer, Socket } from 'socket.io'
@@ -21,6 +21,7 @@ interface StateLike {
 interface LoggerLike {
     http: {
         log: (...args: any[]) => void
+        warn: (...args: any[]) => void
     }
 }
 
@@ -238,7 +239,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             const scriptPath = metadata.script ? path.join(themePath, metadata.script) : null
             const css = metadata.css && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile() ? fs.readFileSync(cssPath, 'utf8') : ''
             const script =
-                scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile() ? sanitizeScript(fs.readFileSync(scriptPath, 'utf8')) : ''
+                scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()
+                    ? sanitizeLegacyScript(fs.readFileSync(scriptPath, 'utf8'))
+                    : ''
 
             return {
                 name: useDefault ? 'Default' : metadata.name || themeFolder,
@@ -282,7 +285,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     let script: string | null = null
                     if (meta.script) {
                         const scriptFile = path.join(addonsFolder, folderName, meta.script)
-                        if (fs.existsSync(scriptFile)) script = sanitizeScript(fs.readFileSync(scriptFile, 'utf8'))
+                        if (fs.existsSync(scriptFile)) script = sanitizeLegacyScript(fs.readFileSync(scriptFile, 'utf8'))
                     }
 
                     return {
@@ -330,8 +333,11 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     const css = cssFile && fs.existsSync(cssFile) && fs.statSync(cssFile).isFile() ? fs.readFileSync(cssFile, 'utf8') : ''
                     const rawCode =
                         scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile() ? fs.readFileSync(scriptFile, 'utf8') : ''
-                    if (!isValidWebHostAddonRuntime(rawCode)) return null
-                    const code = sanitizeScript(rawCode)
+                    const validation = validateWebHostAddonRuntime(rawCode)
+                    if (!validation.ok) {
+                        logger.http.warn(`[PulseSync Addons] Blocked isolated addon ${id}: ${validation.category}: ${validation.reason}`)
+                        return null
+                    }
 
                     return {
                         id,
@@ -339,9 +345,12 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         directoryName: folderName,
                         version: typeof meta.version === 'string' ? meta.version : undefined,
                         css,
-                        code,
+                        code: validation.code,
                     }
-                } catch {
+                } catch (error) {
+                    logger.http.warn(
+                        `[PulseSync Addons] Failed to read isolated addon ${folderName}: ${error instanceof Error ? error.message : String(error)}`,
+                    )
                     return null
                 }
             })
@@ -386,7 +395,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
         const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
         let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
-        js = sanitizeScript(js)
+        js = sanitizeLegacyScript(js)
 
         const themeData = { name: metadata.name || selected, css: css || '{}', script: js || '' }
         if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
@@ -470,11 +479,22 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const metadataPath = path.join(getAddonsRoot(), addonDirectory, 'metadata.json')
         if (!fs.existsSync(metadataPath)) throw new Error('Development addon metadata was not found')
 
-        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as { installSource?: unknown; script?: unknown; type?: unknown }
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as {
+            id?: unknown
+            installSource?: unknown
+            script?: unknown
+            type?: unknown
+        }
         if (metadata.type !== 'web-addon') throw new Error('Development reload only supports web-addon packages')
         if (metadata.installSource === 'store') throw new Error('Development reload refuses store-managed addons')
-        if (typeof metadata.script !== 'string' || !resolveExistingFileInsideBase(path.dirname(metadataPath), metadata.script)) {
+        const scriptPath = typeof metadata.script === 'string' ? resolveExistingFileInsideBase(path.dirname(metadataPath), metadata.script) : null
+        if (!scriptPath) {
             throw new Error('Development addon script is missing or invalid')
+        }
+        const addonId = typeof metadata.id === 'string' && metadata.id.trim() ? metadata.id.trim() : addonDirectory
+        const validation = validateWebHostAddonRuntime(fs.readFileSync(scriptPath, 'utf8'))
+        if (!validation.ok) {
+            throw new Error(`Blocked isolated addon ${addonId}: ${validation.category}: ${validation.reason}`)
         }
 
         const storedScripts = readStoredAddonScripts()
