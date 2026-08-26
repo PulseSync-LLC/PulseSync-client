@@ -10,7 +10,7 @@ import path from 'path'
 import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
 import { getAddonsRoot, resolveExistingFileInsideBase } from '../utils/addonPaths'
 import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
-import { isValidWebHostAddonRuntime } from '../utils/webHostAddonRuntime'
+import { validateWebHostAddonRuntime } from '../utils/webHostAddonRuntime'
 import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
 import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import logger from './logger'
@@ -192,8 +192,11 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         if (metadata.type === 'web-addon') {
             const scriptPath = typeof metadata.script === 'string' ? resolveExistingFileInsideBase(stagingDir, metadata.script) : null
             const scriptContent = scriptPath ? await fsp.readFile(scriptPath, 'utf8') : ''
-            if (!isValidWebHostAddonRuntime(scriptContent)) {
-                logger.main.error('Rejected web-addon archive with an invalid WebHost runtime')
+            const validation = validateWebHostAddonRuntime(scriptContent)
+            if (!validation.ok) {
+                logger.main.error(
+                    `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || addonName)}: ${validation.category}: ${validation.reason}`,
+                )
                 return null
             }
         }
