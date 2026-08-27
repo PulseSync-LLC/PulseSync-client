@@ -579,15 +579,6 @@ function removeStaleInstallerAppArtifact(releaseDir: string, version: string): v
     }
 }
 
-function parseDeprecatedVersions(): string[] | undefined {
-    const values = (process.env.DEPRECATED_VERSIONS ?? '')
-        .split(',')
-        .map(value => value.trim())
-        .filter(Boolean)
-
-    return values.length ? values : undefined
-}
-
 export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseManifestOptions): Promise<string> {
     const releaseDir = resolveInsideProject(options.releaseDir)
     const packagedAppRootDir = resolveInsideProject(options.packagedAppRootDir)

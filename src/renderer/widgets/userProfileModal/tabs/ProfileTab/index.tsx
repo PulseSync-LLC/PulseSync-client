@@ -34,7 +34,7 @@ const ProfileTab: React.FC<ProfileTabProps> = ({ userProfile, loading, error, pr
     return (
         <>
             <UserStatus userProfile={userProfile} />
-            <ProfileHeader userProfile={userProfile} user={user}>
+            <ProfileHeader userProfile={userProfile}>
                 <FriendButton userProfile={userProfile} user={user} profileName={profileName} />
             </ProfileHeader>
             <AchievementsSection userProfile={userProfile} profileName={profileName} />

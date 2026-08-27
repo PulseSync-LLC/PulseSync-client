@@ -1,4 +1,3 @@
-import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
 
@@ -14,7 +13,6 @@ import {
     restoreBackupIfExists,
     sendFailure,
     sendProgress,
-    sendToRenderer,
     setProgress,
     unlinkIfExists,
 } from '../download.helpers'

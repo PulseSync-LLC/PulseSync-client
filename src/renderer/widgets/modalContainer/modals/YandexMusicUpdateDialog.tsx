@@ -70,7 +70,7 @@ const YandexMusicUpdateDialog: React.FC = () => {
 
         try {
             desktopApi.music.deleteYandexMusicApp()
-        } catch (e) {
+        } catch {
             setIsDeleting(false)
             toast.update(toastId, {
                 kind: 'error',

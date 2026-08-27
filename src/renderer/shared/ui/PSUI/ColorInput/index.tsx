@@ -303,7 +303,6 @@ const ColorInput: React.FC<Props> = ({
 
     const hex = hsva2hex(hsva, withAlpha).toUpperCase()
     const { r, g, b } = hsv2rgb(hsva.h, hsva.s, hsva.v)
-    const preview = `rgba(${r}, ${g}, ${b}, ${hsva.a})`
     const hueBg = `linear-gradient(90deg, #f00 0%, #ff0 17%, #0f0 33%, #0ff 50%, #00f 67%, #f0f 83%, #f00 100%)`
     const alphaBg = `linear-gradient(90deg, rgba(${r},${g},${b},0) 0%, rgba(${r},${g},${b},1) 100%)`
 

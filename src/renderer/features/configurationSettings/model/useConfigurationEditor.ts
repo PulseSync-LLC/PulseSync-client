@@ -405,11 +405,11 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
             }),
         )
 
-    const updateTextButton = (si: number, ii: number, bi: number, patch: Record<string, any>) => undefined
+    const updateTextButton = (_si: number, _ii: number, _bi: number, _patch: Record<string, any>) => undefined
 
-    const addTextButton = (si: number, ii: number) => undefined
+    const addTextButton = (_si: number, _ii: number) => undefined
 
-    const removeTextButton = (si: number, ii: number, bi: number) => undefined
+    const removeTextButton = (_si: number, _ii: number, _bi: number) => undefined
 
     const addSelectorOption = (si: number, ii: number) =>
         setConfig(

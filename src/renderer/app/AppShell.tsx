@@ -84,7 +84,7 @@ function App() {
     const storeAddonUpdateCheckInFlightRef = useRef(false)
     const autoUpdatingStoreAddonIdsRef = useRef<Set<string>>(new Set())
 
-    const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
+    const [appInfo] = useState<AppInfoInterface[]>([])
     const appRef = useRef(app)
     const isAutonomousMode = user.id === '-1'
 
@@ -109,7 +109,7 @@ function App() {
     const { notificationsValue, handleNotificationCreated, handleNotificationRead, handleNotificationsReadAll } = useNotificationsController(user.id)
 
     const router = useMemo(() => createAppRouter(), [])
-    const { authorize, meLoading, setHasToken, setTokenReady } = useAppAuthorization({
+    const { authorize, setHasToken, setTokenReady } = useAppAuthorization({
         router,
         setIsAppDeprecated,
         setLoading,

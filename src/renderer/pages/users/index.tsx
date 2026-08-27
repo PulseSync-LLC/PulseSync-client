@@ -44,7 +44,7 @@ export default function UsersPage() {
     const headerRef = useRef<HTMLDivElement>(null)
     const userPageRef = useRef<HTMLDivElement>(null)
     const loadMoreRef = useRef<HTMLDivElement>(null)
-    const sortRefs = useRef<(HTMLDivElement | null)[]>(new Array(4).fill(null))
+    const sortRefs = useRef<(HTMLDivElement | null)[]>(Array.from({ length: 4 }, () => null))
     const queryKeyRef = useRef(0)
     const nextPagePendingRef = useRef(false)
     const animationsEnabledRef = useRef(false)

@@ -208,12 +208,6 @@ function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 }
 
-async function versionedPublishPath(filePath: string, version: string, dist: string, artifactPath: string): Promise<string> {
-    const fileName = path.basename(filePath)
-    const sha256 = await hashFileSha256(filePath)
-    return `versions/${version}/${dist}/${artifactPath}/${sha256.slice(0, 16)}/${fileName}`
-}
-
 async function immutablePublishPath(filePath: string, prefix: string): Promise<string> {
     const sha256 = await hashFileSha256(filePath)
     return `${prefix}/${sha256.slice(0, 16)}/${path.basename(filePath)}`
@@ -526,7 +520,7 @@ async function uploadFileToS3(
     }
 
     const partCount = Math.ceil(size / partSize)
-    const completedParts = new Array<{ ETag: string; PartNumber: number }>(partCount)
+    const completedParts = Array.from<{ ETag: string; PartNumber: number }>({ length: partCount })
     let nextPartNumber = 1
     let uploadedBytes = 0
     let finishedParts = 0
@@ -627,7 +621,7 @@ async function copyUploadedFileInS3(
             }),
         )
         log(LogLevel.INFO, `Copied ${sourceKey} -> ${targetKey} (${Math.ceil(size / 1024)} KiB, server-side)`)
-    } catch (error) {
+    } catch {
         log(LogLevel.WARN, `Server-side copy failed for ${targetKey}; falling back to upload`)
         await uploadFileToS3(client, bucket, targetKey, filePath, headers, { skipIfUnchanged: true })
     }

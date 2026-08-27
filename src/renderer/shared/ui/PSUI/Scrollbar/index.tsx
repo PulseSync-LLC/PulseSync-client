@@ -187,7 +187,7 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
                 ref={containerRef}
                 onScroll={e => {
                     updateThumbPosition()
-                    onScroll && onScroll(e)
+                    onScroll?.(e)
                 }}
             >
                 {children}

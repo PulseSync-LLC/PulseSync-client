@@ -1,6 +1,5 @@
 import React from 'react'
 
-import clsx from 'clsx'
 import { MdAdd, MdDelete } from 'react-icons/md'
 
 import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
@@ -33,18 +32,15 @@ type Props = {
 
 export default function ConfigurationItemBody({
     addSelectorOption,
-    addTextButton,
     cfg,
     filePreviewSrc,
     ii,
     item,
     removeSelectorOption,
-    removeTextButton,
     setConfig,
     si,
     t,
     updateItem,
-    updateTextButton,
 }: Props) {
     switch (item.type) {
         case 'button': {

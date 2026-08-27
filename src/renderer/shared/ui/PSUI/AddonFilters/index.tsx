@@ -51,7 +51,11 @@ export default function AddonFilters({
 
     const toggleSet = (set: Set<string>, value: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
         const copy = new Set(set)
-        copy.has(value) ? copy.delete(value) : copy.add(value)
+        if (copy.has(value)) {
+            copy.delete(value)
+        } else {
+            copy.add(value)
+        }
         setter(copy)
     }
 

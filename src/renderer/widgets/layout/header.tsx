@@ -1,8 +1,7 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
 
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { MdSettings } from 'react-icons/md'
 import { useLocation, useNavigate } from 'react-router-dom'
 
 import { useModalContext } from '@app/providers/modal'
@@ -27,7 +26,6 @@ import { compareVersions } from '@shared/lib/utils'
 import ButtonV2 from '@shared/ui/buttonV2'
 import { Avatar } from '@shared/ui/PSUI/Image'
 import toast from '@shared/ui/toast'
-import TooltipButton from '@shared/ui/tooltip_button'
 
 import Close from '@shared/assets/icons/close.svg'
 import Maximize from '@shared/assets/icons/maximize.svg'
@@ -55,7 +53,6 @@ type GetModUpdatesResponse = {
 }
 
 const Header: React.FC<p> = ({ title, titleDetail }) => {
-    const settingsAvailable = false
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)

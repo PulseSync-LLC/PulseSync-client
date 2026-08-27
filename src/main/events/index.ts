@@ -13,12 +13,11 @@ import * as si from 'systeminformation'
 import { v4 } from 'uuid'
 
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import config, { isDevmark } from '@common/appConfig'
+import { isDevmark } from '@common/appConfig'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
-import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
 import { t } from '../i18n'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
@@ -335,7 +334,11 @@ const registerWindowEvents = (): void => {
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MAXIMIZE, () => {
-        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize()
+        } else {
+            mainWindow.maximize()
+        }
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_CLOSE, (_event, val: boolean) => {
         if (val) {
@@ -361,11 +364,11 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
     })
-    ipcMain.on(MainEvents.ELECTRON_ISMAC, async (event, args) => {
+    ipcMain.on(MainEvents.ELECTRON_ISMAC, async event => {
         event.returnValue = isMac()
     })
     ipcMain.handle(MainEvents.GET_VERSION, async () => DESKTOP_CORE_VERSION)
-    ipcMain.on(MainEvents.ELECTRON_ISLINUX, async (event, args) => {
+    ipcMain.on(MainEvents.ELECTRON_ISLINUX, async event => {
         event.returnValue = isLinux()
     })
     ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
@@ -466,7 +469,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerFileOperations = (window: BrowserWindow): void => {
+const registerFileOperations = (): void => {
     ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
         try {
             if (!isSafeExternalUrl(url)) {
@@ -615,7 +618,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
     })
 }
 
-const registerMediaEvents = (window: BrowserWindow): void => {
+const registerMediaEvents = (): void => {
     ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
         const unlinkDownload = (downloadPath: string) => {
             try {
@@ -715,7 +718,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerDeviceEvents = (window: BrowserWindow): void => {
+const registerDeviceEvents = (): void => {
     ipcMain.on(MainEvents.GET_MUSIC_DEVICE, event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4(
@@ -749,7 +752,7 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerUpdateEvents = (window: BrowserWindow): void => {
+const registerUpdateEvents = (): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
         if (updater.getStatus() === UpdateStatus.DOWNLOADED) {
             await updater.install()
@@ -776,7 +779,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerLoggingEvents = (window: BrowserWindow): void => {
+const registerLoggingEvents = (): void => {
     const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
         const text = payload?.text ?? payload?.message ?? ''
         const details: string[] = []
@@ -825,7 +828,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerNotificationEvents = (window: BrowserWindow): void => {
+const registerNotificationEvents = (): void => {
     ipcMain.on(MainEvents.SHOW_NOTIFICATION, (_event, data: any) => {
         new Notification({ title: data.title, body: data.body }).show()
     })
@@ -838,7 +841,7 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerLogArchiveEvent = (window: BrowserWindow): void => {
+const registerLogArchiveEvent = (): void => {
     ipcMain.on(MainEvents.GET_LOG_ARCHIVE, async () => {
         try {
             const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
@@ -885,11 +888,11 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
     })
 }
 
-const registerSleepModeEvent = (window: BrowserWindow): void => {
+const registerSleepModeEvent = (): void => {
     ipcMain.handle(MainEvents.CHECK_SLEEP_MODE, async () => inSleepMode)
 }
 
-const registerExtensionEvents = (window: BrowserWindow): void => {
+const registerExtensionEvents = (): void => {
     ipcMain.handle(MainEvents.GET_ADDONS, async () => {
         try {
             return await loadAddons()
@@ -1092,15 +1095,15 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)
-    registerFileOperations(window)
-    registerMediaEvents(window)
-    registerDeviceEvents(window)
-    registerUpdateEvents(window)
-    registerLoggingEvents(window)
-    registerNotificationEvents(window)
-    registerLogArchiveEvent(window)
-    registerSleepModeEvent(window)
-    registerExtensionEvents(window)
+    registerFileOperations()
+    registerMediaEvents()
+    registerDeviceEvents()
+    registerUpdateEvents()
+    registerLoggingEvents()
+    registerNotificationEvents()
+    registerLogArchiveEvent()
+    registerSleepModeEvent()
+    registerExtensionEvents()
     registerYandexMusicEvents(window)
     obsWidgetManager(window, app)
 }

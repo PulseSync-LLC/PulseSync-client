@@ -1,4 +1,4 @@
-import { ipcMain, shell } from 'electron'
+import { ipcMain } from 'electron'
 
 import * as fs from 'original-fs'
 import * as path from 'path'

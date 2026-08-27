@@ -15,7 +15,6 @@ import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import NavButtonPulse from '@shared/ui/PSUI/NavButton'
-import toast from '@shared/ui/toast'
 import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as pageStyles from '@widgets/layout/layout.module.scss'
@@ -46,7 +45,6 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
         setApp,
         setMusicInstalled,
         setMusicVersion,
-        setUpdate,
         t,
         modals: {
             LINUX_ASAR_PATH: Modals.LINUX_ASAR_PATH,

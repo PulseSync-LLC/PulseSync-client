@@ -6,15 +6,12 @@ import Loader from '@shared/ui/PSUI/Loader'
 
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
-import type { ExtendedUser } from '@entities/user/model/extendUser.interface'
-
 interface SettingsTabProps {
-    userProfile: ExtendedUser
     loading: boolean
     error: any
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({ userProfile, loading, error }) => {
+const SettingsTab: React.FC<SettingsTabProps> = ({ loading, error }) => {
     const { t } = useTranslation()
 
     if (loading) {

@@ -2,7 +2,6 @@ import { fileURLToPath } from 'node:url'
 
 import { app, BrowserWindow, powerMonitor, screen, shell } from 'electron'
 
-import fs from 'original-fs'
 import path from 'path'
 
 import config from '@common/appConfig'
@@ -40,31 +39,6 @@ const minMain = { width: 1400, height: 850 }
 app.on('before-quit', () => {
     isAppQuitting = true
 })
-
-const loadRendererWindow = (
-    window: BrowserWindow,
-    devServerUrl: string | undefined,
-    rendererName: string,
-    devHtmlFile: string,
-    prodHtmlFile: string,
-): Promise<void> => {
-    if (devServerUrl) {
-        return window.loadURL(`${devServerUrl}/${devHtmlFile}`)
-    }
-    const basePath = path.join(app.getAppPath(), '.vite', 'renderer', rendererName)
-    const normalizedProdHtmlFile = prodHtmlFile.replace(/\\/g, '/')
-    const candidates = [path.join(basePath, prodHtmlFile)]
-
-    if (normalizedProdHtmlFile.startsWith('src/renderer/')) {
-        const trimmedHtmlFile = normalizedProdHtmlFile.replace(/^src\/renderer\//, '')
-        candidates.push(path.join(basePath, trimmedHtmlFile))
-    } else {
-        candidates.push(path.join(basePath, 'src', 'renderer', prodHtmlFile))
-    }
-
-    const existingPath = candidates.find(candidate => fs.existsSync(candidate)) ?? candidates[0]
-    return window.loadFile(existingPath)
-}
 
 const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
     const area = display.workArea
