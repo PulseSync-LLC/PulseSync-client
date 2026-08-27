@@ -57,10 +57,10 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
-"@aws-sdk/client-s3@^3.1118.0":
-  version "3.1118.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1118.0.tgz#c8fe7eb3bb218ac881a2e31c3c8de1d4156c8834"
-  integrity sha512-nh46pLKeRNFvTOZAJMfYR7kZ/KzhSqzhXVIJSwl4jJ/b2D+KOXL2jeOCryOvGgwpUQo9YNWFUg63cm2qr5MX9g==
+"@aws-sdk/client-s3@^3.1120.0":
+  version "3.1120.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1120.0.tgz#2e4080c5c9d1b75d2371d85fad07dbd145fd44f6"
+  integrity sha512-UunWgNl/U8wIlxVRyhUPqlozFkUS88UqXjAH50XfPDXaZeK9P7KVYTAh4KREVrLPQTzPxVSbQGog3gHlc/P6vg==
   dependencies:
     "@aws-sdk/checksums" "^3.1000.29"
     "@aws-sdk/core" "^3.977.9"
@@ -2896,10 +2896,10 @@
   dependencies:
     undici-types "~7.16.0"
 
-"@types/node@^26.3.0":
-  version "26.3.0"
-  resolved "https://registry.yarnpkg.com/@types/node/-/node-26.3.0.tgz#757c33b17fe06db5a356582e9658603a1bd80caf"
-  integrity sha512-L3fgrnchriRC2ExBflb8j4uZZURHZfQsmQeyVzhjcHW4kkwVyo8/0h1B2MVzMTrYUJYu6G7EWs14hW/L9putqw==
+"@types/node@^26.4.0":
+  version "26.4.0"
+  resolved "https://registry.yarnpkg.com/@types/node/-/node-26.4.0.tgz#4c4ca071c42241fe602741d02999f16b4e64c468"
+  integrity sha512-faiGnoIrLH/V8cibOMEAZ8pMw6oXqSukl29ra4mN8GdaB2ZewzeaLj+INpV5N+Z1eKWzY+IzaIZH2EIR6YZRNQ==
   dependencies:
     undici-types "~8.3.0"
 
@@ -3667,10 +3667,10 @@ aws4@^1.13.2:
   resolved "https://registry.yarnpkg.com/aws4/-/aws4-1.13.2.tgz#0aa167216965ac9474ccfa83892cfb6b3e1e52ef"
   integrity sha512-lHe62zvbTB5eEABUVi/AwVh0ZKY9rMMDhmm+eeyuuUQbQ3+J+fONVQOZyj+DdrvD4BY33uYniyRJ4UJIaSKAfw==
 
-axios@^1.19.0:
-  version "1.19.0"
-  resolved "https://registry.yarnpkg.com/axios/-/axios-1.19.0.tgz#ddf864d4c8233c0e6873746ab59361537d05ad39"
-  integrity sha512-ht/iuYZXEjFxLH/Hkezgd7m6JKlHHXEUSneaDz8uZe1Gj5QZtCnpyDsckvAiEnT89OEbCLmnte4R4sn7P0EKFw==
+axios@^1.20.0:
+  version "1.20.0"
+  resolved "https://registry.yarnpkg.com/axios/-/axios-1.20.0.tgz#515513445aa60e71d04b6521ca6210829ccb4786"
+  integrity sha512-r8aOh8j9cGKpgQAqpzrUHnSIc6a59Y3Xf/cv8sy1DrHCkZHzQGEuoq1tARk6qSyDdtQGSDgpb9kFlruzPvrgwg==
   dependencies:
     follow-redirects "^1.16.0"
     form-data "^4.0.6"
@@ -9395,10 +9395,10 @@ systeminformation@*:
   resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.30.5.tgz#0b8840ff697b8f036901bf4f8586c9278c7c9e88"
   integrity sha512-DpWmpCckhwR3hG+6udb6/aQB7PpiqVnvSljrjbKxNSvTRsGsg7NVE3/vouoYf96xgwMxXFKcS4Ux+cnkFwYM7A==
 
-systeminformation@^5.33.3:
-  version "5.33.3"
-  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.33.3.tgz#840db1357bc61630897dd5f4d9a6bbff599b71d3"
-  integrity sha512-CFdkRa2yfWBXtRtinSm7QbFGRntq1nC2V2hPAjfRTGwncZbNw/UWyiKDT8rZQz6MB70/3ndzP0scIR0dJHJjBA==
+systeminformation@^5.33.5:
+  version "5.33.5"
+  resolved "https://registry.yarnpkg.com/systeminformation/-/systeminformation-5.33.5.tgz#85db4ec5553dcd15e17d0ed2690fa67786a3ff40"
+  integrity sha512-0v8l1CwFOAjfkv6ynpMrv3YGjH0M7PWCpZwusr8J1TEoQFPK7WXO6gbeAiandaWoh7vbMdnFtDqVotJVnLJtIg==
 
 table@^6.9.0:
   version "6.9.0"
