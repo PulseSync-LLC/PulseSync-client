@@ -500,6 +500,7 @@
                 "CDN_DOMAIN_URL_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
                 "S3_UPLOAD_FAILED": "Failed to send the add-on files. Please try again later.",
                 "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation.",
+                "THEME_SCRIPT_NOT_ALLOWED": "A theme can contain only CSS. Remove the script field or change type to web-addon.",
                 "WEB_ADDON_RUNTIME_INVALID": "The archive is marked as a WebHost add-on but does not contain a valid runtime registration. Build it with the official template.",
                 "LEGACY_ADDON_PUBLICATION_DISABLED": "The server rejected this legacy add-on. Migrate it to the WebHost runtime before publishing."
             },

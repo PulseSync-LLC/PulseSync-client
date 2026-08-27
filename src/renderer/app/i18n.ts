@@ -1,8 +1,8 @@
 import i18next from 'i18next'
 import { initReactI18next } from 'react-i18next'
 
-import en from '../../locales/bundled/en/renderer.json'
-import ru from '../../locales/bundled/ru/renderer.json'
+import en from '../../locales/en/renderer.json'
+import ru from '../../locales/ru/renderer.json'
 
 import type { TOptions } from 'i18next'
 

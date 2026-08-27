@@ -20,8 +20,8 @@ import {
 } from '@common/localization/catalog'
 
 import MainEvents from '../../common/types/mainEvents'
-import bundledEn from '../../locales/bundled/en/main.json'
-import bundledRu from '../../locales/bundled/ru/main.json'
+import fallbackEn from '../../locales/en/main.json'
+import fallbackRu from '../../locales/ru/main.json'
 import logger from './logger'
 
 import type { MainRendererSource } from './rendererSource'
@@ -35,9 +35,9 @@ type CachedLocalizationCatalog = {
     catalog: RemoteLocalizationCatalog
 }
 
-const bundledMainResources: Record<(typeof SUPPORTED_LANGUAGES)[number], TranslationTree> = {
-    en: bundledEn,
-    ru: bundledRu,
+const fallbackMainResources: Record<(typeof SUPPORTED_LANGUAGES)[number], TranslationTree> = {
+    en: fallbackEn,
+    ru: fallbackRu,
 }
 
 let rendererSnapshot: DesktopLocalizationSnapshot | null = null
@@ -64,7 +64,7 @@ const parseCatalog = (value: unknown): RemoteLocalizationCatalog | null => {
 const applyCatalog = (catalog: RemoteLocalizationCatalog | null): void => {
     for (const language of SUPPORTED_LANGUAGES) {
         i18next.removeResourceBundle(language, 'translation')
-        i18next.addResourceBundle(language, 'translation', catalog?.resources[language].main ?? bundledMainResources[language], true, true)
+        i18next.addResourceBundle(language, 'translation', catalog?.resources[language].main ?? fallbackMainResources[language], true, true)
     }
 
     rendererSnapshot = catalog

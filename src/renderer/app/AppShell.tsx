@@ -239,7 +239,7 @@ function App() {
                 const outdatedAddons = updates.filter(publishedAddon => {
                     const installedAddon = installedByStoreId.get(publishedAddon.id)
                     const legacyUpdateBlocked =
-                        isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type !== 'web-addon'
+                        isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type === 'script'
                     return (
                         !!installedAddon &&
                         !legacyUpdateBlocked &&
