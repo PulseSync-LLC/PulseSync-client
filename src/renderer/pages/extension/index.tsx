@@ -1114,7 +1114,7 @@ export default function ExtensionPage() {
             return
         }
 
-        if (selectedAddonIsRestrictedLegacy && selectedStoreUpdate.type !== 'web-addon') {
+        if (selectedAddonIsRestrictedLegacy && selectedStoreUpdate.type === 'script') {
             if (selectedAddonIsAuthoredByUser) {
                 toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
                 void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)

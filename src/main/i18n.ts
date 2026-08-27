@@ -2,8 +2,8 @@ import { app } from 'electron'
 
 import i18next from 'i18next'
 
-import en from '../locales/bundled/en/main.json'
-import ru from '../locales/bundled/ru/main.json'
+import en from '../locales/en/main.json'
+import ru from '../locales/ru/main.json'
 
 import type { TOptions } from 'i18next'
 

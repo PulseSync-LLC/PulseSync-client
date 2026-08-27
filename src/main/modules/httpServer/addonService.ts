@@ -55,18 +55,28 @@ type RefreshedAddonPayload = {
     script: string | null
 }
 
-type WebHostAddonPayload = {
+type WebHostAssetBase = {
     id: string
     name: string
     directoryName: string
     version?: string
     css: string
+}
+
+type WebHostAddonPayload = WebHostAssetBase & {
+    type: 'web-addon'
     code: string
 }
 
+type WebHostThemePayload = WebHostAssetBase & {
+    type: 'theme'
+}
+
+type WebHostAssetPayload = WebHostAddonPayload | WebHostThemePayload
+
 type WebHostAddonsSnapshot = {
     hash: string
-    addons: WebHostAddonPayload[]
+    addons: WebHostAssetPayload[]
 }
 
 type AddonStateSnapshot = {
@@ -104,7 +114,10 @@ const hashAddonState = (snapshot: AddonStateSnapshot): string =>
         .update(JSON.stringify(canonicalizeAddonState(snapshot)))
         .digest('hex')
 
-const hashWebHostAddons = (addons: WebHostAddonPayload[]): string =>
+const WEB_HOST_ADDON_PROTOCOL_VERSION = 1
+const WEB_HOST_THEME_PROTOCOL_VERSION = 2
+
+const hashWebHostAddons = (addons: WebHostAssetPayload[]): string =>
     createHash('sha256')
         .update(
             JSON.stringify(
@@ -340,6 +353,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     }
 
                     return {
+                        type: 'web-addon',
                         id,
                         name: addonName,
                         directoryName: folderName,
@@ -357,9 +371,63 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             .filter((addon): addon is WebHostAddonPayload => addon !== null)
     }
 
-    const readWebHostAddonsSnapshot = (): WebHostAddonsSnapshot => {
-        const addons = readWebHostAddonPayloads()
-        return { hash: hashWebHostAddons(addons), addons }
+    const readWebHostThemePayload = (): WebHostThemePayload | null => {
+        const directoryName = getSelectedThemeDirectory()
+        if (directoryName.toLowerCase() === 'default') return null
+
+        const themeRoot = path.join(getAddonsRoot(), directoryName)
+        const metadataPath = path.join(themeRoot, 'metadata.json')
+        if (!fs.existsSync(metadataPath)) return null
+
+        try {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+            if (metadata.type !== 'theme') return null
+
+            const cssFile = typeof metadata.css === 'string' ? resolveExistingFileInsideBase(themeRoot, metadata.css) : null
+            if (!cssFile || !fs.existsSync(cssFile) || !fs.statSync(cssFile).isFile()) return null
+
+            const css = fs.readFileSync(cssFile, 'utf8')
+            if (!css.trim() || css.trim() === '{}') return null
+
+            const declaredScript = typeof metadata.script === 'string' && metadata.script.trim() ? metadata.script : null
+            const scriptFile = declaredScript ? resolveExistingFileInsideBase(themeRoot, declaredScript) : null
+            if (declaredScript && (!scriptFile || !fs.existsSync(scriptFile) || !fs.statSync(scriptFile).isFile())) return null
+            const script = scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile() ? fs.readFileSync(scriptFile, 'utf8') : ''
+            if (script.trim()) return null
+
+            const id = typeof metadata.id === 'string' && metadata.id.trim() ? metadata.id.trim() : directoryName
+            const name = typeof metadata.name === 'string' && metadata.name.trim() ? metadata.name.trim() : directoryName
+            return {
+                type: 'theme',
+                id,
+                name,
+                directoryName,
+                version: typeof metadata.version === 'string' ? metadata.version : undefined,
+                css,
+            }
+        } catch (error) {
+            logger.http.warn(
+                `[PulseSync Addons] Failed to read CSS-only theme ${directoryName}: ${error instanceof Error ? error.message : String(error)}`,
+            )
+            return null
+        }
+    }
+
+    const readWebHostAddonsSnapshot = (protocolVersion: number): { snapshot: WebHostAddonsSnapshot; handlesTheme: boolean } => {
+        const addons: WebHostAssetPayload[] = readWebHostAddonPayloads()
+        let handlesTheme = false
+
+        if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
+            const selectedThemeDirectory = getSelectedThemeDirectory()
+            const theme = readWebHostThemePayload()
+            handlesTheme = selectedThemeDirectory.toLowerCase() === 'default' || theme !== null
+            if (theme) addons.unshift(theme)
+        }
+
+        return {
+            snapshot: { hash: hashWebHostAddons(addons), addons },
+            handlesTheme,
+        }
     }
 
     const readAddonStateSnapshot = (): AddonStateSnapshot => ({
@@ -367,8 +435,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         extensions: readExtensionPayloads(),
     })
 
-    const emitAddonStateSnapshot = (socket: Socket, snapshot: AddonStateSnapshot): void => {
-        if (snapshot.theme) socket.emit('THEME', { theme: snapshot.theme })
+    const emitAddonStateSnapshot = (socket: Socket, snapshot: AddonStateSnapshot, includeTheme = true): void => {
+        const legacyTheme = includeTheme ? snapshot.theme : readThemePayload(true)
+        if (legacyTheme) socket.emit('THEME', { theme: legacyTheme })
         socket.emit(MainEvents.REFRESH_EXTENSIONS, { addons: snapshot.extensions })
         socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
     }
@@ -377,8 +446,11 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         socket.emit(MainEvents.WEBHOST_ADDONS_SNAPSHOT, snapshot)
     }
 
+    const getWebHostAddonProtocolVersion = (socket: Socket, protocolVersion?: number): number =>
+        Number(protocolVersion ?? (socket as any).webHostAddonProtocolVersion) || 0
+
     const supportsWebHostAddons = (socket: Socket, protocolVersion?: number): boolean =>
-        Number(protocolVersion ?? (socket as any).webHostAddonProtocolVersion) >= 1
+        getWebHostAddonProtocolVersion(socket, protocolVersion) >= WEB_HOST_ADDON_PROTOCOL_VERSION
 
     const setAddon = (_theme: string) => {
         const io = getIo()
@@ -415,10 +487,16 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             io.sockets.sockets.forEach(sock => {
                 const s = sock as any
                 if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
-                    sock.emit('THEME', {
-                        theme: themeData,
-                        allowedUrls: getAllAllowedUrls(),
-                    })
+                    const protocolVersion = getWebHostAddonProtocolVersion(sock)
+                    const webHost = readWebHostAddonsSnapshot(protocolVersion)
+                    if (webHost.handlesTheme) {
+                        const defaultTheme = readThemePayload(true)
+                        if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
+                        emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                    } else {
+                        sock.emit('THEME', { theme: themeData, allowedUrls: getAllAllowedUrls() })
+                        if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                    }
                     sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
                 }
             })
@@ -434,12 +512,21 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
-                if (withJs) {
+                const protocolVersion = getWebHostAddonProtocolVersion(sock)
+                const webHost = readWebHostAddonsSnapshot(protocolVersion)
+                if (!themeDef && webHost.handlesTheme) {
+                    const defaultTheme = readThemePayload(true)
+                    if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
+                    emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                } else if (withJs) {
                     sock.emit('THEME', { theme: themeData })
                 } else {
                     sock.emit('UPDATE_CSS', {
                         theme: { css: themeData.css, name: themeData.name },
                     })
+                }
+                if (!webHost.handlesTheme && protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
+                    emitWebHostAddonsSnapshot(sock, webHost.snapshot)
                 }
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
@@ -450,7 +537,6 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const io = getIo()
         if (!io) return 0
         const found = readExtensionPayloads()
-        const webHostSnapshot = readWebHostAddonsSnapshot()
         let recipients = 0
 
         io.sockets.sockets.forEach(sock => {
@@ -459,7 +545,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                 sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: found })
                 if (supportsWebHostAddons(sock)) {
                     recipients += 1
-                    emitWebHostAddonsSnapshot(sock, webHostSnapshot)
+                    emitWebHostAddonsSnapshot(sock, readWebHostAddonsSnapshot(getWebHostAddonProtocolVersion(sock)).snapshot)
                 }
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
@@ -582,7 +668,6 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
         const syncKey = targetSocket?.id || '__all__'
         const snapshot = readAddonStateSnapshot()
-        const webHostSnapshot = readWebHostAddonsSnapshot()
         const desiredAddonStateHash = hashAddonState(snapshot)
         const stateMatches =
             currentAddonStateHashVersion === 1 &&
@@ -591,9 +676,11 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             currentAddonStateHash === desiredAddonStateHash
 
         for (const socket of recipients) {
-            if (!stateMatches) emitAddonStateSnapshot(socket, snapshot)
+            const protocolVersion = getWebHostAddonProtocolVersion(socket, webHostAddonProtocolVersion)
+            const webHost = readWebHostAddonsSnapshot(protocolVersion)
+            if (!stateMatches) emitAddonStateSnapshot(socket, snapshot, !webHost.handlesTheme)
             else socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
-            if (supportsWebHostAddons(socket, webHostAddonProtocolVersion)) emitWebHostAddonsSnapshot(socket, webHostSnapshot)
+            if (supportsWebHostAddons(socket, protocolVersion)) emitWebHostAddonsSnapshot(socket, webHost.snapshot)
         }
         logger.http.log(
             stateMatches

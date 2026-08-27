@@ -25,7 +25,6 @@ const defaultAddon: Partial<Addon> = {
     version: '1.0.0',
     type: 'theme',
     css: 'style.css',
-    script: 'script.js',
     dependencies: [],
     conflictsWith: [],
     allowedUrls: [],
@@ -33,7 +32,6 @@ const defaultAddon: Partial<Addon> = {
 }
 
 const defaultCssContent = `{}`
-const defaultScriptContent = ``
 let loadAddonsInFlight: Promise<Addon[]> | null = null
 
 const normalizeRelationValues = (value: unknown): string[] => {
@@ -65,6 +63,15 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
                     metadata.id = defaultAddon.id
                     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
                 }
+                if (typeof metadata.script === 'string') {
+                    const scriptPath = resolveExistingFileInsideBase(defaultAddonPath, metadata.script)
+                    const script =
+                        scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile() ? fs.readFileSync(scriptPath, 'utf-8') : ''
+                    if (!script.trim()) {
+                        delete metadata.script
+                        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
+                    }
+                }
             }
             return
         }
@@ -73,11 +80,8 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
         fs.mkdirSync(path.join(defaultAddonPath, 'Assets'), { recursive: true })
 
         const cssPath = path.join(defaultAddonPath, defaultAddon.css!)
-        const scriptPath = path.join(defaultAddonPath, defaultAddon.script!)
-
         fs.writeFileSync(metadataPath, JSON.stringify(defaultAddon, null, 4), 'utf-8')
         fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
-        fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
         logger.main.info(`Addons: default theme created at ${defaultAddonPath}.`)
     } catch (err) {
@@ -224,6 +228,17 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                     metadata.version = versionMatch[0]
                 }
 
+                if (metadata.type === 'theme' && typeof metadata.script === 'string' && metadata.script.trim()) {
+                    const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
+                    if (scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()) {
+                        const script = await fs.promises.readFile(scriptPath, 'utf8')
+                        if (!script.trim()) {
+                            delete metadata.script
+                            metadataChanged = true
+                        }
+                    }
+                }
+
                 if (metadataChanged) {
                     await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8').catch(err => {
                         logger.main.error(`Addons: error writing metadata.json in theme ${currentFolder}:`, err)
@@ -240,7 +255,18 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.allowedUrls = normalizeRelationValues(metadata.allowedUrls)
                 metadata.supportedVersions = normalizeRelationValues(metadata.supportedVersions)
                 metadata.runtime = 'legacy'
-                if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
+                if (metadata.type === 'theme' && typeof metadata.css === 'string') {
+                    const cssPath = resolveExistingFileInsideBase(addonFolderPath, metadata.css)
+                    const css = cssPath && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile() ? await fs.promises.readFile(cssPath, 'utf8') : ''
+                    const declaredScript = typeof metadata.script === 'string' && metadata.script.trim() ? metadata.script : null
+                    const scriptPath = declaredScript ? resolveExistingFileInsideBase(addonFolderPath, declaredScript) : null
+                    const scriptIsReadable = !declaredScript || Boolean(scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile())
+                    const script =
+                        scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()
+                            ? await fs.promises.readFile(scriptPath, 'utf8')
+                            : ''
+                    if (css.trim() && css.trim() !== '{}' && scriptIsReadable && !script.trim()) metadata.runtime = 'style'
+                } else if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
                     const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
                     if (scriptPath) {
                         try {

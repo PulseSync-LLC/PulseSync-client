@@ -200,6 +200,15 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
                 return null
             }
         }
+        if (metadata.type === 'theme' && typeof metadata.script === 'string' && metadata.script.trim()) {
+            const scriptPath = resolveExistingFileInsideBase(stagingDir, metadata.script)
+            const scriptContent = scriptPath && fs.existsSync(scriptPath) ? await fsp.readFile(scriptPath, 'utf8') : ''
+            if (scriptContent.trim()) {
+                logger.main.warn(
+                    `[PulseSync Addons] Theme ${String(metadata.id || addonName)} contains JavaScript and will use legacy compatibility mode. Use type web-addon for JS + CSS packages.`,
+                )
+            }
+        }
 
         metadata.id = resolveAddonStableId(metadata)
         metadata.packageHash = computeAddonPackageHash(archiveBuffer)
