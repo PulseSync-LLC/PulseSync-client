@@ -1,5 +1,3 @@
-import { ipcMain } from 'electron'
-
 import ElectronStoreModule from 'electron-store'
 
 import { t } from '../i18n'

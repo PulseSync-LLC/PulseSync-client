@@ -22,7 +22,6 @@ type Params = {
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
     setMusicInstalled: React.Dispatch<React.SetStateAction<boolean>>
     setMusicVersion: React.Dispatch<React.SetStateAction<string | null>>
-    setUpdate: React.Dispatch<React.SetStateAction<boolean>>
     t: (key: string, options?: any) => string
     modals: {
         LINUX_ASAR_PATH: ModalName
@@ -40,7 +39,6 @@ export function useLayoutInstallers({
     setApp,
     setMusicInstalled,
     setMusicVersion,
-    setUpdate,
     t,
     modals,
 }: Params) {

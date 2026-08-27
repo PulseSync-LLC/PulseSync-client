@@ -648,7 +648,6 @@ function resolveBundleVersion(): string {
 
 function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): string {
     const contentsRoot = getPackagedAppRoot(outDir)
-    const modulesRoot = path.join(contentsRoot, 'modules')
     const components: Record<
         string,
         { version: string; path: string; sha256: string; required: boolean; revision?: number; diskName?: string; electronAbi?: string }

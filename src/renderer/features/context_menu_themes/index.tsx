@@ -13,18 +13,9 @@ interface ContextMenuProps {
     position: { x: number; y: number }
     onClose: () => void
     isFadingOut: boolean
-    setIsFadingOut: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-interface ContextMenuProps {
-    items: MenuItem[]
-    position: { x: number; y: number }
-    onClose: () => void
-    isFadingOut: boolean
-    setIsFadingOut: React.Dispatch<React.SetStateAction<boolean>>
-}
-
-const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isFadingOut, setIsFadingOut }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isFadingOut }) => {
     const menuRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {

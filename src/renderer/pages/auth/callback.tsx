@@ -16,7 +16,7 @@ import * as pageStyles from '@pages/auth/callback.module.scss'
 export default function CallbackPage() {
     const { t } = useTranslation()
     const navigate = useNavigate()
-    const { user, authorize } = useContext(userContext)
+    const { user } = useContext(userContext)
     const [banReason, setBanReason] = useState('')
 
     useEffect(() => {

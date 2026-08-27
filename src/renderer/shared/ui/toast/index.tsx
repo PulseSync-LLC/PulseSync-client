@@ -61,14 +61,6 @@ function ensureStack(opts?: ToastOptions) {
     stackShown = true
 }
 
-function clearAll() {
-    if (!queue.length) return
-    queue = []
-    emit()
-    toast.dismiss('android-stack')
-    stackShown = false
-}
-
 const closeAllSubs = new Set<() => void>()
 function requestCloseAll() {
     if (queue.length > MAX_VISIBLE_TOASTS) {

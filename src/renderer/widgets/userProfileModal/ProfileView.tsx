@@ -120,7 +120,7 @@ export default function ProfileView({ profileName }: ProfileViewProps) {
                     <ProfileTab userProfile={userProfile} loading={profileLoading} error={normalizedError} profileName={profileName} />
                 )}
                 {activeTab === 'friends' && <FriendsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
-                {activeTab === 'settings' && <SettingsTab userProfile={userProfile} loading={profileLoading} error={normalizedError} />}
+                {activeTab === 'settings' && <SettingsTab loading={profileLoading} error={normalizedError} />}
             </div>
         </Scrollbar>
     )

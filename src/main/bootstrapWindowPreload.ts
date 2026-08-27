@@ -1,6 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
-import { BOOTSTRAP_WINDOW_CHANNELS, type BootstrapUiStateV1, type BootstrapWindowApi, isBootstrapUiStateV1 } from '@common/types/bootstrapEvents'
+import { BOOTSTRAP_WINDOW_CHANNELS, type BootstrapWindowApi, isBootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const api: BootstrapWindowApi = {
     ready: () => ipcRenderer.send(BOOTSTRAP_WINDOW_CHANNELS.ready),

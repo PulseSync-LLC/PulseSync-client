@@ -361,7 +361,7 @@ export default function ExtensionPage() {
     }, [])
 
     const loadAddons = useCallback(
-        async (force = false): Promise<Addon[]> => {
+        async (_force = false): Promise<Addon[]> => {
             try {
                 const [result, snapshot] = await Promise.all([desktopApi.addons.list(), desktopApi.settings.getSnapshot()])
                 const fetchedAddons: Addon[] = Array.isArray(result) ? result : []

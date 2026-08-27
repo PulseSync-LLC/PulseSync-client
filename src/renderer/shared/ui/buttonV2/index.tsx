@@ -14,18 +14,20 @@ interface ButtonProps extends ButtonHTMLAttributes<HTMLButtonElement> {
     className?: string
 }
 
-const ButtonV2 = forwardRef<HTMLButtonElement, ButtonProps>(({ onClick, style, children, disableOnClickSound = true, className, ...rest }, ref) => {
-    const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
-        if (onClick) {
-            onClick(event)
+const ButtonV2 = forwardRef<HTMLButtonElement, ButtonProps>(
+    ({ onClick, style, children, disableOnClickSound: _disableOnClickSound = true, className, ...rest }, ref) => {
+        const handleClick = (event: React.MouseEvent<HTMLButtonElement>) => {
+            if (onClick) {
+                onClick(event)
+            }
         }
-    }
 
-    return (
-        <button ref={ref} style={style} className={cn(styles.button, className)} onClick={handleClick} {...rest}>
-            {children}
-        </button>
-    )
-})
+        return (
+            <button ref={ref} style={style} className={cn(styles.button, className)} onClick={handleClick} {...rest}>
+                {children}
+            </button>
+        )
+    },
+)
 
 export default ButtonV2

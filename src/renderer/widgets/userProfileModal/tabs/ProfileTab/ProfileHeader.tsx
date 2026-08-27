@@ -14,11 +14,10 @@ import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface ProfileHeaderProps {
     userProfile: any
-    user: any
     children?: React.ReactNode
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, children }) => {
     const { t, i18n } = useTranslation()
     const headerRef = useRef<HTMLDivElement>(null)
     const [allowAnimate, setAllowAnimate] = useState(true)

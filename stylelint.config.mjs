@@ -17,9 +17,9 @@ export default {
         ],
         'declaration-empty-line-before': null,
         'selector-class-pattern': [
-            '^[a-z][a-zA-Z0-9]*$',
+            '^[a-zA-Z_][a-zA-Z0-9_-]*$',
             {
-                message: 'Expected class selector to be camelCase',
+                message: 'Expected a conventional camelCase or kebab-case class selector',
                 severity: 'warning',
             },
         ],

@@ -70,7 +70,7 @@ function createTray() {
 
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
-    tray.on('click', event => {
+    tray.on('click', () => {
         mainWindow.show()
     })
 }

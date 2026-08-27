@@ -24,7 +24,7 @@ const getFileNames = (event: DragEvent): string[] => {
 
 const isUnsupportedPayload = (event: DragEvent): boolean => {
     const names = getFileNames(event)
-    return names.length > 0 && names.some(name => !isPext(name))
+    return names.some(name => !isPext(name))
 }
 
 const getUriValues = (event: DragEvent): string[] => {

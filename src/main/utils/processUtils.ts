@@ -1,4 +1,4 @@
-import { app, Notification } from 'electron'
+import { Notification } from 'electron'
 
 import process from 'process'
 
