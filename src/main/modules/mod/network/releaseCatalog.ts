@@ -2,6 +2,7 @@ import * as semver from 'semver'
 
 import config from '@common/appConfig'
 
+import logger from '../../logger'
 import { getState } from '../../state'
 import { findGitHubAsset, listStableGitHubReleases, normalizeGitHubTagVersion } from '../../updater/githubReleaseResolver'
 import { getPulseSyncUserAgent } from './userAgent'
@@ -174,7 +175,12 @@ export async function getModReleasesForSource(source: UpdateSource): Promise<Mod
         return fetchGithubModReleases()
     }
 
-    return fetchBackendModReleases()
+    try {
+        return await fetchBackendModReleases()
+    } catch (error) {
+        logger.modManager.warn('Backend mod release lookup failed, trying GitHub fallback', error)
+        return fetchGithubModReleases()
+    }
 }
 
 export async function getGithubModRelease(): Promise<ModReleaseEntry | null> {
