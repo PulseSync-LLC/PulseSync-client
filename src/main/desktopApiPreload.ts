@@ -343,6 +343,10 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     mods: {
         getReleases: () => ipcRenderer.invoke(MainEvents.GET_MOD_RELEASES),
 
+        getSources: () => ipcRenderer.invoke(MainEvents.GET_MOD_SOURCES),
+
+        selectSource: selection => ipcRenderer.invoke(MainEvents.SET_MOD_SOURCE, selection),
+
         install: request => ipcRenderer.send(MainEvents.INSTALL_MOD, request),
 
         remove: () => ipcRenderer.send(MainEvents.REMOVE_MOD),

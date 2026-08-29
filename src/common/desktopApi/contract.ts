@@ -1,6 +1,7 @@
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
+import type { ModReleaseChannel, ModSourceCatalog, ModSourceSelection } from '../types/modSource'
 export { DESKTOP_API_VERSION } from './version'
 
 export interface DesktopRuntimeInfo {
@@ -74,6 +75,9 @@ export interface DesktopUpdateAvailablePayload {
 }
 
 export interface DesktopInstallModRequest {
+    branch?: string
+    channel?: ModReleaseChannel
+    commit?: string
     version: string
     musicVersion?: string
     name: string
@@ -254,6 +258,8 @@ export interface PulseSyncDesktopApi {
     }
     mods: {
         getReleases(): Promise<unknown>
+        getSources(): Promise<ModSourceCatalog>
+        selectSource(selection: ModSourceSelection): Promise<{ release: unknown; selection: ModSourceSelection }>
         install(request: DesktopInstallModRequest): void
         remove(): void
         clearCache(): void

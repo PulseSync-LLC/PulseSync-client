@@ -23,7 +23,17 @@ export interface SettingsActionItem {
     onClick: () => void
 }
 
-export type SettingsItem = SettingsToggleItem | SettingsActionItem
+export interface SettingsChoiceItem {
+    description?: string
+    disabled?: boolean
+    id: string
+    kind: 'choice'
+    label: string
+    onSelect: () => void
+    selected: boolean
+}
+
+export type SettingsItem = SettingsToggleItem | SettingsActionItem | SettingsChoiceItem
 
 export interface SettingsGroupSchema {
     id: string

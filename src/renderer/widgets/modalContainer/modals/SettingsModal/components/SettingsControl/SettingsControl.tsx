@@ -34,6 +34,26 @@ const SettingsControl: React.FC<SettingsControlProps> = ({ item }) => {
         )
     }
 
+    if (item.kind === 'choice') {
+        return (
+            <button
+                type="button"
+                className={`${styles.choice} ${item.selected ? styles.choiceSelected : ''}`}
+                aria-pressed={item.selected}
+                disabled={item.disabled}
+                onClick={item.onSelect}
+            >
+                <span className={styles.choiceCopy}>
+                    <span className={styles.choiceTitle}>{item.label}</span>
+                    {item.description && <span className={styles.choiceDescription}>{item.description}</span>}
+                </span>
+                <span className={styles.radio} aria-hidden="true">
+                    {item.selected && <span className={styles.radioDot} />}
+                </span>
+            </button>
+        )
+    }
+
     return (
         <button type="button" className={styles.action} disabled={item.disabled} onClick={item.onClick}>
             <span>{item.label}</span>

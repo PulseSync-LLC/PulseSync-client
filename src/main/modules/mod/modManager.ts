@@ -70,8 +70,15 @@ export const modManager = (window: BrowserWindow): void => {
 
     ipcMain.on(
         MainEvents.INSTALL_MOD,
-        async (_event, { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source }) => {
+        async (
+            _event,
+            { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source, channel, branch, commit },
+        ) => {
             try {
+                sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
+                    isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
+                })
+
                 const installSource = source === 'github' ? 'github' : 'backend'
 
                 if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
@@ -121,6 +128,9 @@ export const modManager = (window: BrowserWindow): void => {
                 const applyReleaseArtifacts = async (
                     releaseData: {
                         checksum?: string
+                        branch?: string
+                        channel?: 'stable' | 'branch'
+                        commit?: string
                         link: string
                         name: string
                         unpackLink?: string
@@ -223,6 +233,9 @@ export const modManager = (window: BrowserWindow): void => {
                         checksum: actualAsarChecksum,
                         unpackedChecksum: releaseData.unpackedChecksum,
                         installed: true,
+                        sourceType: releaseData.channel === 'branch' ? 'branch' : 'stable',
+                        branch: releaseData.channel === 'branch' ? releaseData.branch || '' : '',
+                        commit: releaseData.channel === 'branch' ? releaseData.commit || '' : '',
                     })
 
                     return true
@@ -237,6 +250,9 @@ export const modManager = (window: BrowserWindow): void => {
                         unpackLink,
                         unpackedChecksum,
                         checksum,
+                        channel,
+                        branch,
+                        commit,
                     },
                     installSource === 'backend'
                         ? failure => {
@@ -267,6 +283,9 @@ export const modManager = (window: BrowserWindow): void => {
                                         unpackLink: fallbackRelease.downloadUnpackedUrl || undefined,
                                         unpackedChecksum: fallbackRelease.unpackedChecksum || undefined,
                                         checksum: fallbackRelease.checksum_v2 || undefined,
+                                        channel: 'stable',
+                                        branch: '',
+                                        commit: '',
                                     },
                                     failure => {
                                         fallbackFailure = failure

@@ -1,4 +1,7 @@
 export interface ModInterface {
+    branch: string
+    channel: 'stable' | 'branch'
+    commit: string
     id: number
     modVersion: string
     musicVersion: string

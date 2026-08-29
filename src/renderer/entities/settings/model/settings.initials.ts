@@ -18,6 +18,10 @@ const settingsInitials: SettingsInterface = {
         showModModalAfterInstall: true,
         language: 'ru',
         modSavePath: '',
+        modSource: {
+            type: 'stable',
+            branch: '',
+        },
     },
     info: {
         version: '',
@@ -32,6 +36,9 @@ const settingsInitials: SettingsInterface = {
         showModal: true,
         updated: false,
         changelog: [],
+        sourceType: 'stable',
+        branch: '',
+        commit: '',
     },
     tokens: {
         token: '',

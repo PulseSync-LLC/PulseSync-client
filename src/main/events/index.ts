@@ -25,7 +25,8 @@ import { setMainErrorTrackingUser } from '../modules/errorTracking'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
 import { get_current_track, sendAuthorizationStatus } from '../modules/httpServer'
 import logger from '../modules/logger'
-import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
+import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelection } from '../modules/mod/modSource'
+import { getModBranchBuildSummaries, getModReleaseForSelection } from '../modules/mod/network/releaseCatalog'
 import { nativeGetHardwareIdentity } from '../modules/nativeModules'
 import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
@@ -382,7 +383,26 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
     ipcMain.handle(MainEvents.GET_UPDATE_SOURCE, async () => getUpdateSource())
     ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => getCurrentUpdateStatus())
-    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => getModReleasesForSource(getUpdateSource()))
+    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => {
+        const release = await getModReleaseForSelection(getModSourceSelection(), getUpdateSource())
+        return release ? [release] : []
+    })
+    ipcMain.handle(MainEvents.GET_MOD_SOURCES, async () => ({
+        branches: await getModBranchBuildSummaries(),
+        selected: getModSourceSelection(),
+    }))
+    ipcMain.handle(MainEvents.SET_MOD_SOURCE, async (_event, value) => {
+        const selection = normalizeModSourceSelection(value)
+        if (!selection) throw new Error('INVALID_MOD_SOURCE')
+
+        const release = await getModReleaseForSelection(selection, getUpdateSource())
+        if (!release) throw new Error('MOD_SOURCE_UNAVAILABLE')
+
+        return {
+            release,
+            selection: setModSourceSelection(selection),
+        }
+    })
     ipcMain.handle(MainEvents.GET_CLIENT_CHANGELOG, async () => {
         const releases = await listStableGitHubReleases(CLIENT_REPO)
 

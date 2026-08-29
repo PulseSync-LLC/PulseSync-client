@@ -178,8 +178,7 @@ const ThemeInfo: React.FC<Props> = ({
     const copyShareLink = async () => {
         if (!storeAddonId) return
 
-        const shareUrl = new URL('/open', config.WEBSITE_URL)
-        shareUrl.search = `?url=store/${encodeURIComponent(storeAddonId)}`
+        const shareUrl = new URL(`/store/${encodeURIComponent(storeAddonId)}`, config.WEBSITE_URL)
 
         try {
             await desktopApi.system.writeClipboardText(shareUrl.toString())
