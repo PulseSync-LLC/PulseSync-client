@@ -233,8 +233,9 @@ export async function fetchGithubBranchBuilds(): Promise<ModReleaseEntry[]> {
         branchReleases.map(async (release): Promise<ModReleaseEntry | null> => {
             const branch = release.tag_name.slice(BRANCH_RELEASE_PREFIX.length)
             const asarAsset = findGitHubAsset(release, ['app.asar.zst'])
+            const unpackedAsset = findGitHubAsset(release, ['app.asar.unpacked.zip'])
             const metadataAsset = findGitHubAsset(release, ['build.json'])
-            if (!branch || !asarAsset || !metadataAsset) return null
+            if (!branch || !asarAsset || !unpackedAsset || !metadataAsset) return null
 
             try {
                 const metadata = await fetchBranchBuildMetadata(metadataAsset.browser_download_url)
@@ -253,8 +254,8 @@ export async function fetchGithubBranchBuilds(): Promise<ModReleaseEntry[]> {
                     name: release.name || branch,
                     modVersion: metadata.version,
                     downloadUrl: asarAsset.browser_download_url,
-                    downloadUnpackedUrl: '',
-                    unpackedChecksum: '',
+                    downloadUnpackedUrl: unpackedAsset.browser_download_url,
+                    unpackedChecksum: normalizeGitHubAssetDigest(unpackedAsset.digest),
                     createdAt: metadata.builtAt,
                     showModal: false,
                     shouldReinstall: false,
