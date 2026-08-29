@@ -207,12 +207,20 @@
         "mod": {
             "checkUpdates": "Проверить обновления мода",
             "clearCache": "Очистить кеш мода",
+            "experimentalBuild": "Экспериментальная сборка · v{{version}} · {{commit}}",
+            "branchUnavailable": "Сборка ветки больше недоступна в GitHub Releases",
             "resetAsarPath": "Сбросить пользовательскую папку",
             "resetAsarPathSuccess": "Пользовательская папка сброшена",
             "defaultName": "Eclipse",
             "notInstalled": "Не установлен",
             "remove": "Удалить мод",
             "showChangelog": "Показывать список изменений после установки",
+            "sourceChangeError": "Не удалось переключить версию мода.",
+            "sourceLoadError": "Не удалось загрузить тестовые версии мода с GitHub.",
+            "stable": "Stable",
+            "stableDescription": "Стабильная сборка",
+            "testVersions": "Тестовые версии",
+            "version": "Версия мода",
             "title": "Мод"
         },
         "updates": {

@@ -57,10 +57,10 @@
     "@smithy/types" "^4.17.2"
     tslib "^2.6.2"
 
-"@aws-sdk/client-s3@^3.1120.0":
-  version "3.1120.0"
-  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1120.0.tgz#2e4080c5c9d1b75d2371d85fad07dbd145fd44f6"
-  integrity sha512-UunWgNl/U8wIlxVRyhUPqlozFkUS88UqXjAH50XfPDXaZeK9P7KVYTAh4KREVrLPQTzPxVSbQGog3gHlc/P6vg==
+"@aws-sdk/client-s3@^3.1121.0":
+  version "3.1121.0"
+  resolved "https://registry.yarnpkg.com/@aws-sdk/client-s3/-/client-s3-3.1121.0.tgz#6fc78ca0169448f3eb07dd5e9f519e870eb1b21e"
+  integrity sha512-hBnoqaVBeWdkgXcJElMXA2yUZWkBCBntu2qmN+tfqmzC+j4LzJC3ox8qIgS2WdMS1cb8UwyBogUVrkRXybNm0A==
   dependencies:
     "@aws-sdk/checksums" "^3.1000.29"
     "@aws-sdk/core" "^3.977.9"
@@ -2048,64 +2048,64 @@
     "@sentry/replay" "10.70.0"
     "@sentry/replay-canvas" "10.70.0"
 
-"@sentry/cli-darwin@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-3.6.2.tgz#b48274963a94d6df5da2ffb02c2be0d8e267720c"
-  integrity sha512-/ZIMLblj6ncwguhOPw5YL9018iaD2RBhxhbHBxjaowy1vrmnzoCurGe4n5Vv7PaS21ldAHtHNqJwNqHJS4XHUw==
+"@sentry/cli-darwin@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-darwin/-/cli-darwin-3.7.0.tgz#e2ebf5155905bfa752e135b42f1a2a37a922709c"
+  integrity sha512-Kb6Oem+6lfxkWSH8iz8DHwYmbMtYxFoTk3VHfeTkpz60TRj+0OPga/0ZEsCCgG/Df17E7z2kbkoe5Ld+dEj3Tw==
 
-"@sentry/cli-linux-arm64@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-3.6.2.tgz#42c8c6277d03978c84a362ef09e25e819957e3ad"
-  integrity sha512-KMHW+CIT5H046I1hIYJ6vZmwlbBELZDOTt9Bgue3kqpW5CuvviMeMuuIKXM2oKHr/l4Q1Xnj07oTbVNb1opTsg==
+"@sentry/cli-linux-arm64@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm64/-/cli-linux-arm64-3.7.0.tgz#b39e64d86b9f56ccd8e63ed6e5e9ce906b0ca6ef"
+  integrity sha512-m6VlsDJBo9/9ufASv4m4heKS0zfgUJdcSvKgIQerZaLwKOfhY8OP7zhlJPkFmnFjOjyvNyaqzoR00EnlprdwFw==
 
-"@sentry/cli-linux-arm@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-3.6.2.tgz#39fba371b0def4c4e00efc0f3eb5c35ae53b40e9"
-  integrity sha512-b2M+1ujgf7jHig9r88T2l2HEkg0XR/1Tmo1LCiPg4dsPKtTMC2Rb/f0Mto83//zkVijAA2WDBhznOz9a9Ouo7Q==
+"@sentry/cli-linux-arm@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-arm/-/cli-linux-arm-3.7.0.tgz#6186308088f8fe0c38ec31abf8ca48ef9775a861"
+  integrity sha512-PKEFwwRCOG92u2dXusLbRK4cZ7XXlaUY8TkhaZy/PJ/FNsST7Sh+MbdWQCgPB0FsvZrgImcKIEyCJZtc0GunJg==
 
-"@sentry/cli-linux-i686@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-3.6.2.tgz#2de1fa0f805985c17e53233c0886c7b4f405c13a"
-  integrity sha512-tsLTOfJBoUkHfcCjUKxb/w1/WGLU00WJUO5zJztgLHKlebrjGAEiKM+8EPexb2hiW4F/P6UXL+4xXPKANk5JXQ==
+"@sentry/cli-linux-i686@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-i686/-/cli-linux-i686-3.7.0.tgz#5325acf4ecff25738d8bd1c5a7016e4570e7ffa7"
+  integrity sha512-6NeOPqsPuyrOgVGPFunPxgqHCes+a8r6pbCgq9+qSD3oa5fk9H0KOKB0sIC0YyH43OGzdzmwn0XNbdF6jwJO6A==
 
-"@sentry/cli-linux-x64@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-3.6.2.tgz#f80b9064289dec52ee923ddf83e28f7a1b5f80f1"
-  integrity sha512-CHwfSJYkPe4w96EovIY/iWfxHnf5gvRYh0BGHCPcQ9knhrgWUJqbHqi3lNfEDZmzCxJ76RqPrnLMW6syoSqXow==
+"@sentry/cli-linux-x64@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-linux-x64/-/cli-linux-x64-3.7.0.tgz#52bc05301aa5ec17ec4419721e4e5a7b9f708941"
+  integrity sha512-74R9fuAldhC38Aoco8XQWTBvs2T2NatrDvI/ISHihej2oSnbQmL7krJF3yWn33MchQWrsFKgg7mboqemJnreZA==
 
-"@sentry/cli-win32-arm64@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-arm64/-/cli-win32-arm64-3.6.2.tgz#be69b3504701359a38c42820244a94355666527d"
-  integrity sha512-lTqOPbLexkKnXmuIK8qszv+trpX8fQiZAJoeClVA1+hOerVyrLP9eU2tUqTm/8YW8G/M+mu3ZxAtDvS3OpHvZw==
+"@sentry/cli-win32-arm64@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-arm64/-/cli-win32-arm64-3.7.0.tgz#91d6520abff6ff1673bdaf7524637443e8bfe75a"
+  integrity sha512-xhmTUW3N3m8iZ4mkV8SrNOr5UN8+6zpvlvJxCK6Z15Tp8S14N1T+hfKeyL2xpLxBcd7Q7oW1dYXUl5b7BHNqjw==
 
-"@sentry/cli-win32-i686@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-3.6.2.tgz#56beb817d4baed2e67145339ee96b689676ee686"
-  integrity sha512-niUPoxN8p7jWrkvC0ekgpcIYEJNb5YxmuXRjUnOJrArwQs+4OPzRM+3e6JIYRXe7RDoUP63j1voYakEncuxioQ==
+"@sentry/cli-win32-i686@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-i686/-/cli-win32-i686-3.7.0.tgz#564105acea2a3a8f0cee6e4c2072eaafae3b9382"
+  integrity sha512-/CvFzrCWUB0URWKYQeoNs8UbPJcBz6KD/AX27reyQxPd8S3AnTwcaYfCf8SRHEH9Iu+1IKzi5tUUNUB18b7ijg==
 
-"@sentry/cli-win32-x64@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-3.6.2.tgz#5262660e2f66dfc58adaff07e6125057f5e09578"
-  integrity sha512-Xg6ieuJr/1Ewtdpm9Kudb029lJxnfs3Ae/fLZNAOnvWOie/V4V/X+tgZ+lETC3lU+7yz7Gb0f25gKnU6sPBKVg==
+"@sentry/cli-win32-x64@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli-win32-x64/-/cli-win32-x64-3.7.0.tgz#d8b957e4b258699e5e807b275268dc5a22e650a9"
+  integrity sha512-PNW1O6sZw3JXhhJFgOiW7isFHX/qbniIDxswM7kb0wF2aVUpLXLltbezchWwTAxIRXo9gcu/oMTK0rntdqL5Eg==
 
-"@sentry/cli@3.6.2":
-  version "3.6.2"
-  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-3.6.2.tgz#60aa54d72f34cd12915c836743c6a2ff4a96e96b"
-  integrity sha512-/OcDsuz005C1tuauNhTd8/XNBHCfHiy46Wru4hAKBaziywgSA52lMSEznh6mWmHjPe/FoaDLpYt3Zd9qk3G0RA==
+"@sentry/cli@3.7.0":
+  version "3.7.0"
+  resolved "https://registry.yarnpkg.com/@sentry/cli/-/cli-3.7.0.tgz#10a49170bd5086095ff7d61448cf27faae263572"
+  integrity sha512-UV6/hUaEL7X1ATx5RHPfDEObh+nTRwOeUkNwF6R+HDo6iAki063GiLOmkfroemkVD0L4370SSvGtc5+Y7MZkhQ==
   dependencies:
     progress "^2.0.3"
     proxy-from-env "^1.1.0"
     undici "^6.22.0"
     which "^2.0.2"
   optionalDependencies:
-    "@sentry/cli-darwin" "3.6.2"
-    "@sentry/cli-linux-arm" "3.6.2"
-    "@sentry/cli-linux-arm64" "3.6.2"
-    "@sentry/cli-linux-i686" "3.6.2"
-    "@sentry/cli-linux-x64" "3.6.2"
-    "@sentry/cli-win32-arm64" "3.6.2"
-    "@sentry/cli-win32-i686" "3.6.2"
-    "@sentry/cli-win32-x64" "3.6.2"
+    "@sentry/cli-darwin" "3.7.0"
+    "@sentry/cli-linux-arm" "3.7.0"
+    "@sentry/cli-linux-arm64" "3.7.0"
+    "@sentry/cli-linux-i686" "3.7.0"
+    "@sentry/cli-linux-x64" "3.7.0"
+    "@sentry/cli-win32-arm64" "3.7.0"
+    "@sentry/cli-win32-i686" "3.7.0"
+    "@sentry/cli-win32-x64" "3.7.0"
 
 "@sentry/conventions@^0.16.0":
   version "0.16.0"
@@ -2916,10 +2916,10 @@
   resolved "https://registry.yarnpkg.com/@ungap/structured-clone/-/structured-clone-1.3.0.tgz#d06bbb384ebcf6c505fde1c3d0ed4ddffe0aaff8"
   integrity sha512-WmoN8qaIAo7WTYWbAZuG8PYEhn5fkz7dZrqTBZ7dtt//lL2Gwms1IcnQ5yHqjDfX8Ft5j4YzDM23f87zBfDe9g==
 
-"@vitejs/plugin-react@^6.1.0":
-  version "6.1.0"
-  resolved "https://registry.yarnpkg.com/@vitejs/plugin-react/-/plugin-react-6.1.0.tgz#a3d7a3b998c618385d076e390b74398c3d8c65bc"
-  integrity sha512-qd2BzUBehkov86WFhg0JkEFEYyCLG9uPCe6qWTY/kRlss9OvJrOF2UbIWT7p+8IzZHkEu0DNGHc4HSv+JdDLsw==
+"@vitejs/plugin-react@^6.1.1":
+  version "6.1.1"
+  resolved "https://registry.yarnpkg.com/@vitejs/plugin-react/-/plugin-react-6.1.1.tgz#47fa1a2f956e88eaf778ebf65ddce8e2b36597e7"
+  integrity sha512-yxLaQV9gkhS8ezJqCM6+ndU7mDY6gqAg75NQ+0IjwEI8IYOmQCgkRwHKVSfWXW076DsqMo0Dk+0FK1U+M5RgFw==
   dependencies:
     "@rolldown/pluginutils" "^1.0.1"
 
@@ -7655,17 +7655,17 @@ react-modal@^3.16.3:
     "@types/use-sync-external-store" "^0.0.6"
     use-sync-external-store "^1.4.0"
 
-react-router-dom@^7.18.2:
-  version "7.18.2"
-  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-7.18.2.tgz#00bf1d0ce8bf17a6d831949aacda72a6120e4926"
-  integrity sha512-AIKJ/jgGlFb3EbfCXk5Gzshiwt+l3mqbCrNjmEWMMjqQxNJ3svBa6bgzFyCC2Sw3RA0VWF1kg3uQf2OFhxb8hw==
+react-router-dom@^7.18.3:
+  version "7.18.3"
+  resolved "https://registry.yarnpkg.com/react-router-dom/-/react-router-dom-7.18.3.tgz#0688c91b4b376c8b0dcaf0a0064975d52a32e0f7"
+  integrity sha512-ytVbyBBM7vMfRCam25r0WMhSVSom909A8p+8m0/f1w853dz/xfFu6etAT2SEbVoSnI+ZoPRDqIsQXVT89gp7kg==
   dependencies:
-    react-router "7.18.2"
+    react-router "7.18.3"
 
-react-router@7.18.2:
-  version "7.18.2"
-  resolved "https://registry.yarnpkg.com/react-router/-/react-router-7.18.2.tgz#a76c46ce9e5edacd4f51289d5a71f71305db9152"
-  integrity sha512-aUVMjFm3GAPTTZL7oYr5E7ETiqfQCHRLH+B+5afnICvf0r7kkK4eR6SMuwbSTJw/7t+12khT/Kahij49fqOCIg==
+react-router@7.18.3:
+  version "7.18.3"
+  resolved "https://registry.yarnpkg.com/react-router/-/react-router-7.18.3.tgz#2a3257aa7c5edd5a71f878063e4c7f3fcfc4b76a"
+  integrity sha512-gyXgtdr5uACJ5b1Q4udzjVV+tb/rlHIMJKuJ0e89R4Kzgz47z/rgP0dIKxktqIEUhDHluGTPJJH/wRha7CyqsA==
   dependencies:
     cookie "^1.0.1"
     set-cookie-parser "^2.6.0"

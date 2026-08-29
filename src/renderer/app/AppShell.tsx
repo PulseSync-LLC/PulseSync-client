@@ -14,6 +14,7 @@ import { createAppRouter } from '@app/router'
 import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import AddonInitials from '@entities/addon/model/addon.initials'
+import { getModReleaseIdentity, isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
 import modInitials from '@entities/mod/model/mod.initials'
 import settingsInitials from '@entities/settings/model/settings.initials'
 import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
@@ -148,14 +149,15 @@ function App() {
             }
 
             lastNotInstalledToastKeyRef.current = null
-            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+            if (isModReleaseUpdateAvailable(latest, app.mod)) {
+                const releaseIdentity = getModReleaseIdentity(latest)
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
-                if (lastNotifiedModVersion !== latest.modVersion) {
+                if (lastNotifiedModVersion !== releaseIdentity) {
                     desktopApi.system.showNotification({
                         title: tRef.current('mod.updateAvailableTitle'),
                         body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
                     })
-                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                    localStorage.setItem('lastNotifiedModVersion', releaseIdentity)
                 }
             } else if (isManualCheck) {
                 toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))

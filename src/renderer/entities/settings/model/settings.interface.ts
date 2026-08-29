@@ -1,3 +1,5 @@
+import type { ModReleaseChannel, ModSourceSelection } from '@common/types/modSource'
+
 export interface Settings {
     saveWindowDimensionsOnRestart: boolean
     saveWindowPositionOnRestart: boolean
@@ -15,6 +17,7 @@ export interface Settings {
     showModModalAfterInstall: boolean
     language: string
     modSavePath?: string
+    modSource: ModSourceSelection
 }
 export interface Info {
     version: string
@@ -29,6 +32,9 @@ export interface Mod {
     installed: boolean
     updated: boolean
     showModal: boolean
+    sourceType: ModReleaseChannel
+    branch: string
+    commit: string
 }
 export interface Tokens {
     token: string

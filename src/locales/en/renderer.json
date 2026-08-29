@@ -207,12 +207,20 @@
         "mod": {
             "checkUpdates": "Check mod updates",
             "clearCache": "Clear mod cache",
+            "experimentalBuild": "Experimental build · v{{version}} · {{commit}}",
+            "branchUnavailable": "This branch build is no longer available in GitHub Releases",
             "resetAsarPath": "Reset custom folder",
             "resetAsarPathSuccess": "Custom folder reset",
             "defaultName": "Eclipse",
             "notInstalled": "Not installed",
             "remove": "Remove mod",
             "showChangelog": "Show changelog after install",
+            "sourceChangeError": "Failed to switch the mod version.",
+            "sourceLoadError": "Failed to load test mod versions from GitHub.",
+            "stable": "Stable",
+            "stableDescription": "Stable build",
+            "testVersions": "Test versions",
+            "version": "Mod version",
             "title": "Mod"
         },
         "updates": {

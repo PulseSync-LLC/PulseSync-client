@@ -35,6 +35,31 @@ export function useSettingsSchema({
     const isModInstalled = app.mod.installed && Boolean(app.mod.version)
     const backendSelected = !actions.isAutonomousMode && actions.updateSource === 'backend'
     const githubSelected = actions.isAutonomousMode || actions.updateSource === 'github'
+    const selectedModSource = actions.modSourceCatalog.selected
+    const branchSourceItems = actions.modSourceCatalog.branches.map(build => ({
+        id: `mod-source-branch-${build.branch}`,
+        kind: 'choice' as const,
+        label: build.branch,
+        description: t('contextMenu.mod.experimentalBuild', {
+            commit: build.commit.slice(0, 7),
+            version: build.version,
+        }),
+        selected: selectedModSource.type === 'branch' && selectedModSource.branch === build.branch,
+        disabled: actions.modSourceLoading,
+        onSelect: () => void actions.setModSource({ type: 'branch', branch: build.branch }),
+    }))
+
+    if (selectedModSource.type === 'branch' && !actions.modSourceCatalog.branches.some(build => build.branch === selectedModSource.branch)) {
+        branchSourceItems.push({
+            id: `mod-source-branch-${selectedModSource.branch}`,
+            kind: 'choice',
+            label: selectedModSource.branch,
+            description: t('contextMenu.mod.branchUnavailable'),
+            selected: true,
+            disabled: true,
+            onSelect: () => {},
+        })
+    }
 
     const categories: SettingsCategorySchema[] = [
         {
@@ -222,6 +247,30 @@ export function useSettingsSchema({
                                     },
                                 ],
                             },
+                            {
+                                id: 'mod-version',
+                                title: t('contextMenu.mod.version'),
+                                items: [
+                                    {
+                                        id: 'mod-source-stable',
+                                        kind: 'choice',
+                                        label: t('contextMenu.mod.stable'),
+                                        description: t('contextMenu.mod.stableDescription'),
+                                        selected: selectedModSource.type === 'stable',
+                                        disabled: actions.modSourceLoading,
+                                        onSelect: () => void actions.setModSource({ type: 'stable', branch: '' }),
+                                    },
+                                ],
+                            },
+                            ...(branchSourceItems.length
+                                ? [
+                                      {
+                                          id: 'mod-test-versions',
+                                          title: t('contextMenu.mod.testVersions'),
+                                          items: branchSourceItems,
+                                      },
+                                  ]
+                                : []),
                             {
                                 id: 'mod',
                                 title: t('contextMenu.mod.title'),

@@ -109,6 +109,8 @@ export const desktopApi = {
     },
     mods: {
         getReleases: () => requireDesktopApi().mods.getReleases(),
+        getSources: () => requireDesktopApi().mods.getSources(),
+        selectSource: (selection: Parameters<PulseSyncDesktopApi['mods']['selectSource']>[0]) => requireDesktopApi().mods.selectSource(selection),
         install: (request: Parameters<PulseSyncDesktopApi['mods']['install']>[0]) => requireDesktopApi().mods.install(request),
         remove: () => requireDesktopApi().mods.remove(),
         clearCache: () => requireDesktopApi().mods.clearCache(),

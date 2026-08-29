@@ -3,11 +3,14 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as semver from 'semver'
 
 import { isDev } from '@common/appConfig'
+import { installModRelease } from '@entities/mod/lib/installModRelease'
+import { isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { errorTypesToShow } from '@shared/lib/utils'
 import toast from '@shared/ui/toast'
 
 import type { ModalName } from '@app/providers/modal/types'
+import type { ModReleaseChannel } from '@common/types/modSource'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 
@@ -52,16 +55,17 @@ export function useLayoutInstallers({
     const modInfoRef = useRef(modInfo)
     const currentModActionRef = useRef<'install' | 'update'>(hasInstalledMod ? 'update' : 'install')
 
-    const clean = useCallback((version: string) => semver.valid(String(version ?? '').trim()) ?? '0.0.0', [])
-
     const readInstalledModSnapshot = useCallback(async () => {
         const snapshot = await desktopApi.settings.getSnapshot()
         const version = String(snapshot.mod.version || '')
         const name = String(snapshot.mod.name || '')
         const musicVersion = String(snapshot.mod.musicVersion || '')
         const installed = Boolean(snapshot.mod.installed)
+        const sourceType: ModReleaseChannel = snapshot.mod.sourceType === 'branch' ? 'branch' : 'stable'
+        const branch = String(snapshot.mod.branch || '')
+        const commit = String(snapshot.mod.commit || '')
 
-        return { version, name, musicVersion, installed }
+        return { version, name, musicVersion, installed, sourceType, branch, commit }
     }, [])
 
     const isUserDeveloper = useCallback((userPerms?: string) => {
@@ -106,14 +110,8 @@ export function useLayoutInstallers({
     )
 
     useEffect(() => {
-        const serverRaw = modInfo[0]?.modVersion
-        if (!serverRaw) return
-
-        const serverVer = clean(serverRaw)
-        const localVer = clean(app.mod?.version)
-
-        setIsModUpdateAvailable(musicInstalled && (!hasInstalledMod || semver.gt(serverVer, localVer)))
-    }, [app.mod.version, clean, hasInstalledMod, modInfo, musicInstalled])
+        setIsModUpdateAvailable(musicInstalled && (!hasInstalledMod || isModReleaseUpdateAvailable(modInfo[0], app.mod)))
+    }, [app.mod, hasInstalledMod, modInfo, musicInstalled])
 
     useEffect(() => {
         if ((window as any).__listenersAdded) return
@@ -217,6 +215,9 @@ export function useLayoutInstallers({
                     version: installedMod.version,
                     name: installedMod.name,
                     musicVersion: installedMod.musicVersion,
+                    sourceType: installedMod.sourceType,
+                    branch: installedMod.branch,
+                    commit: installedMod.commit,
                     updated: prevApp.mod.installed ? true : prevApp.mod.updated,
                 },
             }))
@@ -322,20 +323,7 @@ export function useLayoutInstallers({
         })
         downloadToastIdRef.current = id
 
-        const { modVersion, realMusicVersion, downloadUrl, checksum_v2, name, shouldReinstall, downloadUnpackedUrl, unpackedChecksum, source } =
-            modInfo[0]
-
-        desktopApi.mods.install({
-            version: modVersion,
-            musicVersion: realMusicVersion,
-            name,
-            link: downloadUrl,
-            unpackLink: downloadUnpackedUrl,
-            unpackedChecksum,
-            checksum: checksum_v2,
-            shouldReinstall,
-            source: source || 'backend',
-        })
+        installModRelease(modInfo[0])
     }, [hasInstalledMod, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t])
 
     useEffect(() => {

@@ -99,6 +99,26 @@ const schema = {
                 description: t('main.storage.settings.modSavePath'),
                 default: '',
             },
+            modSource: {
+                type: 'object',
+                properties: {
+                    type: {
+                        type: 'string',
+                        enum: ['stable', 'branch'],
+                        default: 'stable',
+                    },
+                    branch: {
+                        type: 'string',
+                        default: '',
+                    },
+                },
+                required: ['type', 'branch'],
+                additionalProperties: false,
+                default: {
+                    type: 'stable',
+                    branch: '',
+                },
+            },
             windowDimensions: {
                 type: 'object',
                 description: t('main.storage.settings.windowDimensions'),
@@ -147,6 +167,7 @@ const schema = {
             'showModModalAfterInstall',
             'language',
             'modSavePath',
+            'modSource',
             'windowDimensions',
             'windowPosition',
             'lastDisplayId',
@@ -170,6 +191,10 @@ const schema = {
             showModModalAfterInstall: true,
             language: 'ru',
             modSavePath: '',
+            modSource: {
+                type: 'stable',
+                branch: '',
+            },
             windowDimensions: {},
             windowPosition: {},
             lastDisplayId: 0,
@@ -221,8 +246,33 @@ const schema = {
                 description: t('main.storage.mod.unpackedChecksum'),
                 default: '',
             },
+            sourceType: {
+                type: 'string',
+                enum: ['stable', 'branch'],
+                default: 'stable',
+            },
+            branch: {
+                type: 'string',
+                default: '',
+            },
+            commit: {
+                type: 'string',
+                default: '',
+            },
         },
-        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum', 'unpackedChecksum'],
+        required: [
+            'musicVersion',
+            'name',
+            'version',
+            'realMusicVersion',
+            'installed',
+            'updated',
+            'checksum',
+            'unpackedChecksum',
+            'sourceType',
+            'branch',
+            'commit',
+        ],
         additionalProperties: false,
         default: {
             musicVersion: '',
@@ -233,6 +283,9 @@ const schema = {
             updated: false,
             checksum: '',
             unpackedChecksum: '',
+            sourceType: 'stable',
+            branch: '',
+            commit: '',
         },
     },
 
