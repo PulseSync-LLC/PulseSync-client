@@ -1077,6 +1077,9 @@
             "newsError": "Не удалось загрузить новости",
             "whatsNew": "Что нового?",
             "checkUpdatesAction": "Проверить",
+            "branchPickerLoading": "Загружаем ветки…",
+            "selectModBranch": "Выбрать ветку PulseSync Mod",
+            "selectClientBranch": "Выбрать канал PulseSync Client",
             "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
             "musicReleaseNotesFallbackVersion": "По умолчанию",
             "installed": "Установлено",
@@ -1289,6 +1292,7 @@
             "failed": "Не удалось сохранить оценку"
         },
         "download": "Скачать",
+        "openAuthorProfile": "Открыть профиль автора {{author}}",
         "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",

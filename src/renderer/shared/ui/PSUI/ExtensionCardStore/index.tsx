@@ -201,12 +201,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         <div className={st.titleRow}>
                             <h3>{title}</h3>
                             {usesOfficialTemplate ? (
-                                <TooltipButton
-                                    as="span"
-                                    side="top"
-                                    className={st.verifiedTooltip}
-                                    tooltipText={t('store.badges.officialTemplate')}
-                                >
+                                <TooltipButton as="span" side="top" className={st.verifiedTooltip} tooltipText={t('store.badges.officialTemplate')}>
                                     <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
                                 </TooltipButton>
                             ) : null}
@@ -236,17 +231,25 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                                 </Badge>
                             ))}
                             {authors.map((author, index) => (
-                                <button key={`${author}:${index}`} type="button" className={st.authorButton} onClick={() => onAuthorClick?.(author)}>
-                                    <Badge
-                                        uppercase={false}
-                                        size="md"
-                                        variant="info"
-                                        className={cn(st.authorBadge, st.toneInfo)}
+                                <TooltipButton
+                                    key={`${author}:${index}`}
+                                    as="span"
+                                    side="top"
+                                    className={st.authorTooltip}
+                                    tooltipText={t('store.openAuthorProfile', { author })}
+                                >
+                                    <button
+                                        type="button"
+                                        className={st.authorButton}
+                                        aria-label={t('store.openAuthorProfile', { author })}
+                                        onClick={() => onAuthorClick?.(author)}
                                     >
-                                        <span aria-hidden="true" />
-                                        {author}
-                                    </Badge>
-                                </button>
+                                        <Badge uppercase={false} size="md" variant="info" className={cn(st.authorBadge, st.toneInfo)}>
+                                            <span aria-hidden="true" />
+                                            {author}
+                                        </Badge>
+                                    </button>
+                                </TooltipButton>
                             ))}
                             {topRightMeta ? (
                                 <Badge uppercase={false} size="md" icon={<MdDownload />} className={cn(st.metaBadge, st.neutralBadge)}>

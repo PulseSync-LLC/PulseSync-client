@@ -61,6 +61,7 @@ type GetAchievementsVars = {
 }
 
 const STORE_ADDON_UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000
+const MOD_UPDATE_TOAST_ID = 'mod-update-check'
 
 function App() {
     const { i18n, t } = useTranslation()
@@ -122,17 +123,27 @@ function App() {
     const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
         const isManualCheck = !!options?.manual
         const silentNotInstalled = !!options?.silentNotInstalled
+        const manualToastId = isManualCheck
+            ? toast.custom('loading', tRef.current('updates.checkingTitle'), tRef.current('common.pleaseWait'), {
+                  id: MOD_UPDATE_TOAST_ID,
+                  duration: Infinity,
+              })
+            : null
+        const updateManualToast = (kind: 'error' | 'info', title: string, msg: string) => {
+            if (!manualToastId) return
+            toast.update(manualToastId, { kind, title, msg, sticky: false, duration: 5000 })
+        }
+
         try {
             const mods = (await desktopApi.mods.getReleases()) as ModInterface[] | undefined
             if (!mods) {
                 console.error('Invalid response format for mod releases:', mods)
+                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
                 return
             }
 
             if (mods.length === 0) {
-                if (isManualCheck) {
-                    toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
-                }
+                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
                 return
             }
 
@@ -141,7 +152,14 @@ function App() {
             const latest = mods[0]
             if (!app.mod.installed || !app.mod.version) {
                 const toastKey = `not-installed:${latest.modVersion}`
-                if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
+                if (isManualCheck) {
+                    lastNotInstalledToastKeyRef.current = toastKey
+                    updateManualToast(
+                        'info',
+                        tRef.current('mod.notInstalledTitle'),
+                        tRef.current('mod.availableVersion', { version: latest.modVersion }),
+                    )
+                } else if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
                     lastNotInstalledToastKeyRef.current = toastKey
                     toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
                 }
@@ -150,6 +168,11 @@ function App() {
 
             lastNotInstalledToastKeyRef.current = null
             if (isModReleaseUpdateAvailable(latest, app.mod)) {
+                updateManualToast(
+                    'info',
+                    tRef.current('mod.updateAvailableTitle'),
+                    tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
+                )
                 const releaseIdentity = getModReleaseIdentity(latest)
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
                 if (lastNotifiedModVersion !== releaseIdentity) {
@@ -159,12 +182,16 @@ function App() {
                     })
                     localStorage.setItem('lastNotifiedModVersion', releaseIdentity)
                 }
-            } else if (isManualCheck) {
-                toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
+            } else {
+                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
         } catch (modFetchError) {
             console.error('Failed to fetch mod info:', modFetchError)
-            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            if (isManualCheck) {
+                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            } else {
+                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            }
         } finally {
             setModInfoFetched(true)
         }

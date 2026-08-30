@@ -1077,6 +1077,9 @@
             "newsError": "Failed to load news",
             "whatsNew": "What's new?",
             "checkUpdatesAction": "Check",
+            "branchPickerLoading": "Loading branches…",
+            "selectModBranch": "Select PulseSync Mod branch",
+            "selectClientBranch": "Select PulseSync Client channel",
             "musicReleaseNotesTitle": "Latest Yandex Music updates",
             "musicReleaseNotesFallbackVersion": "Default",
             "installed": "Installed",
@@ -1289,6 +1292,7 @@
             "failed": "Failed to save rating"
         },
         "download": "Download",
+        "openAuthorProfile": "Open {{author}}'s profile",
         "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",
         "noResults": "Nothing was found.",

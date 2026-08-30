@@ -1,5 +1,4 @@
-import { useCallback, useEffect } from 'react'
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
@@ -11,7 +10,6 @@ import type Addon from '@entities/addon/model/addon.interface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
-const MANUAL_UPDATE_CHECK_TOAST_DELAY_MS = 1000
 
 type Params = {
     appRef: React.MutableRefObject<SettingsInterface>
@@ -43,7 +41,6 @@ export function useAppDesktopBindings({
     toastReference,
 }: Params) {
     const manualUpdateCheckPendingRef = useRef(false)
-    const manualUpdateCheckToastTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null)
     const rendererUpdateAvailableRef = useRef(false)
 
     const handleOpenAddon = useCallback(
@@ -124,32 +121,19 @@ export function useAppDesktopBindings({
             }
         }
 
-        const clearManualUpdateCheckToastTimer = () => {
-            if (!manualUpdateCheckToastTimerRef.current) return
-            clearTimeout(manualUpdateCheckToastTimerRef.current)
-            manualUpdateCheckToastTimerRef.current = null
-        }
-
         const handleCheckUpdate = (data: any) => {
             const isManualCheck = !!data?.manual
             const isChecking = !!data?.checking
 
             if (isManualCheck && isChecking) {
                 manualUpdateCheckPendingRef.current = true
-                if (!toastReference.current && !manualUpdateCheckToastTimerRef.current) {
-                    manualUpdateCheckToastTimerRef.current = setTimeout(() => {
-                        manualUpdateCheckToastTimerRef.current = null
-                        if (!manualUpdateCheckPendingRef.current || toastReference.current) return
-                        toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'), {
-                            id: CLIENT_UPDATE_TOAST_ID,
-                            duration: Infinity,
-                        })
-                    }, MANUAL_UPDATE_CHECK_TOAST_DELAY_MS)
-                }
+                toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'), {
+                    id: CLIENT_UPDATE_TOAST_ID,
+                    duration: Infinity,
+                })
             }
 
             if (data?.updateAvailable === false) {
-                clearManualUpdateCheckToastTimer()
                 setUpdate(rendererUpdateAvailableRef.current)
 
                 if (isManualCheck && !isChecking) {
@@ -174,7 +158,6 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadProgress = (value: any) => {
-            clearManualUpdateCheckToastTimer()
             manualUpdateCheckPendingRef.current = false
             if (!toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'), {
@@ -191,7 +174,6 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadFailed = () => {
-            clearManualUpdateCheckToastTimer()
             manualUpdateCheckPendingRef.current = false
             setUpdate(rendererUpdateAvailableRef.current)
             if (toastReference.current) {
@@ -208,7 +190,6 @@ export function useAppDesktopBindings({
         }
 
         const onDownloadFinished = () => {
-            clearManualUpdateCheckToastTimer()
             manualUpdateCheckPendingRef.current = false
             if (toastReference.current) {
                 toast.update(toastReference.current, {
@@ -224,11 +205,22 @@ export function useAppDesktopBindings({
         }
 
         const handleUpdateAvailable = async (payload: DesktopUpdateAvailablePayload) => {
-            clearManualUpdateCheckToastTimer()
+            const isManualCheck = manualUpdateCheckPendingRef.current
             manualUpdateCheckPendingRef.current = false
+
+            if (isManualCheck && toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'info',
+                    title: t('modals.appUpdate.title'),
+                    msg: t('modals.appUpdate.description'),
+                    sticky: false,
+                    duration: 5000,
+                })
+            }
+
             if (payload.kind === 'renderer') {
                 rendererUpdateAvailableRef.current = true
-                toast.dismiss(CLIENT_UPDATE_TOAST_ID)
+                if (!isManualCheck) toast.dismiss(CLIENT_UPDATE_TOAST_ID)
                 toastReference.current = null
                 setUpdate(true)
                 return
@@ -249,7 +241,6 @@ export function useAppDesktopBindings({
         ]
 
         return () => {
-            clearManualUpdateCheckToastTimer()
             unsubscribers.forEach(unsubscribe => unsubscribe())
         }
     }, [appRef, fetchModInfo, setUpdate, t, toastReference])

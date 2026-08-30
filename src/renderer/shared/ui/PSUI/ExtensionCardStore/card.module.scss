@@ -357,6 +357,16 @@
 
     background: transparent;
     border: 0;
+    border-radius: 6px;
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 2px;
+    }
+}
+
+.authorTooltip {
+    display: inline-flex;
 }
 
 .authorBadge,
@@ -367,6 +377,25 @@
     font-weight: 600;
 
     line-height: 16px;
+}
+
+.authorBadge {
+    transition:
+        color 150ms ease,
+        background-color 150ms ease,
+        transform 150ms ease;
+}
+
+.authorButton:hover .authorBadge,
+.authorButton:focus-visible .authorBadge {
+    color: var(--background);
+
+    text-decoration: underline;
+    text-underline-offset: 2px;
+
+    background: var(--ps-info, #4af);
+
+    transform: translateY(-1px);
 }
 
 .neutralBadge {
