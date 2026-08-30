@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useTranslation } from 'react-i18next'
 
+import { STABLE_MOD_SOURCE } from '@common/types/modSource'
 import { normalizeSupportedLanguage, rememberLanguage } from '@app/i18n'
 import { useAppAuthorization } from '@app/model/useAppAuthorization'
 import { useAppDesktopBindings } from '@app/model/useAppDesktopBindings'
@@ -153,6 +154,20 @@ function App() {
             setMod(mods)
 
             const latest = mods[0]
+            if (app.settings.modSource.type === 'branch' && latest.channel === 'stable') {
+                setApp(previous => {
+                    const currentSource = previous.settings.modSource
+                    if (currentSource.type !== 'branch' || currentSource.branch !== app.settings.modSource.branch) return previous
+
+                    return {
+                        ...previous,
+                        settings: {
+                            ...previous.settings,
+                            modSource: STABLE_MOD_SOURCE,
+                        },
+                    }
+                })
+            }
             if (!app.mod.installed || !app.mod.version) {
                 const toastKey = `not-installed:${latest.modVersion}`
                 if (isManualCheck) {

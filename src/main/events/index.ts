@@ -15,6 +15,7 @@ import { v4 } from 'uuid'
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
 import { isDevmark } from '@common/appConfig'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+import { STABLE_MOD_SOURCE } from '@common/types/modSource'
 
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
@@ -79,6 +80,14 @@ const MOD_REPO = {
     repo: 'PulseSync-mod',
 } as const
 const REMOTE_RENDERER_CACHE_MISS_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf', '.otf'])
+
+const fallbackUnavailableModBranch = (branch: string) => {
+    const currentSelection = getModSourceSelection()
+    if (currentSelection.type !== 'branch' || currentSelection.branch !== branch) return currentSelection
+
+    logger.modManager.warn(`Selected mod branch "${branch}" is unavailable, falling back to stable`)
+    return setModSourceSelection(STABLE_MOD_SOURCE)
+}
 
 const toUnixSeconds = (dateValue: string | null | undefined): number => {
     if (!dateValue) {
@@ -384,13 +393,24 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_UPDATE_SOURCE, async () => getUpdateSource())
     ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => getCurrentUpdateStatus())
     ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => {
-        const release = await getModReleaseForSelection(getModSourceSelection(), getUpdateSource())
+        const stableSource = getUpdateSource()
+        const selection = getModSourceSelection()
+        let release = await getModReleaseForSelection(selection, stableSource)
+        if (!release && selection.type === 'branch') {
+            release = await getModReleaseForSelection(fallbackUnavailableModBranch(selection.branch), stableSource)
+        }
         return release ? [release] : []
     })
-    ipcMain.handle(MainEvents.GET_MOD_SOURCES, async () => ({
-        branches: await getModBranchBuildSummaries(),
-        selected: getModSourceSelection(),
-    }))
+    ipcMain.handle(MainEvents.GET_MOD_SOURCES, async () => {
+        const branches = await getModBranchBuildSummaries()
+        const selection = getModSourceSelection()
+        const selected =
+            selection.type === 'branch' && !branches.some(build => build.branch === selection.branch)
+                ? fallbackUnavailableModBranch(selection.branch)
+                : selection
+
+        return { branches, selected }
+    })
     ipcMain.handle(MainEvents.SET_MOD_SOURCE, async (_event, value) => {
         const selection = normalizeModSourceSelection(value)
         if (!selection) throw new Error('INVALID_MOD_SOURCE')
