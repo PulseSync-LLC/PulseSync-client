@@ -42,8 +42,18 @@ const DEFAULT_CLIENT_CHANNEL_STATE: ClientChannelState = {
 const normalizeUpdateChannel = (value: unknown): UpdateChannel => (value === 'dev' ? 'dev' : 'beta')
 
 export default function HomePage() {
-    const { app, setApp, modInfo, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } =
-        useContext(UserContext)
+    const {
+        app,
+        setApp,
+        modInfo,
+        preparedModUpdate,
+        musicInstalled,
+        musicVersion,
+        widgetInstalled,
+        setWidgetInstalled,
+        isAutonomousMode,
+        checkModUpdates,
+    } = useContext(UserContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
@@ -463,10 +473,14 @@ export default function HomePage() {
             }
 
             if (componentId === 'mod') {
+                if (preparedModUpdate) {
+                    desktopApi.mods.install(preparedModUpdate)
+                    return
+                }
                 void checkModUpdates(app, { manual: true })
             }
         },
-        [app, checkModUpdates],
+        [app, checkModUpdates, preparedModUpdate],
     )
 
     return (
@@ -484,6 +498,7 @@ export default function HomePage() {
                             isModUpdateAvailable={Boolean(
                                 app.mod.installed && app.mod.version && isModReleaseUpdateAvailable(modInfo[0], app.mod),
                             )}
+                            isModUpdatePrepared={Boolean(preparedModUpdate)}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
                             onCheckUpdatesClick={handleCheckUpdatesClick}
