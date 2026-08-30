@@ -12,7 +12,13 @@ import type { Renderable, ToastOptions } from 'react-hot-toast'
 
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
+type ToastAction = {
+    label: string
+    onClick: () => void
+}
+
 interface ToastData {
+    action?: ToastAction
     id: string
     kind: Kind
     title: string
@@ -79,7 +85,7 @@ export const iToast = {
         if (optionId) {
             const existing = queue.find(t => t.id === optionId)
             if (existing) {
-                Object.assign(existing, { kind, title, msg, value, duration, sticky, ts: now })
+                Object.assign(existing, { action: undefined, kind, title, msg, value, duration, sticky, ts: now })
                 sortQueue()
                 emit()
                 ensureStack(options)
@@ -268,7 +274,7 @@ interface CardProps {
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, offset, closingAll, onDismiss }, ref) => {
-    const { kind, title, msg, value, sticky, duration } = data
+    const { action, kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
     const memoizedOnDismiss = useCallback(onDismiss, [data.id])
@@ -337,7 +343,20 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
                 <div className={styles.title}>{title}</div>
                 <div className={styles.msg}>{msg ?? ''}</div>
             </div>
+            {action && (
+                <button
+                    type="button"
+                    className={styles.action}
+                    onClick={event => {
+                        event.stopPropagation()
+                        action.onClick()
+                    }}
+                >
+                    {action.label}
+                </button>
+            )}
             <button
+                type="button"
                 className={styles.hide}
                 onClick={e => {
                     e.stopPropagation()

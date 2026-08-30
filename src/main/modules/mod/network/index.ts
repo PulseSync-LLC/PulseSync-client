@@ -217,6 +217,7 @@ export async function downloadAndExtractUnpacked(
     cacheDir?: string,
     progress?: DownloadProgress,
     onFailure?: (failure: ModDownloadFailure) => void,
+    sourceArchivePath?: string,
 ): Promise<boolean> {
     const progressBase = progress?.base ?? 0
     const progressScale = progress?.scale ?? 1
@@ -258,7 +259,12 @@ export async function downloadAndExtractUnpacked(
         let archiveChecksum = checksum
         let downloaded = false
 
-        if (cacheDir) {
+        if (sourceArchivePath && (await isCachedArchiveValid(sourceArchivePath, checksum))) {
+            cacheFile = sourceArchivePath
+            archivePath = sourceArchivePath
+        }
+
+        if (cacheDir && archivePath === tempArchivePath) {
             const cacheDirStartedAt = Date.now()
             await ensureDir(cacheDir)
             const cacheDirMs = Date.now() - cacheDirStartedAt

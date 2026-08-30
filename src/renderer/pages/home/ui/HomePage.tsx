@@ -9,7 +9,8 @@ import HomeNewsSection from '@pages/home/ui/HomeNewsSection'
 import HomePrimaryComponentsSection, { type HomeBranchPicker } from '@pages/home/ui/HomePrimaryComponentsSection'
 import HomeSecondaryComponentsSection from '@pages/home/ui/HomeSecondaryComponentsSection'
 import PageLayout from '@widgets/layout/PageLayout'
-import { installModRelease } from '@entities/mod/lib/installModRelease'
+import { installModRelease, prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
+import { isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
 import UserContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
@@ -41,7 +42,7 @@ const DEFAULT_CLIENT_CHANNEL_STATE: ClientChannelState = {
 const normalizeUpdateChannel = (value: unknown): UpdateChannel => (value === 'dev' ? 'dev' : 'beta')
 
 export default function HomePage() {
-    const { app, setApp, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } =
+    const { app, setApp, modInfo, musicInstalled, musicVersion, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } =
         useContext(UserContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
@@ -246,7 +247,11 @@ export default function HomePage() {
                 }
                 setApp(nextApp)
                 setModSourceCatalog(previous => ({ ...previous, selected: response.selection }))
-                installModRelease(release)
+                if (app.mod.installed && app.mod.version) {
+                    prepareModReleaseUpdate(release)
+                } else {
+                    installModRelease(release)
+                }
                 void checkModUpdates(nextApp, { silentNotInstalled: true })
             } catch (error) {
                 console.error('[Home] Failed to switch mod source', error)
@@ -476,6 +481,9 @@ export default function HomePage() {
                             branches={primaryComponentBranches}
                             branchPickers={branchPickers}
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
+                            isModUpdateAvailable={Boolean(
+                                app.mod.installed && app.mod.version && isModReleaseUpdateAvailable(modInfo[0], app.mod),
+                            )}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
                             onCheckUpdatesClick={handleCheckUpdatesClick}

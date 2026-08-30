@@ -883,7 +883,7 @@
     },
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
-        "downloadProgressLabel": "Download progress",
+        "downloadProgressLabel": "Downloading mod files",
         "downloading": "Downloading {{name}}...",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
@@ -891,6 +891,7 @@
         "forceUpdateAction": "Update anyway",
         "infoTitle": "Info.",
         "installAction": "Install",
+        "installPreparedUpdateAction": "Install",
         "installErrorTitle": "Install error",
         "installUpdateTooltip": "Apply update",
         "authRequired": {
@@ -913,6 +914,9 @@
         "modUpdateAlreadyRunning": "Update already started",
         "modUpdateFailed": "Failed to update the mod. Please try again or check your connection.",
         "modUpdateLoadError": "Update download error",
+        "modUpdateInstalling": "Installing the mod update...",
+        "modUpdateReadyDescription": "Version {{version}} is downloaded and ready to install.",
+        "modUpdateReadyTitle": "Mod update is ready",
         "modUpdateStart": "Starting update download...",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",

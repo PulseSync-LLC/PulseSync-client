@@ -883,7 +883,7 @@
     },
     "layout": {
         "downloadProgress": "Прогресс загрузки: {{progress}}%",
-        "downloadProgressLabel": "Установка мода",
+        "downloadProgressLabel": "Загрузка файлов мода",
         "downloading": "Загружаю {{name}}...",
         "errorOccurred": "Произошла ошибка",
         "errorWithMessage": "Ошибка: {{message}}",
@@ -891,6 +891,7 @@
         "forceUpdateAction": "Все равно обновить",
         "infoTitle": "Информация.",
         "installAction": "Установить",
+        "installPreparedUpdateAction": "Установить",
         "installErrorTitle": "Ошибка установки",
         "installUpdateTooltip": "Применить обновление",
         "authRequired": {
@@ -913,6 +914,9 @@
         "modUpdateAlreadyRunning": "Обновление уже запущено",
         "modUpdateFailed": "Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.",
         "modUpdateLoadError": "Ошибка загрузки обновления",
+        "modUpdateInstalling": "Установка обновления мода...",
+        "modUpdateReadyDescription": "Версия {{version}} загружена и готова к установке.",
+        "modUpdateReadyTitle": "Обновление мода готово",
         "modUpdateStart": "Начало загрузки обновления...",
         "modUpdateSuccess": "Обновление прошло успешно!",
         "modUpdateTitle": "Обновление мода",
