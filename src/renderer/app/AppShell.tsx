@@ -14,6 +14,7 @@ import { createAppRouter } from '@app/router'
 import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import AddonInitials from '@entities/addon/model/addon.initials'
+import { prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
 import { getModReleaseIdentity, isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
 import modInitials from '@entities/mod/model/mod.initials'
 import settingsInitials from '@entities/settings/model/settings.initials'
@@ -168,6 +169,7 @@ function App() {
 
             lastNotInstalledToastKeyRef.current = null
             if (isModReleaseUpdateAvailable(latest, app.mod)) {
+                prepareModReleaseUpdate(latest)
                 updateManualToast(
                     'info',
                     tRef.current('mod.updateAvailableTitle'),

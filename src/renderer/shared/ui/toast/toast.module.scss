@@ -76,7 +76,10 @@
 .text {
     display: flex;
 
+    flex: 1 1 auto;
     flex-direction: column;
+
+    min-width: 0;
 }
 
 .title {
@@ -93,9 +96,34 @@
     color: var(--clr);
 }
 
+.action {
+    flex-shrink: 0;
+
+    padding: 7px 12px;
+    margin-left: 0;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+
+    color: var(--surface-primary);
+
+    cursor: pointer;
+
+    background: var(--clr);
+    border: 0;
+    border-radius: 7px;
+
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.86;
+    }
+}
+
 .hide {
     padding: 4px;
-    margin-left: auto;
+    margin-left: 0;
 
     pointer-events: auto;
     cursor: pointer;

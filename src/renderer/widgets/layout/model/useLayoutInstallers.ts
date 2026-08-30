@@ -1,7 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
-import * as semver from 'semver'
-
 import { isDev } from '@common/appConfig'
 import { installModRelease } from '@entities/mod/lib/installModRelease'
 import { isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
@@ -10,6 +8,7 @@ import { errorTypesToShow } from '@shared/lib/utils'
 import toast from '@shared/ui/toast'
 
 import type { ModalName } from '@app/providers/modal/types'
+import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type { ModReleaseChannel } from '@common/types/modSource'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
@@ -19,7 +18,6 @@ const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
 type Params = {
     app: SettingsInterface
     modInfo: ModInterface[]
-    modInfoFetched: boolean
     musicInstalled: boolean
     openModal: (modal: ModalName) => void
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
@@ -36,7 +34,6 @@ type Params = {
 export function useLayoutInstallers({
     app,
     modInfo,
-    modInfoFetched,
     musicInstalled,
     openModal,
     setApp,
@@ -51,6 +48,7 @@ export function useLayoutInstallers({
     const hasInstalledMod = Boolean(app.mod.installed && app.mod.version)
 
     const downloadToastIdRef = useRef<string | null>(null)
+    const preparedUpdateRef = useRef<DesktopInstallModRequest | null>(null)
     const appRef = useRef(app)
     const modInfoRef = useRef(modInfo)
     const currentModActionRef = useRef<'install' | 'update'>(hasInstalledMod ? 'update' : 'install')
@@ -126,8 +124,9 @@ export function useLayoutInstallers({
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
+                    action: undefined,
                     kind: 'loading',
-                    title: isUpdate ? t('layout.modUpdateStart') : t('layout.modInstallStart'),
+                    title: isUpdate ? t('layout.modUpdateInstalling') : t('layout.modInstallStart'),
                     msg: t('layout.modInstallDescription'),
                     sticky: true,
                 })
@@ -136,15 +135,28 @@ export function useLayoutInstallers({
 
             downloadToastIdRef.current = toast.custom(
                 'loading',
-                isUpdate ? t('layout.modUpdateStart') : t('layout.modInstallStart'),
+                isUpdate ? t('layout.modUpdateInstalling') : t('layout.modInstallStart'),
                 t('layout.modInstallDescription'),
                 { id: MOD_DOWNLOAD_TOAST_ID, duration: Infinity },
             )
         }
 
+        const handleUpdateDownloadStarted = () => {
+            currentModActionRef.current = 'update'
+            preparedUpdateRef.current = null
+            setIsUpdating(true)
+            setModInstallError(null)
+
+            downloadToastIdRef.current = toast.custom('loading', t('layout.modUpdateStart'), t('common.pleaseWait'), {
+                id: MOD_DOWNLOAD_TOAST_ID,
+                duration: Infinity,
+            })
+        }
+
         const handleProgress = ({ progress, name }: { progress: number; name: string }) => {
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
+                    action: undefined,
                     kind: 'loading',
                     title: t('layout.downloadProgressLabel'),
                     msg: t('layout.downloading', { name }),
@@ -162,9 +174,50 @@ export function useLayoutInstallers({
             }
         }
 
+        const handleUpdateReady = (data: { release?: DesktopInstallModRequest }) => {
+            if (!data?.release) return
+
+            preparedUpdateRef.current = data.release
+            setIsUpdating(false)
+            const installPreparedUpdate = () => {
+                const release = preparedUpdateRef.current
+                if (!release) return
+
+                currentModActionRef.current = 'update'
+                setIsUpdating(true)
+                if (downloadToastIdRef.current) {
+                    toast.update(downloadToastIdRef.current, {
+                        action: undefined,
+                        kind: 'loading',
+                        title: t('layout.modUpdateInstalling'),
+                        msg: t('common.pleaseWait'),
+                        sticky: true,
+                        value: 0,
+                    })
+                }
+                desktopApi.mods.install(release)
+            }
+
+            downloadToastIdRef.current = toast.custom(
+                'success',
+                t('layout.modUpdateReadyTitle'),
+                t('layout.modUpdateReadyDescription', { version: data.release.version }),
+                { id: MOD_DOWNLOAD_TOAST_ID, duration: Infinity },
+                100,
+            )
+            toast.update(downloadToastIdRef.current, {
+                action: {
+                    label: t('layout.installPreparedUpdateAction'),
+                    onClick: installPreparedUpdate,
+                },
+                sticky: true,
+            })
+        }
+
         const handleSuccess = async (data: any) => {
             const installedMod = await readInstalledModSnapshot()
             setModInstallError(null)
+            preparedUpdateRef.current = null
             const isUpdate = currentModActionRef.current === 'update'
 
             if (!installedMod.installed || !installedMod.version) {
@@ -240,6 +293,7 @@ export function useLayoutInstallers({
                 errorPresentation,
             })
             setModInstallError(errorPresentation)
+            preparedUpdateRef.current = null
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
@@ -264,12 +318,16 @@ export function useLayoutInstallers({
         }
 
         const unsubscribeInstallStarted = desktopApi.mods.onInstallStarted(handleModInstallStarted as (payload: unknown) => void)
+        const unsubscribeUpdateDownloadStarted = desktopApi.mods.onUpdateDownloadStarted(handleUpdateDownloadStarted)
+        const unsubscribeUpdateReady = desktopApi.mods.onUpdateReady(payload => handleUpdateReady(payload as { release?: DesktopInstallModRequest }))
         const unsubscribeDownloadProgress = desktopApi.mods.onDownloadProgress(handleProgress as (payload: unknown) => void)
         const unsubscribeDownloadSuccess = desktopApi.mods.onDownloadSuccess(handleSuccess)
         const unsubscribeDownloadFailure = desktopApi.mods.onDownloadFailure(handleFailure)
 
         return () => {
             unsubscribeInstallStarted()
+            unsubscribeUpdateDownloadStarted()
+            unsubscribeUpdateReady()
             unsubscribeDownloadProgress()
             unsubscribeDownloadSuccess()
             unsubscribeDownloadFailure()
@@ -325,25 +383,6 @@ export function useLayoutInstallers({
 
         installModRelease(modInfo[0])
     }, [hasInstalledMod, isUpdating, modInfo, modals.LINUX_ASAR_PATH, openModal, t])
-
-    useEffect(() => {
-        if (!modInfoFetched || modInfo.length === 0 || isUpdating || !app.mod.installed || !app.mod.version) return
-        const currentEntry = modInfo.find(mod => mod.modVersion === app.mod.version)
-        if (!currentEntry?.deprecated) return
-
-        const availableVersions = modInfo.map(mod => mod.modVersion).filter(version => semver.valid(version))
-        const latestVersion = availableVersions.sort(semver.rcompare)[0]
-        if (semver.gt(latestVersion, app.mod.version)) {
-            toast.custom(
-                'info',
-                t('layout.installedVersionOutdated', { version: app.mod.version }),
-                t('layout.newVersionFound', { version: latestVersion }),
-                undefined,
-                15000,
-            )
-            startUpdate()
-        }
-    }, [app.mod.installed, app.mod.version, isUpdating, modInfo, modInfoFetched, startUpdate, t])
 
     return {
         isModUpdateAvailable,

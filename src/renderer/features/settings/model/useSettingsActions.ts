@@ -6,7 +6,7 @@ import config from '@common/appConfig'
 import { STABLE_MOD_SOURCE } from '@common/types/modSource'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
-import { installModRelease } from '@entities/mod/lib/installModRelease'
+import { installModRelease, prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
 import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
@@ -355,7 +355,11 @@ export function useSettingsActions(enabled: boolean) {
             }
             setApp(nextApp)
             setModSourceCatalog(previous => ({ ...previous, selected: response.selection }))
-            installModRelease(release)
+            if (app.mod.installed && app.mod.version) {
+                prepareModReleaseUpdate(release)
+            } else {
+                installModRelease(release)
+            }
             void checkModUpdates(nextApp, { silentNotInstalled: true })
         } catch (error) {
             console.error('[Settings] Failed to switch mod source', error)

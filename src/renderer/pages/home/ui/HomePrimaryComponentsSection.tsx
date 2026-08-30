@@ -34,6 +34,7 @@ type Props = {
     branches: Partial<Record<'client' | 'mod', string>>
     branchPickers: Partial<Record<'client' | 'mod', HomeBranchPicker>>
     isModInstalled: boolean
+    isModUpdateAvailable: boolean
     isMusicInstalled: boolean
     onWhatsNewClick: (componentId: string) => void
     onCheckUpdatesClick: (componentId: string) => void
@@ -51,6 +52,7 @@ export default function HomePrimaryComponentsSection({
     branches,
     branchPickers,
     isModInstalled,
+    isModUpdateAvailable,
     isMusicInstalled,
     onWhatsNewClick,
     onCheckUpdatesClick,
@@ -62,6 +64,7 @@ export default function HomePrimaryComponentsSection({
             <h2 className={styles.panelTitle}>{t('pages.home.mainComponents')}</h2>
             <div className={styles.primaryList}>
                 {items.map(item => {
+                    const isModUpdateAction = item.id === 'mod' && isModUpdateAvailable
                     const branchPicker = item.id === 'music' ? undefined : branchPickers[item.id]
                     const branch = item.id === 'music' ? undefined : branches[item.id]
                     const branchMenuItems: DropdownMenuItem[] = branchPicker
@@ -159,7 +162,7 @@ export default function HomePrimaryComponentsSection({
                                     </TooltipButton>
                                     <TooltipButton
                                         side="top"
-                                        tooltipText={t('contextMenu.misc.checkUpdates')}
+                                        tooltipText={isModUpdateAction ? t('layout.updateAction') : t('contextMenu.misc.checkUpdates')}
                                         as="span"
                                         className={styles.primaryActionTooltip}
                                     >
@@ -168,9 +171,9 @@ export default function HomePrimaryComponentsSection({
                                             className={cn(styles.actionButton, styles.updateButton)}
                                             onClick={() => onCheckUpdatesClick(item.id)}
                                             disabled={item.id === 'mod' && !isModInstalled}
-                                            aria-label={t('contextMenu.misc.checkUpdates')}
+                                            aria-label={isModUpdateAction ? t('layout.updateAction') : t('contextMenu.misc.checkUpdates')}
                                         >
-                                            {t('pages.home.checkUpdatesAction')}
+                                            {isModUpdateAction ? t('layout.updateAction') : t('pages.home.checkUpdatesAction')}
                                         </ButtonV2>
                                     </TooltipButton>
                                 </div>

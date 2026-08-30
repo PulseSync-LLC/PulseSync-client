@@ -347,6 +347,8 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         selectSource: selection => ipcRenderer.invoke(MainEvents.SET_MOD_SOURCE, selection),
 
+        prepareUpdate: request => ipcRenderer.send(MainEvents.PREPARE_MOD_UPDATE, request),
+
         install: request => ipcRenderer.send(MainEvents.INSTALL_MOD, request),
 
         remove: () => ipcRenderer.send(MainEvents.REMOVE_MOD),
@@ -356,6 +358,10 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         onUpdateCheckRequested: listener => subscribePayload(RendererEvents.CHECK_MOD_UPDATE, listener),
 
         onInstallStarted: listener => subscribePayload(RendererEvents.MOD_INSTALL_STARTED, listener),
+
+        onUpdateDownloadStarted: listener => subscribePayload(RendererEvents.MOD_UPDATE_DOWNLOAD_STARTED, listener),
+
+        onUpdateReady: listener => subscribePayload(RendererEvents.MOD_UPDATE_READY, listener),
 
         onDownloadProgress: listener => subscribePayload(RendererEvents.DOWNLOAD_PROGRESS, listener),
 

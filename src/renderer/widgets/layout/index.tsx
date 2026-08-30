@@ -39,7 +39,6 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
     const { isModUpdateAvailable, modInstallError, startUpdate } = useLayoutInstallers({
         app,
         modInfo,
-        modInfoFetched,
         musicInstalled,
         openModal,
         setApp,
@@ -139,7 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                     </div>
                     <ModUpdateBanner
                         app={app}
-                        isModUpdateAvailable={isModUpdateAvailable}
+                        isModUpdateAvailable={isModUpdateAvailable && !(app.mod.installed && app.mod.version)}
                         modInstallError={modInstallError}
                         modInfo={modInfo}
                         onStartUpdate={startUpdate}

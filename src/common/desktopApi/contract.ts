@@ -260,11 +260,14 @@ export interface PulseSyncDesktopApi {
         getReleases(): Promise<unknown>
         getSources(): Promise<ModSourceCatalog>
         selectSource(selection: ModSourceSelection): Promise<{ release: unknown; selection: ModSourceSelection }>
+        prepareUpdate(request: DesktopInstallModRequest): void
         install(request: DesktopInstallModRequest): void
         remove(): void
         clearCache(): void
         onUpdateCheckRequested(listener: (payload: unknown) => void): DesktopUnsubscribe
         onInstallStarted(listener: (payload: unknown) => void): DesktopUnsubscribe
+        onUpdateDownloadStarted(listener: (payload: unknown) => void): DesktopUnsubscribe
+        onUpdateReady(listener: (payload: unknown) => void): DesktopUnsubscribe
         onDownloadProgress(listener: (payload: unknown) => void): DesktopUnsubscribe
         onDownloadSuccess(listener: (payload: unknown) => void): DesktopUnsubscribe
         onDownloadFailure(listener: (payload: unknown) => void): DesktopUnsubscribe
