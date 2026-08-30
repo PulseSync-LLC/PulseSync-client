@@ -33,12 +33,14 @@ fn successor_error_log_needs_reset(log_path: &Path, now: SystemTime) -> Result<b
 fn open_successor_error_log(log_path: &Path) -> Result<File> {
     let now = SystemTime::now();
     let reset = successor_error_log_needs_reset(log_path, now)?;
-    let mut log = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .append(true)
-        .truncate(reset)
-        .open(log_path)?;
+    let mut options = OpenOptions::new();
+    options.create(true).write(true);
+    if reset {
+        options.truncate(true);
+    } else {
+        options.append(true);
+    }
+    let mut log = options.open(log_path)?;
     if reset {
         let started_at = now.duration_since(UNIX_EPOCH)?.as_secs();
         writeln!(log, "{SUCCESSOR_ERROR_LOG_HEADER}{started_at}")?;
