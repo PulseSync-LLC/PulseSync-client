@@ -295,6 +295,7 @@ export const modManager = (window: BrowserWindow): void => {
 
                 sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
                     isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
+                    prepared: Boolean(preparedArtifacts),
                 })
 
                 const installSource = source === 'github' ? 'github' : 'backend'

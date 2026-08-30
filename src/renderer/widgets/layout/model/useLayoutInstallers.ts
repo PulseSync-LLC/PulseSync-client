@@ -52,6 +52,7 @@ export function useLayoutInstallers({
     const appRef = useRef(app)
     const modInfoRef = useRef(modInfo)
     const currentModActionRef = useRef<'install' | 'update'>(hasInstalledMod ? 'update' : 'install')
+    const isApplyingPreparedUpdateRef = useRef(false)
 
     const readInstalledModSnapshot = useCallback(async () => {
         const snapshot = await desktopApi.settings.getSnapshot()
@@ -115,10 +116,11 @@ export function useLayoutInstallers({
         if ((window as any).__listenersAdded) return
         ;(window as any).__listenersAdded = true
 
-        const handleModInstallStarted = (data?: { isUpdate?: boolean }) => {
+        const handleModInstallStarted = (data?: { isUpdate?: boolean; prepared?: boolean }) => {
             const wasInstalled = Boolean(appRef.current.mod.installed && appRef.current.mod.version)
             const isUpdate = (typeof data?.isUpdate === 'boolean' ? data.isUpdate : wasInstalled) && wasInstalled
             currentModActionRef.current = isUpdate ? 'update' : 'install'
+            isApplyingPreparedUpdateRef.current = isUpdate && Boolean(data?.prepared)
             setIsUpdating(true)
             setModInstallError(null)
 
@@ -143,6 +145,7 @@ export function useLayoutInstallers({
 
         const handleUpdateDownloadStarted = () => {
             currentModActionRef.current = 'update'
+            isApplyingPreparedUpdateRef.current = false
             preparedUpdateRef.current = null
             setIsUpdating(true)
             setModInstallError(null)
@@ -154,12 +157,13 @@ export function useLayoutInstallers({
         }
 
         const handleProgress = ({ progress, name }: { progress: number; name: string }) => {
+            const isApplyingPreparedUpdate = isApplyingPreparedUpdateRef.current
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
                     action: undefined,
                     kind: 'loading',
-                    title: t('layout.downloadProgressLabel'),
-                    msg: t('layout.downloading', { name }),
+                    title: isApplyingPreparedUpdate ? t('layout.modUpdateInstalling') : t('layout.downloadProgressLabel'),
+                    msg: isApplyingPreparedUpdate ? t('layout.modInstallDescription') : t('layout.downloading', { name }),
                     value: progress,
                 })
             } else {
@@ -218,6 +222,7 @@ export function useLayoutInstallers({
             const installedMod = await readInstalledModSnapshot()
             setModInstallError(null)
             preparedUpdateRef.current = null
+            isApplyingPreparedUpdateRef.current = false
             const isUpdate = currentModActionRef.current === 'update'
 
             if (!installedMod.installed || !installedMod.version) {
@@ -294,6 +299,7 @@ export function useLayoutInstallers({
             })
             setModInstallError(errorPresentation)
             preparedUpdateRef.current = null
+            isApplyingPreparedUpdateRef.current = false
 
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {

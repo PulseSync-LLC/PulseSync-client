@@ -30,6 +30,7 @@ import toast from '@shared/ui/toast'
 import 'react-loading-skeleton/dist/skeleton.css'
 
 import type { LegacyAddonRestrictionsState } from '@app/AppShell.types'
+import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
@@ -71,6 +72,7 @@ function App() {
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
+    const [preparedModUpdate, setPreparedModUpdate] = useState<DesktopInstallModRequest | null>(null)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
     const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
@@ -450,6 +452,7 @@ function App() {
         setHasToken,
         setNavigateState,
         setNavigateTo,
+        setPreparedModUpdate,
         setTokenReady,
         setUpdate,
         t,
@@ -500,6 +503,7 @@ function App() {
                 setMod={setMod}
                 modInfo={modInfo}
                 modInfoFetched={modInfoFetched}
+                preparedModUpdate={preparedModUpdate}
                 allAchievements={allAchievements}
                 setAllAchievements={setAllAchievements}
                 checkModUpdates={fetchModInfo}

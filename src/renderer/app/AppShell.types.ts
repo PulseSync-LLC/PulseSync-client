@@ -1,4 +1,5 @@
 import type { NotificationsContextValue } from '@app/providers/notifications/types'
+import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 import type { ModInterface } from '@entities/mod/model/modInterface'
@@ -42,6 +43,7 @@ export type AppProvidersProps = {
     setMod: Dispatch<SetStateAction<ModInterface[]>>
     modInfo: ModInterface[]
     modInfoFetched: boolean
+    preparedModUpdate: DesktopInstallModRequest | null
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     checkModUpdates: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
