@@ -55,6 +55,7 @@ export default function HomePrimaryComponentsSection({
                                 onClick={() => onWhatsNewClick(item.id)}
                                 disabled={!isMusicInstalled}
                             >
+                                <MdArticle aria-hidden="true" style={{ width: '20px', height: '20px' }} />
                                 {t('pages.home.whatsNew')}
                             </ButtonV2>
                         ) : (

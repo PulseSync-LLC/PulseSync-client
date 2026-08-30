@@ -4,7 +4,12 @@
     width: 100%;
     height: 100%;
 
-    padding: 0;
+    padding: 0 50px;
+
+    display: flex;
+
+    justify-content: center;
+    align-items: start;
 
     color: var(--text-primary);
 }
@@ -26,16 +31,14 @@
 .grid {
     display: grid;
 
-    grid-template-columns: minmax(0, 733px) minmax(330px, 417px);
+    grid-template-columns: minmax(0, 733px) minmax(330px, 470px);
 
-    gap: 25px;
+    gap: 50px;
 
     width: 100%;
     max-width: 1200px;
     height: 100%;
     min-height: 0;
-
-    margin: 0 auto;
 }
 
 .leftColumn {
@@ -72,7 +75,7 @@
     width: auto;
     min-height: 0;
 
-    padding: 15px 25px;
+    padding: 15px 0;
 
     overflow: hidden;
 
