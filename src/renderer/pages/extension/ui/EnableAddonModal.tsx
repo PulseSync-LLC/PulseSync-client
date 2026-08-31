@@ -2,6 +2,8 @@ import { useTranslation } from 'react-i18next'
 
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
+import * as styles from './EnableAddonModal.module.scss'
+
 import type Addon from '@entities/addon/model/addon.interface'
 
 type Props = {
@@ -18,6 +20,7 @@ export default function EnableAddonModal({ addon, isOpen, musicVersion, onClose,
 
     return (
         <CustomModalPS
+            className={styles.modal}
             isOpen={isOpen}
             onClose={onClose}
             title={t('extensions.confirmTitle')}
