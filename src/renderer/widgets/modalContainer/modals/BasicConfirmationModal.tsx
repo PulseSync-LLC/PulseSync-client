@@ -7,20 +7,22 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const BasicConfirmationModal: React.FC = () => {
     const { t } = useTranslation()
-    const { Modals, closeModal, isModalOpen, getModalState } = useModalContext()
-    const { onConfirm, confirmLabel, title, description, confirmVariant } = getModalState(Modals.BASIC_CONFIRMATION)
+    const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
+    const { onConfirm, confirmLabel, title, description, confirmVariant, modalClassName } = getModalState(Modals.BASIC_CONFIRMATION)
 
     const handleClose = () => {
+        setModalState(Modals.BASIC_CONFIRMATION, { modalClassName: undefined })
         closeModal(Modals.BASIC_CONFIRMATION)
     }
 
     const handleConfirm = () => {
         onConfirm?.()
-        closeModal(Modals.BASIC_CONFIRMATION)
+        handleClose()
     }
 
     return (
         <CustomModalPS
+            className={modalClassName}
             isOpen={isModalOpen(Modals.BASIC_CONFIRMATION)}
             onClose={handleClose}
             title={title || t('modals.basicConfirmation.defaultTitle')}
