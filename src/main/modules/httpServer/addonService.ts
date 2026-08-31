@@ -77,6 +77,7 @@ type WebHostAssetPayload = WebHostAddonPayload | WebHostThemePayload
 type WebHostAddonsSnapshot = {
     hash: string
     addons: WebHostAssetPayload[]
+    allowedUrls: string[]
 }
 
 type AddonStateSnapshot = {
@@ -117,15 +118,18 @@ const hashAddonState = (snapshot: AddonStateSnapshot): string =>
 const WEB_HOST_ADDON_PROTOCOL_VERSION = 1
 const WEB_HOST_THEME_PROTOCOL_VERSION = 2
 
-const hashWebHostAddons = (addons: WebHostAssetPayload[]): string =>
+const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[]): string =>
     createHash('sha256')
         .update(
             JSON.stringify(
-                [...addons].sort((left, right) => {
-                    const leftKey = JSON.stringify(left)
-                    const rightKey = JSON.stringify(right)
-                    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
-                }),
+                {
+                    addons: [...addons].sort((left, right) => {
+                        const leftKey = JSON.stringify(left)
+                        const rightKey = JSON.stringify(right)
+                        return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
+                    }),
+                    allowedUrls: [...allowedUrls].sort(),
+                },
             ),
         )
         .digest('hex')
@@ -415,6 +419,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     const readWebHostAddonsSnapshot = (protocolVersion: number): { snapshot: WebHostAddonsSnapshot; handlesTheme: boolean } => {
         const addons: WebHostAssetPayload[] = readWebHostAddonPayloads()
+        const allowedUrls = getAllAllowedUrls()
         let handlesTheme = false
 
         if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
@@ -425,7 +430,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         return {
-            snapshot: { hash: hashWebHostAddons(addons), addons },
+            snapshot: { hash: hashWebHostAddons(addons, allowedUrls), addons, allowedUrls },
             handlesTheme,
         }
     }
