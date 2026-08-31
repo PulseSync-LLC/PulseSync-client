@@ -33,7 +33,14 @@ const initialModalsState: ModalsState = {
     [Modals.SETTINGS]: { isOpen: false, activeSection: undefined },
     [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
     [Modals.SUBSCRIPTION_GIVEAWAYS]: { isOpen: false },
-    [Modals.BASIC_CONFIRMATION]: { isOpen: false, title: '', description: '', confirmLabel: undefined, onConfirm: undefined },
+    [Modals.BASIC_CONFIRMATION]: {
+        isOpen: false,
+        title: '',
+        description: '',
+        confirmLabel: undefined,
+        modalClassName: undefined,
+        onConfirm: undefined,
+    },
     [Modals.USER_PROFILE]: { isOpen: false, profileName: '' },
 }
 
