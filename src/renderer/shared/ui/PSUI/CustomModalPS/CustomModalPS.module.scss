@@ -47,8 +47,8 @@
     }
 }
 
-// Keep the base modal responsive without outranking modal-specific classes.
-:where(.modal) {
+// Outrank universal resets while keeping modal-specific classes stronger.
+div:where(.modal) {
     box-sizing: border-box;
 
     gap: 16px;

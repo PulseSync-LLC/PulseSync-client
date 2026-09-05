@@ -9,8 +9,6 @@ import toast from '@shared/ui/toast'
 import CheckOn from '@shared/assets/stratis-icons/check-square-on.svg'
 import CheckOff from '@shared/assets/stratis-icons/minus-square-off.svg'
 
-import * as contextMenuStyles from '@features/context_menu_themes/contextMenu.module.scss'
-
 import type { ModalsContextValue } from '@app/providers/modal/types'
 import type Addon from '@entities/addon/model/addon.interface'
 
@@ -100,7 +98,6 @@ export const createContextMenuActions = (
                     description: t('contextMenuThemes.deleteConfirm', { name: currentAddon.name }),
                     confirmLabel: t('modals.basicConfirmation.delete'),
                     confirmVariant: 'danger',
-                    modalClassName: contextMenuStyles.deleteConfirmationModal,
                     onConfirm: () => {
                         const themeDirPath = currentAddon.path
                         desktopApi.addons

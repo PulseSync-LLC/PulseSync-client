@@ -38,7 +38,6 @@ const initialModalsState: ModalsState = {
         title: '',
         description: '',
         confirmLabel: undefined,
-        modalClassName: undefined,
         onConfirm: undefined,
     },
     [Modals.USER_PROFILE]: { isOpen: false, profileName: '' },

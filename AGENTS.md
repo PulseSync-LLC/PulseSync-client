@@ -18,6 +18,13 @@
 - Do not change architecture, UI, types, and build logic all at once unless the task truly requires it.
 - If a problem can be solved inside an existing module, do not add a new abstraction layer “for the future”.
 
+## Workflow
+- Apply the shared execution, evidence, validation, and reporting rules in [the workspace instructions](../AGENTS.md).
+- Carry the requested change through every affected Electron boundary and relevant check without asking to approve routine implementation steps. Preserve user exclusions and unrelated local edits.
+- Start with the named UI consumer or runtime path. A defect in one scenario does not justify changing a shared component or other consumers unless evidence establishes shared ownership of the defect.
+- Keep inspection-only tasks read-only. Ask only when a missing product or compatibility decision blocks a correct implementation; continue independent authorized work meanwhile.
+- Use existing checks; do not create or modify tests without an explicit request. Distinguish type/lint results from an installed Windows or Electron smoke test.
+
 ## Project map
 
 ### `src/main`
@@ -177,17 +184,18 @@
 - If the change affects build, preload, or cross-process contracts, verify every touched side.
 
 ## Validation
-- There is no obvious dedicated root-level test suite here, so default validation relies on project and static-check commands.
-- Main commands:
+- Choose checks from the current `package.json` for the changed layer; the repository includes targeted verification scripts as well as static checks.
+- Static-check commands:
   - `yarn typecheck`
   - `yarn lint`
-  - `yarn format`
-  - `yarn start`
+- `yarn format` rewrites files and `yarn start` launches the development workflow. They are not routine validation commands.
 - For packaging-related tasks:
   - `yarn build:package`
   - `yarn build:installer`
   - `yarn build:nativeModules`
 - If the change is local, prefer the smallest relevant validation first instead of always running a large full-project workflow.
+- For documentation only, review the diff and referenced rules, then run `git diff --check`; no typecheck or packaging run is needed.
+- For filesystem, startup, or updater behavior, use an authorized targeted runtime check when needed. If unavailable, state that static checks leave that behavior unverified.
 
 ## Commits and history
 - If you need to suggest a commit message, use Conventional Commits.

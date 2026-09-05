@@ -53,6 +53,7 @@ export type RemoteRendererPublishPlan = {
 
 const CONTENT_TYPES_BY_EXTENSION: Record<string, string> = {
     '.css': 'text/css; charset=utf-8',
+    '.deb': 'application/vnd.debian.binary-package',
     '.html': 'text/html; charset=utf-8',
     '.ico': 'image/x-icon',
     '.jpeg': 'image/jpeg',
@@ -208,6 +209,13 @@ function escapeRegExp(value: string): string {
     return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
 }
 
+function normalizeLinuxPackageArch(arch: string): string {
+    const normalizedArch = arch.toLowerCase()
+    if (normalizedArch === 'amd64' || normalizedArch === 'x86_64') return 'x64'
+    if (normalizedArch === 'aarch64') return 'arm64'
+    return normalizedArch
+}
+
 async function immutablePublishPath(filePath: string, prefix: string): Promise<string> {
     const sha256 = await hashFileSha256(filePath)
     return `${prefix}/${sha256.slice(0, 16)}/${path.basename(filePath)}`
@@ -296,6 +304,12 @@ export async function resolveStructuredPublishPath(filePath: string, version?: s
         return await immutablePublishPath(filePath, `setups/${version}/darwin-${arch}`)
     }
 
+    const linuxSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.deb$`, 'iu').exec(fileName)
+    if (linuxSetupMatch) {
+        const arch = normalizeLinuxPackageArch(linuxSetupMatch[1])
+        return await immutablePublishPath(filePath, `setups/${version}/linux-${arch}`)
+    }
+
     return fileName
 }
 
@@ -316,6 +330,12 @@ function resolveLatestAliasPublishPath(filePath: string, version?: string): stri
     if (macSetupMatch) {
         const arch = macSetupMatch[1].toLowerCase()
         return `latest/darwin-${arch}/PulseSync.dmg`
+    }
+
+    const linuxSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.deb$`, 'iu').exec(fileName)
+    if (linuxSetupMatch) {
+        const arch = normalizeLinuxPackageArch(linuxSetupMatch[1])
+        return `latest/linux-${arch}/PulseSync.deb`
     }
 
     return null
@@ -367,6 +387,12 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
     if (macSetupMatch) {
         const [, version, arch] = macSetupMatch
         return structuredArtifactDescriptor(version, `darwin-${arch}`, 'dmg', 'setup')
+    }
+
+    const linuxSetupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.deb$/iu.exec(fileName)
+    if (linuxSetupMatch) {
+        const [, version, arch] = linuxSetupMatch
+        return structuredArtifactDescriptor(version, `linux-${normalizeLinuxPackageArch(arch)}`, 'deb', 'setup')
     }
 
     const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
@@ -743,7 +769,7 @@ export async function publishToS3(
         }
         if (legacyUpdateBridge && version) {
             const escapedVersion = escapeRegExp(version)
-            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.exe$`, 'iu').test(path.basename(filePath))) {
+            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.(?:exe|deb)$`, 'iu').test(path.basename(filePath))) {
                 await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
                     CacheControl: 'public, max-age=31536000, immutable',
                 })
