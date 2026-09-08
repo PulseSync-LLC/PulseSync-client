@@ -307,6 +307,11 @@
 
 .notificationActionPrimary,
 .notificationActionSecondary {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
     min-height: 28px;
 
     padding: 0 10px;
@@ -314,15 +319,16 @@
     font-size: 12px;
     font-weight: 700;
 
+    line-height: 1;
+
     cursor: pointer;
 
     border-radius: 8px;
 
     transition:
-        background 0.15s ease,
-        border-color 0.15s ease,
-        color 0.15s ease;
-    -webkit-app-region: no-drag;
+            background 0.15s ease,
+            border-color 0.15s ease,
+            color 0.15s ease;
 }
 
 .notificationActionPrimary {
