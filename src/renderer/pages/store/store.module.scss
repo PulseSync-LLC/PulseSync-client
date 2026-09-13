@@ -805,18 +805,16 @@
     width: 100%;
 }
 
-.storeList {
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 10px;
+.storeVirtualList {
+    position: relative;
 
     width: 100%;
 }
 
-.storeVirtualSpacer {
-    flex: 0 0 auto;
+.storeVirtualRow {
+    position: absolute;
+    top: 0;
+    left: 0;
 
     width: 100%;
 }

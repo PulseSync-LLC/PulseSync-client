@@ -7,9 +7,9 @@ import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md
 
 import { useModalContext } from '@app/providers/modal'
 import { getUserGridMetrics, SORT_FIELDS, sortUsers, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH } from '@pages/users/model/userList'
+import UsersVirtualGrid from '@pages/users/ui/UsersVirtualGrid'
 import PageLayout from '@widgets/layout/PageLayout'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
-import UserCardV2 from '@entities/user/ui/userCardV2'
 import apolloClient from '@shared/api/apolloClient'
 import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
 import { Banner } from '@shared/ui/PSUI/Image'
@@ -60,6 +60,7 @@ export default function UsersPage() {
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const [gridMetrics, setGridMetrics] = useState<UserGridMetrics | null>(null)
+    const [gridScrollMargin, setGridScrollMargin] = useState(0)
 
     const openProfile = useCallback(
         (profileName: string) => {
@@ -85,7 +86,8 @@ export default function UsersPage() {
         const paddingRight = Number.parseFloat(userPageStyles.paddingRight) || 0
         const paddingTop = Number.parseFloat(userPageStyles.paddingTop) || 0
         const contentWidth = Math.max(USER_CARD_MIN_WIDTH, userPage.clientWidth - paddingLeft - paddingRight)
-        const topOffset = Math.max(0, userPage.offsetTop + paddingTop)
+        const topOffset = Math.max(0, userPage.getBoundingClientRect().top - container.getBoundingClientRect().top + container.scrollTop + paddingTop)
+        setGridScrollMargin(topOffset)
         const availableHeight = Math.max(USER_CARD_HEIGHT, container.clientHeight - topOffset)
         const nextMetrics = getUserGridMetrics(contentWidth, availableHeight)
 
@@ -158,6 +160,7 @@ export default function UsersPage() {
                         return [...prevUsers, ...nextUsers.filter(user => !knownIds.has(user.id))]
                     })
                     setMaxPages(totalPages)
+                    setPage(page_)
                     if (mode === 'append') setHasLoadMoreError(false)
                 } else {
                     if (mode !== 'append') setUsers([])
@@ -168,13 +171,12 @@ export default function UsersPage() {
                 console.error(e)
                 if (mode === 'append') {
                     setHasLoadMoreError(true)
-                    setPage(prevPage => (prevPage >= page_ ? Math.max(1, page_ - 1) : prevPage))
                 }
                 toast.custom('error', t('common.errorTitle'), t('users.fetchError'))
             } finally {
-                if (mode === 'append') {
+                if (mode === 'append' && queryKey === queryKeyRef.current) {
                     nextPagePendingRef.current = false
-                    if (queryKey === queryKeyRef.current) setIsFetchingMore(false)
+                    setIsFetchingMore(false)
                 } else if (queryKey === queryKeyRef.current) {
                     setLoading(false)
                 }
@@ -214,6 +216,7 @@ export default function UsersPage() {
     useEffect(() => {
         return () => {
             debouncedFetchUsers.cancel()
+            queryKeyRef.current += 1
         }
     }, [debouncedFetchUsers])
 
@@ -286,15 +289,6 @@ export default function UsersPage() {
     }, [clearInitialShimmerTimers, sorting, debouncedSearch, debouncedFetchUsers, perPage])
 
     useEffect(() => {
-        if (page === 1) return
-
-        const currentQuery = queryParamsRef.current
-        if (!currentQuery.perPage) return
-
-        fetchUsers(page, currentQuery.perPage, currentQuery.sorting, currentQuery.search, 'append', queryKeyRef.current)
-    }, [page, fetchUsers])
-
-    useEffect(() => {
         return () => {
             clearInitialShimmerTimers()
         }
@@ -336,20 +330,18 @@ export default function UsersPage() {
 
         if (!root || !target || loading || isFetchingMore || hasLoadMoreError || page >= maxPages) return
 
+        const queryKey = queryKeyRef.current
+        let active = true
         const observer = new IntersectionObserver(
             entries => {
                 const entry = entries[0]
-                if (!entry?.isIntersecting || nextPagePendingRef.current) return
+                if (!active || queryKey !== queryKeyRef.current || !entry?.isIntersecting || nextPagePendingRef.current) return
 
+                active = false
+                observer.disconnect()
                 nextPagePendingRef.current = true
-                setPage(prevPage => {
-                    if (prevPage >= maxPages) {
-                        nextPagePendingRef.current = false
-                        return prevPage
-                    }
-
-                    return prevPage + 1
-                })
+                const currentQuery = queryParamsRef.current
+                void fetchUsers(page + 1, currentQuery.perPage, currentQuery.sorting, currentQuery.search, 'append', queryKey)
             },
             {
                 root,
@@ -359,11 +351,13 @@ export default function UsersPage() {
         )
 
         observer.observe(target)
-        return () => observer.disconnect()
-    }, [effectiveGridMetrics.prefetchOffsetPx, hasLoadMoreError, isFetchingMore, loading, maxPages, page])
+        return () => {
+            active = false
+            observer.disconnect()
+        }
+    }, [effectiveGridMetrics.prefetchOffsetPx, fetchUsers, hasLoadMoreError, isFetchingMore, loading, maxPages, page])
 
     const handleSort = useCallback((field: string) => {
-        setPage(1)
         setSorting(prev => (prev[0].id === field ? [{ id: field as any, desc: !prev[0].desc }] : [{ id: field as any, desc: true }]))
     }, [])
 
@@ -532,18 +526,15 @@ export default function UsersPage() {
                     {shouldRenderUsers ? (
                         <>
                             <div className={s.initialContentShell}>
-                                <div className={s.userGrid}>
-                                    {users.map((user, index) => (
-                                        <UserCardV2
-                                            key={user.id}
-                                            user={user}
-                                            onClick={openProfile}
-                                            animationsEnabledRef={animationsEnabledRef}
-                                            scrollDirectionRef={scrollDirectionRef}
-                                            eagerVisible={index < effectiveGridMetrics.visibleCount}
-                                        />
-                                    ))}
-                                </div>
+                                <UsersVirtualGrid
+                                    users={users}
+                                    columns={effectiveGridMetrics.columns}
+                                    scrollElementRef={containerRef}
+                                    scrollMargin={gridScrollMargin}
+                                    openProfile={openProfile}
+                                    animationsEnabledRef={animationsEnabledRef}
+                                    scrollDirectionRef={scrollDirectionRef}
+                                />
                                 {isInitialShimmerVisible && (
                                     <div className={cn(s.initialShimmerOverlay, isInitialShimmerFading && s.initialShimmerOverlayHidden)}>
                                         <UsersShimmer count={effectiveGridMetrics.visibleCount} />

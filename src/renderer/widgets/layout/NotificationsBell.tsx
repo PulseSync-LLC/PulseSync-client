@@ -9,6 +9,7 @@ import config from '@common/appConfig'
 import { useModalContext } from '@app/providers/modal'
 import { useNotifications } from '@app/providers/notifications'
 import { getNotificationPresentation } from '@app/providers/notifications/presentation'
+import VirtualNotificationsList from '@widgets/layout/VirtualNotificationsList'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import Loader from '@shared/ui/PSUI/Loader'
@@ -212,6 +213,37 @@ const NotificationsBell: React.FC = () => {
         }).format(date)
     }, [])
 
+    const renderNotification = (item: NotificationItem) => {
+        const copy = getNotificationCopy(item)
+        const itemClassName = getNotificationToneClassName(copy.tone, item.read)
+
+        return (
+            <article key={item.id} className={itemClassName}>
+                <div className={styles.notificationItemHeader}>
+                    <span className={styles.notificationTone}>{getNotificationToneLabel(item)}</span>
+                    <span className={styles.notificationItemMeta}>{formatNotificationDate(item.createdAt)}</span>
+                </div>
+                <div className={styles.notificationItemMain}>
+                    <div className={styles.notificationItemTitleRow}>
+                        <div className={styles.notificationItemTitle}>{copy.title}</div>
+                        {!item.read && <span className={styles.notificationUnreadDot} />}
+                    </div>
+                    <div className={styles.notificationItemBody}>{copy.body}</div>
+                </div>
+                <div className={styles.notificationItemActions}>
+                    {!item.read && (
+                        <button type="button" className={styles.notificationActionSecondary} onClick={event => void handleMarkRead(event, item.id)}>
+                            {t('header.notifications.read')}
+                        </button>
+                    )}
+                    <button type="button" className={styles.notificationActionPrimary} onClick={event => void handleOpenNotification(event, item)}>
+                        {t('header.notifications.openItem')}
+                    </button>
+                </div>
+            </article>
+        )
+    }
+
     return (
         <div className={styles.notificationTrigger} ref={rootRef}>
             <TooltipButton tooltipText={t('header.notifications.open')} side="bottom" as="div" className={headerStyles.devOverridesTrigger}>
@@ -257,67 +289,53 @@ const NotificationsBell: React.FC = () => {
                             </button>
                         </div>
 
-                        <div className={styles.notificationsList}>
-                            {notificationsContext.loading ? (
+                        {notificationsContext.loading ? (
+                            <div className={styles.notificationsList}>
                                 <div className={styles.notificationsEmpty}>
                                     <Loader variant="panel" />
                                 </div>
-                            ) : notificationItems.length ? (
-                                notificationItems.map(item => {
-                                    const copy = getNotificationCopy(item)
-                                    const itemClassName = getNotificationToneClassName(copy.tone, item.read)
-
-                                    return (
-                                        <motion.article
-                                            layout
-                                            key={item.id}
-                                            className={itemClassName}
-                                            initial={{ opacity: 0, y: 8 }}
-                                            animate={{ opacity: 1, y: 0 }}
-                                            exit={{ opacity: 0, y: -6 }}
-                                            transition={{ duration: 0.16, ease: 'easeOut' }}
-                                        >
-                                            <div className={styles.notificationItemHeader}>
-                                                <span className={styles.notificationTone}>{getNotificationToneLabel(item)}</span>
-                                                <span className={styles.notificationItemMeta}>{formatNotificationDate(item.createdAt)}</span>
-                                            </div>
-                                            <div className={styles.notificationItemMain}>
-                                                <div className={styles.notificationItemTitleRow}>
-                                                    <div className={styles.notificationItemTitle}>{copy.title}</div>
-                                                    {!item.read && <span className={styles.notificationUnreadDot} />}
-                                                </div>
-                                                <div className={styles.notificationItemBody}>{copy.body}</div>
-                                            </div>
-                                            <div className={styles.notificationItemActions}>
-                                                {!item.read && (
+                            </div>
+                        ) : notificationItems.length ? (
+                            <VirtualNotificationsList
+                                items={notificationItems}
+                                onEndReached={
+                                    notificationsContext.hasMore && !notificationsContext.loadingMore && !notificationsContext.loadMoreError
+                                        ? notificationsContext.loadMore
+                                        : undefined
+                                }
+                                footer={
+                                    (notificationsContext.loadingMore || notificationsContext.loadMoreError) && (
+                                        <div className={styles.notificationsPagination} role="status">
+                                            {notificationsContext.loadMoreError ? (
+                                                <>
+                                                    <span>{t('header.notifications.loadMoreError')}</span>
                                                     <button
                                                         type="button"
                                                         className={styles.notificationActionSecondary}
-                                                        onClick={event => void handleMarkRead(event, item.id)}
+                                                        onClick={() => void notificationsContext.loadMore()}
                                                     >
-                                                        {t('header.notifications.read')}
+                                                        {t('header.notifications.retry')}
                                                     </button>
-                                                )}
-                                                <button
-                                                    type="button"
-                                                    className={styles.notificationActionPrimary}
-                                                    onClick={event => void handleOpenNotification(event, item)}
-                                                >
-                                                    {t('header.notifications.openItem')}
-                                                </button>
-                                            </div>
-                                        </motion.article>
+                                                </>
+                                            ) : (
+                                                t('header.notifications.loading')
+                                            )}
+                                        </div>
                                     )
-                                })
-                            ) : (
+                                }
+                            >
+                                {renderNotification}
+                            </VirtualNotificationsList>
+                        ) : (
+                            <div className={styles.notificationsList}>
                                 <div className={styles.notificationsEmpty}>
                                     <div className={styles.notificationsEmptyIcon}>
                                         <MdDoneAll size={18} />
                                     </div>
                                     <div className={styles.notificationsEmptyTitle}>{t('header.notifications.empty')}</div>
                                 </div>
-                            )}
-                        </div>
+                            </div>
+                        )}
                     </motion.div>
                 )}
             </AnimatePresence>

@@ -632,6 +632,8 @@
             "unreadCount": "Unread: {{count}}",
             "markAllRead": "Mark all read",
             "loading": "Loading notifications...",
+            "loadMoreError": "Could not load older notifications.",
+            "retry": "Retry",
             "empty": "There are no important notifications yet",
             "read": "Read",
             "openItem": "Open",
