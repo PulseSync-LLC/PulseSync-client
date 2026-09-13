@@ -60,6 +60,7 @@ export interface ExtensionCardStoreProps {
     downloadVariant?: DownloadVariant
     isPreInstalled?: boolean
     animationsEnabledRef?: React.MutableRefObject<boolean>
+    eagerVisible?: boolean
     variant?: StoreCardVariant
 }
 
@@ -68,13 +69,21 @@ type VisibilityState = {
     shouldAnimate: boolean
 }
 
-const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, animationsEnabledRef?: React.MutableRefObject<boolean>) => {
+const useIntersectionObserver = (
+    ref: React.RefObject<HTMLElement | null>,
+    animationsEnabledRef?: React.MutableRefObject<boolean>,
+    eagerVisible = false,
+) => {
     const [visibilityState, setVisibilityState] = useState<VisibilityState>({
-        isIntersecting: false,
+        isIntersecting: eagerVisible,
         shouldAnimate: animationsEnabledRef?.current ?? true,
     })
 
     useEffect(() => {
+        if (eagerVisible) {
+            setVisibilityState({ isIntersecting: true, shouldAnimate: animationsEnabledRef?.current ?? true })
+            return
+        }
         if (!ref.current) return
         if (typeof IntersectionObserver === 'undefined') {
             setVisibilityState({ isIntersecting: true, shouldAnimate: false })
@@ -98,7 +107,7 @@ const useIntersectionObserver = (ref: React.RefObject<HTMLElement | null>, anima
 
         observer.observe(ref.current)
         return () => observer.disconnect()
-    }, [animationsEnabledRef, ref])
+    }, [animationsEnabledRef, eagerVisible, ref])
 
     return visibilityState
 }
@@ -139,9 +148,10 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     downloadVariant = 'default',
     animationsEnabledRef,
     variant = 'list',
+    eagerVisible = false,
 }) => {
     const containerRef = useRef<HTMLDivElement>(null)
-    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef)
+    const visibilityState = useIntersectionObserver(containerRef, animationsEnabledRef, eagerVisible)
     const visibleTags = Array.from(new Set(tags.map(tag => tag.trim()).filter(Boolean))).slice(0, variant === 'poster' ? 2 : 1)
 
     return (

@@ -352,12 +352,22 @@
     background: var(--background);
 }
 
-.userGrid {
+.virtualGrid {
+    position: relative;
+
+    width: 100%;
+}
+
+.virtualRow {
+    position: absolute;
+    top: 0;
+    left: 0;
+
     display: grid;
 
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-
     gap: 10px;
+
+    width: 100%;
 }
 
 .initialContentShell {

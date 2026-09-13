@@ -26,6 +26,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { useModalContext } from '@app/providers/modal'
 import useCarouselDrag from '@pages/store/lib/useCarouselDrag'
 import StoreAddonDetailsModal from '@pages/store/ui/StoreAddonDetailsModal'
+import StoreVirtualList from '@pages/store/ui/StoreVirtualList'
 import PageLayout from '@widgets/layout/PageLayout'
 import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.query'
 import GetNewStoreAddonsQuery from '@entities/addon/api/getNewStoreAddons.query'
@@ -522,6 +523,7 @@ export default function StorePage() {
                 <ExtensionCardStore
                     key={`${variant}:${addon.id}`}
                     variant={variant}
+                    eagerVisible={variant === 'list'}
                     title={addon.name}
                     subtitle={release.description}
                     authors={release.authors}
@@ -767,9 +769,9 @@ export default function StorePage() {
             ) : !visibleAddons.length ? (
                 <div className={st.storeState}>{t('store.noResults')}</div>
             ) : (
-                <div className={st.storeList}>
-                    {visibleAddons.map(addon => renderStoreCard(addon, 'list', { installLabel: t('layout.installAction') }))}
-                </div>
+                <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                    {addon => renderStoreCard(addon, 'list', { installLabel: t('layout.installAction') })}
+                </StoreVirtualList>
             )}
         </section>
     )
@@ -793,9 +795,9 @@ export default function StorePage() {
                     {catalogTab === 'moderation' ? <p>{t('store.pendingSectionSubtitle')}</p> : null}
                 </div>
             </header>
-            <div className={st.storeList}>
-                {visibleAddons.map(addon => renderStoreCard(addon, 'list', catalogTab === 'moderation' ? { forceStatus: 'pending' } : undefined))}
-            </div>
+            <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                {addon => renderStoreCard(addon, 'list', catalogTab === 'moderation' ? { forceStatus: 'pending' } : undefined)}
+            </StoreVirtualList>
         </section>
     ) : (
         <>
@@ -857,7 +859,9 @@ export default function StorePage() {
                     <h2>{t('store.catalog.recentlyUpdated')}</h2>
                 </header>
                 <div className={st.listShell}>
-                    <div className={st.storeList}>{visibleAddons.map(addon => renderStoreCard(addon, 'list'))}</div>
+                    <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                        {addon => renderStoreCard(addon, 'list')}
+                    </StoreVirtualList>
                     {isInitialShimmerVisible ? (
                         <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
                             <StoreShimmer count={6} />

@@ -146,6 +146,45 @@
     overflow: auto;
 }
 
+.notificationsVirtualViewport {
+    min-height: 0;
+
+    padding: 0 12px;
+
+    overflow: auto;
+    overflow-anchor: none;
+}
+
+.notificationsVirtualContent {
+    position: relative;
+
+    width: 100%;
+}
+
+.notificationsPagination {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 8px;
+
+    align-items: center;
+
+    padding: 0 0 12px;
+
+    font-size: 12px;
+
+    color: var(--text-muted);
+}
+
+.notificationsVirtualRow {
+    position: absolute;
+    top: 0;
+    left: 0;
+
+    width: 100%;
+}
+
 .notificationItem,
 .notificationItemUnread,
 .notificationItemSuccess,
@@ -326,9 +365,9 @@
     border-radius: 8px;
 
     transition:
-            background 0.15s ease,
-            border-color 0.15s ease,
-            color 0.15s ease;
+        background 0.15s ease,
+        border-color 0.15s ease,
+        color 0.15s ease;
 }
 
 .notificationActionPrimary {

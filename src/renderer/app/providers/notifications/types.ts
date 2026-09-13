@@ -13,6 +13,10 @@ export type NotificationItem = {
 }
 
 export type NotificationsContextValue = {
+    hasMore: boolean
+    loadingMore: boolean
+    loadMoreError: boolean
+    loadMore: () => Promise<void>
     loading: boolean
     notifications: NotificationItem[]
     unreadCount: number
