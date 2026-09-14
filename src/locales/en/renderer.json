@@ -1134,7 +1134,7 @@
             "subtitle": "Reach the highest level.",
             "title": "Achievements",
             "unknown": "Unknown",
-            "warningDescription": "We're improving the achievement system to make it better! Achievements aren't counted during listening right now, but we'll fix it soon. Thanks for your patience! 😊",
+            "warningDescription": "At the moment, we are deciding the future fate of the achievement system. Until then, it will be unavailable",
             "warningTitle": "Attention! The achievement system is temporarily unavailable"
         },
         "errors": {
