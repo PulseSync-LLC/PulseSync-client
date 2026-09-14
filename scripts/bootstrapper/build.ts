@@ -7,7 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
-import { emitBootstrapperUpdateManifest } from '../desktop-release-manifest.js'
+import { emitBootstrapperUpdateManifest, type PublishedBootstrapperOptions, reusePublishedBootstrapper } from '../desktop-release-manifest.js'
 import { publishToS3 } from '../s3-upload.js'
 
 const execFileAsync = promisify(execFile)
@@ -51,7 +51,7 @@ function resolveInsideProject(targetPath: string): string {
 }
 
 async function runCargoBuild(options: BuildOptions = {}): Promise<void> {
-    const args = ['build', '--manifest-path', path.join(bootstrapperRoot, 'Cargo.toml'), '--release']
+    const args = ['build', '--manifest-path', path.join(bootstrapperRoot, 'Cargo.toml'), '--release', '--locked']
     if (options.target) args.push('--target', options.target)
     await execFileAsync('cargo', args, {
         cwd: projectRoot,
@@ -114,10 +114,6 @@ export async function buildBootstrapperExecutable(options: BuildOptions = {}): P
     const executablePath = bootstrapperExecutablePath(options)
     const stampPath = `${executablePath}.build-inputs.sha256`
     const buildInputs = await bootstrapperBuildInputsSha256(options)
-    if (process.env.CI && fs.existsSync(executablePath) && !fs.existsSync(stampPath)) {
-        fs.writeFileSync(stampPath, `${buildInputs}\n`, 'utf8')
-        return executablePath
-    }
     if (fs.existsSync(executablePath) && fs.existsSync(stampPath) && fs.readFileSync(stampPath, 'utf8').trim() === buildInputs) {
         return executablePath
     }
@@ -144,15 +140,21 @@ export async function buildUniversalMacBootstrapperExecutable(): Promise<string>
     return outputPath
 }
 
-export async function copyBootstrapperToInstallRoot(installRoot: string, options: { build?: boolean } = {}): Promise<string> {
-    const executable = options.build === false ? resolveBootstrapperExecutable() : await buildBootstrapperExecutable()
+export async function copyBootstrapperToInstallRoot(
+    installRoot: string,
+    options: { build?: boolean; published?: PublishedBootstrapperOptions } = {},
+): Promise<string> {
     const resolvedInstallRoot = resolveInsideProject(installRoot)
     const targetDir = path.join(resolvedInstallRoot, packagedBootstrapperDirName)
 
     fs.rmSync(targetDir, { force: true, recursive: true })
     fs.mkdirSync(targetDir, { recursive: true })
     const targetExecutable = path.join(targetDir, bootstrapperExecutableName())
-    fs.copyFileSync(executable, targetExecutable)
+    const reused = options.published ? await reusePublishedBootstrapper(targetExecutable, options.published) : false
+    if (!reused) {
+        const executable = options.build === false ? resolveBootstrapperExecutable() : await buildBootstrapperExecutable()
+        fs.copyFileSync(executable, targetExecutable)
+    }
     if (process.platform !== 'win32') {
         fs.chmodSync(targetExecutable, 0o755)
     }
