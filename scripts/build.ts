@@ -18,7 +18,12 @@ import { build as viteBuild } from 'vite'
 import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
-import { emitDesktopCoreUpdateManifest, emitDesktopReleaseManifest } from './desktop-release-manifest.js'
+import {
+    emitDesktopCoreUpdateManifest,
+    emitDesktopReleaseManifest,
+    type PublishedBootstrapperOptions,
+    reusePublishedBootstrapper,
+} from './desktop-release-manifest.js'
 import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
 import { fetchWithRetry } from './network-retry.js'
@@ -615,7 +620,7 @@ function copyDirectoryEntries(sourceDir: string, targetDir: string, excludedName
     }
 }
 
-async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string> {
+async function prepareBootstrapperInstallerRoot(outDir: string, published?: PublishedBootstrapperOptions): Promise<string> {
     const installRoot = getBootstrapperPayloadRoot(outDir)
     const packagedAppRoot = getPackagedAppRoot(outDir)
 
@@ -629,7 +634,7 @@ async function prepareBootstrapperInstallerRoot(outDir: string): Promise<string>
     }
 
     fs.mkdirSync(path.join(installRoot, 'resources'), { recursive: true })
-    await copyBootstrapperToInstallRoot(installRoot)
+    await copyBootstrapperToInstallRoot(installRoot, { published })
     return installRoot
 }
 
@@ -692,18 +697,27 @@ function writeMacPackagedRuntime(outDir: string, desktopVersion: string, hostVer
     return descriptorPath
 }
 
-async function installMacBootstrapperSeed(outDir: string, desktopVersion: string, hostVersion: string, bundleVersion: string): Promise<string> {
+async function installMacBootstrapperSeed(
+    outDir: string,
+    desktopVersion: string,
+    hostVersion: string,
+    bundleVersion: string,
+    published?: PublishedBootstrapperOptions,
+): Promise<string> {
     if (os.platform() !== 'darwin') {
         throw new Error('installMacBootstrapperSeed is only valid on macOS')
     }
-    const executable = await buildUniversalMacBootstrapperExecutable()
     fs.rmSync(getBootstrapperInstallerRoot(outDir), { force: true, recursive: true })
     fs.rmSync(path.join(path.dirname(outDir), `${path.basename(outDir)}-bootstrapper-setup`), { force: true, recursive: true })
     const targetDir = path.join(getPackagedResourcesDir(outDir), 'bootstrapper')
     const targetExecutable = path.join(targetDir, 'pulsesync-bootstrapper')
     fs.rmSync(targetDir, { force: true, recursive: true })
     fs.mkdirSync(targetDir, { recursive: true })
-    fs.copyFileSync(executable, targetExecutable)
+    const reused = published ? await reusePublishedBootstrapper(targetExecutable, published) : false
+    if (!reused) {
+        const executable = await buildUniversalMacBootstrapperExecutable()
+        fs.copyFileSync(executable, targetExecutable)
+    }
     fs.chmodSync(targetExecutable, 0o755)
     assertMacUniversalBinary(targetExecutable)
     const infoPlist = path.join(outDir, `${getProductNameFromConfig()}.app`, 'Contents', 'Info.plist')
@@ -743,7 +757,7 @@ async function prepareBootstrapperSetupRoot(
     if (fs.existsSync(modulesRoot)) {
         fs.cpSync(modulesRoot, path.join(versionedHostRoot, 'modules'), { recursive: true })
     }
-    await copyBootstrapperToInstallRoot(setupRoot)
+    fs.cpSync(path.join(payloadRoot, 'bootstrapper'), path.join(setupRoot, 'bootstrapper'), { recursive: true })
     writeBootstrapperSetupConfig(setupRoot, channel, dist, coreVersion)
     const desktopCore = componentMetadata.desktopCore
     const coreRelativePath = path.join(`app-${hostVersion}`, 'modules', componentContainerName(desktopCore), desktopCore.diskName)
@@ -1162,26 +1176,27 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
+        let publishedBootstrapper: PublishedBootstrapperOptions | undefined
         if (publishBranch) {
             const baseS3Url = process.env.S3_URL?.trim()
             if (!baseS3Url) throw new Error('S3_URL is required to resolve published component revisions')
             const manifestName = os.platform() === 'darwin' ? `desktop-update-hybrid-${buildDist}.json` : `desktop-update-${buildDist}.json`
-            await resolvePublishedComponentRevisions(
-                outDir,
-                `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}/${manifestName}`,
-                buildDist,
-                hostVersion,
-            )
+            publishedBootstrapper = {
+                channel: publishBranch,
+                dist: buildDist,
+                previousManifestUrl: `${baseS3Url.replace(/\/+$/u, '')}/builds/app/${publishBranch}/${manifestName}?_=${Date.now()}`,
+            }
+            await resolvePublishedComponentRevisions(outDir, publishedBootstrapper.previousManifestUrl, buildDist, hostVersion)
         }
         normalizeVersionedRuntimeModules(outDir)
         let payloadRoot: string
         let setupRoot: string
         if (os.platform() === 'darwin') {
-            await installMacBootstrapperSeed(outDir, version, hostVersion, resolveBundleVersion())
+            await installMacBootstrapperSeed(outDir, version, hostVersion, resolveBundleVersion(), publishedBootstrapper)
             payloadRoot = outDir
             setupRoot = outDir
         } else {
-            payloadRoot = await prepareBootstrapperInstallerRoot(outDir)
+            payloadRoot = await prepareBootstrapperInstallerRoot(outDir, publishedBootstrapper)
             setupRoot = await prepareBootstrapperSetupRoot(outDir, branchForConfig, buildDist, version, hostVersion, resolveBundleVersion())
         }
         if (os.platform() === 'linux' && shouldCreateLinuxAurTarball(publishBranch)) {
@@ -1266,7 +1281,7 @@ async function main(): Promise<void> {
                 coreVersion: version,
                 hostVersion,
                 metadataVersion: process.env.DESKTOP_METADATA_VERSION,
-                previousManifestUrl: `${desktopArtifactBaseUrl}/desktop-update-${buildDist}.json`,
+                previousManifestUrl: publishedBootstrapper?.previousManifestUrl,
             })
             if (process.env.PULSESYNC_DEFER_S3_PUBLISH === '1') {
                 log(LogLevel.INFO, 'S3 publication deferred to the release job')

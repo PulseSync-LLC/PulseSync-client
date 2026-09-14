@@ -85,6 +85,12 @@ type BootstrapperUpdateManifest = {
     >
 }
 
+export type PublishedBootstrapperOptions = {
+    channel: string
+    dist: string
+    previousManifestUrl: string
+}
+
 type EmitDesktopReleaseManifestOptions = {
     baseUrl: string
     channel: string
@@ -297,16 +303,88 @@ async function readPreviousManifest(url: string | undefined): Promise<Bootstrapp
             label: 'previous desktop manifest',
         },
     )
-    if (response.status === 403 || response.status === 404) return null
+    if (response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read previous desktop manifest (${response.status}): ${url}`)
     const payload: unknown = await response.json()
     if (typeof payload !== 'object' || payload === null) throw new Error(`Previous desktop manifest is invalid: ${url}`)
-    if (!('schemaVersion' in payload) || ![3, 4, 5].includes(payload.schemaVersion as number)) return null
+    if (!('schemaVersion' in payload) || ![3, 4, 5].includes(payload.schemaVersion as number)) {
+        throw new Error(`Unsupported previous desktop manifest schema: ${url}`)
+    }
     const manifest = payload as BootstrapperUpdateManifest
-    if (!Number.isSafeInteger(manifest.metadataVersion) || typeof manifest.targets !== 'object' || manifest.targets === null) {
+    if (
+        !Number.isSafeInteger(manifest.metadataVersion) ||
+        typeof manifest.targets !== 'object' ||
+        manifest.targets === null ||
+        Array.isArray(manifest.targets)
+    ) {
         throw new Error(`Previous desktop manifest is invalid: ${url}`)
     }
     return manifest
+}
+
+function getPublishedBootstrapper(manifest: BootstrapperUpdateManifest | null, channel: string, dist: string): VersionedArtifact | undefined {
+    if (!manifest) return undefined
+    if (manifest.channel !== channel) {
+        throw new Error(`Published desktop manifest channel mismatch: expected ${channel}, got ${manifest.channel}`)
+    }
+    const target = manifest.targets[dist]
+    const expectedLayout = parseDist(dist).platform === 'darwin' ? 'macos-hybrid' : 'versioned-components'
+    if (!target || target.layout !== expectedLayout) {
+        throw new Error(`Published manifest does not contain a ${expectedLayout} target for ${dist}`)
+    }
+    const bootstrapper = target.bootstrapper
+    if (!bootstrapper) return undefined
+    if (
+        typeof bootstrapper.version !== 'string' ||
+        !bootstrapper.version.trim() ||
+        typeof bootstrapper.artifact?.sha256 !== 'string' ||
+        !/^[a-f0-9]{64}$/iu.test(bootstrapper.artifact.sha256) ||
+        typeof bootstrapper.artifact.url !== 'string' ||
+        !/^https?:\/\//iu.test(bootstrapper.artifact.url) ||
+        (bootstrapper.artifact.size !== undefined && (!Number.isSafeInteger(bootstrapper.artifact.size) || bootstrapper.artifact.size <= 0))
+    ) {
+        throw new Error(`Published bootstrapper descriptor is invalid for ${dist}`)
+    }
+    return bootstrapper
+}
+
+export async function reusePublishedBootstrapper(executablePath: string, options: PublishedBootstrapperOptions): Promise<boolean> {
+    const targetPath = resolveInsideProject(executablePath)
+    if (!options.previousManifestUrl.trim()) throw new Error('A published desktop manifest URL is required to reuse bootstrapper')
+    const manifest = await readPreviousManifest(options.previousManifestUrl)
+    const published = getPublishedBootstrapper(manifest, options.channel, options.dist)
+    const version = readBootstrapperVersion()
+    if (!published || published.version !== version) return false
+
+    fs.mkdirSync(path.dirname(targetPath), { recursive: true })
+    await materializePublishedArtifact(
+        { ...published.artifact, sha256: published.artifact.sha256.toLowerCase() },
+        targetPath,
+        `bootstrapper ${version} (${options.dist})`,
+    )
+    if (parseDist(options.dist).platform !== 'win32') fs.chmodSync(targetPath, 0o755)
+    console.log(`Reused published bootstrapper ${version} for ${options.dist}; source changes require a bootstrapper version bump`)
+    return true
+}
+
+async function createBootstrapperArtifactDescriptor(
+    artifactPath: string,
+    baseUrl: string,
+    version: string,
+    dist: string,
+    published: VersionedArtifact | undefined,
+): Promise<BootstrapperArtifact> {
+    const artifact = await createVersionedArtifactDescriptor(artifactPath, baseUrl, path.join('components', 'bootstrapper', version, dist))
+    if (!published || published.version !== version) return artifact
+    if (
+        published.artifact.sha256.toLowerCase() !== artifact.sha256 ||
+        (published.artifact.size !== undefined && published.artifact.size !== artifact.size)
+    ) {
+        throw new Error(
+            `Bootstrapper ${version} (${dist}) changed without a version bump: published SHA-256 ${published.artifact.sha256}, built SHA-256 ${artifact.sha256}. Bump packages/bootstrapper/Cargo.toml and Cargo.lock before publishing changed bootstrapper bytes`,
+        )
+    }
+    return published.artifact
 }
 
 async function downloadDeltaSource(url: string, targetPath: string): Promise<void> {
@@ -332,6 +410,7 @@ async function createBsdiffPatch(
     patchImmutablePath: string,
     current: ModuleFile,
     previous: VersionedFile | undefined,
+    bootstrapperExecutable?: string,
 ): Promise<DeltaArtifact[]> {
     if (!previous || previous.sha256 === current.sha256 || !previous.artifact.url) return []
     const sourcePath = path.join(releaseDir, `.delta-source-${previous.sha256.slice(0, 16)}-${process.pid}.tmp`)
@@ -340,7 +419,7 @@ async function createBsdiffPatch(
         await downloadDeltaSource(previous.artifact.url, sourcePath)
         if ((await sha256File(sourcePath)) !== previous.sha256) throw new Error('Downloaded delta source hash does not match previous manifest')
         execFileSync(
-            deltaToolPath(),
+            bootstrapperExecutable ?? deltaToolPath(),
             ['make-delta', '--provider', 'bsdiff', '--source', sourcePath, '--target', current.artifactPath, '--output', patchPath, '--json'],
             { stdio: 'pipe' },
         )
@@ -556,6 +635,7 @@ function createBootstrapperArtifact(releaseDir: string, packagedAppRootDir: stri
     fs.mkdirSync(path.dirname(artifactPath), { recursive: true })
     fs.rmSync(artifactPath, { force: true })
     fs.copyFileSync(sourcePath, artifactPath)
+    if (platform !== 'win32') fs.chmodSync(artifactPath, 0o755)
     return artifactPath
 }
 
@@ -590,7 +670,11 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         throw new Error('metadataVersion must be an explicit positive integer')
     }
     const bundleVersion = String(metadataVersion)
-    const previousManifest = await readPreviousManifest(options.previousManifestUrl)
+    const previousManifestUrl =
+        options.previousManifestUrl?.trim() ||
+        `${baseUrl}/${macosBundle ? getDesktopHybridReleaseManifestName(options.dist) : getDesktopReleaseManifestName(options.dist)}?_=${Date.now()}`
+    const previousManifest = await readPreviousManifest(previousManifestUrl)
+    const publishedBootstrapper = getPublishedBootstrapper(previousManifest, options.channel, options.dist)
     if (previousManifest && metadataVersion <= previousManifest.metadataVersion) {
         throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
     }
@@ -609,11 +693,18 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
             throw new Error(`Host content changed without a host version bump: ${targetHostVersion}`)
         }
     }
+    const bootstrapperVersion = readBootstrapperVersion()
+    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
+    const bootstrapperArtifact = await createBootstrapperArtifactDescriptor(
+        bootstrapperArtifactPath,
+        baseUrl,
+        bootstrapperVersion,
+        options.dist,
+        publishedBootstrapper,
+    )
     const hostArtifactPath = macosBundle
         ? createMacHostBundleArchive(releaseDir, packagedAppRootDir, bundleVersion, options.dist)
         : createHostArchive(releaseDir, packagedAppRootDir, targetHostVersion, options.dist)
-    const bootstrapperVersion = readBootstrapperVersion()
-    const bootstrapperArtifactPath = createBootstrapperArtifact(releaseDir, packagedAppRootDir, bootstrapperVersion, options.dist)
     const componentRootDir = macosBundle ? path.join(packagedAppRootDir, 'PulseSync.app', 'Contents') : packagedAppRootDir
     const moduleArchivePaths = createModuleArchives(
         releaseDir,
@@ -666,16 +757,10 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                 path.join('hosts', targetHostVersion, options.dist),
                 file,
                 previousFile,
+                bootstrapperArtifactPath,
             ),
         })
     }
-    const bootstrapperArtifact = bootstrapperArtifactPath
-        ? await createVersionedArtifactDescriptor(
-              bootstrapperArtifactPath,
-              baseUrl,
-              path.join('components', 'bootstrapper', bootstrapperVersion, options.dist),
-          )
-        : null
     const electronAbi = fs.readFileSync(path.join(projectRoot, 'node_modules', 'electron', 'abi_version'), 'utf8').trim()
     if (!/^\d+$/u.test(electronAbi)) throw new Error(`Invalid Electron ABI: ${electronAbi}`)
     const components = Object.fromEntries(
@@ -727,6 +812,7 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
                             path.join('components', moduleName, moduleArchive.version, options.dist),
                             file,
                             previousFile,
+                            bootstrapperArtifactPath,
                         ),
                     })
                 }
@@ -1005,7 +1091,13 @@ export async function emitBootstrapperUpdateManifest(options: EmitBootstrapperUp
     const extension = platform === 'win32' ? '.exe' : ''
     const artifactPath = path.join(releaseDir, `pulsesync-bootstrapper-${version}-${options.dist}${extension}`)
     fs.copyFileSync(executable, artifactPath)
-    const artifact = await createVersionedArtifactDescriptor(artifactPath, baseUrl, path.join('components', 'bootstrapper', version, options.dist))
+    const artifact = await createBootstrapperArtifactDescriptor(
+        artifactPath,
+        baseUrl,
+        version,
+        options.dist,
+        getPublishedBootstrapper(previousManifest, options.channel, options.dist),
+    )
 
     const manifest: BootstrapperUpdateManifest = {
         ...previousManifest,
