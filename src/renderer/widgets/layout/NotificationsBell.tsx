@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
 import { MdDoneAll } from 'react-icons/md'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import config from '@common/appConfig'
 import { useModalContext } from '@app/providers/modal'

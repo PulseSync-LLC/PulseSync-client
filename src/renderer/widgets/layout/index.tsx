@@ -3,7 +3,7 @@ import React, { useCallback, useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'

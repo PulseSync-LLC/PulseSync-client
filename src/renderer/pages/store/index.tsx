@@ -21,7 +21,7 @@ import {
     MdSwapVert,
     MdViewModule,
 } from 'react-icons/md'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 
 import { useModalContext } from '@app/providers/modal'
 import useCarouselDrag from '@pages/store/lib/useCarouselDrag'

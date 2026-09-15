@@ -5,7 +5,7 @@ import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 
-import type { NavigateFunction } from 'react-router-dom'
+import type { NavigateFunction } from 'react-router'
 
 export const isDevModeEnabled = () => {
     const searchParams = new URLSearchParams(window.location.hash.split('?')[1] || '')
