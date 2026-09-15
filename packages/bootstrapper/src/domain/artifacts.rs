@@ -5,7 +5,7 @@ use crate::{
         install_state::read_install_state_metadata,
         path_segment::sanitize_path_segment,
     },
-    domain::delta::apply_delta,
+    domain::delta::{apply_delta, delta_error_code},
     domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
         BootstrapperArtifact, BootstrapperUpdateDecision, ComponentFileSet, artifact_for_key,
@@ -19,7 +19,7 @@ use std::{
     fs,
     io::{Read, Write},
     path::{Path, PathBuf},
-    time::Duration,
+    time::{Duration, Instant},
 };
 use zip::{ZipWriter, write::SimpleFileOptions};
 
@@ -85,8 +85,24 @@ pub struct StagedArtifact {
     pub url: String,
     #[serde(rename = "downloadedBytes")]
     pub downloaded_bytes: u64,
+    #[serde(rename = "durationMs")]
+    pub duration_ms: u64,
+    #[serde(rename = "fallbackReason", skip_serializing_if = "Option::is_none")]
+    pub fallback_reason: Option<String>,
     #[serde(rename = "fileOperations")]
     pub file_operations: Vec<StagedFileOperation>,
+}
+
+#[derive(Clone, Debug, Default, Deserialize, Eq, PartialEq, Serialize)]
+pub struct DeltaAttemptTelemetry {
+    pub provider: String,
+    pub outcome: String,
+    #[serde(default, rename = "downloadBytes")]
+    pub download_bytes: u64,
+    #[serde(default, rename = "durationMs")]
+    pub duration_ms: u64,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
 }
 
 #[derive(Clone, Debug, Deserialize, Eq, PartialEq, Serialize)]
@@ -98,6 +114,69 @@ pub struct StagedFileOperation {
     pub download_bytes: u64,
     #[serde(rename = "resultSha256")]
     pub result_sha256: String,
+    #[serde(default, rename = "durationMs")]
+    pub duration_ms: u64,
+    #[serde(
+        default,
+        rename = "fallbackReason",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub fallback_reason: Option<String>,
+    #[serde(
+        default,
+        rename = "deltaAttempts",
+        skip_serializing_if = "Vec::is_empty"
+    )]
+    pub delta_attempts: Vec<DeltaAttemptTelemetry>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryKindTelemetry {
+    pub delivery: String,
+    pub count: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryFallbackTelemetry {
+    pub reason: String,
+    pub count: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryDeltaAttemptTelemetry {
+    pub provider: String,
+    pub outcome: String,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub reason: Option<String>,
+    pub count: u64,
+    pub download_bytes: u64,
+    pub duration_ms: u64,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryArtifactTelemetry {
+    pub key: ArtifactKey,
+    pub delivery: String,
+    pub reused: bool,
+    pub downloaded_bytes: u64,
+    pub duration_ms: u64,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub fallback_reason: Option<String>,
+    pub file_operation_count: u64,
+    pub file_deliveries: Vec<DeliveryKindTelemetry>,
+    pub fallbacks: Vec<DeliveryFallbackTelemetry>,
+    pub delta_attempts: Vec<DeliveryDeltaAttemptTelemetry>,
+}
+
+#[derive(Clone, Debug, Serialize)]
+#[serde(rename_all = "camelCase")]
+pub struct DeliveryTelemetry {
+    pub duration_ms: u64,
+    pub artifacts: Vec<DeliveryArtifactTelemetry>,
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -115,6 +194,85 @@ pub struct StagingResult {
     pub bundle_version: String,
     #[serde(rename = "updateAvailable")]
     pub update_available: bool,
+    #[serde(rename = "durationMs")]
+    pub duration_ms: u64,
+}
+
+impl StagingResult {
+    pub fn delivery_telemetry(&self) -> DeliveryTelemetry {
+        DeliveryTelemetry {
+            duration_ms: self.duration_ms,
+            artifacts: self
+                .artifacts
+                .iter()
+                .map(|artifact| {
+                    let mut file_deliveries = BTreeMap::<String, u64>::new();
+                    let mut fallbacks = BTreeMap::<String, u64>::new();
+                    let mut delta_attempts =
+                        BTreeMap::<(String, String, Option<String>), (u64, u64, u64)>::new();
+                    for operation in &artifact.file_operations {
+                        *file_deliveries
+                            .entry(operation.delivery.clone())
+                            .or_default() += 1;
+                        if let Some(reason) = &operation.fallback_reason {
+                            *fallbacks.entry(reason.clone()).or_default() += 1;
+                        }
+                        for attempt in &operation.delta_attempts {
+                            let aggregate = delta_attempts
+                                .entry((
+                                    attempt.provider.clone(),
+                                    attempt.outcome.clone(),
+                                    attempt.reason.clone(),
+                                ))
+                                .or_default();
+                            aggregate.0 = aggregate.0.saturating_add(1);
+                            aggregate.1 = aggregate.1.saturating_add(attempt.download_bytes);
+                            aggregate.2 = aggregate.2.saturating_add(attempt.duration_ms);
+                        }
+                    }
+                    DeliveryArtifactTelemetry {
+                        key: artifact.key.clone(),
+                        delivery: if artifact.file_operations.is_empty() {
+                            "full".to_string()
+                        } else {
+                            "file-inventory".to_string()
+                        },
+                        reused: artifact.reused,
+                        downloaded_bytes: artifact.downloaded_bytes,
+                        duration_ms: artifact.duration_ms,
+                        fallback_reason: artifact.fallback_reason.clone(),
+                        file_operation_count: artifact.file_operations.len() as u64,
+                        file_deliveries: file_deliveries
+                            .into_iter()
+                            .map(|(delivery, count)| DeliveryKindTelemetry { delivery, count })
+                            .collect(),
+                        fallbacks: fallbacks
+                            .into_iter()
+                            .map(|(reason, count)| DeliveryFallbackTelemetry { reason, count })
+                            .collect(),
+                        delta_attempts: delta_attempts
+                            .into_iter()
+                            .map(
+                                |(
+                                    (provider, outcome, reason),
+                                    (count, download_bytes, duration_ms),
+                                )| {
+                                    DeliveryDeltaAttemptTelemetry {
+                                        provider,
+                                        outcome,
+                                        reason,
+                                        count,
+                                        download_bytes,
+                                        duration_ms,
+                                    }
+                                },
+                            )
+                            .collect(),
+                    }
+                })
+                .collect(),
+        }
+    }
 }
 
 #[derive(Clone, Debug, Serialize)]
@@ -179,6 +337,10 @@ pub fn verify_artifact_file(
     }
 
     Ok((sha256, size))
+}
+
+fn elapsed_ms(started: Instant) -> u64 {
+    started.elapsed().as_millis().min(u128::from(u64::MAX)) as u64
 }
 
 fn staging_dir(decision: &BootstrapperUpdateDecision, staging_root: &Path) -> Result<PathBuf> {
@@ -328,6 +490,7 @@ pub(crate) fn stage_artifact(
     artifact_count: usize,
     reporter: &dyn InstallProgressReporter,
 ) -> Result<StagedArtifact> {
+    let started = Instant::now();
     let file_name = artifact_file_name(artifact, &key)?;
     let target_path = staging_dir.join(file_name);
 
@@ -352,6 +515,8 @@ pub(crate) fn stage_artifact(
                 size,
                 url: artifact.url.clone(),
                 downloaded_bytes: 0,
+                duration_ms: elapsed_ms(started),
+                fallback_reason: None,
                 file_operations: Vec::new(),
             });
         }
@@ -386,6 +551,8 @@ pub(crate) fn stage_artifact(
             size,
             url: artifact.url.clone(),
             downloaded_bytes: size,
+            duration_ms: elapsed_ms(started),
+            fallback_reason: None,
             file_operations: Vec::new(),
         })
     })();
@@ -462,11 +629,11 @@ fn write_snapshot_archive(source: &Path, module_name: &str, target: &Path) -> Re
 fn stage_full_fallback(
     fallback: &BootstrapperArtifact,
     key: ArtifactKey,
-    result_sha256: &str,
     staging_dir: &Path,
     artifact_index: usize,
     artifact_count: usize,
     reporter: &dyn InstallProgressReporter,
+    reason: &str,
 ) -> Result<StagedArtifact> {
     let mut staged = stage_artifact(
         fallback,
@@ -476,13 +643,7 @@ fn stage_full_fallback(
         artifact_count,
         reporter,
     )?;
-    staged.file_operations.push(StagedFileOperation {
-        path: "*".to_string(),
-        action: "new".to_string(),
-        delivery: "full-fallback".to_string(),
-        download_bytes: staged.downloaded_bytes,
-        result_sha256: result_sha256.to_string(),
-    });
+    staged.fallback_reason = Some(reason.to_string());
     Ok(staged)
 }
 
@@ -497,15 +658,16 @@ fn stage_file_set(
     artifact_count: usize,
     reporter: &dyn InstallProgressReporter,
 ) -> Result<StagedArtifact> {
+    let started = Instant::now();
     if file_set.files.is_empty() {
         return stage_full_fallback(
             fallback,
             key,
-            &file_set.content_sha256,
             staging_dir,
             artifact_index,
             artifact_count,
             reporter,
+            "file-inventory-empty",
         );
     }
     let progress_total = file_set
@@ -558,11 +720,11 @@ fn stage_file_set(
         return stage_full_fallback(
             fallback,
             key,
-            &file_set.content_sha256,
             staging_dir,
             artifact_index,
             artifact_count,
             &component_reporter,
+            "full-artifact-smaller",
         );
     }
     let safe_key = sanitize_path_segment(&key.as_str().replace(':', "-"))?;
@@ -582,6 +744,7 @@ fn stage_file_set(
         let mut downloaded_bytes = 0_u64;
         let mut progress_completed = 0_u64;
         for (file_index, file) in file_set.files.iter().enumerate() {
+            let operation_started = Instant::now();
             let file_reporter = WeightedArtifactProgressReporter {
                 inner: reporter,
                 bytes_offset: progress_completed,
@@ -597,44 +760,114 @@ fn stage_file_set(
             let source_with_sha = source
                 .as_ref()
                 .and_then(|path| source_hashes.get(&file.path).map(|sha| (path, sha.clone())));
-            let (action, delivery, operation_download_bytes) = if let Some((source, _)) =
-                source_with_sha
-                    .as_ref()
-                    .filter(|(_, sha)| sha.eq_ignore_ascii_case(&file.sha256))
+            let mut delta_attempts = Vec::new();
+            let mut fallback_reason = None;
+            let mut operation_download_bytes = 0_u64;
+            let (action, delivery) = if let Some((source, _)) = source_with_sha
+                .as_ref()
+                .filter(|(_, sha)| sha.eq_ignore_ascii_case(&file.sha256))
             {
                 if fs::hard_link(source, &destination).is_ok() {
-                    ("link", "none", 0)
+                    ("link", "none".to_string())
                 } else {
                     fs::copy(source, &destination)?;
-                    ("existing", "none", 0)
+                    ("existing", "none".to_string())
                 }
             } else {
-                let patched = source_with_sha.as_ref().and_then(|(source, source_sha)| {
+                let mut applied_delivery = None;
+                if let Some((source, source_sha)) = source_with_sha.as_ref() {
                     let delta = file
                         .patches
                         .iter()
-                        .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha))?;
-                    let patch_dir = work_dir.join("patches");
-                    fs::create_dir_all(&patch_dir).ok()?;
-                    let patch_path = patch_dir.join(format!("{file_index}.patch"));
-                    let result = (|| -> Result<()> {
-                        materialize_artifact_with_progress(
+                        .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha));
+                    if let Some(delta) = delta {
+                        let attempt_started = Instant::now();
+                        let patch_dir = work_dir.join("patches");
+                        fs::create_dir_all(&patch_dir)?;
+                        let patch_path = patch_dir.join(format!("{file_index}-bsdiff.patch"));
+                        let download = materialize_artifact_with_progress(
                             &delta.artifact,
                             &key,
                             &patch_path,
                             file_index + 1,
                             file_set.files.len(),
                             &file_reporter,
-                        )?;
-                        verify_artifact_file(&patch_path, &delta.artifact, &key)?;
-                        apply_delta(source, &patch_path, &destination, delta)
-                    })();
-                    let _ = fs::remove_file(&patch_path);
-                    result.ok().map(|_| delta.artifact.size.unwrap_or(0))
-                });
-                if let Some(patch_bytes) = patched {
-                    downloaded_bytes = downloaded_bytes.saturating_add(patch_bytes);
-                    ("new", "bsdiff", patch_bytes)
+                        );
+                        let patch_bytes = fs::metadata(&patch_path)
+                            .map(|metadata| metadata.len())
+                            .unwrap_or(0);
+                        operation_download_bytes =
+                            operation_download_bytes.saturating_add(patch_bytes);
+                        if let Err(error) = download {
+                            delta_attempts.push(DeltaAttemptTelemetry {
+                                provider: "bsdiff".to_string(),
+                                outcome: "download-failed".to_string(),
+                                download_bytes: patch_bytes,
+                                duration_ms: elapsed_ms(attempt_started),
+                                reason: Some("delta-download-failed".to_string()),
+                            });
+                            eprintln!(
+                                "PulseSync bsdiff download failed for {} {}: {error}",
+                                key.as_str(),
+                                file.path
+                            );
+                            let _ = fs::remove_file(&patch_path);
+                        } else if let Err(error) =
+                            verify_artifact_file(&patch_path, &delta.artifact, &key)
+                        {
+                            delta_attempts.push(DeltaAttemptTelemetry {
+                                provider: "bsdiff".to_string(),
+                                outcome: "verify-failed".to_string(),
+                                download_bytes: patch_bytes,
+                                duration_ms: elapsed_ms(attempt_started),
+                                reason: Some("delta-patch-verification-failed".to_string()),
+                            });
+                            eprintln!(
+                                "PulseSync bsdiff patch verification failed for {} {}: {error}",
+                                key.as_str(),
+                                file.path
+                            );
+                            let _ = fs::remove_file(&patch_path);
+                        } else {
+                            let apply = apply_delta(source, &patch_path, &destination, delta);
+                            let _ = fs::remove_file(&patch_path);
+                            match apply {
+                                Ok(()) => {
+                                    delta_attempts.push(DeltaAttemptTelemetry {
+                                        provider: "bsdiff".to_string(),
+                                        outcome: "applied".to_string(),
+                                        download_bytes: patch_bytes,
+                                        duration_ms: elapsed_ms(attempt_started),
+                                        reason: None,
+                                    });
+                                    applied_delivery = Some("bsdiff".to_string());
+                                }
+                                Err(error) => {
+                                    let reason = delta_error_code(error.as_ref()).to_string();
+                                    delta_attempts.push(DeltaAttemptTelemetry {
+                                        provider: "bsdiff".to_string(),
+                                        outcome: "apply-failed".to_string(),
+                                        download_bytes: patch_bytes,
+                                        duration_ms: elapsed_ms(attempt_started),
+                                        reason: Some(reason.clone()),
+                                    });
+                                    eprintln!(
+                                        "PulseSync bsdiff apply failed for {} {} ({reason}): {error}",
+                                        key.as_str(),
+                                        file.path
+                                    );
+                                    let _ = fs::remove_file(&destination);
+                                }
+                            }
+                        }
+                    } else {
+                        fallback_reason = Some("no-matching-delta".to_string());
+                    }
+                } else {
+                    fallback_reason = Some("source-missing".to_string());
+                }
+                if let Some(provider) = applied_delivery {
+                    ("new", provider)
                 } else {
                     let _ = fs::remove_file(&destination);
                     materialize_artifact_with_progress(
@@ -646,19 +879,30 @@ fn stage_file_set(
                         &file_reporter,
                     )?;
                     verify_artifact_file(&destination, &file.artifact, &key)?;
-                    downloaded_bytes = downloaded_bytes.saturating_add(file.size);
-                    ("new", "full", file.size)
+                    operation_download_bytes = operation_download_bytes.saturating_add(file.size);
+                    if fallback_reason.is_none() {
+                        fallback_reason = Some(if delta_attempts.is_empty() {
+                            "no-usable-delta".to_string()
+                        } else {
+                            "delta-attempts-failed".to_string()
+                        });
+                    }
+                    ("new", "full".to_string())
                 }
             };
+            downloaded_bytes = downloaded_bytes.saturating_add(operation_download_bytes);
             if file.executable {
                 ensure_executable(&destination)?;
             }
             operations.push(StagedFileOperation {
                 path: file.path.clone(),
                 action: action.to_string(),
-                delivery: delivery.to_string(),
+                delivery,
                 download_bytes: operation_download_bytes,
                 result_sha256: file.sha256.clone(),
+                duration_ms: elapsed_ms(operation_started),
+                fallback_reason,
+                delta_attempts,
             });
             progress_completed = progress_completed.saturating_add(file.size);
         }
@@ -673,6 +917,9 @@ fn stage_file_set(
                     delivery: "none".to_string(),
                     download_bytes: 0,
                     result_sha256: String::new(),
+                    duration_ms: 0,
+                    fallback_reason: None,
+                    delta_attempts: Vec::new(),
                 });
             }
         }
@@ -716,21 +963,29 @@ fn stage_file_set(
             size,
             url: "reconstructed:file-inventory".to_string(),
             downloaded_bytes,
+            duration_ms: elapsed_ms(started),
+            fallback_reason: None,
             file_operations: operations,
         })
     })();
     let _ = fs::remove_dir_all(&work_dir);
     match result {
         Ok(staged) => Ok(staged),
-        Err(_) => stage_full_fallback(
-            fallback,
-            key,
-            &file_set.content_sha256,
-            staging_dir,
-            artifact_index,
-            artifact_count,
-            &component_reporter,
-        ),
+        Err(error) => {
+            eprintln!(
+                "PulseSync component delta reconstruction failed for {}: {error}",
+                key.as_str()
+            );
+            stage_full_fallback(
+                fallback,
+                key,
+                staging_dir,
+                artifact_index,
+                artifact_count,
+                &component_reporter,
+                "snapshot-reconstruction-failed",
+            )
+        }
     }
 }
 
@@ -804,6 +1059,7 @@ pub fn stage_artifacts(
     artifact_keys: Vec<ArtifactKey>,
     reporter: &dyn InstallProgressReporter,
 ) -> Result<StagingResult> {
+    let started = Instant::now();
     let staging_dir = staging_dir(decision, staging_root)?;
     fs::create_dir_all(&staging_dir)?;
 
@@ -939,5 +1195,6 @@ pub fn stage_artifacts(
         target_version: decision.target_version.clone(),
         bundle_version: decision.bundle_version.clone(),
         update_available: decision.update_available,
+        duration_ms: elapsed_ms(started),
     })
 }

@@ -1,4 +1,5 @@
 import { prepareDesktopUpdate, type PrepareDesktopUpdateOptions, type PrepareUpdateResultV1 } from '../updater/bootstrapperUpdateService'
+import { recordUpdatePrepareFailure, recordUpdatePrepareResult, recordUpdateTransition } from '../updater/updateTelemetry'
 import { bootstrapUiStateFromError, bootstrapUiStateFromPrepareResult } from './updateUiState'
 
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
@@ -46,6 +47,7 @@ export class UpdateCoordinator {
         }
         this.lastOptions = options
         this.publish(INITIAL_STATE)
+        const startedAt = Date.now()
         const onProgress = options.onProgress
         const operation = prepareDesktopUpdate({
             ...options,
@@ -55,10 +57,12 @@ export class UpdateCoordinator {
             },
         })
             .then(result => {
+                recordUpdatePrepareResult(result, options, Math.max(0, Date.now() - startedAt))
                 this.publish(bootstrapUiStateFromPrepareResult(result))
                 return result
             })
             .catch(error => {
+                recordUpdatePrepareFailure(error, options, Math.max(0, Date.now() - startedAt))
                 this.publish(bootstrapUiStateFromError(error))
                 throw error
             })
@@ -88,6 +92,7 @@ export class UpdateCoordinator {
     }
 
     private publish(state: BootstrapUiStateV1): void {
+        recordUpdateTransition(this.state, state, this.lastOptions ?? undefined)
         this.state = state
         for (const listener of this.listeners) {
             listener(state)

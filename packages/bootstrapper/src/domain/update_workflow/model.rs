@@ -1,4 +1,4 @@
-use crate::domain::manifest::UpdatePlanItem;
+use crate::domain::{artifacts::DeliveryTelemetry, manifest::UpdatePlanItem};
 use serde::{Deserialize, Serialize};
 use std::{path::PathBuf, str::FromStr};
 
@@ -94,6 +94,8 @@ pub enum PrepareUpdateResult {
         transaction: PreparedTransactionRef,
         #[serde(rename = "applyDeferredByLeaseId")]
         apply_deferred_by_lease_id: String,
+        #[serde(rename = "deliveryTelemetry", skip_serializing_if = "Option::is_none")]
+        delivery_telemetry: Option<DeliveryTelemetry>,
     },
     Blocked {
         #[serde(rename = "schemaVersion")]
@@ -121,6 +123,7 @@ impl PrepareUpdateResult {
         reused: bool,
         transaction: PreparedTransactionRef,
         lease_id: String,
+        delivery_telemetry: Option<DeliveryTelemetry>,
     ) -> Self {
         Self::Prepared {
             schema_version: 1,
@@ -129,6 +132,7 @@ impl PrepareUpdateResult {
             reused,
             transaction,
             apply_deferred_by_lease_id: lease_id,
+            delivery_telemetry,
         }
     }
 

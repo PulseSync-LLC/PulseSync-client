@@ -111,6 +111,43 @@ export type EffectiveManifestSourceV1 = {
     fallbackReason: 'health-unavailable' | 'requested-github' | null
 }
 
+export type DeliveryKindTelemetryV1 = {
+    delivery: string
+    count: number
+}
+
+export type DeliveryFallbackTelemetryV1 = {
+    reason: string
+    count: number
+}
+
+export type DeltaAttemptTelemetryV1 = {
+    provider: string
+    outcome: string
+    reason?: string
+    count: number
+    downloadBytes: number
+    durationMs: number
+}
+
+export type DeliveryArtifactTelemetryV1 = {
+    key: string
+    delivery: string
+    reused: boolean
+    downloadedBytes: number
+    durationMs: number
+    fallbackReason?: string
+    fileOperationCount: number
+    fileDeliveries: DeliveryKindTelemetryV1[]
+    fallbacks: DeliveryFallbackTelemetryV1[]
+    deltaAttempts: DeltaAttemptTelemetryV1[]
+}
+
+export type DeliveryTelemetryV1 = {
+    durationMs: number
+    artifacts: DeliveryArtifactTelemetryV1[]
+}
+
 export type PrepareUpdateResultV1 =
     | { schemaVersion: 1; state: 'up-to-date'; decision: UpdateDecisionV1; source: EffectiveManifestSourceV1 }
     | {
@@ -121,6 +158,7 @@ export type PrepareUpdateResultV1 =
           reused: boolean
           transaction: { id: string; dir: string; file: string }
           applyDeferredByLeaseId: string
+          deliveryTelemetry?: DeliveryTelemetryV1
       }
     | { schemaVersion: 1; state: 'blocked'; decision?: UpdateDecisionV1; source?: EffectiveManifestSourceV1; block: RustBlockV1 }
 
@@ -349,6 +387,51 @@ function isEffectiveSource(value: unknown): value is EffectiveManifestSourceV1 {
     )
 }
 
+function isDeliveryKindTelemetry(value: unknown): value is DeliveryKindTelemetryV1 {
+    return isRecord(value) && isNonEmptyString(value.delivery) && isNonNegativeInteger(value.count)
+}
+
+function isDeliveryFallbackTelemetry(value: unknown): value is DeliveryFallbackTelemetryV1 {
+    return isRecord(value) && isNonEmptyString(value.reason) && isNonNegativeInteger(value.count)
+}
+
+function isDeltaAttemptTelemetry(value: unknown): value is DeltaAttemptTelemetryV1 {
+    return (
+        isRecord(value) &&
+        isNonEmptyString(value.provider) &&
+        isNonEmptyString(value.outcome) &&
+        (value.reason === undefined || isNonEmptyString(value.reason)) &&
+        isNonNegativeInteger(value.count) &&
+        isNonNegativeInteger(value.downloadBytes) &&
+        isNonNegativeInteger(value.durationMs)
+    )
+}
+
+function isDeliveryTelemetry(value: unknown): value is DeliveryTelemetryV1 {
+    return (
+        isRecord(value) &&
+        isNonNegativeInteger(value.durationMs) &&
+        Array.isArray(value.artifacts) &&
+        value.artifacts.every(
+            artifact =>
+                isRecord(artifact) &&
+                isNonEmptyString(artifact.key) &&
+                isNonEmptyString(artifact.delivery) &&
+                isBoolean(artifact.reused) &&
+                isNonNegativeInteger(artifact.downloadedBytes) &&
+                isNonNegativeInteger(artifact.durationMs) &&
+                (artifact.fallbackReason === undefined || isNonEmptyString(artifact.fallbackReason)) &&
+                isNonNegativeInteger(artifact.fileOperationCount) &&
+                Array.isArray(artifact.fileDeliveries) &&
+                artifact.fileDeliveries.every(isDeliveryKindTelemetry) &&
+                Array.isArray(artifact.fallbacks) &&
+                artifact.fallbacks.every(isDeliveryFallbackTelemetry) &&
+                Array.isArray(artifact.deltaAttempts) &&
+                artifact.deltaAttempts.every(isDeltaAttemptTelemetry),
+        )
+    )
+}
+
 function isPrepareResult(value: unknown): value is PrepareUpdateResultV1 | UpdateErrorV1 {
     if (isUpdateErrorV1(value)) return true
     if (!isRecord(value) || value.schemaVersion !== 1) return false
@@ -362,7 +445,8 @@ function isPrepareResult(value: unknown): value is PrepareUpdateResultV1 | Updat
             isNonEmptyString(value.transaction.id) &&
             isNonEmptyString(value.transaction.dir) &&
             isNonEmptyString(value.transaction.file) &&
-            isNonEmptyString(value.applyDeferredByLeaseId)
+            isNonEmptyString(value.applyDeferredByLeaseId) &&
+            (value.deliveryTelemetry === undefined || isDeliveryTelemetry(value.deliveryTelemetry))
         )
     }
     return (

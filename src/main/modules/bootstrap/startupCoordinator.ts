@@ -5,6 +5,7 @@ import { type ActiveAppLeaseV1, isUpdateErrorV1, type LaunchRequestEnvelopeV1, t
 import { acknowledgeActiveRuntime } from '../bootstrapper/runtimeCommands'
 import logger from '../logger'
 import { getDesktopUpdateManifestRequest } from '../updater/desktopManifestSource'
+import { recordUpdateActivation } from '../updater/updateTelemetry'
 import { getUpdateSource } from '../updater/updateSource'
 import { handoffPreparedUpdate, setLaunchHandoffRuntime } from './launchHandoff'
 import { updateCoordinator } from './updateCoordinator'
@@ -184,13 +185,20 @@ export class StartupCoordinator {
         await this.options.inbox.start(request => handle.deliverLaunchRequest(request))
         await handle.ready
         if (activeRuntime.activationState === 'pending') {
-            await acknowledgeActiveRuntime({
-                activeLeaseId: this.options.lease.leaseId,
-                generation: activeRuntime.generation,
-                hostBundle: this.options.runtimePaths.hostBundle,
-                launcher,
-                stateRoot: this.options.runtimePaths.stateRoot,
-            })
+            const activationStartedAt = Date.now()
+            try {
+                await acknowledgeActiveRuntime({
+                    activeLeaseId: this.options.lease.leaseId,
+                    generation: activeRuntime.generation,
+                    hostBundle: this.options.runtimePaths.hostBundle,
+                    launcher,
+                    stateRoot: this.options.runtimePaths.stateRoot,
+                })
+                recordUpdateActivation('acknowledged', Math.max(0, Date.now() - activationStartedAt))
+            } catch (error) {
+                recordUpdateActivation('failed', Math.max(0, Date.now() - activationStartedAt))
+                throw error
+            }
         }
         this.unsubscribeState?.()
         this.unsubscribeState = null

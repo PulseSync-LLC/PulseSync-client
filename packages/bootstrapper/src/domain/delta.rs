@@ -3,9 +3,73 @@ use crate::{
     domain::manifest::{DeltaArtifact, DeltaProvider},
 };
 use qbsdiff::Bspatch;
-use std::{fs, io::Cursor, path::Path};
+use std::{error::Error, fmt, fs, io::Cursor, path::Path};
 
 const MAX_DELTA_RESULT_SIZE: u64 = 1024 * 1024 * 1024;
+
+#[derive(Debug)]
+pub struct DeltaApplyError {
+    code: &'static str,
+    message: String,
+}
+
+impl DeltaApplyError {
+    fn new(code: &'static str, message: impl Into<String>) -> Self {
+        Self {
+            code,
+            message: message.into(),
+        }
+    }
+
+    pub fn code(&self) -> &'static str {
+        self.code
+    }
+}
+
+impl fmt::Display for DeltaApplyError {
+    fn fmt(&self, formatter: &mut fmt::Formatter<'_>) -> fmt::Result {
+        write!(formatter, "{}: {}", self.code, self.message)
+    }
+}
+
+impl Error for DeltaApplyError {}
+
+pub fn delta_error_code(error: &(dyn Error + 'static)) -> &'static str {
+    error
+        .downcast_ref::<DeltaApplyError>()
+        .map(DeltaApplyError::code)
+        .unwrap_or("delta-apply-failed")
+}
+
+fn validate_delta_inputs(source: &Path, patch: &Path, delta: &DeltaArtifact) -> Result<()> {
+    if delta.provider != DeltaProvider::Bsdiff {
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-provider-unavailable",
+            "only bsdiff deltas are supported by this bootstrapper build",
+        )));
+    }
+    if delta.result_size > MAX_DELTA_RESULT_SIZE {
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-result-too-large",
+            "delta result exceeds the bootstrapper safety limit",
+        )));
+    }
+    let source_sha = sha256_file(source)?;
+    if !source_sha.eq_ignore_ascii_case(&delta.from_sha256) {
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-source-sha256-mismatch",
+            format!("expected {}, got {source_sha}", delta.from_sha256),
+        )));
+    }
+    let patch_sha = sha256_file(patch)?;
+    if !patch_sha.eq_ignore_ascii_case(&delta.artifact.sha256) {
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-patch-sha256-mismatch",
+            format!("expected {}, got {patch_sha}", delta.artifact.sha256),
+        )));
+    }
+    Ok(())
+}
 
 pub fn apply_delta(
     source: &Path,
@@ -13,51 +77,60 @@ pub fn apply_delta(
     target: &Path,
     delta: &DeltaArtifact,
 ) -> Result<()> {
-    if delta.provider != DeltaProvider::Bsdiff {
-        return Err("delta provider is unavailable in this bootstrapper build".into());
-    }
-    if delta.result_size > MAX_DELTA_RESULT_SIZE {
-        return Err("delta result exceeds the bootstrapper safety limit".into());
-    }
-    let source_sha = sha256_file(source)?;
-    if !source_sha.eq_ignore_ascii_case(&delta.from_sha256) {
-        return Err(format!(
-            "delta source sha256 mismatch: expected {}, got {source_sha}",
-            delta.from_sha256
-        )
-        .into());
-    }
-    let patch_sha = sha256_file(patch)?;
-    if !patch_sha.eq_ignore_ascii_case(&delta.artifact.sha256) {
-        return Err(format!(
-            "delta patch sha256 mismatch: expected {}, got {patch_sha}",
-            delta.artifact.sha256
-        )
-        .into());
-    }
+    validate_delta_inputs(source, patch, delta)?;
+    let _ = fs::remove_file(target);
+
     let source_bytes = fs::read(source)?;
     let patch_bytes = fs::read(patch)?;
-    let patcher = Bspatch::new(&patch_bytes)?;
+    let patcher = Bspatch::new(&patch_bytes).map_err(|error| {
+        Box::new(DeltaApplyError::new(
+            "bsdiff-patch-invalid",
+            error.to_string(),
+        )) as Box<dyn Error>
+    })?;
     if patcher.hint_target_size() != delta.result_size {
-        return Err("delta patch target size does not match manifest resultSize".into());
+        return Err(Box::new(DeltaApplyError::new(
+            "bsdiff-target-size-mismatch",
+            "delta patch target size does not match manifest resultSize",
+        )));
     }
+
     let mut result = Vec::with_capacity(delta.result_size as usize);
-    patcher.apply(&source_bytes, Cursor::new(&mut result))?;
+    patcher
+        .apply(&source_bytes, Cursor::new(&mut result))
+        .map_err(|error| {
+            Box::new(DeltaApplyError::new(
+                "bsdiff-apply-failed",
+                error.to_string(),
+            )) as Box<dyn Error>
+        })?;
     if result.len() as u64 != delta.result_size {
-        return Err("delta output size does not match manifest resultSize".into());
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-output-size-mismatch",
+            format!("expected {}, got {}", delta.result_size, result.len()),
+        )));
     }
+
     if let Some(parent) = target.parent() {
         fs::create_dir_all(parent)?;
     }
     fs::write(target, result)?;
+
+    let result_size = fs::metadata(target)?.len();
+    if result_size != delta.result_size {
+        let _ = fs::remove_file(target);
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-output-size-mismatch",
+            format!("expected {}, got {result_size}", delta.result_size),
+        )));
+    }
     let result_sha = sha256_file(target)?;
     if !result_sha.eq_ignore_ascii_case(&delta.result_sha256) {
         let _ = fs::remove_file(target);
-        return Err(format!(
-            "delta result sha256 mismatch: expected {}, got {result_sha}",
-            delta.result_sha256
-        )
-        .into());
+        return Err(Box::new(DeltaApplyError::new(
+            "delta-result-sha256-mismatch",
+            format!("expected {}, got {result_sha}", delta.result_sha256),
+        )));
     }
     Ok(())
 }

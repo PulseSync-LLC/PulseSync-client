@@ -192,7 +192,7 @@ jobs:
           GLITCHTIP_SOURCEMAPS: "0"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
           PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.release_mode == 'reuse-latest' && '1' || '0' }}
-          PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.channel == 'dev' && '1' || '0' }}
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
         run: >-
           yarn component:publish
           --component ${{ inputs.component }}
