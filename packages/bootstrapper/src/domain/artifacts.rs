@@ -647,39 +647,19 @@ fn stage_full_fallback(
     Ok(staged)
 }
 
-fn stage_file_set(
-    key: ArtifactKey,
-    archive_root: &str,
+struct FileSetProgressPlan {
+    source_root: Option<PathBuf>,
+    source_hashes: BTreeMap<String, String>,
+    file_weights: Vec<u64>,
+    progress_total: Option<u64>,
+    use_full_fallback: bool,
+}
+
+fn build_file_set_progress_plan(
     file_set: &ComponentFileSet,
     fallback: &BootstrapperArtifact,
     source_root: Option<PathBuf>,
-    staging_dir: &Path,
-    artifact_index: usize,
-    artifact_count: usize,
-    reporter: &dyn InstallProgressReporter,
-) -> Result<StagedArtifact> {
-    let started = Instant::now();
-    if file_set.files.is_empty() {
-        return stage_full_fallback(
-            fallback,
-            key,
-            staging_dir,
-            artifact_index,
-            artifact_count,
-            reporter,
-            "file-inventory-empty",
-        );
-    }
-    let progress_total = file_set
-        .files
-        .iter()
-        .fold(0_u64, |total, file| total.saturating_add(file.size));
-    let component_reporter = WeightedArtifactProgressReporter {
-        inner: reporter,
-        bytes_offset: 0,
-        bytes_weight: progress_total,
-        bytes_total: progress_total,
-    };
+) -> FileSetProgressPlan {
     let source_root = source_root.filter(|path| path.is_dir());
     let source_hashes = source_root
         .as_ref()
@@ -700,33 +680,91 @@ fn stage_file_set(
                 .collect::<BTreeMap<_, _>>()
         })
         .unwrap_or_default();
-    let estimated_download = file_set.files.iter().fold(0_u64, |total, file| {
-        let bytes = match source_hashes.get(&file.path) {
-            Some(source_sha) if source_sha.eq_ignore_ascii_case(&file.sha256) => 0,
-            Some(source_sha) => file
-                .patches
-                .iter()
-                .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha))
-                .and_then(|patch| patch.artifact.size)
-                .unwrap_or(file.size),
-            None => file.size,
-        };
-        total.saturating_add(bytes)
-    });
-    if fallback
-        .size
-        .is_some_and(|fallback_size| estimated_download >= fallback_size)
-    {
+    let file_weights = file_set
+        .files
+        .iter()
+        .map(|file| {
+            let full_size = file.artifact.size.unwrap_or(file.size);
+            match source_hashes.get(&file.path) {
+                Some(source_sha) if source_sha.eq_ignore_ascii_case(&file.sha256) => 0,
+                Some(source_sha) => file
+                    .patches
+                    .iter()
+                    .find(|patch| patch.from_sha256.eq_ignore_ascii_case(source_sha))
+                    .and_then(|patch| patch.artifact.size)
+                    .unwrap_or(full_size),
+                None => full_size,
+            }
+        })
+        .collect::<Vec<_>>();
+    let estimated_download = file_weights
+        .iter()
+        .fold(0_u64, |total, size| total.saturating_add(*size));
+    let use_full_fallback = file_set.files.is_empty()
+        || fallback
+            .size
+            .is_some_and(|fallback_size| estimated_download >= fallback_size);
+    let progress_total = if file_set.files.is_empty() || use_full_fallback {
+        fallback.size
+    } else {
+        Some(estimated_download)
+    };
+
+    FileSetProgressPlan {
+        source_root,
+        source_hashes,
+        file_weights,
+        progress_total,
+        use_full_fallback,
+    }
+}
+
+fn stage_file_set(
+    key: ArtifactKey,
+    archive_root: &str,
+    file_set: &ComponentFileSet,
+    fallback: &BootstrapperArtifact,
+    plan: FileSetProgressPlan,
+    staging_dir: &Path,
+    artifact_index: usize,
+    artifact_count: usize,
+    reporter: &dyn InstallProgressReporter,
+) -> Result<StagedArtifact> {
+    let started = Instant::now();
+    let FileSetProgressPlan {
+        source_root,
+        source_hashes,
+        file_weights,
+        progress_total,
+        use_full_fallback,
+    } = plan;
+    if file_set.files.is_empty() {
         return stage_full_fallback(
             fallback,
             key,
             staging_dir,
             artifact_index,
             artifact_count,
-            &component_reporter,
+            reporter,
+            "file-inventory-empty",
+        );
+    }
+    if use_full_fallback {
+        return stage_full_fallback(
+            fallback,
+            key,
+            staging_dir,
+            artifact_index,
+            artifact_count,
+            reporter,
             "full-artifact-smaller",
         );
     }
+    let progress_total = progress_total.unwrap_or_else(|| {
+        file_weights
+            .iter()
+            .fold(0_u64, |total, size| total.saturating_add(*size))
+    });
     let safe_key = sanitize_path_segment(&key.as_str().replace(':', "-"))?;
     let work_dir = staging_dir.join(format!(".snapshot-{}-{}", safe_key, std::process::id()));
     let snapshot_dir = work_dir.join("snapshot");
@@ -745,10 +783,11 @@ fn stage_file_set(
         let mut progress_completed = 0_u64;
         for (file_index, file) in file_set.files.iter().enumerate() {
             let operation_started = Instant::now();
+            let progress_weight = file_weights.get(file_index).copied().unwrap_or(file.size);
             let file_reporter = WeightedArtifactProgressReporter {
                 inner: reporter,
                 bytes_offset: progress_completed,
-                bytes_weight: file.size,
+                bytes_weight: progress_weight,
                 bytes_total: progress_total,
             };
             let relative = safe_relative_path(&file.path)?;
@@ -904,7 +943,7 @@ fn stage_file_set(
                 fallback_reason,
                 delta_attempts,
             });
-            progress_completed = progress_completed.saturating_add(file.size);
+            progress_completed = progress_completed.saturating_add(progress_weight);
         }
         if let Some(source_root) = source_root.as_ref() {
             for deleted in collect_relative_files(source_root)?
@@ -982,7 +1021,7 @@ fn stage_file_set(
                 staging_dir,
                 artifact_index,
                 artifact_count,
-                &component_reporter,
+                reporter,
                 "snapshot-reconstruction-failed",
             )
         }
@@ -1036,22 +1075,6 @@ impl InstallProgressReporter for WeightedArtifactProgressReporter<'_> {
     }
 }
 
-fn artifact_progress_weight(
-    artifact: &BootstrapperArtifact,
-    file_set: Option<&ComponentFileSet>,
-) -> Option<u64> {
-    file_set.map_or(artifact.size, |set| {
-        if set.files.is_empty() {
-            return artifact.size;
-        }
-        Some(
-            set.files
-                .iter()
-                .fold(0_u64, |total, file| total.saturating_add(file.size)),
-        )
-    })
-}
-
 pub fn stage_artifacts(
     decision: &BootstrapperUpdateDecision,
     state_root: Option<&Path>,
@@ -1080,21 +1103,47 @@ pub fn stage_artifacts(
                         }
                         _ => None,
                     };
-                    (key, artifact, file_set)
+                    let source_root = match &key {
+                        ArtifactKey::Host => installed_state.as_ref().and_then(|state| {
+                            state_root.map(|root| root.join(&state.latest.host.path))
+                        }),
+                        ArtifactKey::Module(module_name) => {
+                            installed_state.as_ref().and_then(|state| {
+                                state_root.and_then(|root| {
+                                    state
+                                        .latest
+                                        .components
+                                        .get(module_name)
+                                        .map(|component| root.join(&component.path))
+                                })
+                            })
+                        }
+                        ArtifactKey::Bootstrapper => None,
+                    };
+                    let file_plan = file_set
+                        .map(|set| build_file_set_progress_plan(set, artifact, source_root));
+                    (key, artifact, file_set, file_plan)
                 })
             })
             .collect::<Vec<_>>();
         let bytes_total = selected
             .iter()
-            .try_fold(0_u64, |total, (_, artifact, file_set)| {
-                artifact_progress_weight(artifact, *file_set)
+            .try_fold(0_u64, |total, (_, artifact, _, file_plan)| {
+                file_plan
+                    .as_ref()
+                    .and_then(|plan| plan.progress_total)
+                    .or(artifact.size)
                     .and_then(|size| total.checked_add(size))
             });
         let artifact_count = selected.len();
         let mut bytes_completed = 0_u64;
         let last_bytes_read = Cell::new(0_u64);
-        for (index, (key, artifact, file_set)) in selected.into_iter().enumerate() {
-            let progress_weight = artifact_progress_weight(artifact, file_set).unwrap_or(0);
+        for (index, (key, artifact, file_set, file_plan)) in selected.into_iter().enumerate() {
+            let progress_weight = file_plan
+                .as_ref()
+                .and_then(|plan| plan.progress_total)
+                .or(artifact.size)
+                .unwrap_or(0);
             let aggregate_reporter = AggregateArtifactProgressReporter {
                 inner: reporter,
                 bytes_offset: bytes_completed,
@@ -1107,31 +1156,15 @@ pub fn stage_artifacts(
                 .find(|item| item.key == key.as_str())
                 .map(|item| item.required)
                 .unwrap_or(true);
-            let staged = match file_set {
-                Some(file_set) => {
-                    let (archive_root, source_root) = match &key {
-                        ArtifactKey::Host => (
-                            "host",
-                            installed_state.as_ref().and_then(|state| {
-                                state_root.map(|root| root.join(&state.latest.host.path))
-                            }),
-                        ),
-                        ArtifactKey::Module(module_name) => (
-                            decision
-                                .component_disk_names
-                                .get(module_name)
-                                .map(String::as_str)
-                                .unwrap_or(module_name.as_str()),
-                            installed_state.as_ref().and_then(|state| {
-                                state_root.and_then(|root| {
-                                    state
-                                        .latest
-                                        .components
-                                        .get(module_name)
-                                        .map(|component| root.join(&component.path))
-                                })
-                            }),
-                        ),
+            let staged = match (file_set, file_plan) {
+                (Some(file_set), Some(file_plan)) => {
+                    let archive_root = match &key {
+                        ArtifactKey::Host => "host",
+                        ArtifactKey::Module(module_name) => decision
+                            .component_disk_names
+                            .get(module_name)
+                            .map(String::as_str)
+                            .unwrap_or(module_name.as_str()),
                         ArtifactKey::Bootstrapper => {
                             unreachable!("bootstrapper has no file set")
                         }
@@ -1141,7 +1174,7 @@ pub fn stage_artifacts(
                         archive_root,
                         file_set,
                         artifact,
-                        source_root,
+                        file_plan,
                         &staging_dir,
                         index + 1,
                         artifact_count,
@@ -1163,17 +1196,7 @@ pub fn stage_artifacts(
                     artifacts.push(staged);
                 }
                 Err(error) if !required => {
-                    let failed_bytes = file_set
-                        .map(|set| {
-                            let file_bytes = set.files.iter().map(|file| file.size).sum::<u64>();
-                            artifact
-                                .size
-                                .map_or(file_bytes, |archive_bytes| file_bytes.min(archive_bytes))
-                        })
-                        .or(artifact.size)
-                        .unwrap_or(0);
-                    bytes_completed =
-                        bytes_completed.saturating_add(progress_weight.max(failed_bytes));
+                    bytes_completed = bytes_completed.saturating_add(progress_weight);
                     failures.push(StagingFailure {
                         key,
                         required,
