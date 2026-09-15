@@ -15,7 +15,7 @@ import * as tar from 'tar'
 import { promisify } from 'util'
 import { build as viteBuild } from 'vite'
 
-import { buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
+import { buildBootstrapperExecutable, buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import {
@@ -307,6 +307,7 @@ async function buildDesktopCoreOnly(): Promise<void> {
     if (!publishBranch) return
     const artifactBaseUrl = `${baseS3Url}/builds/app/${publishBranch}`
     const metadataVersion = process.env.DESKTOP_METADATA_VERSION?.trim() || String(Date.now())
+    await buildBootstrapperExecutable()
     await emitDesktopCoreUpdateManifest({
         baseUrl: artifactBaseUrl,
         channel: publishBranch,

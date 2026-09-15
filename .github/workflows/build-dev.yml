@@ -201,7 +201,7 @@ jobs:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: "1"
           PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
-          PULSESYNC_DISABLE_FILE_INVENTORIES: "1"
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev

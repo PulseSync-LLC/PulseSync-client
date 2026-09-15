@@ -191,6 +191,7 @@ class Updater {
             fallbackUsed: result.source.fallbackUsed,
             targetVersion: result.decision.targetVersion,
             transactionId: result.transaction.id,
+            plan: result.decision.plan,
         })
         if (result.decision.policy.forced) {
             await this.install()

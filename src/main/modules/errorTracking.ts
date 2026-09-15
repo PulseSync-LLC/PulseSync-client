@@ -59,7 +59,7 @@ export const initMainErrorTracking = (identity: MainErrorTrackingIdentity): void
             dataCollection: {
                 userInfo: false,
             },
-            maxBreadcrumbs: 0,
+            maxBreadcrumbs: 25,
             tracesSampleRate: 0,
             attachScreenshot: false,
             includeLocalVariables: false,
@@ -68,6 +68,7 @@ export const initMainErrorTracking = (identity: MainErrorTrackingIdentity): void
                     integration =>
                         !['OnUncaughtException', 'OnUnhandledRejection', 'PreloadInjection', 'MainProcessSession'].includes(integration.name),
                 ),
+            beforeBreadcrumb: breadcrumb => (breadcrumb.category?.startsWith('pulsesync.') ? breadcrumb : null),
             beforeSend: event => {
                 event.platform = 'javascript'
                 event.release = getDesktopErrorTrackingRelease(currentIdentity.version, currentIdentity.commit)
@@ -94,6 +95,48 @@ export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: st
         id,
         ...(email ? { email } : {}),
     })
+}
+
+export const addMainBreadcrumb = (category: string, message: string, data?: Record<string, unknown>): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.addBreadcrumb({
+            category,
+            message,
+            level: 'info',
+            ...(data ? { data } : {}),
+        })
+    } catch (error) {
+        logger.main.warn('Failed to add error tracking breadcrumb:', error)
+    }
+}
+
+type MainMetricAttributes = Record<string, string | number | boolean>
+
+export const countMainMetric = (name: string, value: number, attributes?: MainMetricAttributes): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.metrics.count(name, value, attributes ? { attributes } : undefined)
+    } catch (error) {
+        logger.main.warn('Failed to record error tracking counter:', error)
+    }
+}
+
+export const distributeMainMetric = (
+    name: string,
+    value: number,
+    unit?: 'byte' | 'millisecond',
+    attributes?: MainMetricAttributes,
+): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.metrics.distribution(name, value, {
+            ...(unit ? { unit } : {}),
+            ...(attributes ? { attributes } : {}),
+        })
+    } catch (error) {
+        logger.main.warn('Failed to record error tracking distribution:', error)
+    }
 }
 
 export const captureMainException = (error: unknown, source: string): void => {

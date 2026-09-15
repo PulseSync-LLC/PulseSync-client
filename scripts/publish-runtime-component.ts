@@ -158,6 +158,7 @@ async function buildAuxiliaryComponent(
     if (componentName === 'artifactWorker') await buildArtifactWorker(moduleDir)
     else buildPulsesyncNative(moduleDir)
 
+    run(process.execPath, tsxArgs('scripts/bootstrapper/build.ts', ['build']))
     const generatedManifest = await emitRuntimeComponentUpdateManifest({
         baseUrl,
         channel,

@@ -420,6 +420,7 @@ pub fn prepare_update(
                 true,
                 transaction,
                 options.active_lease_id,
+                None,
             ));
         }
         return Ok(PrepareUpdateResult::blocked(
@@ -464,6 +465,7 @@ pub fn prepare_update(
             safe_to_continue,
         )
     })?;
+    let delivery_telemetry = staging.delivery_telemetry();
     for failure in &staging.failures {
         if let Some(item) = decision
             .plan
@@ -559,6 +561,7 @@ pub fn prepare_update(
             false,
             transaction,
             options.active_lease_id,
+            Some(delivery_telemetry.clone()),
         ));
     }
 
@@ -769,5 +772,6 @@ pub fn prepare_update(
         false,
         transaction,
         options.active_lease_id,
+        Some(delivery_telemetry),
     ))
 }

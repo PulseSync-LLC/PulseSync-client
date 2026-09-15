@@ -2,7 +2,9 @@ import { app } from 'electron'
 
 import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
 import { claimActiveApp } from '../bootstrapper/runtimeCommands'
+import { flushErrorTracking } from '../errorTracking'
 import logger from '../logger'
+import { recordUpdateHandoff } from '../updater/updateTelemetry'
 
 import type { ActiveAppLeaseV1 } from '../bootstrapper/contracts'
 import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
@@ -40,8 +42,12 @@ export function handoffPreparedUpdate(): Promise<boolean> {
 }
 
 async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
+    const startedAt = Date.now()
     const launcher = runtime.runtimePaths.launcher
-    if (!launcher) return false
+    if (!launcher) {
+        recordUpdateHandoff('launcher-missing', Math.max(0, Date.now() - startedAt))
+        return false
+    }
 
     runtime.inbox.freeze()
     await runtime.queue.flush()
@@ -58,10 +64,13 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
             onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
         })
         logger.updater.info('Bootstrapper handoff armed', { handoffId: armed.handoffId, rustPid: armed.rustPid })
+        recordUpdateHandoff('armed', Math.max(0, Date.now() - startedAt))
+        await flushErrorTracking(500)
         scheduleHandoffRecovery(runtime)
         app.quit()
         return true
     } catch (error) {
+        recordUpdateHandoff('failed', Math.max(0, Date.now() - startedAt))
         logger.updater.error('Bootstrapper handoff failed before arming', error)
         await runtime.inbox.unfreeze().catch(recoveryError => logger.updater.error('Failed to resume launch inbox', recoveryError))
         return false

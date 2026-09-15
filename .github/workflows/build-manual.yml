@@ -130,7 +130,7 @@ jobs:
         env:
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
-          PULSESYNC_DISABLE_FILE_INVENTORIES: ${{ inputs.s3_branch == 'dev' && '1' || '0' }}
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           SENTRY_URL: https://issues.pulsesync.dev
