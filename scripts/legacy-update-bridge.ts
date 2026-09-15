@@ -2,7 +2,7 @@ import crypto from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
-import yaml from 'js-yaml'
+import * as yaml from 'js-yaml'
 import semver from 'semver'
 
 import { resolveStructuredPublishPath } from './s3-upload.js'
