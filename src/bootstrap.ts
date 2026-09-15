@@ -1,7 +1,12 @@
+import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { app } from 'electron'
+
+import * as Sentry from '@sentry/electron/main'
+
+import { ERROR_TRACKING_ENABLED } from '@common/errorTracking'
 
 import { type BootstrapWindowController, createBootstrapWindow } from './main/modules/bootstrap/bootstrapWindow'
 import { applyHardwareAccelerationPreference } from './main/modules/bootstrap/hardwareAcceleration'
@@ -23,13 +28,13 @@ import {
     rollbackActiveRuntime,
     startCanonicalApp,
 } from './main/modules/bootstrapper/runtimeCommands'
-import { initMainErrorTracking } from './main/modules/errorTracking'
+import { captureMainException, flushErrorTracking, initMainErrorTracking } from './main/modules/errorTracking'
 import { handleUncaughtException } from './main/modules/handlers/handleError'
 import { getDesktopUpdateManifestRequest } from './main/modules/updater/desktopManifestSource'
 import { registerSchemes } from './main/utils/serverUtils'
 
 import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
-import type { BootstrapStatusKey } from '@common/types/bootstrapEvents'
+import type { BootstrapStatusKey, BootstrapUiDiagnostic } from '@common/types/bootstrapEvents'
 
 const APP_ID = 'pulsesync.app'
 
@@ -107,9 +112,30 @@ function loadApplicationMain(
     return desktopCore.startup({ bootstrapRuntime, bootstrapWindow })
 }
 
+type LaunchFailureCode = 'LF-CANONICAL' | 'LF-CANONICAL-STATE' | 'LF-CLAIM' | 'LF-RUNTIME' | 'LF-STARTUP'
+
+function captureLaunchFailure(
+    error: unknown,
+    code: LaunchFailureCode,
+    source: string,
+    tags: Record<string, string> = {},
+): BootstrapUiDiagnostic {
+    const reference = randomBytes(4).toString('hex').toUpperCase()
+    Sentry.withScope(scope => {
+        scope.setTags({
+            ...tags,
+            'launch.failure_code': code,
+            'launch.failure_ref': reference,
+        })
+        captureMainException(error, source)
+    })
+    return ERROR_TRACKING_ENABLED ? { code, reference } : { code }
+}
+
 async function showBootstrapFailure(
     window: BootstrapWindowController,
     statusKey: Extract<BootstrapStatusKey, 'bootstrapper-missing' | 'launch-blocked' | 'launch-failed'>,
+    diagnostic?: BootstrapUiDiagnostic,
 ): Promise<void> {
     window.publish({
         schemaVersion: 1,
@@ -117,8 +143,9 @@ async function showBootstrapFailure(
         statusKey,
         progress: { kind: 'indeterminate' },
         actions: [],
+        ...(diagnostic ? { diagnostic } : {}),
     })
-    await new Promise(resolve => setTimeout(resolve, 4_000))
+    await Promise.all([new Promise(resolve => setTimeout(resolve, 4_000)), flushErrorTracking()])
     app.quit()
 }
 
@@ -145,12 +172,22 @@ async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths
             return
         }
         console.error('Canonical PulseSync start was blocked', result)
+        if (result.state === 'blocked' || result.state === 'busy') {
+            const bootstrapWindow = await createBootstrapWindow()
+            await showBootstrapFailure(bootstrapWindow, 'launch-blocked')
+            return
+        }
+        const error = new Error(`Canonical PulseSync start returned unexpected state: ${result.state}`)
+        const diagnostic = captureLaunchFailure(error, 'LF-CANONICAL-STATE', 'bootstrap/canonical-start-state', {
+            'launch.result_state': result.state,
+        })
         const bootstrapWindow = await createBootstrapWindow()
-        await showBootstrapFailure(bootstrapWindow, result.state === 'blocked' || result.state === 'busy' ? 'launch-blocked' : 'launch-failed')
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed', diagnostic)
     } catch (error) {
         console.error('Canonical PulseSync start failed', error)
+        const diagnostic = captureLaunchFailure(error, 'LF-CANONICAL', 'bootstrap/canonical-start')
         const bootstrapWindow = await createBootstrapWindow()
-        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed', diagnostic)
     }
 }
 
@@ -232,7 +269,11 @@ async function startPackagedBootstrap(): Promise<void> {
         })
     } catch (error) {
         console.error('PulseSync active-app claim failed', error)
-        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+        await showBootstrapFailure(
+            bootstrapWindow,
+            'launch-failed',
+            captureLaunchFailure(error, 'LF-CLAIM', 'bootstrap/active-app-claim'),
+        )
         return
     }
 
@@ -288,7 +329,11 @@ async function startPackagedBootstrap(): Promise<void> {
         }
     } catch (error) {
         console.error('PulseSync runtime could not be prepared for launch', error)
-        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+        await showBootstrapFailure(
+            bootstrapWindow,
+            'launch-failed',
+            captureLaunchFailure(error, 'LF-RUNTIME', 'bootstrap/runtime-prepare'),
+        )
         return
     }
     await launchQueue.bindSink(input => inbox.enqueue(input))
@@ -310,12 +355,15 @@ void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevel
         app.quit()
         return
     }
+    const diagnostic = captureLaunchFailure(error, 'LF-STARTUP', 'bootstrap/startup')
     try {
         await app.whenReady()
         const bootstrapWindow = await createBootstrapWindow()
-        await showBootstrapFailure(bootstrapWindow, 'launch-failed')
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed', diagnostic)
     } catch (displayError) {
         console.error('PulseSync bootstrap failure UI could not be displayed', displayError)
+        captureMainException(displayError, 'bootstrap/failure-ui')
+        await flushErrorTracking()
         app.quit()
     }
 })

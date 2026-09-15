@@ -81,6 +81,11 @@ function setActionPending(pending: boolean): void {
     }
 }
 
+function formatDiagnostic(state: BootstrapUiStateV1): string {
+    if (state.phase !== 'error' || !state.diagnostic) return ''
+    return state.diagnostic.reference ? `${state.diagnostic.code} · ${state.diagnostic.reference}` : state.diagnostic.code
+}
+
 function renderState(state: BootstrapUiStateV1): void {
     currentState = state
     if (root) {
@@ -101,9 +106,10 @@ function renderState(state: BootstrapUiStateV1): void {
         } else {
             progress.removeAttribute('value')
             progress.max = 1
-            const hideText = state.phase === 'blocked' || state.phase === 'error'
+            const diagnostic = formatDiagnostic(state)
+            const hideText = (state.phase === 'blocked' || state.phase === 'error') && !diagnostic
             progressText.hidden = hideText
-            progressPercent.textContent = hideText ? '' : 'Подождите немного'
+            progressPercent.textContent = diagnostic || (hideText ? '' : 'Подождите немного')
             progressBytes.textContent = ''
         }
     }
@@ -153,5 +159,6 @@ if (api) {
         statusKey: 'launch-failed',
         progress: { kind: 'indeterminate' },
         actions: [],
+        diagnostic: { code: 'LF-PRELOAD' },
     })
 }

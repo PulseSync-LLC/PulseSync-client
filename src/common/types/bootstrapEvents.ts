@@ -32,12 +32,18 @@ export type BootstrapAction = (typeof BOOTSTRAP_ACTIONS)[number]
 
 export type BootstrapUiProgress = { kind: 'indeterminate' } | { kind: 'bytes'; read: number; total: number }
 
+export type BootstrapUiDiagnostic = {
+    code: string
+    reference?: string
+}
+
 export type BootstrapUiStateV1 = {
     schemaVersion: 1
     phase: BootstrapUiPhase
     statusKey: BootstrapStatusKey
     progress: BootstrapUiProgress
     actions: BootstrapAction[]
+    diagnostic?: BootstrapUiDiagnostic
 }
 
 export type BootstrapWindowApi = {
@@ -69,9 +75,10 @@ function isFiniteNonNegativeNumber(value: unknown): value is number {
 }
 
 export function isBootstrapUiStateV1(value: unknown): value is BootstrapUiStateV1 {
-    if (!isRecord(value) || !hasExactKeys(value, ['schemaVersion', 'phase', 'statusKey', 'progress', 'actions'])) {
-        return false
-    }
+    if (!isRecord(value)) return false
+    const stateKeys = ['schemaVersion', 'phase', 'statusKey', 'progress', 'actions']
+    if (value.diagnostic !== undefined) stateKeys.push('diagnostic')
+    if (!hasExactKeys(value, stateKeys)) return false
     if (
         value.schemaVersion !== 1 ||
         !BOOTSTRAP_UI_PHASES.includes(value.phase as BootstrapUiPhase) ||
@@ -81,6 +88,20 @@ export function isBootstrapUiStateV1(value: unknown): value is BootstrapUiStateV
         new Set(value.actions).size !== value.actions.length
     ) {
         return false
+    }
+    if (value.diagnostic !== undefined) {
+        if (value.phase !== 'error' || !isRecord(value.diagnostic)) return false
+        const diagnosticKeys = ['code']
+        if (value.diagnostic.reference !== undefined) diagnosticKeys.push('reference')
+        if (
+            !hasExactKeys(value.diagnostic, diagnosticKeys) ||
+            typeof value.diagnostic.code !== 'string' ||
+            !/^[A-Z0-9-]{2,32}$/.test(value.diagnostic.code) ||
+            (value.diagnostic.reference !== undefined &&
+                (typeof value.diagnostic.reference !== 'string' || !/^[A-Z0-9]{4,16}$/.test(value.diagnostic.reference)))
+        ) {
+            return false
+        }
     }
     if (!isRecord(value.progress) || typeof value.progress.kind !== 'string') {
         return false
