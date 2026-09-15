@@ -6,7 +6,7 @@ import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
 import { MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'

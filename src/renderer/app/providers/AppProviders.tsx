@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useMemo } from 'react'
 
 import { CssVarsProvider } from '@mui/joy'
 import { SkeletonTheme } from 'react-loading-skeleton'
-import { RouterProvider } from 'react-router'
+import { RouterProvider } from 'react-router/dom'
 
 import { ExperimentsProvider } from '@app/providers/experiments'
 import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'

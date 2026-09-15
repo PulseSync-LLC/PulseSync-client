@@ -2,7 +2,7 @@ import React, { useCallback, useContext, useEffect, useRef, useState } from 'rea
 
 import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import { useLocation, useNavigate } from 'react-router-dom'
+import { useLocation, useNavigate } from 'react-router'
 
 import { useModalContext } from '@app/providers/modal'
 import { applyPlayStatusColor, getPlayStatus } from '@widgets/layout/model/playStatus'

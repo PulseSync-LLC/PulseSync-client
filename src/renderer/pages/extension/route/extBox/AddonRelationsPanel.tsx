@@ -3,7 +3,7 @@ import React, { useContext, useMemo } from 'react'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { MdChevronRight, MdExtension, MdIntegrationInstructions, MdInvertColors } from 'react-icons/md'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate } from 'react-router'
 
 import UserContext from '@entities/user/model/context'
 
