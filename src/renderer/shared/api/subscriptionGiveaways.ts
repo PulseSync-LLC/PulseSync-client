@@ -28,7 +28,7 @@ export type SubscriptionGiveawaysSnapshot = {
     giveaways: SubscriptionGiveaway[]
 }
 
-const CACHE_TTL_MS = 5_000
+const CACHE_TTL_MS = 60_000
 
 let cachedSnapshot: { authKey: string; fetchedAt: number; value: SubscriptionGiveawaysSnapshot } | null = null
 let snapshotRequest: { authKey: string; promise: Promise<SubscriptionGiveawaysSnapshot> } | null = null

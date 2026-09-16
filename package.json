@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "1.1.29",
+    "version": "1.1.30",
     "main": ".vite/main/bootstrap.cjs",
     "scripts": {
         "start": "tsx scripts/dev-remote.ts",
@@ -77,7 +77,7 @@
         "chalk": "^6.0.0",
         "cross-env": "^10.1.0",
         "dotenv": "^17.4.2",
-        "electron": "44.4.0",
+        "electron": "44.4.1",
         "electron-builder": "^26.15.3",
         "eslint-plugin-simple-import-sort": "^14.0.0",
         "js-yaml": "^5.4.2",
