@@ -1391,6 +1391,8 @@
         "downloaded": "Update downloaded",
         "downloadingLabel": "Downloading",
         "downloadingTitle": "Downloading update",
+        "preparingLabel": "Applying patches and preparing files",
+        "preparingTitle": "Preparing update",
         "notFoundMessage": "App is up to date",
         "notFoundTitle": "No updates",
         "mod": {

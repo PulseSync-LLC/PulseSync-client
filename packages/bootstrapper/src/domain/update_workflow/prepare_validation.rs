@@ -5,7 +5,7 @@ use super::{
 };
 use crate::{
     core::{
-        fs_ops::sha256_file,
+        fs_ops::{directory_size, sha256_file},
         layout::{Layout, is_inside},
         path_segment::sanitize_path_segment,
     },
@@ -222,13 +222,18 @@ pub(super) fn expected_prepared_path(
     transaction_dir: &Path,
     source_path: &Path,
     key: &ArtifactKey,
+    action: &str,
 ) -> Option<PathBuf> {
-    let name = match key {
-        ArtifactKey::Host => "host.zip".to_string(),
-        ArtifactKey::Module(module_name) => {
+    let name = match (key, action) {
+        (ArtifactKey::Host, "replace-directory") => "host.dir".to_string(),
+        (ArtifactKey::Module(module_name), "replace-directory") => {
+            format!("module-{}.dir", sanitize_path_segment(module_name).ok()?)
+        }
+        (ArtifactKey::Host, _) => "host.zip".to_string(),
+        (ArtifactKey::Module(module_name), _) => {
             format!("module-{}.zip", sanitize_path_segment(module_name).ok()?)
         }
-        ArtifactKey::Bootstrapper => source_path
+        (ArtifactKey::Bootstrapper, _) => source_path
             .file_name()
             .and_then(|value| value.to_str())
             .unwrap_or("bootstrapper.artifact")
@@ -436,15 +441,33 @@ pub(super) fn transaction_matches(
         };
         let key = &expected_artifact.key;
         let expected_source_path = &expected_artifact.source_path;
-        let Some(expected_prepared_path) =
-            expected_prepared_path(actual_dir, expected_source_path, key)
-        else {
+        let Some(expected_prepared_path) = expected_prepared_path(
+            actual_dir,
+            expected_source_path,
+            key,
+            &expected_artifact.action,
+        ) else {
             return false;
         };
-        let expected_prepared_kind = if matches!(key, ArtifactKey::Bootstrapper) {
-            "file"
+        let expected_prepared_kind = match expected_artifact.action.as_str() {
+            "replace-directory" => "directory",
+            _ if matches!(key, ArtifactKey::Bootstrapper) => "file",
+            _ => "archive",
+        };
+        let prepared_is_valid = if expected_prepared_kind == "directory" {
+            fs::metadata(&artifact.prepared_path)
+                .ok()
+                .is_some_and(|metadata| metadata.is_dir())
+                && directory_size(&artifact.prepared_path)
+                    .ok()
+                    .is_some_and(|size| size == artifact.size)
         } else {
-            "archive"
+            fs::metadata(&artifact.prepared_path)
+                .ok()
+                .is_some_and(|metadata| metadata.is_file() && metadata.len() == artifact.size)
+                && sha256_file(&artifact.prepared_path)
+                    .ok()
+                    .is_some_and(|sha256| sha256.eq_ignore_ascii_case(&artifact.sha256))
         };
         if artifact.action != expected_artifact.action
             || artifact.prepared_kind != expected_prepared_kind
@@ -452,17 +475,14 @@ pub(super) fn transaction_matches(
             || !paths_match(&artifact.target_path, &expected_artifact.target_path)
             || !paths_match(&artifact.backup_path, &expected_artifact.backup_path)
             || !paths_match(&artifact.prepared_path, &expected_prepared_path)
-            || artifact.sha256.to_lowercase() != expected_artifact.sha256.to_lowercase()
+            || !artifact
+                .sha256
+                .eq_ignore_ascii_case(&expected_artifact.sha256)
             || artifact.size != expected_artifact.size
             || artifact.required != expected_artifact.required
             || artifact.file_operations != expected_artifact.file_operations
             || !is_inside(actual_dir, &artifact.prepared_path)
-            || fs::metadata(&artifact.prepared_path)
-                .ok()
-                .is_none_or(|metadata| !metadata.is_file() || metadata.len() != artifact.size)
-            || sha256_file(&artifact.prepared_path)
-                .ok()
-                .is_none_or(|sha256| sha256.to_lowercase() != artifact.sha256.to_lowercase())
+            || !prepared_is_valid
         {
             return false;
         }

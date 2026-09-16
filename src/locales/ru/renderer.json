@@ -1391,6 +1391,8 @@
         "downloaded": "Обновление загружено",
         "downloadingLabel": "Загрузка",
         "downloadingTitle": "Скачивание обновления",
+        "preparingLabel": "Применяем патчи и подготавливаем файлы",
+        "preparingTitle": "Подготовка обновления",
         "notFoundMessage": "У вас актуальная версия приложения",
         "notFoundTitle": "Обновлений не найдено",
         "mod": {

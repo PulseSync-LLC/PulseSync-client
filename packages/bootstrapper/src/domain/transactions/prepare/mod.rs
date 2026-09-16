@@ -1,7 +1,7 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, sha256_file},
+        fs_ops::{copy_directory, directory_size, ensure_executable},
         layout::is_inside,
         path_segment::sanitize_path_segment,
     },
@@ -155,13 +155,19 @@ fn resolve_default_transaction_dir(plan: &InstallPlan, transaction_id: &str) -> 
 }
 
 fn verify_source_artifact(artifact: &InstallPlanArtifact) -> InstallPlanCheck {
+    let expects_directory = artifact.action == "replace-directory";
     match fs::metadata(&artifact.source_path) {
-        Ok(metadata) if !metadata.is_file() => block(
+        Ok(metadata) if expects_directory && !metadata.is_dir() => block(
+            &format!("source-{}", artifact.key.as_str()),
+            format!("{} source path is not a directory", artifact.key.as_str()),
+            Some(artifact.source_path.clone()),
+        ),
+        Ok(metadata) if !expects_directory && !metadata.is_file() => block(
             &format!("source-{}", artifact.key.as_str()),
             format!("{} source path is not a file", artifact.key.as_str()),
             Some(artifact.source_path.clone()),
         ),
-        Ok(metadata) if metadata.len() != artifact.size => block(
+        Ok(metadata) if !expects_directory && metadata.len() != artifact.size => block(
             &format!("source-{}", artifact.key.as_str()),
             format!(
                 "{} source size mismatch: expected {}, got {}",
@@ -171,33 +177,41 @@ fn verify_source_artifact(artifact: &InstallPlanArtifact) -> InstallPlanCheck {
             ),
             Some(artifact.source_path.clone()),
         ),
-        Ok(_) => match sha256_file(&artifact.source_path) {
-            Ok(sha256) if sha256.to_lowercase() == artifact.sha256.to_lowercase() => pass(
+        Ok(_) if expects_directory => match directory_size(&artifact.source_path) {
+            Ok(size) if size == artifact.size => pass(
                 &format!("source-{}", artifact.key.as_str()),
                 format!(
-                    "{} source artifact exists and matches plan",
+                    "{} source directory exists and matches plan size",
                     artifact.key.as_str()
                 ),
                 Some(artifact.source_path.clone()),
             ),
-            Ok(sha256) => block(
+            Ok(size) => block(
                 &format!("source-{}", artifact.key.as_str()),
                 format!(
-                    "{} source sha256 mismatch: expected {}, got {sha256}",
+                    "{} source directory size mismatch: expected {}, got {size}",
                     artifact.key.as_str(),
-                    artifact.sha256
+                    artifact.size
                 ),
                 Some(artifact.source_path.clone()),
             ),
             Err(error) => block(
                 &format!("source-{}", artifact.key.as_str()),
                 format!(
-                    "{} source artifact is missing or invalid: {error}",
+                    "{} source directory is missing or invalid: {error}",
                     artifact.key.as_str()
                 ),
                 Some(artifact.source_path.clone()),
             ),
         },
+        Ok(_) => pass(
+            &format!("source-{}", artifact.key.as_str()),
+            format!(
+                "{} source artifact exists and matches plan size",
+                artifact.key.as_str()
+            ),
+            Some(artifact.source_path.clone()),
+        ),
         Err(error) => block(
             &format!("source-{}", artifact.key.as_str()),
             format!(
@@ -213,26 +227,42 @@ fn copy_prepared_artifact(
     artifact: &InstallPlanArtifact,
     prepared_dir: &Path,
 ) -> Result<PreparedArtifact> {
-    let prepared_kind = if matches!(artifact.key, ArtifactKey::Host | ArtifactKey::Module(_)) {
-        "archive"
-    } else {
-        "file"
+    let (prepared_kind, prepared_name) = match (&artifact.key, artifact.action.as_str()) {
+        (ArtifactKey::Host, "replace-directory") => ("directory", "host.dir".to_string()),
+        (ArtifactKey::Module(module_name), "replace-directory") => (
+            "directory",
+            format!("module-{}.dir", sanitize_path_segment(module_name)?),
+        ),
+        (ArtifactKey::Host, _) => ("archive", "host.zip".to_string()),
+        (ArtifactKey::Module(module_name), _) => (
+            "archive",
+            format!("module-{}.zip", sanitize_path_segment(module_name)?),
+        ),
+        (ArtifactKey::Bootstrapper, _) => (
+            "file",
+            artifact
+                .source_path
+                .file_name()
+                .and_then(|value| value.to_str())
+                .unwrap_or("bootstrapper.artifact")
+                .to_string(),
+        ),
     };
-    let prepared_path = prepared_dir.join(match &artifact.key {
-        ArtifactKey::Host => "host.zip".to_string(),
-        ArtifactKey::Module(module_name) => {
-            format!("module-{}.zip", sanitize_path_segment(module_name)?)
+    let prepared_path = prepared_dir.join(prepared_name);
+
+    if prepared_kind == "directory" {
+        match fs::rename(&artifact.source_path, &prepared_path) {
+            Ok(()) => {}
+            Err(_) => {
+                copy_directory(&artifact.source_path, &prepared_path)?;
+                fs::remove_dir_all(&artifact.source_path)?;
+            }
         }
-        ArtifactKey::Bootstrapper => artifact
-            .source_path
-            .file_name()
-            .and_then(|value| value.to_str())
-            .unwrap_or("bootstrapper.artifact")
-            .to_string(),
-    });
-    fs::copy(&artifact.source_path, &prepared_path)?;
-    if matches!(artifact.key, ArtifactKey::Bootstrapper) {
+    } else if matches!(&artifact.key, ArtifactKey::Bootstrapper) {
+        fs::copy(&artifact.source_path, &prepared_path)?;
         ensure_executable(&prepared_path)?;
+    } else if fs::hard_link(&artifact.source_path, &prepared_path).is_err() {
+        fs::copy(&artifact.source_path, &prepared_path)?;
     }
 
     Ok(PreparedArtifact {

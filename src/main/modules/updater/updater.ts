@@ -93,6 +93,9 @@ class Updater {
         }
         if (resultState.progress.kind !== 'bytes') {
             this.setProgressBar(2)
+            if (resultState.phase === 'preparing') {
+                this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'preparing' })
+            }
             return
         }
         const ratio = resultState.progress.read / resultState.progress.total
