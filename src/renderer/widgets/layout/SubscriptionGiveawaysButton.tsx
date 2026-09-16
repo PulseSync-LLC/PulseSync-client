@@ -24,9 +24,9 @@ const SubscriptionGiveawaysButton: React.FC = () => {
         [notifications],
     )
 
-    const refreshActiveCount = useCallback(async () => {
+    const refreshActiveCount = useCallback(async (force = false) => {
         try {
-            const snapshot = await loadSubscriptionGiveawaysSnapshot()
+            const snapshot = await loadSubscriptionGiveawaysSnapshot({ force })
             const now = Date.now()
             const count = snapshot.giveaways.filter(giveaway => {
                 const startsAt = new Date(giveaway.startsAt).getTime()
@@ -50,13 +50,13 @@ const SubscriptionGiveawaysButton: React.FC = () => {
 
     useEffect(() => {
         void refreshActiveCount()
-        const intervalId = window.setInterval(() => void refreshActiveCount(), REFRESH_INTERVAL_MS)
+        const intervalId = window.setInterval(() => void refreshActiveCount(true), REFRESH_INTERVAL_MS)
         return () => window.clearInterval(intervalId)
     }, [refreshActiveCount])
 
     useEffect(() => {
         if (latestStartedNotificationId) {
-            void refreshActiveCount()
+            void refreshActiveCount(true)
         }
     }, [latestStartedNotificationId, refreshActiveCount])
 
