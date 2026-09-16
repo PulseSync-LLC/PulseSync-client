@@ -1,7 +1,10 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, extract_zip_to, sha256_directory, sha256_file},
+        fs_ops::{
+            copy_directory, directory_size, ensure_executable, extract_zip_to, sha256_directory,
+            sha256_file,
+        },
         install_state::{
             ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation,
             read_install_state, read_install_state_with_host, synchronize_mutable_bootstrapper,
@@ -92,6 +95,32 @@ fn validate_complete_versioned_runtime_slot(
 
 fn verify_artifact(artifact: &TransactionArtifact) -> Result<()> {
     let stat = fs::metadata(&artifact.prepared_path)?;
+    if artifact.prepared_kind == "directory" {
+        if !stat.is_dir() {
+            return Err(format!(
+                "prepared artifact path is not a directory: {}",
+                artifact.prepared_path.display()
+            )
+            .into());
+        }
+        let size = directory_size(&artifact.prepared_path)?;
+        if size != artifact.size {
+            return Err(format!(
+                "prepared directory size mismatch: expected {}, got {size}",
+                artifact.size
+            )
+            .into());
+        }
+        let actual = sha256_directory(&artifact.prepared_path)?;
+        if !actual.eq_ignore_ascii_case(&artifact.sha256) {
+            return Err(format!(
+                "prepared directory sha256 mismatch: expected {}, got {actual}",
+                artifact.sha256
+            )
+            .into());
+        }
+        return Ok(());
+    }
     if !stat.is_file() {
         return Err(format!(
             "prepared artifact path is not a file: {}",
@@ -108,7 +137,7 @@ fn verify_artifact(artifact: &TransactionArtifact) -> Result<()> {
         .into());
     }
     let actual = sha256_file(&artifact.prepared_path)?;
-    if actual.to_lowercase() != artifact.sha256.to_lowercase() {
+    if !actual.eq_ignore_ascii_case(&artifact.sha256) {
         return Err(format!(
             "prepared artifact sha256 mismatch: expected {}, got {actual}",
             artifact.sha256
@@ -197,6 +226,41 @@ fn apply_file_artifact(artifact: &TransactionArtifact, target_existed: bool) -> 
     )
 }
 
+fn apply_directory_artifact(artifact: &TransactionArtifact, target_existed: bool) -> Result<Value> {
+    if artifact.prepared_kind != "directory" {
+        return Err("directory artifact must have preparedKind=directory".into());
+    }
+
+    let backup_status = backup_target(artifact)?;
+    if let Some(parent) = artifact.target_path.parent() {
+        fs::create_dir_all(parent)?;
+    }
+    if let Err(rename_error) = fs::rename(&artifact.prepared_path, &artifact.target_path) {
+        if let Err(copy_error) = copy_directory(&artifact.prepared_path, &artifact.target_path) {
+            return Err(format!(
+                "directory artifact move failed ({rename_error}); copy fallback failed: {copy_error}"
+            )
+            .into());
+        }
+        let copied_sha = sha256_directory(&artifact.target_path)?;
+        if !copied_sha.eq_ignore_ascii_case(&artifact.sha256) {
+            return Err(format!(
+                "copied directory sha256 mismatch: expected {}, got {copied_sha}",
+                artifact.sha256
+            )
+            .into());
+        }
+        let _ = fs::remove_dir_all(&artifact.prepared_path);
+    }
+    artifact_journal_entry(
+        artifact,
+        target_existed,
+        backup_status,
+        "applied",
+        "Prepared directory moved to transaction-recorded target path",
+    )
+}
+
 fn apply_directory_archive_artifact(
     artifact: &TransactionArtifact,
     transaction_dir: &Path,
@@ -243,6 +307,7 @@ fn apply_artifact(
 ) -> Result<Value> {
     match artifact.action.as_str() {
         "replace-file" => apply_file_artifact(artifact, target_existed),
+        "replace-directory" => apply_directory_artifact(artifact, target_existed),
         "replace-directory-archive" => {
             apply_directory_archive_artifact(artifact, transaction_dir, target_existed)
         }
@@ -276,6 +341,9 @@ fn applying_artifact(artifact: &TransactionArtifact, target_existed: bool) -> Re
 }
 
 fn verify_result_content(transaction: &Value, artifact: &TransactionArtifact) -> Result<()> {
+    if artifact.prepared_kind == "directory" {
+        return Ok(());
+    }
     let expected = if artifact.key == "host" {
         transaction.get("hostContentSha256").and_then(Value::as_str)
     } else if let Some(name) = artifact.key.strip_prefix("module:") {
@@ -406,6 +474,9 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
         .get("componentDiskNames")
         .and_then(Value::as_object)
         .ok_or("componentDiskNames is required")?;
+    let component_content_sha256s = transaction
+        .get("componentContentSha256s")
+        .and_then(Value::as_object);
     let component_artifact_sha256s = transaction
         .get("componentArtifactSha256s")
         .and_then(Value::as_object);
@@ -474,7 +545,11 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
                 .and_then(Value::as_str)
                 .ok_or("component version is required")?
                 .to_string();
-            let sha256 = sha256_directory(&artifact.target_path)?;
+            let sha256 = component_content_sha256s
+                .and_then(|values| values.get(name))
+                .and_then(Value::as_str)
+                .ok_or("component content sha256 is required")?
+                .to_string();
             next_snapshot.components.insert(
                 name.to_string(),
                 RuntimeComponentV3 {

@@ -7,11 +7,11 @@ pub use model::{InstallPlan, InstallPlanArtifact, InstallPlanCheck};
 use crate::{
     core::{
         error::Result,
-        fs_ops::{file_size, sha256_file},
+        fs_ops::{directory_size, file_size},
         layout::{is_inside, normalize_retain_app_versions},
     },
     domain::{
-        artifacts::StagedArtifact,
+        artifacts::{ArtifactKey, StagedArtifact},
         install_plan::{
             checks::{block, check_install_dir, pass},
             paths::{action, backup_path, default_backup_dir, staging_dir, target_path},
@@ -99,41 +99,39 @@ fn artifact_plan_entry(
         )
     });
 
-    let verification = (|| -> Result<(String, u64)> {
-        let size = file_size(&source_path)?;
+    let source_is_directory = source_path.is_dir();
+    let artifact_action = match &key {
+        ArtifactKey::Host | ArtifactKey::Module(_) if source_is_directory => "replace-directory",
+        _ => action(&key),
+    };
+    let verification = (|| -> Result<u64> {
+        let size = if source_is_directory {
+            directory_size(&source_path)?
+        } else {
+            file_size(&source_path)?
+        };
         if size != staged.size {
             return Err(
                 format!("staged size mismatch: expected {}, got {size}", staged.size).into(),
             );
         }
-        let sha256 = sha256_file(&source_path)?;
-        if !sha256.eq_ignore_ascii_case(&staged.sha256) {
-            return Err(format!(
-                "staged sha256 mismatch: expected {}, got {sha256}",
-                staged.sha256
-            )
-            .into());
-        }
-        Ok((sha256, size))
+        Ok(size)
     })();
     match verification {
-        Ok((sha256, size)) => {
+        Ok(size) => {
             preflight.push(pass(
                 &format!("staged-{}-artifact", key.as_str()),
-                format!(
-                    "{} staged artifact exists and matches manifest hash",
-                    key.as_str()
-                ),
+                format!("{} staged artifact exists and is valid", key.as_str()),
                 Some(source_path.clone()),
             ));
             Ok((
                 Some(InstallPlanArtifact {
-                    action: action(&key).to_string(),
+                    action: artifact_action.to_string(),
                     backup_path,
                     key: key.clone(),
                     required,
                     file_operations: staged.file_operations.clone(),
-                    sha256,
+                    sha256: staged.sha256.clone(),
                     size,
                     source_path,
                     target_path,

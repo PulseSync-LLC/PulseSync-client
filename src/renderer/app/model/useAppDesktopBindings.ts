@@ -164,19 +164,29 @@ export function useAppDesktopBindings({
             }
         }
 
-        const onDownloadProgress = (value: any) => {
+        const onDownloadProgress = (value: unknown) => {
             manualUpdateCheckPendingRef.current = false
+            const preparing =
+                value !== null &&
+                typeof value === 'object' &&
+                'phase' in value &&
+                (value as { phase?: unknown }).phase === 'preparing'
             if (!toastReference.current) {
-                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'), {
-                    id: CLIENT_UPDATE_TOAST_ID,
-                    duration: Infinity,
-                })
+                toastReference.current = toast.custom(
+                    'loading',
+                    preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
+                    preparing ? t('updates.preparingLabel') : t('common.pleaseWait'),
+                    {
+                        id: CLIENT_UPDATE_TOAST_ID,
+                        duration: Infinity,
+                    },
+                )
             }
             toast.update(toastReference.current, {
                 kind: 'loading',
-                title: t('updates.downloadingTitle'),
-                msg: t('updates.downloadingLabel'),
-                value: Number(value) || 0,
+                title: preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
+                msg: preparing ? t('updates.preparingLabel') : t('updates.downloadingLabel'),
+                value: preparing ? undefined : Number(value) || 0,
             })
         }
 

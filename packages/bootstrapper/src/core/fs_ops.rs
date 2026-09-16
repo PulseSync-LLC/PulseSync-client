@@ -149,6 +149,45 @@ pub fn file_size(path: &Path) -> Result<u64> {
     Ok(fs::metadata(path)?.len())
 }
 
+pub fn directory_size(path: &Path) -> Result<u64> {
+    fn visit(path: &Path, total: &mut u64) -> Result<()> {
+        for entry in fs::read_dir(path)? {
+            let entry = entry?;
+            let metadata = fs::symlink_metadata(entry.path())?;
+            if metadata.file_type().is_symlink() {
+                return Err(
+                    format!("directory contains a symlink: {}", entry.path().display()).into(),
+                );
+            }
+            if metadata.is_dir() {
+                visit(&entry.path(), total)?;
+            } else if metadata.is_file() {
+                *total = (*total)
+                    .checked_add(metadata.len())
+                    .ok_or("directory size overflow")?;
+            } else {
+                return Err(format!(
+                    "directory contains an unsupported entry: {}",
+                    entry.path().display()
+                )
+                .into());
+            }
+        }
+        Ok(())
+    }
+
+    if !path.is_dir() {
+        return Err(format!(
+            "directory size source is not a directory: {}",
+            path.display()
+        )
+        .into());
+    }
+    let mut total = 0_u64;
+    visit(path, &mut total)?;
+    Ok(total)
+}
+
 fn zip_entry_is_safe(name: &str) -> bool {
     let normalized = name.replace('\\', "/");
     !normalized.is_empty()

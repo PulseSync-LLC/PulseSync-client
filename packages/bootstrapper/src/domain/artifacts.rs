@@ -1,11 +1,11 @@
 use crate::{
     core::{
         error::Result,
-        fs_ops::{ensure_executable, file_size, sha256_directory, sha256_file},
+        fs_ops::{ensure_executable, file_size, sha256_file},
         install_state::read_install_state_metadata,
         path_segment::sanitize_path_segment,
     },
-    domain::delta::{apply_delta, delta_error_code},
+    domain::delta::{apply_verified_delta, delta_error_code},
     domain::install_workflow::events::{InstallProgressReporter, InstallWorkflowEvent},
     domain::manifest::{
         BootstrapperArtifact, BootstrapperUpdateDecision, ComponentFileSet, artifact_for_key,
@@ -21,7 +21,6 @@ use std::{
     path::{Path, PathBuf},
     time::{Duration, Instant},
 };
-use zip::{ZipWriter, write::SimpleFileOptions};
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub enum ArtifactKey {
@@ -599,33 +598,6 @@ fn collect_relative_files(root: &Path) -> Result<Vec<String>> {
     Ok(files)
 }
 
-#[cfg(unix)]
-fn zip_permissions(path: &Path) -> Result<u32> {
-    use std::os::unix::fs::PermissionsExt;
-    Ok(fs::metadata(path)?.permissions().mode() & 0o777)
-}
-
-#[cfg(not(unix))]
-fn zip_permissions(_path: &Path) -> Result<u32> {
-    Ok(0o644)
-}
-
-fn write_snapshot_archive(source: &Path, module_name: &str, target: &Path) -> Result<()> {
-    let file = fs::File::create(target)?;
-    let mut archive = ZipWriter::new(file);
-    for relative in collect_relative_files(source)? {
-        let source_path = source.join(safe_relative_path(&relative)?);
-        let options = SimpleFileOptions::default()
-            .compression_method(zip::CompressionMethod::Deflated)
-            .unix_permissions(zip_permissions(&source_path)?);
-        archive.start_file(format!("{module_name}/{relative}"), options)?;
-        let mut input = fs::File::open(source_path)?;
-        std::io::copy(&mut input, &mut archive)?;
-    }
-    archive.finish()?;
-    Ok(())
-}
-
 fn stage_full_fallback(
     fallback: &BootstrapperArtifact,
     key: ArtifactKey,
@@ -721,7 +693,6 @@ fn build_file_set_progress_plan(
 
 fn stage_file_set(
     key: ArtifactKey,
-    archive_root: &str,
     file_set: &ComponentFileSet,
     fallback: &BootstrapperArtifact,
     plan: FileSetProgressPlan,
@@ -868,7 +839,17 @@ fn stage_file_set(
                             );
                             let _ = fs::remove_file(&patch_path);
                         } else {
-                            let apply = apply_delta(source, &patch_path, &destination, delta);
+                            reporter.emit(InstallWorkflowEvent::stage(
+                                "preparing",
+                                format!("Applying {} patch", file.path),
+                            ));
+                            let apply = apply_verified_delta(
+                                source,
+                                source_sha,
+                                &patch_path,
+                                &destination,
+                                delta,
+                            );
                             let _ = fs::remove_file(&patch_path);
                             match apply {
                                 Ok(()) => {
@@ -966,24 +947,19 @@ fn stage_file_set(
             "preparing",
             format!("Preparing {} snapshot", key.as_str()),
         ));
-        let content_sha = sha256_directory(&snapshot_dir)?;
-        if !content_sha.eq_ignore_ascii_case(&file_set.content_sha256) {
-            return Err(format!(
-                "reconstructed {} hash mismatch: expected {}, got {content_sha}",
-                key.as_str(),
-                file_set.content_sha256
-            )
-            .into());
-        }
-        let target_path = staging_dir.join(format!("pulsesync-{safe_key}-snapshot.zip"));
-        let temp_path = target_path.with_extension(format!("zip.part-{}", std::process::id()));
-        write_snapshot_archive(&snapshot_dir, archive_root, &temp_path)?;
+        let target_path = staging_dir.join(format!("pulsesync-{safe_key}-snapshot"));
         if target_path.exists() {
-            fs::remove_file(&target_path)?;
+            if target_path.is_dir() {
+                fs::remove_dir_all(&target_path)?;
+            } else {
+                fs::remove_file(&target_path)?;
+            }
         }
-        fs::rename(&temp_path, &target_path)?;
-        let sha256 = sha256_file(&target_path)?;
-        let size = file_size(&target_path)?;
+        fs::rename(&snapshot_dir, &target_path)?;
+        let size = file_set
+            .files
+            .iter()
+            .fold(0_u64, |total, file| total.saturating_add(file.size));
         reporter.emit(InstallWorkflowEvent::artifact_progress(
             "downloading",
             "Component snapshot prepared",
@@ -998,9 +974,9 @@ fn stage_file_set(
             key: key.clone(),
             path: target_path,
             reused: downloaded_bytes == 0,
-            sha256,
+            sha256: file_set.content_sha256.clone(),
             size,
-            url: "reconstructed:file-inventory".to_string(),
+            url: "reconstructed:file-inventory-directory".to_string(),
             downloaded_bytes,
             duration_ms: elapsed_ms(started),
             fallback_reason: None,
@@ -1157,30 +1133,16 @@ pub fn stage_artifacts(
                 .map(|item| item.required)
                 .unwrap_or(true);
             let staged = match (file_set, file_plan) {
-                (Some(file_set), Some(file_plan)) => {
-                    let archive_root = match &key {
-                        ArtifactKey::Host => "host",
-                        ArtifactKey::Module(module_name) => decision
-                            .component_disk_names
-                            .get(module_name)
-                            .map(String::as_str)
-                            .unwrap_or(module_name.as_str()),
-                        ArtifactKey::Bootstrapper => {
-                            unreachable!("bootstrapper has no file set")
-                        }
-                    };
-                    stage_file_set(
-                        key.clone(),
-                        archive_root,
-                        file_set,
-                        artifact,
-                        file_plan,
-                        &staging_dir,
-                        index + 1,
-                        artifact_count,
-                        &aggregate_reporter,
-                    )
-                }
+                (Some(file_set), Some(file_plan)) => stage_file_set(
+                    key.clone(),
+                    file_set,
+                    artifact,
+                    file_plan,
+                    &staging_dir,
+                    index + 1,
+                    artifact_count,
+                    &aggregate_reporter,
+                ),
                 _ => stage_artifact(
                     artifact,
                     key.clone(),
