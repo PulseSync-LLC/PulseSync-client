@@ -129,7 +129,28 @@ fn recover_failed_apply_and_launch(
                             &format!("transaction={} error={error}", transaction_file.display()),
                         );
                     }
-                    return Err(error);
+                    let transfer =
+                        fail_handoff_if_armed(install_root.map(PathBuf::as_path), handoff_context)?;
+                    return Ok(json!({
+                        "schemaVersion": 1,
+                        "state": "blocked",
+                        "launched": false,
+                        "appExecutable": app_executable,
+                        "transactionRoot": transaction_root,
+                        "transactionAction": "rollback",
+                        "selectedTransactionFile": transaction_file,
+                        "transactionStateBefore": transaction_state_before,
+                        "transactionStateAfter": "rollback-failed",
+                        "transfer": transfer,
+                        "block": {
+                            "code": "rollback-failed",
+                            "retryable": true,
+                            "safeToContinue": false,
+                        },
+                        "reason": "Failed update could not be rolled back safely",
+                        "rollbackError": error.to_string(),
+                        "applyError": failure
+                    }));
                 }
             };
             if rolled_back.get("state").and_then(Value::as_str) != Some("rolled-back") {
@@ -737,7 +758,42 @@ pub fn start(args: &Args) -> Result<Value> {
                 }));
             }
             "failed" | "applying" => {
-                let rolled_back = rollback_transaction_file(&selected.path)?;
+                let rolled_back = match rollback_transaction_file(&selected.path) {
+                    Ok(rolled_back) => rolled_back,
+                    Err(error) => {
+                        if let Some(install_root) = install_root.as_deref() {
+                            append_handoff_diagnostic(
+                                install_root,
+                                handoff_context
+                                    .as_ref()
+                                    .map(|context| context.transfer.handoff_id.as_str()),
+                                "rollback-error",
+                                &format!("transaction={} error={error}", selected.path.display()),
+                            );
+                        }
+                        let transfer =
+                            fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;
+                        return Ok(json!({
+                            "schemaVersion": 1,
+                            "state": "blocked",
+                            "launched": false,
+                            "appExecutable": app_executable,
+                            "transactionRoot": transaction_root,
+                            "transactionAction": "rollback",
+                            "selectedTransactionFile": selected.path,
+                            "transactionStateBefore": selected.state,
+                            "transactionStateAfter": "rollback-failed",
+                            "transfer": transfer,
+                            "block": {
+                                "code": "rollback-failed",
+                                "retryable": true,
+                                "safeToContinue": false,
+                            },
+                            "reason": "Failed transaction could not be rolled back safely",
+                            "rollbackError": error.to_string()
+                        }));
+                    }
+                };
                 if rolled_back.get("state").and_then(Value::as_str) != Some("rolled-back") {
                     let transfer =
                         fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;

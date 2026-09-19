@@ -2,7 +2,7 @@ use crate::{
     core::{
         error::Result,
         install_state::{
-            ActivationState, RuntimeActivationV3, read_install_state, read_install_state_with_host,
+            ActivationState, InstallStateV3, RuntimeActivationV3, read_install_state_metadata,
             write_install_state,
         },
     },
@@ -26,21 +26,36 @@ fn remove_target(path: &Path) -> Result<bool> {
     Ok(true)
 }
 
-fn restore_install_state(transaction: &mut Value) -> Result<()> {
+fn install_state_before(transaction: &Value) -> Result<Option<InstallStateV3>> {
+    transaction
+        .get("installStateBefore")
+        .cloned()
+        .map(serde_json::from_value)
+        .transpose()
+        .map_err(Into::into)
+}
+
+fn restore_install_state(
+    transaction: &mut Value,
+    previous_state: Option<InstallStateV3>,
+) -> Result<()> {
     let install_dir = PathBuf::from(
         transaction
             .get("installDir")
             .and_then(Value::as_str)
             .ok_or("installDir is required to restore install state")?,
     );
-    let host_bundle = transaction
-        .get("hostBundle")
-        .and_then(Value::as_str)
-        .map(PathBuf::from);
-    let mut state = if host_bundle.is_some() {
-        read_install_state_with_host(&install_dir, host_bundle.as_deref())?
-    } else {
-        read_install_state(&install_dir)?
+    let mut state = match previous_state {
+        Some(state) => {
+            let path = write_install_state(&install_dir, &state)?;
+            transaction["installStateRestored"] = json!({
+                "state": "restored-snapshot",
+                "generation": state.generation,
+                "path": path
+            });
+            return Ok(());
+        }
+        None => read_install_state_metadata(&install_dir)?,
     };
     if !matches!(state.activation.state, ActivationState::Pending) {
         transaction["installStateRestored"] = json!({
@@ -82,7 +97,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
     }
 
     let artifacts = transaction_artifacts(&transaction)?;
-    restore_install_state(&mut transaction)?;
+    let previous_state = install_state_before(&transaction)?;
     let mut rolled_back = Vec::new();
     for artifact in artifacts.into_iter().rev() {
         let rollback_status = if artifact.backup_path.exists() {
@@ -106,6 +121,7 @@ pub fn rollback_transaction_file(transaction_file: &Path) -> Result<Value> {
             "rollbackStatus": rollback_status
         }));
     }
+    restore_install_state(&mut transaction, previous_state)?;
 
     transaction["state"] = json!("rolled-back");
     transaction["rolledBack"] = json!(true);

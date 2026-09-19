@@ -409,6 +409,8 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     } else {
         read_install_state(&install_dir)?
     };
+    transaction["installStateBefore"] = serde_json::to_value(&install_state)?;
+    write_transaction(transaction_file, &transaction)?;
     let mut applied = Vec::new();
 
     for artifact in &artifacts {
@@ -598,6 +600,7 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     if let Some(bootstrapper) = bootstrapper.as_ref() {
         synchronize_mutable_bootstrapper(&mut install_state, bootstrapper);
     }
+    install_state.running = install_state.known_good.clone();
     install_state.generation = install_state
         .generation
         .checked_add(1)
