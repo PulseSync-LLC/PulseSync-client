@@ -24,7 +24,10 @@ use crate::{
     domain::{
         launcher::launch_app,
         macos_bundle,
-        transactions::{apply_transaction_file, newest_transaction, rollback_transaction_file},
+        transactions::{
+            apply_transaction_file, expire_prepared_transaction, newest_transaction,
+            rollback_transaction_file, transaction_is_stale,
+        },
     },
 };
 use serde_json::{Value, json};
@@ -39,15 +42,152 @@ mod self_update;
 
 pub(crate) use handoff::{HandoffContext, launch_handoff_successor, launch_with_active_lease};
 use handoff::{
-    StartRecovery, active_lease_result, emit_handoff_armed, fail_handoff_if_armed, handoff_request,
-    launch_for_start, recover_start_state, reload_handoff_context, self_update_bound_lease,
-    self_update_busy_result, wait_for_process_exit,
+    StartRecovery, active_lease_result, append_handoff_diagnostic, emit_handoff_armed,
+    fail_handoff_if_armed, handoff_request, launch_for_start, recover_start_state,
+    reload_handoff_context, self_update_bound_lease, self_update_busy_result,
+    wait_for_process_exit,
 };
 
 use self_update::{
     infer_install_root, launch_self_update_handoff, prepared_bootstrapper_path,
     read_transaction_file,
 };
+
+const MAX_PREPARED_TRANSACTION_AGE: Duration = Duration::from_secs(24 * 60 * 60);
+
+pub(crate) fn record_start_failure(args: &Args, error: &dyn std::error::Error) {
+    let Ok(Some(root)) = state_root_arg(args) else {
+        return;
+    };
+    let Ok(root) = canonical_install_root(Path::new(&root)) else {
+        return;
+    };
+    append_handoff_diagnostic(&root, None, "start-failed", &error.to_string());
+}
+
+fn expire_stale_prepared_transaction(
+    install_root: Option<&Path>,
+    state: &str,
+    modified: std::time::SystemTime,
+    path: &Path,
+) -> Result<bool> {
+    if state != "prepared" || !transaction_is_stale(modified, MAX_PREPARED_TRANSACTION_AGE) {
+        return Ok(false);
+    }
+    let reason = "prepared-transaction-too-old";
+    expire_prepared_transaction(path, reason)?;
+    if let Some(install_root) = install_root {
+        append_handoff_diagnostic(
+            install_root,
+            None,
+            "transaction-expired",
+            &format!("transaction={} reason={reason}", path.display()),
+        );
+    }
+    Ok(true)
+}
+
+fn recover_failed_apply_and_launch(
+    install_root: Option<&PathBuf>,
+    host_bundle: Option<&PathBuf>,
+    app_executable_name: Option<String>,
+    app_executable: &Path,
+    passthrough_args: &[OsString],
+    handoff_context: &mut Option<HandoffContext>,
+    transaction_root: &Path,
+    transaction_file: &Path,
+    transaction_state_before: &str,
+    failure: &str,
+) -> Result<Value> {
+    let mut transaction = read_transaction_file(transaction_file)?;
+    let state = transaction
+        .get("state")
+        .and_then(Value::as_str)
+        .unwrap_or_default()
+        .to_string();
+    let recovered_state = match state.as_str() {
+        "prepared" => {
+            transaction =
+                expire_prepared_transaction(transaction_file, "apply-failed-before-mutation")?;
+            transaction
+                .get("state")
+                .and_then(Value::as_str)
+                .unwrap_or("expired")
+                .to_string()
+        }
+        "applying" | "failed" | "applied" => {
+            let rolled_back = match rollback_transaction_file(transaction_file) {
+                Ok(rolled_back) => rolled_back,
+                Err(error) => {
+                    if let Some(install_root) = install_root.map(PathBuf::as_path) {
+                        append_handoff_diagnostic(
+                            install_root,
+                            handoff_context
+                                .as_ref()
+                                .map(|context| context.transfer.handoff_id.as_str()),
+                            "rollback-error",
+                            &format!("transaction={} error={error}", transaction_file.display()),
+                        );
+                    }
+                    return Err(error);
+                }
+            };
+            if rolled_back.get("state").and_then(Value::as_str) != Some("rolled-back") {
+                return Err("failed transaction did not roll back cleanly".into());
+            }
+            "rolled-back".to_string()
+        }
+        "rolled-back" | "expired" => state.clone(),
+        other => {
+            return Err(
+                format!("cannot recover failed apply from transaction state: {other}").into(),
+            );
+        }
+    };
+
+    if let Some(install_root) = install_root.map(PathBuf::as_path) {
+        append_handoff_diagnostic(
+            install_root,
+            handoff_context
+                .as_ref()
+                .map(|context| context.transfer.handoff_id.as_str()),
+            "apply-recovered",
+            &format!(
+                "transaction={} state={recovered_state} error={failure}",
+                transaction_file.display()
+            ),
+        );
+    }
+
+    let launch_executable = resolve_current_app_executable(
+        install_root,
+        host_bundle,
+        app_executable_name,
+        app_executable,
+    )?;
+    ensure_app_executable(&launch_executable)?;
+    let (pid, lease) = launch_for_start(
+        install_root.map(PathBuf::as_path),
+        &launch_executable,
+        passthrough_args,
+        handoff_context.as_mut(),
+    )?;
+    Ok(json!({
+        "schemaVersion": 1,
+        "state": "launched",
+        "launched": true,
+        "pid": pid,
+        "lease": lease,
+        "appExecutable": launch_executable,
+        "transactionRoot": transaction_root,
+        "transactionAction": "apply-recovery",
+        "selectedTransactionFile": transaction_file,
+        "transactionStateBefore": transaction_state_before,
+        "transactionStateAfter": recovered_state,
+        "reason": "Prepared update failed and the known-good runtime was restored",
+        "applyError": failure
+    }))
+}
 
 fn resolve_current_app_executable(
     install_root: Option<&PathBuf>,
@@ -252,6 +392,32 @@ pub fn start(args: &Args) -> Result<Value> {
                         }
                     }));
                 }
+                if let Some(selected) = newest_transaction(&transaction_root)?
+                    && expire_stale_prepared_transaction(
+                        Some(install_root),
+                        &selected.state,
+                        selected.modified,
+                        &selected.path,
+                    )?
+                {
+                    eprintln!(
+                        "prepared transaction expired before handoff: {}",
+                        selected.path.display()
+                    );
+                    return Ok(json!({
+                        "schemaVersion": 1,
+                        "state": "blocked",
+                        "launched": false,
+                        "transactionRoot": transaction_root,
+                        "selectedTransactionFile": selected.path,
+                        "block": {
+                            "code": "prepared-transaction-expired",
+                            "retryable": true,
+                            "safeToContinue": true,
+                        },
+                        "reason": "Prepared update expired before handoff; current PulseSync remains active"
+                    }));
+                }
                 let rust_process = current_process_identity()?;
                 let (predecessor, transfer) = arm_handoff(install_root, &lease, &rust_process)?;
                 let mut context = HandoffContext {
@@ -301,6 +467,12 @@ pub fn start(args: &Args) -> Result<Value> {
                         return Ok(reserved);
                     }
                 }
+                append_handoff_diagnostic(
+                    install_root,
+                    Some(&context.transfer.handoff_id),
+                    "handoff-armed",
+                    &format!("waitingForPid={}", context.predecessor.pid),
+                );
                 emit_handoff_armed(args, &context);
                 drop(session_lock.take());
 
@@ -331,6 +503,12 @@ pub fn start(args: &Args) -> Result<Value> {
                     }));
                 }
 
+                append_handoff_diagnostic(
+                    install_root,
+                    Some(&context.transfer.handoff_id),
+                    "predecessor-exited",
+                    &format!("pid={}", context.predecessor.pid),
+                );
                 let verify_lock = SessionLock::acquire(install_root, Duration::from_secs(10))?;
                 context = reload_handoff_context(install_root, &context)?;
                 drop(verify_lock);
@@ -371,7 +549,15 @@ pub fn start(args: &Args) -> Result<Value> {
         .map(OsString::from)
         .collect::<Vec<_>>();
     let selected = newest_transaction(&transaction_root)?;
-    if let Some(selected) = selected {
+    if let Some(mut selected) = selected {
+        if expire_stale_prepared_transaction(
+            install_root.as_deref(),
+            &selected.state,
+            selected.modified,
+            &selected.path,
+        )? {
+            selected.state = "expired".to_string();
+        }
         match selected.state.as_str() {
             "prepared" => {
                 let transaction_value = read_transaction_file(&selected.path)?;
@@ -448,31 +634,87 @@ pub fn start(args: &Args) -> Result<Value> {
                     reserved["transactionStateBefore"] = json!(selected.state);
                     return Ok(reserved);
                 }
-                let applied = apply_transaction_file(&selected.path)?;
-                if applied.get("state").and_then(Value::as_str) != Some("applied") {
-                    let transfer =
-                        fail_handoff_if_armed(install_root.as_deref(), &mut handoff_context)?;
-                    return Ok(json!({
-                        "schemaVersion": 1,
-                        "state": "blocked",
-                        "launched": false,
-                        "appExecutable": app_executable,
-                        "transactionRoot": transaction_root,
-                        "transactionAction": "apply",
-                        "selectedTransactionFile": selected.path,
-                        "transactionStateBefore": selected.state,
-                        "transactionStateAfter": applied.get("state").and_then(Value::as_str).unwrap_or("failed"),
-                        "transfer": transfer,
-                        "reason": "Prepared transaction did not apply cleanly"
-                    }));
+                if let Some(install_root) = install_root.as_deref() {
+                    append_handoff_diagnostic(
+                        install_root,
+                        handoff_context
+                            .as_ref()
+                            .map(|context| context.transfer.handoff_id.as_str()),
+                        "apply-start",
+                        &format!("transaction={}", selected.path.display()),
+                    );
                 }
-                let launch_executable = resolve_current_app_executable(
+                let applied = match apply_transaction_file(&selected.path) {
+                    Ok(applied) => applied,
+                    Err(error) => {
+                        if let Some(install_root) = install_root.as_deref() {
+                            append_handoff_diagnostic(
+                                install_root,
+                                handoff_context
+                                    .as_ref()
+                                    .map(|context| context.transfer.handoff_id.as_str()),
+                                "apply-error",
+                                &format!("transaction={} error={error}", selected.path.display()),
+                            );
+                        }
+                        return recover_failed_apply_and_launch(
+                            install_root.as_ref(),
+                            host_bundle.as_ref(),
+                            app_executable_name.clone(),
+                            &app_executable,
+                            &passthrough_args,
+                            &mut handoff_context,
+                            &transaction_root,
+                            &selected.path,
+                            &selected.state,
+                            &error.to_string(),
+                        );
+                    }
+                };
+                if applied.get("state").and_then(Value::as_str) != Some("applied") {
+                    let failure = applied
+                        .get("error")
+                        .and_then(Value::as_str)
+                        .unwrap_or("prepared transaction did not apply cleanly");
+                    return recover_failed_apply_and_launch(
+                        install_root.as_ref(),
+                        host_bundle.as_ref(),
+                        app_executable_name.clone(),
+                        &app_executable,
+                        &passthrough_args,
+                        &mut handoff_context,
+                        &transaction_root,
+                        &selected.path,
+                        &selected.state,
+                        failure,
+                    );
+                }
+                let launch_executable = match resolve_current_app_executable(
                     install_root.as_ref(),
                     host_bundle.as_ref(),
                     app_executable_name.clone(),
                     &app_executable,
-                )?;
-                ensure_app_executable(&launch_executable)?;
+                )
+                .and_then(|path| {
+                    ensure_app_executable(&path)?;
+                    Ok(path)
+                }) {
+                    Ok(path) => path,
+                    Err(error) => {
+                        return recover_failed_apply_and_launch(
+                            install_root.as_ref(),
+                            host_bundle.as_ref(),
+                            app_executable_name.clone(),
+                            &app_executable,
+                            &passthrough_args,
+                            &mut handoff_context,
+                            &transaction_root,
+                            &selected.path,
+                            &selected.state,
+                            &error.to_string(),
+                        );
+                    }
+                };
                 let (pid, lease) = launch_for_start(
                     install_root.as_deref(),
                     &launch_executable,
