@@ -6,7 +6,7 @@ use serde_json::Value;
 use std::{
     fs,
     path::{Path, PathBuf},
-    time::SystemTime,
+    time::{Duration, SystemTime, UNIX_EPOCH},
 };
 
 fn metadata_is_link(metadata: &fs::Metadata) -> bool {
@@ -119,6 +119,29 @@ pub fn newest_transaction(root: &Path) -> Result<Option<TransactionCandidate>> {
             .then_with(|| right.path.cmp(&left.path))
     });
     Ok(candidates.into_iter().next())
+}
+
+pub fn transaction_is_stale(modified: SystemTime, max_age: Duration) -> bool {
+    SystemTime::now()
+        .duration_since(modified)
+        .is_ok_and(|age| age > max_age)
+}
+
+pub fn expire_prepared_transaction(transaction_file: &Path, reason: &str) -> Result<Value> {
+    let mut value: Value = serde_json::from_slice(&fs::read(transaction_file)?)?;
+    if value.get("state").and_then(Value::as_str) != Some("prepared") {
+        return Err("transaction state must be prepared before expiration".into());
+    }
+    value["state"] = Value::String("expired".to_string());
+    value["prepared"] = Value::Bool(false);
+    value["expiredReason"] = Value::String(reason.to_string());
+    let expired_at = SystemTime::now()
+        .duration_since(UNIX_EPOCH)?
+        .as_millis()
+        .min(u128::from(u64::MAX)) as u64;
+    value["expiredAt"] = Value::Number(expired_at.into());
+    write_transaction(transaction_file, &value)?;
+    Ok(value)
 }
 
 pub fn transaction_artifacts(value: &Value) -> Result<Vec<TransactionArtifact>> {

@@ -217,6 +217,9 @@ fn main() {
     match run(&args).and_then(|value| print_result(&args, value)) {
         Ok(()) => {}
         Err(error) => {
+            if args.command == "start" {
+                commands::start::record_start_failure(&args, error.as_ref());
+            }
             if args.json {
                 let payload = error
                     .downcast_ref::<UpdateWorkflowError>()

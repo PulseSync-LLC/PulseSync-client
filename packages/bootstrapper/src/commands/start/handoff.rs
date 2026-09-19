@@ -27,9 +27,11 @@ use serde_json::{Value, json};
 use std::{
     env,
     ffi::OsString,
+    fs::{self, OpenOptions},
+    io::Write,
     path::{Path, PathBuf},
     thread,
-    time::{Duration, Instant},
+    time::{Duration, Instant, SystemTime, UNIX_EPOCH},
 };
 
 #[derive(Clone, Debug)]
@@ -75,6 +77,36 @@ fn successor_error_log_path(install_root: &Path) -> PathBuf {
     shared_app_data_root()
         .map(|root| root.join("PulseSync/logs/bootstrap-successor-errors.log"))
         .unwrap_or_else(|| install_root.join("logs/bootstrap-successor-errors.log"))
+}
+
+fn handoff_log_path(install_root: &Path) -> PathBuf {
+    shared_app_data_root()
+        .map(|root| root.join("PulseSync/logs/bootstrap-handoff.log"))
+        .unwrap_or_else(|| install_root.join("logs/bootstrap-handoff.log"))
+}
+
+pub(super) fn append_handoff_diagnostic(
+    install_root: &Path,
+    handoff_id: Option<&str>,
+    phase: &str,
+    message: &str,
+) {
+    let path = handoff_log_path(install_root);
+    let write = (|| -> Result<()> {
+        if let Some(parent) = path.parent() {
+            fs::create_dir_all(parent)?;
+        }
+        if fs::metadata(&path).is_ok_and(|metadata| metadata.len() > 1024 * 1024) {
+            let _ = fs::remove_file(&path);
+        }
+        let mut file = OpenOptions::new().create(true).append(true).open(&path)?;
+        let timestamp = SystemTime::now().duration_since(UNIX_EPOCH)?.as_millis();
+        let handoff_id = handoff_id.unwrap_or("-");
+        let message = message.replace('\r', " ").replace('\n', " ");
+        writeln!(file, "{timestamp}\t{handoff_id}\t{phase}\t{message}")?;
+        Ok(())
+    })();
+    let _ = write;
 }
 
 pub(super) fn handoff_request(args: &Args) -> Result<Option<HandoffRequest>> {
@@ -229,6 +261,12 @@ pub(crate) fn launch_handoff_successor(
     ];
     let successor_log = successor_log_path(install_root);
     let successor_error_log = successor_error_log_path(install_root);
+    append_handoff_diagnostic(
+        install_root,
+        Some(&context.transfer.handoff_id),
+        "successor-launch",
+        &format!("launching {}", app_executable.display()),
+    );
     let pid = match launch_app_with_env_and_log(
         app_executable,
         args,
@@ -239,6 +277,12 @@ pub(crate) fn launch_handoff_successor(
     ) {
         Ok(pid) => pid,
         Err(error) => {
+            append_handoff_diagnostic(
+                install_root,
+                Some(&context.transfer.handoff_id),
+                "successor-spawn-failed",
+                &error.to_string(),
+            );
             context.transfer = mark_handoff_launch_failed(install_root, &context.transfer)?;
             let _ = remove_launch_reservation(install_root);
             return Err(error);
@@ -247,6 +291,12 @@ pub(crate) fn launch_handoff_successor(
     let child = match inspect_process_with_retry(pid, app_executable, Duration::from_secs(5)) {
         Ok(child) => child,
         Err(error) => {
+            append_handoff_diagnostic(
+                install_root,
+                Some(&context.transfer.handoff_id),
+                "successor-inspection-failed",
+                &error.to_string(),
+            );
             context.transfer = mark_handoff_launch_failed(install_root, &context.transfer)?;
             let _ = remove_launch_reservation(install_root);
             return Err(error);
@@ -262,6 +312,12 @@ pub(crate) fn launch_handoff_successor(
     bind_inbox_to_lease(install_root, &lease)?;
     remove_launch_reservation(install_root)?;
     context.transfer = transfer;
+    append_handoff_diagnostic(
+        install_root,
+        Some(&context.transfer.handoff_id),
+        "successor-launched",
+        &format!("pid={pid} executable={}", app_executable.display()),
+    );
     Ok((pid, lease))
 }
 

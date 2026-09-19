@@ -28,8 +28,10 @@ struct TerminalWorkspace {
 }
 
 fn terminal_standard_transaction(record: &TransactionRecord) -> bool {
-    matches!(record.candidate.state.as_str(), "applied" | "rolled-back")
-        && !macos_bundle::is_macos_transaction(&record.value)
+    matches!(
+        record.candidate.state.as_str(),
+        "applied" | "rolled-back" | "expired"
+    ) && !macos_bundle::is_macos_transaction(&record.value)
 }
 
 fn validate_workspace(
