@@ -840,7 +840,7 @@ fn stage_file_set(
                             let _ = fs::remove_file(&patch_path);
                         } else {
                             reporter.emit(InstallWorkflowEvent::stage(
-                                "preparing",
+                                "downloading",
                                 format!("Applying {} patch", file.path),
                             ));
                             let apply = apply_verified_delta(
@@ -944,7 +944,7 @@ fn stage_file_set(
             }
         }
         reporter.emit(InstallWorkflowEvent::stage(
-            "preparing",
+            "downloading",
             format!("Preparing {} snapshot", key.as_str()),
         ));
         let target_path = staging_dir.join(format!("pulsesync-{safe_key}-snapshot"));
