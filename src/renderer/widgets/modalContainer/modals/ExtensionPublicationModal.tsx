@@ -8,6 +8,7 @@ import { useModalContext } from '@app/providers/modal'
 import { staticAsset } from '@shared/lib/staticAssets'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import FileInput from '@shared/ui/PSUI/FileInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
 
 import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModal.module.scss'
 
@@ -283,28 +284,28 @@ const ExtensionPublicationModal: React.FC = () => {
                     </div>
 
                     <div className={styles.fieldGroup}>
-                        <label className={styles.label} htmlFor="addon-release-visibility">
-                            {t('extensions.publication.visibilityLabel')}
-                        </label>
                         {isEditingMode ? (
-                            <select
-                                id="addon-release-visibility"
-                                className={styles.githubInput}
+                            <SelectInput
+                                label={t('extensions.publication.visibilityLabel')}
                                 value={visibility}
+                                options={[
+                                    { value: 'public', label: t('extensions.publication.visibilityPublic') },
+                                    { value: 'dev', label: t('extensions.publication.visibilityDev') },
+                                ]}
                                 disabled={publicationBusy}
-                                onChange={event => setVisibility(event.target.value === 'dev' ? 'dev' : 'public')}
-                            >
-                                <option value="public">{t('extensions.publication.visibilityPublic')}</option>
-                                <option value="dev">{t('extensions.publication.visibilityDev')}</option>
-                            </select>
+                                onChange={value => setVisibility(value === 'dev' ? 'dev' : 'public')}
+                            />
                         ) : (
-                            <span className={styles.subValue}>
-                                {t(
-                                    publicationRelease?.visibility === 'dev'
-                                        ? 'extensions.publication.visibilityDev'
-                                        : 'extensions.publication.visibilityPublic',
-                                )}
-                            </span>
+                            <>
+                                <span className={styles.label}>{t('extensions.publication.visibilityLabel')}</span>
+                                <span className={styles.subValue}>
+                                    {t(
+                                        publicationRelease?.visibility === 'dev'
+                                            ? 'extensions.publication.visibilityDev'
+                                            : 'extensions.publication.visibilityPublic',
+                                    )}
+                                </span>
+                            </>
                         )}
                         {isEditingMode && visibility === 'dev' ? (
                             <span className={styles.subValue}>{t('extensions.publication.visibilityHint')}</span>
