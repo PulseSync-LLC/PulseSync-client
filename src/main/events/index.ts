@@ -62,7 +62,7 @@ import {
 import isAppDev from '../utils/isAppDev'
 import { readBufResilient } from '../utils/readBufResilient'
 
-import type { DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
+import type { DesktopInstallStoreAddonRequest, DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
 import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
 import type { BrowserWindow } from 'electron'
 
@@ -1032,7 +1032,7 @@ const registerExtensionEvents = (): void => {
         }
     })
 
-    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { id?: string; downloadUrl?: string; title?: string }) => {
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: DesktopInstallStoreAddonRequest) => {
         let tempArchivePath = ''
 
         try {
@@ -1058,6 +1058,7 @@ const registerExtensionEvents = (): void => {
             const addonName = await importAddonArchive(tempArchivePath, {
                 installSource: 'store',
                 storeAddonId: payload?.id || null,
+                releaseChannel: payload?.releaseChannel === 'dev' ? 'dev' : 'stable',
             })
             if (!addonName) {
                 return { success: false, reason: 'IMPORT_FAILED' }

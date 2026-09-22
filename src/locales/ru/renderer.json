@@ -453,6 +453,14 @@
             "store": "Каталог"
         },
         "publication": {
+            "promote": "Опубликовать в Stable",
+            "promoted": "Релиз добавлен в Stable. Видимость не изменена.",
+            "promoteFailed": "Не удалось добавить релиз в Stable.",
+            "channelLabel": "Канал аддона",
+            "channelStable": "Stable (основной)",
+            "channelDev": "Dev (тестовый)",
+            "channelUnavailable": "В этом канале пока нет доступного релиза.",
+            "switchChannel": "Сменить канал",
             "visibilityLabel": "Видимость версии",
             "visibilityPublic": "Для всех",
             "visibilityDev": "Только dev",
@@ -514,6 +522,7 @@
                 "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию.",
                 "THEME_SCRIPT_NOT_ALLOWED": "Тема может содержать только CSS. Удалите поле script или смените type на web-addon.",
                 "WEB_ADDON_RUNTIME_INVALID": "Архив помечен как WebHost-аддон, но не содержит корректную регистрацию runtime. Соберите аддон через официальный шаблон.",
+                "ADDON_RELEASE_CHANNEL_INVALID": "Выберите канал Stable или Dev.",
                 "ADDON_VISIBILITY_INVALID": "Выберите, кому доступна эта версия аддона.",
                 "ADDON_VERSION_ALREADY_PUBLISHED": "Эта версия уже опубликована. Для обновления укажите новый номер версии.",
                 "WEB_ADDON_ROOT_METADATA_REQUIRED": "Не удалось прочитать аддон. Файл metadata.json должен находиться в корне архива.",

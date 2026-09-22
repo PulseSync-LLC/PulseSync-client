@@ -453,6 +453,14 @@
             "store": "Catalog"
         },
         "publication": {
+            "promote": "Publish to Stable",
+            "promoted": "Release added to Stable. Visibility is unchanged.",
+            "promoteFailed": "Could not add the release to Stable.",
+            "channelLabel": "Addon channel",
+            "channelStable": "Stable",
+            "channelDev": "Dev",
+            "channelUnavailable": "No release is available in this channel yet.",
+            "switchChannel": "Switch channel",
             "visibilityLabel": "Release visibility",
             "visibilityPublic": "Everyone",
             "visibilityDev": "Dev only",
@@ -514,6 +522,7 @@
                 "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation.",
                 "THEME_SCRIPT_NOT_ALLOWED": "A theme can contain only CSS. Remove the script field or change type to web-addon.",
                 "WEB_ADDON_RUNTIME_INVALID": "The archive is marked as a WebHost add-on but does not contain a valid runtime registration. Build it with the official template.",
+                "ADDON_RELEASE_CHANNEL_INVALID": "Select the Stable or Dev channel.",
                 "ADDON_VISIBILITY_INVALID": "Choose who can access this release.",
                 "ADDON_VERSION_ALREADY_PUBLISHED": "This version has already been published. Use a new version number for an update.",
                 "WEB_ADDON_ROOT_METADATA_REQUIRED": "Unable to read the add-on. The metadata.json file must be at the root of the archive.",

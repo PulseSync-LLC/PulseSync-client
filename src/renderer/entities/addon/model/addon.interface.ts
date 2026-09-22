@@ -6,6 +6,7 @@ export default interface Addon {
     directoryName: string
     installSource?: 'store' | 'local'
     storeAddonId?: string
+    storeReleaseChannel?: 'stable' | 'dev'
     packageHash?: string
     description: string
     version: string

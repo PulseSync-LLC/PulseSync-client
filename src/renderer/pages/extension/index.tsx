@@ -37,9 +37,11 @@ import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import {
     AddonStoreSubmitError,
+    fetchInstalledStoreAddonUpdates,
     fetchOwnStoreAddons,
     persistAddonPreview,
     persistAddonStoreLink,
+    promoteAddonRelease,
     submitAddonForStore,
 } from '@entities/addon/api/storeAddons'
 import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
@@ -196,6 +198,7 @@ export default function ExtensionPage() {
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
     const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
+    const [installedStoreUpdates, setInstalledStoreUpdates] = useState<StoreAddon[]>([])
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
     const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
@@ -284,6 +287,19 @@ export default function ExtensionPage() {
 
         fetchAddonWhitelist()
     }, [])
+
+    useEffect(() => {
+        let active = true
+        setInstalledStoreUpdates([])
+        void fetchInstalledStoreAddonUpdates(addons)
+            .then(updates => {
+                if (active) setInstalledStoreUpdates(updates)
+            })
+            .catch(error => console.error('[ExtensionPage] failed to load channel updates', error))
+        return () => {
+            active = false
+        }
+    }, [addons])
 
     const refreshOwnPublications = useCallback(async () => {
         if (!user?.id || user.id === '-1') {
@@ -863,21 +879,21 @@ export default function ExtensionPage() {
     }, [selectedAddon, storePublications])
 
     const selectedCatalogPublication = useMemo(() => {
-        return findMatchingStoreAddon(selectedAddon, storeCatalog)
-    }, [selectedAddon, storeCatalog])
+        return findMatchingStoreAddon(selectedAddon, installedStoreUpdates) ?? findMatchingStoreAddon(selectedAddon, storeCatalog)
+    }, [selectedAddon, storeCatalog, installedStoreUpdates])
 
     const selectedStoreUpdate = useMemo(() => {
         if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
             return null
         }
 
-        const publishedAddon = storeCatalog.find(item => item.id === selectedAddon.storeAddonId)
+        const publishedAddon = installedStoreUpdates.find(item => item.id === selectedAddon.storeAddonId)
         if (!publishedAddon?.currentRelease) {
             return null
         }
 
         return compareVersions(publishedAddon.currentRelease.version, selectedAddon.version) > 0 ? publishedAddon : null
-    }, [selectedAddon, storeCatalog])
+    }, [selectedAddon, installedStoreUpdates])
 
     const selectedPublishedAddon = useMemo(() => {
         return selectedPublication ?? selectedCatalogPublication
@@ -951,6 +967,7 @@ export default function ExtensionPage() {
             usedAiDuringDevelopmentOverride?: boolean,
             previewPathOverride?: string,
             visibility?: 'public' | 'dev',
+            releaseChannel?: 'stable' | 'dev',
         ) => {
             if (!selectedAddon || !storePublishingEnabled) return
             if (publicationSubmitBusyRef.current) return
@@ -1001,6 +1018,7 @@ export default function ExtensionPage() {
                     usedAiDuringDevelopment,
                     mode === 'update' ? selectedPublication?.id : undefined,
                     visibility ?? selectedPublication?.currentRelease?.visibility ?? 'public',
+                    releaseChannel ?? 'stable',
                 )
                 const ownAddons = await fetchOwnStoreAddons()
                 setStorePublications(ownAddons)
@@ -1068,6 +1086,24 @@ export default function ExtensionPage() {
         ],
     )
 
+    const handlePromoteRelease = useCallback(async () => {
+        const release = selectedPublication?.currentRelease
+        if (!selectedPublication || !release || publicationSubmitBusyRef.current) return
+        publicationSubmitBusyRef.current = true
+        setPublicationBusy(true)
+        try {
+            await promoteAddonRelease(selectedPublication.id, release.id)
+            await refreshOwnPublications()
+            toast.custom('success', t('common.doneTitle'), t('extensions.publication.promoted'))
+        } catch (error) {
+            console.error('[ExtensionPage] failed to promote release', error)
+            toast.custom('error', t('common.errorTitle'), t('extensions.publication.promoteFailed'))
+        } finally {
+            publicationSubmitBusyRef.current = false
+            setPublicationBusy(false)
+        }
+    }, [selectedPublication, refreshOwnPublications, t])
+
     const handlePublishAddon = useMemo(
         () =>
             publicationActionMode === 'publish'
@@ -1077,8 +1113,9 @@ export default function ExtensionPage() {
                       usedAiDuringDevelopment: boolean,
                       previewPath: string,
                       visibility?: 'public' | 'dev',
+                      releaseChannel?: 'stable' | 'dev',
                   ) => {
-                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility)
+                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -1093,8 +1130,9 @@ export default function ExtensionPage() {
                       usedAiDuringDevelopment: boolean,
                       previewPath: string,
                       visibility?: 'public' | 'dev',
+                      releaseChannel?: 'stable' | 'dev',
                   ) => {
-                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility)
+                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -1109,12 +1147,16 @@ export default function ExtensionPage() {
             publication: selectedPublishedAddon ?? null,
             publicationBusy,
             githubUrlText: publicationGithubUrlText,
+            onPromote: selectedPublication?.submittedById === user.id ? handlePromoteRelease : null,
             onPublish: handlePublishAddon ?? null,
             onUpdate: handleUpdateAddon ?? null,
         })
     }, [
         Modals.EXTENSION_PUBLICATION_MODAL,
         handlePublishAddon,
+        handlePromoteRelease,
+        selectedPublication?.submittedById,
+        user.id,
         handleUpdateAddon,
         isPublicationModalOpen,
         publicationBusy,
@@ -1146,6 +1188,7 @@ export default function ExtensionPage() {
                 id: selectedStoreUpdate.id,
                 downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl || undefined,
                 title: selectedStoreUpdate.name,
+                releaseChannel: selectedAddon.storeReleaseChannel ?? 'stable',
             })) as {
                 reason?: string
                 success?: boolean

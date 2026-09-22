@@ -48,6 +48,7 @@ interface Props {
         usedAiDuringDevelopment: boolean,
         previewPath: string,
         visibility?: 'public' | 'dev',
+        releaseChannel?: 'stable' | 'dev',
     ) => void
     onUpdateAddon?: (
         changelogText: string,
@@ -55,6 +56,7 @@ interface Props {
         usedAiDuringDevelopment: boolean,
         previewPath: string,
         visibility?: 'public' | 'dev',
+        releaseChannel?: 'stable' | 'dev',
     ) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void

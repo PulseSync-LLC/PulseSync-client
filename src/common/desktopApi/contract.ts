@@ -90,6 +90,7 @@ export interface DesktopInstallModRequest {
 }
 
 export interface DesktopInstallStoreAddonRequest {
+    releaseChannel?: 'stable' | 'dev'
     id?: string
     downloadUrl?: string
     title?: string

@@ -29,13 +29,13 @@ export function createRealtimeSocket(auth: RealtimeSocketAuth): Socket {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 10000,
-        auth: { ...auth, clientChannel: branch === 'dev' ? 'dev' : 'beta' },
+        auth: { ...auth, addonReleaseChannels: true, clientChannel: branch === 'dev' ? 'dev' : 'beta' },
         transports: ['websocket'],
     })
 }
 
 export function updateRealtimeSocketAuth(socket: Socket, auth: RealtimeSocketAuth) {
-    socket.auth = { ...auth, clientChannel: branch === 'dev' ? 'dev' : 'beta' }
+    socket.auth = { ...auth, addonReleaseChannels: true, clientChannel: branch === 'dev' ? 'dev' : 'beta' }
 }
 
 export function parseGatewayFrame(buf: ArrayBuffer | Uint8Array, zstd: any): GatewayFrame | null {

@@ -20,6 +20,7 @@ export type ModalAdditionalStateMap = {
         publicationBusy: boolean
         changelogText: string
         githubUrlText: string
+        onPromote?: (() => void) | null
         onChangeChangelog?: ((value: string) => void) | null
         onChangeGithubUrl?: ((value: string) => void) | null
         onPublish?:
@@ -29,6 +30,7 @@ export type ModalAdditionalStateMap = {
                   usedAiDuringDevelopment: boolean,
                   previewPath: string,
                   visibility?: 'public' | 'dev',
+                  releaseChannel?: 'stable' | 'dev',
               ) => void)
             | null
         onUpdate?:
@@ -38,6 +40,7 @@ export type ModalAdditionalStateMap = {
                   usedAiDuringDevelopment: boolean,
                   previewPath: string,
                   visibility?: 'public' | 'dev',
+                  releaseChannel?: 'stable' | 'dev',
               ) => void)
             | null
     }

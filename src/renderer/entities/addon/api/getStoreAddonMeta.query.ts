@@ -1,8 +1,8 @@
 import gql from 'graphql-tag'
 
 export default gql`
-    query GetStoreAddonMeta($id: String!) {
-        getStoreAddonMeta(id: $id) {
+    query GetStoreAddonMeta($id: String!, $releaseChannel: String) {
+        getStoreAddonMeta(id: $id, releaseChannel: $releaseChannel) {
             readme
         }
     }
