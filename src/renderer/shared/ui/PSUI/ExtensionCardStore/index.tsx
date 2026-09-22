@@ -45,6 +45,7 @@ export interface ExtensionCardStoreProps {
     iconImage?: string
     backgroundImage?: string
     className?: string
+    visibility?: 'public' | 'dev'
     status?: ExtensionStatus
     type?: ExtensionType
     kind?: AddonKind
@@ -135,6 +136,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
     backgroundImage,
     className,
     status,
+    visibility,
     kind,
     tags = [],
     usedAiDuringDevelopment = false,
@@ -219,6 +221,11 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         <p>{subtitle}</p>
                         <div className={st.metaRow}>
                             {ratingCount !== undefined ? <AddonRatingBadge average={ratingAverage} /> : null}
+                            {visibility === 'dev' ? (
+                                <Badge uppercase={false} size="md" variant="info" className={st.metaBadge}>
+                                    {t('extensions.publication.visibilityDev')}
+                                </Badge>
+                            ) : null}
                             {status ? (
                                 <Badge uppercase={false} size="md" variant={getStatusVariant(status)} className={st.metaBadge}>
                                     {t(`store.status.${status}`)}

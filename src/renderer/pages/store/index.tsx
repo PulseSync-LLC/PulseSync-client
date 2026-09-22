@@ -528,6 +528,7 @@ export default function StorePage() {
                     subtitle={release.description}
                     authors={release.authors}
                     status={options?.forceStatus}
+                    visibility={release.visibility}
                     downloads={formatAge(release.approvedAt || release.updatedAt, i18n.language)}
                     topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
                     ratingAverage={addon.ratingAverage}
@@ -655,6 +656,11 @@ export default function StorePage() {
                         {release.avatarUrl ? <img src={release.avatarUrl} alt="" className={st.featuredAvatar} /> : null}
                         <h1 className={st.featuredTitle}>{addon.name}</h1>
                         <AddonRatingBadge average={addon.ratingAverage} />
+                        {release.visibility === 'dev' ? (
+                            <Badge uppercase={false} size="md" variant="info">
+                                {t('extensions.publication.visibilityDev')}
+                            </Badge>
+                        ) : null}
                         <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdInventory2 />}>
                             {`v${release.version}`}
                         </Badge>

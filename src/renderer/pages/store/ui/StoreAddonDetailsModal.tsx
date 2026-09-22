@@ -247,6 +247,7 @@ export default function StoreAddonDetailsModal({
                             ) : null}
                             <span className={st.metaChip}>
                                 <MdInventory2 aria-hidden="true" />v{release.version}
+                                {release.visibility === 'dev' ? ` · ${t('extensions.publication.visibilityDev')}` : ''}
                             </span>
                             <span className={st.metaChip}>
                                 <MdSchedule aria-hidden="true" />
@@ -450,6 +451,7 @@ export default function StoreAddonDetailsModal({
                                             backgroundImage={relatedRelease.bannerUrl || undefined}
                                             kind={relatedAddon.type}
                                             tags={relatedRelease.tags}
+                                            visibility={relatedRelease.visibility}
                                             usedAiDuringDevelopment={relatedRelease.usedAiDuringDevelopment}
                                             usesOfficialTemplate={relatedRelease.usesOfficialTemplate}
                                             downloadLabel={

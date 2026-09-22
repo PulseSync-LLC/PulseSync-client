@@ -19,6 +19,7 @@ export default gql`
                 currentRelease {
                     id
                     version
+                    visibility
                     description
                     authors
                     changelog
@@ -42,6 +43,7 @@ export default gql`
                 releases {
                     id
                     version
+                    visibility
                     description
                     authors
                     changelog

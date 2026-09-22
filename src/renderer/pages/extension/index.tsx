@@ -950,6 +950,7 @@ export default function ExtensionPage() {
             githubUrlOverride?: string,
             usedAiDuringDevelopmentOverride?: boolean,
             previewPathOverride?: string,
+            visibility?: 'public' | 'dev',
         ) => {
             if (!selectedAddon || !storePublishingEnabled) return
             if (publicationSubmitBusyRef.current) return
@@ -999,6 +1000,7 @@ export default function ExtensionPage() {
                     effectiveGithubUrl,
                     usedAiDuringDevelopment,
                     mode === 'update' ? selectedPublication?.id : undefined,
+                    visibility ?? selectedPublication?.currentRelease?.visibility ?? 'public',
                 )
                 const ownAddons = await fetchOwnStoreAddons()
                 setStorePublications(ownAddons)
@@ -1069,8 +1071,14 @@ export default function ExtensionPage() {
     const handlePublishAddon = useMemo(
         () =>
             publicationActionMode === 'publish'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => {
-                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath)
+                ? (
+                      changelogText: string,
+                      githubUrl: string,
+                      usedAiDuringDevelopment: boolean,
+                      previewPath: string,
+                      visibility?: 'public' | 'dev',
+                  ) => {
+                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -1079,8 +1087,14 @@ export default function ExtensionPage() {
     const handleUpdateAddon = useMemo(
         () =>
             publicationActionMode === 'update'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => {
-                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath)
+                ? (
+                      changelogText: string,
+                      githubUrl: string,
+                      usedAiDuringDevelopment: boolean,
+                      previewPath: string,
+                      visibility?: 'public' | 'dev',
+                  ) => {
+                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],

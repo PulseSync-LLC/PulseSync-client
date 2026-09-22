@@ -245,9 +245,10 @@ export async function submitAddonForStore(
     githubUrl: string,
     usedAiDuringDevelopment: boolean,
     existingAddonId?: string,
+    visibility: 'public' | 'dev' = 'public',
 ): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment })
+    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment, visibility })
 }
 
 export async function submitAddonArchiveForStore(options: {
@@ -256,6 +257,7 @@ export async function submitAddonArchiveForStore(options: {
     githubUrl: string
     usedAiDuringDevelopment: boolean
     existingAddonId?: string
+    visibility?: 'public' | 'dev'
     blob: Blob
     fileName: string
 }): Promise<string | null> {
@@ -265,6 +267,7 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('githubUrl', options.githubUrl.trim())
     formData.append('changelog', options.changelog)
     formData.append('usedAiDuringDevelopment', String(options.usedAiDuringDevelopment))
+    formData.append('visibility', options.visibility ?? 'public')
     formData.append('zipFile', options.blob, options.fileName)
 
     const targetUrl = options.existingAddonId ? `/extensions/${encodeURIComponent(options.existingAddonId)}/update` : '/extensions/create'

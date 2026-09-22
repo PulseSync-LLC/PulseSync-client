@@ -42,8 +42,20 @@ interface Props {
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
     onPublicationGithubUrlChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => void
-    onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean, previewPath: string) => void
+    onPublishAddon?: (
+        changelogText: string,
+        githubUrl: string,
+        usedAiDuringDevelopment: boolean,
+        previewPath: string,
+        visibility?: 'public' | 'dev',
+    ) => void
+    onUpdateAddon?: (
+        changelogText: string,
+        githubUrl: string,
+        usedAiDuringDevelopment: boolean,
+        previewPath: string,
+        visibility?: 'public' | 'dev',
+    ) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
