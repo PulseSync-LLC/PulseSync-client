@@ -1,10 +1,9 @@
 import { parse as parseJavaScript } from 'acorn'
 
-export const MAX_WEB_HOST_ADDON_CODE_LENGTH = 10_000_000
 export const SUPPORTED_WEB_HOST_API_VERSION = 1
 
 export type WebHostAddonValidationCategory =
-    'empty-code' | 'code-too-large' | 'invalid-javascript' | 'invalid-webhost-bundle' | 'unsupported-api-version' | 'blocked-isolated-capability'
+    'empty-code' | 'invalid-javascript' | 'invalid-webhost-bundle' | 'unsupported-api-version' | 'blocked-isolated-capability'
 
 export type WebHostAddonValidationResult =
     { ok: true; code: string; apiVersion: number } | { ok: false; category: WebHostAddonValidationCategory; reason: string }
@@ -224,13 +223,6 @@ export function isValidWebHostAddonRuntime(content: string): boolean {
 }
 
 export function validateWebHostAddonRuntime(content: string): WebHostAddonValidationResult {
-    if (content.length > MAX_WEB_HOST_ADDON_CODE_LENGTH) {
-        return {
-            ok: false,
-            category: 'code-too-large',
-            reason: `bundle exceeds ${MAX_WEB_HOST_ADDON_CODE_LENGTH} characters`,
-        }
-    }
     if (!content.trim()) return { ok: false, category: 'empty-code', reason: 'bundle is empty' }
 
     try {

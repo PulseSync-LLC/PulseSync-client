@@ -4,7 +4,7 @@ import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
 import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
 
-import config from '@common/appConfig'
+import config, { branch } from '@common/appConfig'
 import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 
 const httpUrl = config.SERVER_URL + '/graphql'
@@ -28,6 +28,7 @@ const authMiddleware = setContext(async (_, { headers }) => {
     return {
         headers: {
             ...headers,
+            'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta',
             Authorization: token ? `Bearer ${token}` : null,
         },
     }

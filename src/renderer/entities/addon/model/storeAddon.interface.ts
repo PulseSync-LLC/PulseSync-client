@@ -4,6 +4,7 @@ export type StoreAddonKind = 'theme' | 'script' | 'web-addon'
 export interface StoreAddonRelease {
     id: string
     version: string
+    visibility?: 'public' | 'dev'
     description: string
     githubUrl?: string | null
     authors: string[]

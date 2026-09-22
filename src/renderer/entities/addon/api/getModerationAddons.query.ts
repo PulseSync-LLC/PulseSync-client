@@ -16,6 +16,7 @@ export default gql`
             currentRelease {
                 id
                 version
+                visibility
                 description
                 authors
                 changelog

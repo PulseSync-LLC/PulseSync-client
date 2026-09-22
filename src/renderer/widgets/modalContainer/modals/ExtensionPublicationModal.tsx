@@ -63,6 +63,7 @@ const ExtensionPublicationModal: React.FC = () => {
     const [rulesAccepted, setRulesAccepted] = useState(false)
     const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
     const [previewPath, setPreviewPath] = useState('')
+    const [visibility, setVisibility] = useState<'public' | 'dev'>('public')
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
@@ -71,9 +72,18 @@ const ExtensionPublicationModal: React.FC = () => {
 
     useEffect(() => {
         setRulesAccepted(false)
+        setVisibility(publicationRelease?.visibility ?? 'public')
         setUsedAiDuringDevelopment(Boolean(publicationRelease?.usedAiDuringDevelopment))
         setPreviewPath(addon?.preview || '')
-    }, [addon?.path, addon?.preview, isPublicationModalOpen, publication?.id, publicationRelease?.id, publicationRelease?.usedAiDuringDevelopment])
+    }, [
+        addon?.path,
+        addon?.preview,
+        isPublicationModalOpen,
+        publication?.id,
+        publicationRelease?.id,
+        publicationRelease?.usedAiDuringDevelopment,
+        publicationRelease?.visibility,
+    ])
 
     const fallbackPreview = staticAsset('assets/images/no_themeBackground.png')
     const publishedPreview = publicationRelease?.previewUrl || publicationRelease?.bannerUrl || fallbackPreview
@@ -154,7 +164,7 @@ const ExtensionPublicationModal: React.FC = () => {
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath)
+                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility)
               },
               disabled: !canSubmit,
           }
@@ -162,7 +172,7 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath)
+                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility)
                 },
                 disabled: !canSubmit,
             }
@@ -270,6 +280,35 @@ const ExtensionPublicationModal: React.FC = () => {
                 <div className={styles.formPane}>
                     <div className={styles.formHeader}>
                         <h3>{t('extensions.publication.detailsTitle')}</h3>
+                    </div>
+
+                    <div className={styles.fieldGroup}>
+                        <label className={styles.label} htmlFor="addon-release-visibility">
+                            {t('extensions.publication.visibilityLabel')}
+                        </label>
+                        {isEditingMode ? (
+                            <select
+                                id="addon-release-visibility"
+                                className={styles.githubInput}
+                                value={visibility}
+                                disabled={publicationBusy}
+                                onChange={event => setVisibility(event.target.value === 'dev' ? 'dev' : 'public')}
+                            >
+                                <option value="public">{t('extensions.publication.visibilityPublic')}</option>
+                                <option value="dev">{t('extensions.publication.visibilityDev')}</option>
+                            </select>
+                        ) : (
+                            <span className={styles.subValue}>
+                                {t(
+                                    publicationRelease?.visibility === 'dev'
+                                        ? 'extensions.publication.visibilityDev'
+                                        : 'extensions.publication.visibilityPublic',
+                                )}
+                            </span>
+                        )}
+                        {isEditingMode && visibility === 'dev' ? (
+                            <span className={styles.subValue}>{t('extensions.publication.visibilityHint')}</span>
+                        ) : null}
                     </div>
 
                     {shouldShowGithubField ? (
