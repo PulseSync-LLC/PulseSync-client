@@ -42,6 +42,7 @@ function pushArg(args: string[], name: string, value: string | undefined): void 
 }
 
 export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions): Promise<PrepareUpdateResultV1> {
+    let previousUiState: BootstrapUiStateV1 | undefined
     const args = [
         '--state-root',
         options.stateRoot,
@@ -77,7 +78,10 @@ export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions)
             progressJson: true,
             parseProgress: parseRustUpdateProgress,
             onDiagnostic: options.onDiagnostic,
-            onProgress: event => options.onProgress?.(event, bootstrapUiStateFromProgress(event)),
+            onProgress: event => {
+                previousUiState = bootstrapUiStateFromProgress(event, previousUiState)
+                options.onProgress?.(event, previousUiState)
+            },
             parseResult: parsePrepareResult,
         }),
     )
