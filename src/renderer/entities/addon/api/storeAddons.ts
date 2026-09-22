@@ -157,7 +157,7 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
-export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[]> {
+export async function fetchStoreAddonUpdates(ids: string[], releaseChannel: 'stable' | 'dev' = 'stable'): Promise<StoreAddon[]> {
     const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean)))
 
     if (!normalizedIds.length) {
@@ -169,7 +169,7 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
         headers: {
             Accept: 'application/json',
         },
-        body: { ids: normalizedIds },
+        body: { ids: normalizedIds, releaseChannel },
     })
 
     const payload = response.data ?? null
@@ -178,6 +178,29 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
     }
 
     return Array.isArray(payload?.addons) ? payload.addons : []
+}
+
+export async function fetchInstalledStoreAddonUpdates(addons: Addon[]): Promise<StoreAddon[]> {
+    return (
+        await Promise.all(
+            (['stable', 'dev'] as const).map(channel =>
+                fetchStoreAddonUpdates(
+                    addons
+                        .filter(addon => addon.installSource === 'store' && (addon.storeReleaseChannel === 'dev' ? 'dev' : 'stable') === channel)
+                        .map(addon => addon.storeAddonId || ''),
+                    channel,
+                ),
+            ),
+        )
+    ).flat()
+}
+
+export async function promoteAddonRelease(addonId: string, releaseId: string): Promise<void> {
+    const response = await rendererHttpClient.post(
+        '/extensions/' + encodeURIComponent(addonId) + '/releases/' + encodeURIComponent(releaseId) + '/promote',
+        { auth: true },
+    )
+    if (!response.ok) throw new Error('ADDON_PROMOTION_FAILED')
 }
 
 export async function persistAddonStoreLink(addon: Addon, storeAddonId: string): Promise<void> {
@@ -246,9 +269,20 @@ export async function submitAddonForStore(
     usedAiDuringDevelopment: boolean,
     existingAddonId?: string,
     visibility: 'public' | 'dev' = 'public',
+    releaseChannel: 'stable' | 'dev' = 'stable',
 ): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment, visibility })
+    return submitAddonArchiveForStore({
+        addon,
+        blob,
+        changelog,
+        existingAddonId,
+        fileName,
+        githubUrl,
+        usedAiDuringDevelopment,
+        visibility,
+        releaseChannel,
+    })
 }
 
 export async function submitAddonArchiveForStore(options: {
@@ -258,6 +292,7 @@ export async function submitAddonArchiveForStore(options: {
     usedAiDuringDevelopment: boolean
     existingAddonId?: string
     visibility?: 'public' | 'dev'
+    releaseChannel?: 'stable' | 'dev'
     blob: Blob
     fileName: string
 }): Promise<string | null> {
@@ -267,6 +302,7 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('githubUrl', options.githubUrl.trim())
     formData.append('changelog', options.changelog)
     formData.append('usedAiDuringDevelopment', String(options.usedAiDuringDevelopment))
+    formData.append('releaseChannel', options.releaseChannel ?? 'stable')
     formData.append('visibility', options.visibility ?? 'public')
     formData.append('zipFile', options.blob, options.fileName)
 

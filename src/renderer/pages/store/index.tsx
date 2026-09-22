@@ -40,6 +40,7 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
 import toast from '@shared/ui/toast'
 
@@ -98,6 +99,11 @@ export default function StorePage() {
     const [popularAddons, setPopularAddons] = useState<StoreAddon[]>([])
     const [ownAddons, setOwnAddons] = useState<StoreAddon[]>([])
     const [pendingAddons, setPendingAddons] = useState<StoreAddon[]>([])
+    const [releaseChannel, setReleaseChannel] = useState<'stable' | 'dev'>('stable')
+    const [detailChannel, setDetailChannel] = useState<'stable' | 'dev'>('stable')
+    const [channelLoading, setChannelLoading] = useState(false)
+    const [resolvedDetailRelease, setResolvedDetailRelease] = useState<string | null>(null)
+    const detailRequestRef = useRef(0)
     const [catalogTab, setCatalogTab] = useState<CatalogTab>('main')
     const [featuredIndex, setFeaturedIndex] = useState(0)
     const [featuredDirection, setFeaturedDirection] = useState<-1 | 1>(1)
@@ -176,7 +182,7 @@ export default function StorePage() {
         if (loading) return
 
         let active = true
-        void fetchStoreAddonUpdates([requestedAddonId])
+        void fetchStoreAddonUpdates([requestedAddonId], releaseChannel)
             .then(([addon]) => {
                 if (active && addon?.currentRelease) openRouteAddon(addon)
             })
@@ -185,7 +191,7 @@ export default function StorePage() {
         return () => {
             active = false
         }
-    }, [addons, loading, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState])
+    }, [addons, loading, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState, releaseChannel])
 
     useEffect(() => {
         const timeoutId = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 250)
@@ -208,6 +214,7 @@ export default function StorePage() {
                         query: GetStoreAddonsQuery,
                         variables: {
                             page: 1,
+                            releaseChannel,
                             pageSize: 50,
                             search: debouncedSearchQuery || undefined,
                             type: (isSearchOpen || debouncedSearchQuery) && searchType !== 'all' ? searchType : undefined,
@@ -219,6 +226,7 @@ export default function StorePage() {
                     apolloClient.query<StoreAddonsQuery>({
                         query: GetNewStoreAddonsQuery,
                         variables: {
+                            releaseChannel,
                             pageSize: 12,
                             search: debouncedSearchQuery || undefined,
                         },
@@ -228,6 +236,7 @@ export default function StorePage() {
                         query: GetStoreAddonsQuery,
                         variables: {
                             page: 1,
+                            releaseChannel,
                             pageSize: 5,
                             search: debouncedSearchQuery || undefined,
                             sortBy: 'downloads',
@@ -266,7 +275,7 @@ export default function StorePage() {
         return () => {
             active = false
         }
-    }, [catalogTab, debouncedSearchQuery, isSearchOpen, searchSort, searchSortOrder, searchType])
+    }, [catalogTab, debouncedSearchQuery, isSearchOpen, searchSort, searchSortOrder, searchType, releaseChannel])
 
     useEffect(() => {
         let active = true
@@ -445,10 +454,20 @@ export default function StorePage() {
     }, [featuredAddons.length])
 
     const handleStoreAddonAction = useCallback(
-        async (addon: StoreAddon, release: StoreAddon['currentRelease'], installedStoreAddon?: Addon) => {
+        async (
+            addon: StoreAddon,
+            release: StoreAddon['currentRelease'],
+            installedStoreAddon?: Addon,
+            channel: 'stable' | 'dev' = catalogTab === 'main'
+                ? releaseChannel
+                : release?.releaseChannels?.includes('stable') === false
+                  ? 'dev'
+                  : 'stable',
+            switchChannel = false,
+        ) => {
             if (!release || !addon.id || installingAddonId === addon.id) return
 
-            if (installedStoreAddon) {
+            if (installedStoreAddon && !switchChannel) {
                 const removeInstalledAddon = async () => {
                     setInstallingAddonId(addon.id)
                     const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
@@ -491,7 +510,7 @@ export default function StorePage() {
             const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
 
             try {
-                const result = (await desktopApi.addons.installStore({ id: addon.id, downloadUrl, title: addon.name })) as {
+                const result = (await desktopApi.addons.installStore({ id: addon.id, downloadUrl, title: addon.name, releaseChannel: channel })) as {
                     reason?: string
                     success?: boolean
                 }
@@ -507,7 +526,7 @@ export default function StorePage() {
                 setInstallingAddonId(current => (current === addon.id ? null : current))
             }
         },
-        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t],
+        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t, releaseChannel, catalogTab],
     )
 
     const renderStoreCard = useCallback(
@@ -782,7 +801,53 @@ export default function StorePage() {
         </section>
     )
 
+    const changeDetailChannel = useCallback(
+        async (addonId: string, channel: 'stable' | 'dev') => {
+            const request = ++detailRequestRef.current
+            setChannelLoading(true)
+            try {
+                const [addon] = await fetchStoreAddonUpdates([addonId], channel)
+                if (request !== detailRequestRef.current) return
+                if (!addon?.currentRelease) throw new Error('ADDON_CHANNEL_UNAVAILABLE')
+                setSelectedAddon(current => (current?.id === addonId ? addon : current))
+                setDetailChannel(channel)
+                setResolvedDetailRelease(`${addon.id}:${addon.currentRelease.id}:${channel}`)
+            } catch (error) {
+                console.error('[Store] failed to select channel', error)
+                if (request === detailRequestRef.current)
+                    toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
+            } finally {
+                if (request === detailRequestRef.current) setChannelLoading(false)
+            }
+        },
+        [t],
+    )
+
+    useEffect(() => {
+        if (!selectedAddon?.id) {
+            ++detailRequestRef.current
+            return
+        }
+        const initialChannel = selectedAddon.currentRelease?.releaseChannels?.includes('stable') === false ? 'dev' : releaseChannel
+        const channel =
+            installedAddons.find(addon => addon.storeAddonId === selectedAddon.id && addon.installSource === 'store')?.storeReleaseChannel ??
+            initialChannel
+        setDetailChannel(initialChannel)
+        setResolvedDetailRelease(null)
+        if (selectedAddon.currentRelease?.status !== 'accepted') {
+            setResolvedDetailRelease(`${selectedAddon.id}:${selectedAddon.currentRelease?.id}:${initialChannel}`)
+            setChannelLoading(false)
+            return
+        }
+        void changeDetailChannel(selectedAddon.id, channel)
+        return () => {
+            ++detailRequestRef.current
+        }
+    }, [selectedAddon?.id, releaseChannel, changeDetailChannel])
+
     const modalAddon = selectedAddon ?? modalAddonRef.current
+    const modalInstalledAddon = modalAddon ? installedStoreAddons.get(modalAddon.id) : undefined
+    const isSwitchingChannel = Boolean(modalInstalledAddon && (modalInstalledAddon.storeReleaseChannel ?? 'stable') !== detailChannel)
     const content = isSearchMode ? (
         searchResults
     ) : activeLoading ? (
@@ -930,6 +995,17 @@ export default function StorePage() {
                             </div>
                         </div>
 
+                        <SelectInput
+                            className={st.channelSelect}
+                            label={t('extensions.publication.channelLabel')}
+                            value={releaseChannel}
+                            options={[
+                                { value: 'stable', label: t('extensions.publication.channelStable') },
+                                { value: 'dev', label: t('extensions.publication.channelDev') },
+                            ]}
+                            onChange={value => setReleaseChannel(value === 'dev' ? 'dev' : 'stable')}
+                        />
+
                         {content}
                     </main>
                 </Scrollbar>
@@ -937,15 +1013,24 @@ export default function StorePage() {
                     <StoreAddonDetailsModal
                         key={modalAddon.id}
                         addon={modalAddon}
+                        releaseChannel={detailChannel}
+                        channelLoading={channelLoading}
+                        isSwitchingChannel={isSwitchingChannel}
+                        onChannelChange={channel => void changeDetailChannel(modalAddon.id, channel)}
                         isOpen={Boolean(selectedAddon)}
                         isInstalled={installedStoreAddons.has(modalAddon.id)}
                         actionDisabled={
+                            channelLoading ||
+                            ((!modalInstalledAddon || isSwitchingChannel) &&
+                                resolvedDetailRelease !== `${modalAddon.id}:${modalAddon.currentRelease?.id}:${detailChannel}`) ||
                             installingAddonId === modalAddon.id ||
                             (!installedStoreAddons.has(modalAddon.id) && !modalAddon.currentRelease?.downloadUrl?.trim())
                         }
                         actionLabel={
                             installedStoreAddons.has(modalAddon.id)
-                                ? t('store.remove')
+                                ? isSwitchingChannel
+                                    ? t('extensions.publication.switchChannel')
+                                    : t('store.remove')
                                 : installingAddonId === modalAddon.id
                                   ? t('common.importing')
                                   : modalAddon.currentRelease?.downloadUrl?.trim()
@@ -961,11 +1046,22 @@ export default function StorePage() {
                         onAction={() => {
                             if (!modalAddon.currentRelease) return
                             setSelectedAddon(null)
-                            void handleStoreAddonAction(modalAddon, modalAddon.currentRelease, installedStoreAddons.get(modalAddon.id))
+                            void handleStoreAddonAction(
+                                modalAddon,
+                                modalAddon.currentRelease,
+                                installedStoreAddons.get(modalAddon.id),
+                                detailChannel,
+                                isSwitchingChannel,
+                            )
                         }}
                         onRelatedAddonAction={relatedAddon => {
                             if (!relatedAddon.currentRelease) return
-                            void handleStoreAddonAction(relatedAddon, relatedAddon.currentRelease, installedStoreAddons.get(relatedAddon.id))
+                            void handleStoreAddonAction(
+                                relatedAddon,
+                                relatedAddon.currentRelease,
+                                installedStoreAddons.get(relatedAddon.id),
+                                releaseChannel,
+                            )
                         }}
                         onRelatedAddonSelect={setSelectedAddon}
                         onAuthorClick={author => {

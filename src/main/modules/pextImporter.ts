@@ -20,6 +20,7 @@ const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
 const MAX_ADDON_ARCHIVE_BYTES = 100 * 1024 * 1024
 type ImportAddonArchiveOptions = {
+    releaseChannel?: 'stable' | 'dev'
     installSource?: 'store' | 'local'
     storeAddonId?: string | null
 }
@@ -178,6 +179,11 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
         metadata.fromPext = true
         metadata.installSource = options.installSource === 'store' ? 'store' : 'local'
+        if (metadata.installSource === 'store') {
+            metadata.storeReleaseChannel = options.releaseChannel === 'dev' ? 'dev' : 'stable'
+        } else {
+            delete metadata.storeReleaseChannel
+        }
         if (options.storeAddonId) {
             metadata.storeAddonId = options.storeAddonId
         } else {

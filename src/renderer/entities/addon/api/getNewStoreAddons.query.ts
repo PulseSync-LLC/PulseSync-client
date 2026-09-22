@@ -1,8 +1,8 @@
 import gql from 'graphql-tag'
 
 export default gql`
-    query GetNewStoreAddons($pageSize: Int = 12, $search: String) {
-        getStoreAddons(page: 1, pageSize: $pageSize, search: $search, sortBy: "publishedAt", sortOrder: "desc") {
+    query GetNewStoreAddons($pageSize: Int = 12, $search: String, $releaseChannel: String) {
+        getStoreAddons(page: 1, pageSize: $pageSize, search: $search, sortBy: "publishedAt", sortOrder: "desc", releaseChannel: $releaseChannel) {
             totalCount
             totalPages
             addons {
@@ -18,6 +18,7 @@ export default gql`
                     id
                     version
                     visibility
+                    releaseChannels
                     description
                     authors
                     changelog

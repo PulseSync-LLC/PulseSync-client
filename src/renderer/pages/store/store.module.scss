@@ -37,6 +37,12 @@
     color: var(--text-primary);
 }
 
+.channelSelect {
+    width: min(100%, 240px);
+
+    margin-left: auto;
+}
+
 .catalogToolbar {
     box-sizing: border-box;
     display: flex;

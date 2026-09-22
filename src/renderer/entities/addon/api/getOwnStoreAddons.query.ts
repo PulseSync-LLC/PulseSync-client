@@ -17,6 +17,7 @@ export default gql`
                 id
                 version
                 visibility
+                releaseChannels
                 description
                 authors
                 changelog
@@ -41,6 +42,7 @@ export default gql`
                 id
                 version
                 visibility
+                releaseChannels
                 description
                 authors
                 changelog

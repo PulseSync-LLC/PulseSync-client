@@ -58,12 +58,14 @@ const ExtensionPublicationModal: React.FC = () => {
         onChangeGithubUrl,
         onPublish,
         onUpdate,
+        onPromote,
     } = getModalState(Modals.EXTENSION_PUBLICATION_MODAL)
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)
     const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
     const [previewPath, setPreviewPath] = useState('')
+    const [releaseChannel, setReleaseChannel] = useState<'stable' | 'dev'>('stable')
     const [visibility, setVisibility] = useState<'public' | 'dev'>('public')
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
@@ -72,6 +74,9 @@ const ExtensionPublicationModal: React.FC = () => {
     const shouldShowModerationNote = Boolean(moderationNote && !INTERNAL_MODERATION_NOTES.has(moderationNote))
 
     useEffect(() => {
+        setReleaseChannel(
+            publicationRelease?.releaseChannels?.includes('dev') && !publicationRelease.releaseChannels.includes('stable') ? 'dev' : 'stable',
+        )
         setRulesAccepted(false)
         setVisibility(publicationRelease?.visibility ?? 'public')
         setUsedAiDuringDevelopment(Boolean(publicationRelease?.usedAiDuringDevelopment))
@@ -84,6 +89,7 @@ const ExtensionPublicationModal: React.FC = () => {
         publicationRelease?.id,
         publicationRelease?.usedAiDuringDevelopment,
         publicationRelease?.visibility,
+        publicationRelease?.releaseChannels,
     ])
 
     const fallbackPreview = staticAsset('assets/images/no_themeBackground.png')
@@ -165,7 +171,7 @@ const ExtensionPublicationModal: React.FC = () => {
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility)
+                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
               },
               disabled: !canSubmit,
           }
@@ -173,11 +179,19 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility)
+                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                 },
                 disabled: !canSubmit,
             }
           : null
+
+    const promotionButtons =
+        onPromote &&
+        publicationRelease?.status === 'accepted' &&
+        publicationRelease.releaseChannels?.includes('dev') &&
+        !publicationRelease.releaseChannels.includes('stable')
+            ? [{ text: t('extensions.publication.promote'), onClick: onPromote, disabled: publicationBusy }]
+            : []
 
     return (
         <CustomModalPS
@@ -193,9 +207,10 @@ const ExtensionPublicationModal: React.FC = () => {
                               variant: 'secondary',
                               disabled: publicationBusy,
                           },
+                          ...promotionButtons,
                           ...(primaryButton ? [primaryButton] : []),
                       ]
-                    : []
+                    : promotionButtons
             }
         >
             <div className={cn(styles.body, !isEditingMode && styles.bodyReadonly)}>
@@ -306,6 +321,22 @@ const ExtensionPublicationModal: React.FC = () => {
                                     )}
                                 </span>
                             </>
+                        )}
+                        {isEditingMode ? (
+                            <SelectInput
+                                label={t('extensions.publication.channelLabel')}
+                                value={releaseChannel}
+                                options={[
+                                    { value: 'stable', label: t('extensions.publication.channelStable') },
+                                    { value: 'dev', label: t('extensions.publication.channelDev') },
+                                ]}
+                                onChange={value => setReleaseChannel(value === 'dev' ? 'dev' : 'stable')}
+                                disabled={publicationBusy}
+                            />
+                        ) : (
+                            <span className={styles.subValue}>
+                                {t('extensions.publication.channelLabel')}: {(publicationRelease?.releaseChannels ?? ['stable']).join(', ')}
+                            </span>
                         )}
                         {isEditingMode && visibility === 'dev' ? (
                             <span className={styles.subValue}>{t('extensions.publication.visibilityHint')}</span>

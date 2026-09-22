@@ -29,6 +29,7 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import { Avatar } from '@shared/ui/PSUI/Image'
 import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
 import TooltipButton from '@shared/ui/tooltip_button'
 
@@ -81,6 +82,10 @@ const formatAge = (value: string, locale: string) => {
 }
 
 type StoreAddonDetailsModalProps = {
+    releaseChannel: 'stable' | 'dev'
+    channelLoading: boolean
+    isSwitchingChannel: boolean
+    onChannelChange: (channel: 'stable' | 'dev') => void
     addon: StoreAddon | null
     isOpen: boolean
     isInstalled: boolean
@@ -102,6 +107,10 @@ type StoreAddonDetailsModalProps = {
 
 export default function StoreAddonDetailsModal({
     addon,
+    releaseChannel,
+    channelLoading,
+    isSwitchingChannel,
+    onChannelChange,
     isOpen,
     isInstalled,
     actionDisabled,
@@ -133,11 +142,12 @@ export default function StoreAddonDetailsModal({
         setReadmeAddonId(null)
         setHoveredRating(0)
         scrollAreaRef.current?.scrollTo({ top: 0 })
-    }, [addon?.id])
+    }, [addon?.id, releaseChannel, addon?.currentRelease?.id])
 
     useEffect(() => {
         const addonId = addon?.id
-        if (!isOpen || !addonId || readmeAddonId === addonId) return
+        const readmeKey = `${addonId}:${addon?.currentRelease?.id}:${releaseChannel}`
+        if (!isOpen || !addonId || readmeAddonId === readmeKey) return
 
         let active = true
         setReadmeLoading(true)
@@ -145,19 +155,19 @@ export default function StoreAddonDetailsModal({
         void apolloClient
             .query<StoreAddonMetaQuery>({
                 query: GetStoreAddonMetaQuery,
-                variables: { id: addonId },
+                variables: { id: addonId, releaseChannel },
                 fetchPolicy: 'no-cache',
             })
             .then(response => {
                 if (!active) return
                 setReadme(response.data?.getStoreAddonMeta?.readme?.trim() || null)
-                setReadmeAddonId(addonId)
+                setReadmeAddonId(readmeKey)
             })
             .catch(error => {
                 console.error('[Store] failed to load addon README', error)
                 if (!active) return
                 setReadme(null)
-                setReadmeAddonId(addonId)
+                setReadmeAddonId(readmeKey)
             })
             .finally(() => {
                 if (active) setReadmeLoading(false)
@@ -166,7 +176,7 @@ export default function StoreAddonDetailsModal({
         return () => {
             active = false
         }
-    }, [addon?.id, isOpen, readmeAddonId])
+    }, [addon?.id, addon?.currentRelease?.id, isOpen, readmeAddonId, releaseChannel])
 
     if (!addon?.currentRelease) return null
 
@@ -236,12 +246,7 @@ export default function StoreAddonDetailsModal({
                             )}
                             <h1 id="store-addon-details-title">{addon.name}</h1>
                             {release.usesOfficialTemplate ? (
-                                <TooltipButton
-                                    as="span"
-                                    side="top"
-                                    className={st.verifiedTooltip}
-                                    tooltipText={t('store.badges.officialTemplate')}
-                                >
+                                <TooltipButton as="span" side="top" className={st.verifiedTooltip} tooltipText={t('store.badges.officialTemplate')}>
                                     <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
                                 </TooltipButton>
                             ) : null}
@@ -258,12 +263,7 @@ export default function StoreAddonDetailsModal({
                                 {downloadsLabel}
                             </span>
                             {release.usedAiDuringDevelopment ? (
-                                <TooltipButton
-                                    as="span"
-                                    side="top"
-                                    className={st.aiTooltip}
-                                    tooltipText={t('store.badges.aiUsageTooltip')}
-                                >
+                                <TooltipButton as="span" side="top" className={st.aiTooltip} tooltipText={t('store.badges.aiUsageTooltip')}>
                                     <span className={cn(st.metaChip, st.aiChip)}>
                                         <MdStar aria-hidden="true" />
                                         {t('store.badges.aiUsage')}
@@ -274,7 +274,7 @@ export default function StoreAddonDetailsModal({
 
                         <button
                             type="button"
-                            className={cn(st.actionButton, isInstalled ? st.dangerAction : st.installAction)}
+                            className={cn(st.actionButton, isInstalled && !isSwitchingChannel ? st.dangerAction : st.installAction)}
                             onClick={onAction}
                             disabled={actionDisabled}
                         >
@@ -282,6 +282,18 @@ export default function StoreAddonDetailsModal({
                             {actionLabel}
                         </button>
                     </header>
+
+                    <SelectInput
+                        className={st.channelSelect}
+                        label={t('extensions.publication.channelLabel')}
+                        value={releaseChannel}
+                        options={[
+                            { value: 'stable', label: t('extensions.publication.channelStable') },
+                            { value: 'dev', label: t('extensions.publication.channelDev') },
+                        ]}
+                        onChange={value => onChannelChange(value === 'dev' ? 'dev' : 'stable')}
+                        disabled={channelLoading || release.status !== 'accepted' || installingAddonId === addon.id}
+                    />
 
                     <section className={st.overview}>
                         <div className={st.overviewCopy}>

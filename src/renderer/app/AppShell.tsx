@@ -12,7 +12,7 @@ import AppProviders from '@app/providers/AppProviders'
 import { useNotificationsController } from '@app/providers/notifications/useNotificationsController'
 import { SocketProvider } from '@app/providers/socket'
 import { createAppRouter } from '@app/router'
-import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
+import { fetchInstalledStoreAddonUpdates } from '@entities/addon/api/storeAddons'
 import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import AddonInitials from '@entities/addon/model/addon.initials'
 import { prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
@@ -282,7 +282,7 @@ function App() {
             storeAddonUpdateCheckInFlightRef.current = true
 
             try {
-                const updates = await fetchStoreAddonUpdates(storeInstalledAddons.map(addon => addon.storeAddonId || ''))
+                const updates = await fetchInstalledStoreAddonUpdates(storeInstalledAddons)
                 const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
                 const outdatedAddons = updates.filter(publishedAddon => {
                     const installedAddon = installedByStoreId.get(publishedAddon.id)
@@ -324,6 +324,7 @@ function App() {
                             const result = (await desktopApi.addons.installStore({
                                 id: publishedAddon.id,
                                 downloadUrl: release.downloadUrl,
+                                releaseChannel: installedAddon.storeReleaseChannel ?? 'stable',
                                 title: publishedAddon.name,
                             })) as { reason?: string; success?: boolean } | null | undefined
 
