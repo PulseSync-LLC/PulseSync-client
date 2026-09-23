@@ -1,5 +1,6 @@
 import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
 
+import { Button } from '@pulsesync/uikit/actions'
 import { Badge } from '@pulsesync/uikit/data-display'
 import { SearchBox } from '@pulsesync/uikit/inputs'
 import { DropdownMenu, type DropdownMenuItem, Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
@@ -13,6 +14,7 @@ import {
     MdDownload,
     MdFilterAlt,
     MdInventory2,
+    MdKeyboardArrowDown,
     MdLabel,
     MdLanguage,
     MdLightMode,
@@ -25,6 +27,7 @@ import { useLocation, useNavigate } from 'react-router'
 
 import { useModalContext } from '@app/providers/modal'
 import useCarouselDrag from '@pages/store/lib/useCarouselDrag'
+import useStoreReleaseChannel from '@pages/store/lib/useStoreReleaseChannel'
 import StoreAddonDetailsModal from '@pages/store/ui/StoreAddonDetailsModal'
 import StoreVirtualList from '@pages/store/ui/StoreVirtualList'
 import PageLayout from '@widgets/layout/PageLayout'
@@ -40,7 +43,6 @@ import { staticAsset } from '@shared/lib/staticAssets'
 import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
 import toast from '@shared/ui/toast'
 
@@ -99,7 +101,7 @@ export default function StorePage() {
     const [popularAddons, setPopularAddons] = useState<StoreAddon[]>([])
     const [ownAddons, setOwnAddons] = useState<StoreAddon[]>([])
     const [pendingAddons, setPendingAddons] = useState<StoreAddon[]>([])
-    const [releaseChannel, setReleaseChannel] = useState<'stable' | 'dev'>('stable')
+    const [releaseChannel, setReleaseChannel] = useStoreReleaseChannel()
     const [detailChannel, setDetailChannel] = useState<'stable' | 'dev'>('stable')
     const [channelLoading, setChannelLoading] = useState(false)
     const [resolvedDetailRelease, setResolvedDetailRelease] = useState<string | null>(null)
@@ -978,33 +980,46 @@ export default function StorePage() {
                                     {isDeveloperUser && <Tab value="moderation">{t('store.catalog.moderation')}</Tab>}
                                 </TabList>
                             </Tabs>
-                            <div className={st.catalogSearchSlot}>
-                                <img className={st.catalogSearchIcon} src={staticAsset('assets/icons/package_search.svg')} alt="" />
-                                <SearchBox
-                                    value={searchQuery}
-                                    onChange={setSearchQuery as never}
-                                    onFocus={() => setIsSearchOpen(true)}
-                                    onKeyDown={event => {
-                                        if (event.key !== 'Escape') return
-                                        closeSearch()
-                                        if (event.target instanceof HTMLElement) event.target.blur()
-                                    }}
-                                    placeholder={t('store.catalog.search')}
-                                    className={st.catalogSearch}
-                                />
+                            <div className={st.catalogControls}>
+                                <DropdownMenu
+                                    items={(['stable', 'dev'] as const).map(channel => ({
+                                        key: channel,
+                                        label: t(`store.catalog.channel.${channel}`),
+                                        radio: true,
+                                        checked: releaseChannel === channel,
+                                        onClick: () => void setReleaseChannel(channel),
+                                    }))}
+                                    placement="bottom-start"
+                                >
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="compact"
+                                        uppercase={false}
+                                        icon={<MdKeyboardArrowDown />}
+                                        iconPosition="right"
+                                        aria-label={`${t('extensions.publication.channelLabel')}: ${t(`store.catalog.channel.${releaseChannel}`)}`}
+                                    >
+                                        {t(`store.catalog.channel.${releaseChannel}`)}
+                                    </Button>
+                                </DropdownMenu>
+                                <div className={st.catalogSearchSlot}>
+                                    <img className={st.catalogSearchIcon} src={staticAsset('assets/icons/package_search.svg')} alt="" />
+                                    <SearchBox
+                                        value={searchQuery}
+                                        onChange={setSearchQuery as never}
+                                        onFocus={() => setIsSearchOpen(true)}
+                                        onKeyDown={event => {
+                                            if (event.key !== 'Escape') return
+                                            closeSearch()
+                                            if (event.target instanceof HTMLElement) event.target.blur()
+                                        }}
+                                        placeholder={t('store.catalog.search')}
+                                        className={st.catalogSearch}
+                                    />
+                                </div>
                             </div>
                         </div>
-
-                        <SelectInput
-                            className={st.channelSelect}
-                            label={t('extensions.publication.channelLabel')}
-                            value={releaseChannel}
-                            options={[
-                                { value: 'stable', label: t('extensions.publication.channelStable') },
-                                { value: 'dev', label: t('extensions.publication.channelDev') },
-                            ]}
-                            onChange={value => setReleaseChannel(value === 'dev' ? 'dev' : 'stable')}
-                        />
 
                         {content}
                     </main>

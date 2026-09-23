@@ -89,6 +89,11 @@ const schema = {
                 description: t('main.storage.settings.showModModalAfterInstall'),
                 default: false,
             },
+            storeReleaseChannel: {
+                type: 'string',
+                enum: ['stable', 'dev'],
+                description: t('main.storage.settings.storeReleaseChannel'),
+            },
             language: {
                 type: 'string',
                 description: t('main.storage.settings.language'),

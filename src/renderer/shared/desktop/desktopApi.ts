@@ -52,6 +52,9 @@ export const desktopApi = {
         getSnapshot: () => requireDesktopApi().settings.getSnapshot(),
         updatePreferences: (patch: Parameters<PulseSyncDesktopApi['settings']['updatePreferences']>[0]) =>
             requireDesktopApi().settings.updatePreferences(patch),
+        getStoreReleaseChannel: () => requireDesktopApi().settings.getStoreReleaseChannel(),
+        setStoreReleaseChannel: (channel: Parameters<PulseSyncDesktopApi['settings']['setStoreReleaseChannel']>[0]) =>
+            requireDesktopApi().settings.setStoreReleaseChannel(channel),
         setLanguage: (language: string) => requireDesktopApi().settings.setLanguage(language),
         resetModState: () => requireDesktopApi().settings.resetModState(),
     },

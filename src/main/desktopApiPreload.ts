@@ -3,7 +3,12 @@ import { contextBridge, ipcRenderer } from 'electron'
 import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
 
 import packageJson from '../../packages/desktop-core/package.json'
-import { DESKTOP_API_VERSION, type DesktopSettingsPatch, type PulseSyncDesktopApi } from '../common/desktopApi/contract'
+import {
+    DESKTOP_API_VERSION,
+    type DesktopSettingsPatch,
+    type DesktopStoreReleaseChannel,
+    type PulseSyncDesktopApi,
+} from '../common/desktopApi/contract'
 import MainEvents from '../common/types/mainEvents'
 import RendererEvents from '../common/types/rendererEvents'
 
@@ -211,6 +216,15 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         updatePreferences: async patch => {
             applySettingsPatch(patch)
+        },
+
+        getStoreReleaseChannel: (): DesktopStoreReleaseChannel | null => {
+            const channel: unknown = ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'settings.storeReleaseChannel')
+            return channel === 'stable' || channel === 'dev' ? channel : null
+        },
+
+        setStoreReleaseChannel: async channel => {
+            await ipcRenderer.invoke(MainEvents.SET_STORE_RELEASE_CHANNEL, channel)
         },
 
         setLanguage: async language => {

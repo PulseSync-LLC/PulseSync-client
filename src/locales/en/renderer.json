@@ -1291,6 +1291,10 @@
             "myAddons": "My add-ons",
             "moderation": "In moderation",
             "search": "Search",
+            "channel": {
+                "stable": "Stable",
+                "dev": "Dev"
+            },
             "results": "Results",
             "openFilters": "Open filters",
             "searchSort": {
