@@ -39,7 +39,7 @@ export function useSettingsSchema({
     const branchSourceItems = actions.modSourceCatalog.branches.map(build => ({
         id: `mod-source-branch-${build.branch}`,
         kind: 'choice' as const,
-        label: build.branch,
+        label: build.branch === 'dev' ? t('contextMenu.mod.devBranch') : build.branch,
         description: t('contextMenu.mod.experimentalBuild', {
             commit: build.commit.slice(0, 7),
             version: build.version,
@@ -53,7 +53,7 @@ export function useSettingsSchema({
         branchSourceItems.push({
             id: `mod-source-branch-${selectedModSource.branch}`,
             kind: 'choice',
-            label: selectedModSource.branch,
+            label: selectedModSource.branch === 'dev' ? t('contextMenu.mod.devBranch') : selectedModSource.branch,
             description: t('contextMenu.mod.branchUnavailable'),
             selected: true,
             disabled: true,

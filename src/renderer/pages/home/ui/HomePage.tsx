@@ -197,10 +197,10 @@ export default function HomePage() {
         const clientBranch = clientChannelState.overrideChannel ? clientChannelState.effectiveChannel : ''
 
         return {
-            ...(modBranch ? { mod: modBranch } : {}),
+            ...(modBranch ? { mod: modBranch === 'dev' ? t('contextMenu.mod.devBranch') : modBranch } : {}),
             ...(clientBranch ? { client: clientBranch } : {}),
         }
-    }, [app.mod.branch, app.mod.sourceType, clientChannelState.effectiveChannel, clientChannelState.overrideChannel])
+    }, [app.mod.branch, app.mod.sourceType, clientChannelState.effectiveChannel, clientChannelState.overrideChannel, t])
 
     const handleClientChannelSelect = useCallback(
         async (selection: string) => {
@@ -303,7 +303,7 @@ export default function HomePage() {
             },
             ...modSourceCatalog.branches.map(build => ({
                 value: build.branch,
-                label: build.branch,
+                label: build.branch === 'dev' ? t('contextMenu.mod.devBranch') : build.branch,
                 description: `v${build.version} · ${build.commit.slice(0, 7)}`,
                 selected: modSourceCatalog.selected.type === 'branch' && modSourceCatalog.selected.branch === build.branch,
             })),
@@ -315,7 +315,7 @@ export default function HomePage() {
         ) {
             modOptions.push({
                 value: modSourceCatalog.selected.branch,
-                label: modSourceCatalog.selected.branch,
+                label: modSourceCatalog.selected.branch === 'dev' ? t('contextMenu.mod.devBranch') : modSourceCatalog.selected.branch,
                 description: t('contextMenu.mod.branchUnavailable'),
                 selected: true,
                 disabled: true,

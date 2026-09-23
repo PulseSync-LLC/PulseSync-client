@@ -217,8 +217,9 @@
             "showChangelog": "Показывать список изменений после установки",
             "sourceChangeError": "Не удалось переключить версию мода.",
             "sourceLoadError": "Не удалось загрузить тестовые версии мода с GitHub.",
-            "stable": "Stable",
+            "stable": "Основная",
             "stableDescription": "Стабильная сборка",
+            "devBranch": "Тестовая (dev)",
             "testVersions": "Тестовые версии",
             "version": "Версия мода",
             "title": "Мод"
