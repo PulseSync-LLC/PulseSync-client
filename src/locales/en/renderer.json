@@ -219,6 +219,7 @@
             "sourceLoadError": "Failed to load test mod versions from GitHub.",
             "stable": "Stable",
             "stableDescription": "Stable build",
+            "devBranch": "Dev",
             "testVersions": "Test versions",
             "version": "Mod version",
             "title": "Mod"
