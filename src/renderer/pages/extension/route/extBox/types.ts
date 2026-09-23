@@ -25,6 +25,9 @@ export interface ExtensionViewProps {
     onToggleEnabled: (enabled: boolean) => void
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
+    storeChannelLoading?: boolean
+    availableStoreChannels?: ('stable' | 'dev')[]
+    onStoreChannelChange?: (channel: 'stable' | 'dev') => void
     onStoreUpdate?: () => void
     publication?: StoreAddon | null
     publicationReleases?: StoreAddonRelease[]

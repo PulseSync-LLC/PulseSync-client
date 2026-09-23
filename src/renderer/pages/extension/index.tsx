@@ -39,6 +39,7 @@ import {
     AddonStoreSubmitError,
     fetchInstalledStoreAddonUpdates,
     fetchOwnStoreAddons,
+    fetchStoreAddonUpdates,
     persistAddonPreview,
     persistAddonStoreLink,
     promoteAddonRelease,
@@ -199,6 +200,8 @@ export default function ExtensionPage() {
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
     const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
     const [installedStoreUpdates, setInstalledStoreUpdates] = useState<StoreAddon[]>([])
+    const [storeChannelReleases, setStoreChannelReleases] = useState<Partial<Record<'stable' | 'dev', StoreAddon>>>({})
+    const [storeChannelLoading, setStoreChannelLoading] = useState(false)
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
     const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
@@ -824,6 +827,36 @@ export default function ExtensionPage() {
     )
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
+    const selectedStoreAddonId = selectedAddon?.installSource === 'store' ? selectedAddon.storeAddonId?.trim() : undefined
+
+    useEffect(() => {
+        setStoreChannelReleases({})
+        if (!selectedStoreAddonId) {
+            setStoreChannelLoading(false)
+            return
+        }
+
+        let active = true
+        setStoreChannelLoading(true)
+        void Promise.all([fetchStoreAddonUpdates([selectedStoreAddonId], 'stable'), fetchStoreAddonUpdates([selectedStoreAddonId], 'dev')])
+            .then(([stableAddons, devAddons]) => {
+                if (!active) return
+                setStoreChannelReleases({
+                    stable: stableAddons.find(
+                        addon => addon.id === selectedStoreAddonId && addon.currentRelease?.releaseChannels?.includes('stable'),
+                    ),
+                    dev: devAddons.find(addon => addon.id === selectedStoreAddonId && addon.currentRelease?.releaseChannels?.includes('dev')),
+                })
+            })
+            .catch(error => console.error('[ExtensionPage] failed to load addon channels', error))
+            .finally(() => {
+                if (active) setStoreChannelLoading(false)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [selectedStoreAddonId])
 
     const selectedAddonMissingDependencies = useMemo(
         () => (selectedAddon && addonRelationsEnabled ? getMissingDependencyLabels(selectedAddon) : []),
@@ -1165,57 +1198,69 @@ export default function ExtensionPage() {
         setModalState,
     ])
 
-    const handleStoreAddonUpdate = useCallback(async () => {
-        if (!selectedAddon || !selectedStoreUpdate) {
-            return
-        }
-
-        if (selectedAddonIsRestrictedLegacy && selectedStoreUpdate.type === 'script') {
-            if (selectedAddonIsAuthoredByUser) {
-                toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
-                void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
-            } else {
-                toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'))
-            }
-            return
-        }
-
-        setStoreUpdateBusy(true)
-        const toastId = toast.custom('loading', t('layout.updateAction'), t('common.pleaseWait'))
-
-        try {
-            const result = (await desktopApi.addons.installStore({
-                id: selectedStoreUpdate.id,
-                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl || undefined,
-                title: selectedStoreUpdate.name,
-                releaseChannel: selectedAddon.storeReleaseChannel ?? 'stable',
-            })) as {
-                reason?: string
-                success?: boolean
+    const handleStoreAddonUpdate = useCallback(
+        async (channel?: 'stable' | 'dev') => {
+            if (!selectedAddon || storeUpdateBusy || (channel && channel === (selectedAddon.storeReleaseChannel ?? 'stable'))) return
+            const targetAddon = channel ? storeChannelReleases[channel] : selectedStoreUpdate
+            if (!targetAddon?.currentRelease) {
+                if (channel) toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
+                return
             }
 
-            if (!result?.success) {
-                throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
+            if (selectedAddonIsRestrictedLegacy && targetAddon.type === 'script') {
+                if (selectedAddonIsAuthoredByUser) {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
+                    void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
+                } else {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'))
+                }
+                return
             }
 
-            const nextInstalledAddons = await desktopApi.addons.list()
-            setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-            toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: selectedStoreUpdate.name }), { id: toastId })
-        } catch (error) {
-            console.error('[ExtensionPage] failed to update store addon', error)
-            toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateFailed', { name: selectedAddon.name }), { id: toastId })
-        } finally {
-            setStoreUpdateBusy(false)
-        }
-    }, [
-        legacyAddonRestrictionsExperiment?.meta,
-        selectedAddon,
-        selectedAddonIsAuthoredByUser,
-        selectedAddonIsRestrictedLegacy,
-        selectedStoreUpdate,
-        setAddons,
-        t,
-    ])
+            setStoreUpdateBusy(true)
+            const toastId = toast.custom(
+                'loading',
+                t(channel ? 'extensions.publication.switchChannel' : 'layout.updateAction'),
+                t('common.pleaseWait'),
+            )
+
+            try {
+                const result = (await desktopApi.addons.installStore({
+                    id: targetAddon.id,
+                    downloadUrl: targetAddon.currentRelease.downloadUrl || undefined,
+                    title: targetAddon.name,
+                    releaseChannel: channel ?? selectedAddon.storeReleaseChannel ?? 'stable',
+                })) as {
+                    reason?: string
+                    success?: boolean
+                }
+
+                if (!result?.success) {
+                    throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
+                }
+
+                const nextInstalledAddons = await desktopApi.addons.list()
+                setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+                toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: targetAddon.name }), { id: toastId })
+            } catch (error) {
+                console.error('[ExtensionPage] failed to update store addon', error)
+                toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateFailed', { name: selectedAddon.name }), { id: toastId })
+            } finally {
+                setStoreUpdateBusy(false)
+            }
+        },
+        [
+            legacyAddonRestrictionsExperiment?.meta,
+            selectedAddon,
+            selectedAddonIsAuthoredByUser,
+            selectedAddonIsRestrictedLegacy,
+            selectedStoreUpdate,
+            setAddons,
+            storeChannelReleases,
+            storeUpdateBusy,
+            t,
+        ],
+    )
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 
@@ -1431,6 +1476,9 @@ export default function ExtensionPage() {
                                     relationLabels={relationLabels}
                                     hasStoreUpdate={!!selectedStoreUpdate}
                                     storeUpdateBusy={storeUpdateBusy}
+                                    storeChannelLoading={storeChannelLoading}
+                                    availableStoreChannels={(['stable', 'dev'] as const).filter(channel => Boolean(storeChannelReleases[channel]))}
+                                    onStoreChannelChange={channel => void handleStoreAddonUpdate(channel)}
                                     onStoreUpdate={() => {
                                         void handleStoreAddonUpdate()
                                     }}

@@ -26,6 +26,9 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     enableBlockedReason,
     hasStoreUpdate,
     storeUpdateBusy,
+    storeChannelLoading,
+    availableStoreChannels,
+    onStoreChannelChange,
     onStoreUpdate,
     setSelectedTags,
     setShowFilters,
@@ -120,6 +123,9 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     enableBlockedReason={enableBlockedReason}
                     hasStoreUpdate={hasStoreUpdate}
                     storeUpdateBusy={storeUpdateBusy}
+                    storeChannelLoading={storeChannelLoading}
+                    availableStoreChannels={availableStoreChannels}
+                    onStoreChannelChange={onStoreChannelChange}
                     onStoreUpdate={onStoreUpdate}
                     themeActive={themeActive}
                     onToggleEnabled={toggleWithToast}

@@ -205,6 +205,22 @@
     min-width: 0;
 }
 
+.channelMetaRow {
+    display: flex;
+
+    grid-column: 1 / -1;
+
+    gap: 12px;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding-top: 8px;
+    margin-top: 2px;
+
+    border-top: 1px solid color-mix(in srgb, var(--text-primary) 12%, transparent);
+}
+
 .label {
     overflow: hidden;
     text-overflow: ellipsis;

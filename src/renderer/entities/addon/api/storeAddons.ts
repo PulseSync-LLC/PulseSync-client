@@ -157,7 +157,11 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
-export async function fetchStoreAddonUpdates(ids: string[], releaseChannel: 'stable' | 'dev' = 'stable'): Promise<StoreAddon[]> {
+export async function fetchStoreAddonUpdates(
+    ids: string[],
+    releaseChannel: 'stable' | 'dev' = 'stable',
+    includeRatings = false,
+): Promise<StoreAddon[]> {
     const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean)))
 
     if (!normalizedIds.length) {
@@ -169,7 +173,7 @@ export async function fetchStoreAddonUpdates(ids: string[], releaseChannel: 'sta
         headers: {
             Accept: 'application/json',
         },
-        body: { ids: normalizedIds, releaseChannel },
+        body: { ids: normalizedIds, releaseChannel, ...(includeRatings ? { includeRatings: true } : {}) },
     })
 
     const payload = response.data ?? null
