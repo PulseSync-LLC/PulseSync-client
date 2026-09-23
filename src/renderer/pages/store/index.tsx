@@ -184,7 +184,7 @@ export default function StorePage() {
         if (loading) return
 
         let active = true
-        void fetchStoreAddonUpdates([requestedAddonId], releaseChannel)
+        void fetchStoreAddonUpdates([requestedAddonId], releaseChannel, true)
             .then(([addon]) => {
                 if (active && addon?.currentRelease) openRouteAddon(addon)
             })
@@ -553,7 +553,7 @@ export default function StorePage() {
                     downloads={formatAge(release.approvedAt || release.updatedAt, i18n.language)}
                     topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
                     ratingAverage={addon.ratingAverage}
-                    ratingCount={addon.ratingCount}
+                    ratingCount={releaseChannel === 'stable' && release.releaseChannels?.includes('stable') !== false ? addon.ratingCount : undefined}
                     kind={addon.type}
                     tags={release.tags || []}
                     usedAiDuringDevelopment={release.usedAiDuringDevelopment}
@@ -581,7 +581,7 @@ export default function StorePage() {
                 />
             )
         },
-        [Modals.USER_PROFILE, handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, openModal, t],
+        [Modals.USER_PROFILE, handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, openModal, releaseChannel, t],
     )
 
     const clearInitialShimmerTimers = useCallback(() => {
@@ -676,7 +676,9 @@ export default function StorePage() {
                     <div className={st.featuredIdentity}>
                         {release.avatarUrl ? <img src={release.avatarUrl} alt="" className={st.featuredAvatar} /> : null}
                         <h1 className={st.featuredTitle}>{addon.name}</h1>
-                        <AddonRatingBadge average={addon.ratingAverage} />
+                        {releaseChannel === 'stable' && release.releaseChannels?.includes('stable') !== false ? (
+                            <AddonRatingBadge average={addon.ratingAverage} />
+                        ) : null}
                         {release.visibility === 'dev' ? (
                             <Badge uppercase={false} size="md" variant="info">
                                 {t('extensions.publication.visibilityDev')}
@@ -803,49 +805,74 @@ export default function StorePage() {
         </section>
     )
 
-    const changeDetailChannel = useCallback(
-        async (addonId: string, channel: 'stable' | 'dev') => {
-            const request = ++detailRequestRef.current
-            setChannelLoading(true)
-            try {
-                const [addon] = await fetchStoreAddonUpdates([addonId], channel)
-                if (request !== detailRequestRef.current) return
-                if (!addon?.currentRelease) throw new Error('ADDON_CHANNEL_UNAVAILABLE')
-                setSelectedAddon(current => (current?.id === addonId ? addon : current))
-                setDetailChannel(channel)
-                setResolvedDetailRelease(`${addon.id}:${addon.currentRelease.id}:${channel}`)
-            } catch (error) {
-                console.error('[Store] failed to select channel', error)
-                if (request === detailRequestRef.current)
-                    toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
-            } finally {
-                if (request === detailRequestRef.current) setChannelLoading(false)
-            }
-        },
-        [t],
-    )
+    const selectDetailChannel = useCallback((addonId: string, channel: 'stable' | 'dev', addon: StoreAddon) => {
+        setSelectedAddon(current =>
+            current?.id === addonId
+                ? {
+                      ...current,
+                      ...addon,
+                      ratingAverage: current.ratingAverage,
+                      ratingCount: current.ratingCount,
+                      myRating: current.myRating,
+                  }
+                : current,
+        )
+        setDetailChannel(channel)
+        setResolvedDetailRelease(`${addon.id}:${addon.currentRelease?.id}:${channel}`)
+    }, [])
 
     useEffect(() => {
         if (!selectedAddon?.id) {
             ++detailRequestRef.current
             return
         }
-        const initialChannel = selectedAddon.currentRelease?.releaseChannels?.includes('stable') === false ? 'dev' : releaseChannel
-        const channel =
-            installedAddons.find(addon => addon.storeAddonId === selectedAddon.id && addon.installSource === 'store')?.storeReleaseChannel ??
-            initialChannel
+        const addonId = selectedAddon.id
+        const initialChannel = selectedAddon.currentRelease?.releaseChannels?.includes(releaseChannel)
+            ? releaseChannel
+            : selectedAddon.currentRelease?.releaseChannels?.includes('stable') === false
+              ? 'dev'
+              : 'stable'
+        const preferredChannel =
+            installedAddons.find(addon => addon.storeAddonId === addonId && addon.installSource === 'store')?.storeReleaseChannel ?? initialChannel
         setDetailChannel(initialChannel)
         setResolvedDetailRelease(null)
         if (selectedAddon.currentRelease?.status !== 'accepted') {
-            setResolvedDetailRelease(`${selectedAddon.id}:${selectedAddon.currentRelease?.id}:${initialChannel}`)
+            setResolvedDetailRelease(`${addonId}:${selectedAddon.currentRelease?.id}:${initialChannel}`)
             setChannelLoading(false)
             return
         }
-        void changeDetailChannel(selectedAddon.id, channel)
+        const request = ++detailRequestRef.current
+        setChannelLoading(true)
+        void Promise.all([fetchStoreAddonUpdates([addonId], 'stable', true), fetchStoreAddonUpdates([addonId], 'dev', true)])
+            .then(([stableAddons, devAddons]) => {
+                if (request !== detailRequestRef.current) return
+                const channelAddons = {
+                    stable: stableAddons.find(addon => addon.id === addonId && addon.currentRelease?.releaseChannels?.includes('stable')),
+                    dev: devAddons.find(addon => addon.id === addonId && addon.currentRelease?.releaseChannels?.includes('dev')),
+                }
+                const channel = channelAddons[preferredChannel]
+                    ? preferredChannel
+                    : channelAddons[initialChannel]
+                      ? initialChannel
+                      : channelAddons.stable
+                        ? 'stable'
+                        : 'dev'
+                const addon = channelAddons[channel]
+                if (!addon?.currentRelease) throw new Error('ADDON_CHANNEL_UNAVAILABLE')
+                selectDetailChannel(addonId, channel, addon)
+            })
+            .catch(error => {
+                console.error('[Store] failed to select channel', error)
+                if (request === detailRequestRef.current)
+                    toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
+            })
+            .finally(() => {
+                if (request === detailRequestRef.current) setChannelLoading(false)
+            })
         return () => {
             ++detailRequestRef.current
         }
-    }, [selectedAddon?.id, releaseChannel, changeDetailChannel])
+    }, [selectedAddon?.id, releaseChannel, selectDetailChannel])
 
     const modalAddon = selectedAddon ?? modalAddonRef.current
     const modalInstalledAddon = modalAddon ? installedStoreAddons.get(modalAddon.id) : undefined
@@ -1029,9 +1056,7 @@ export default function StorePage() {
                         key={modalAddon.id}
                         addon={modalAddon}
                         releaseChannel={detailChannel}
-                        channelLoading={channelLoading}
                         isSwitchingChannel={isSwitchingChannel}
-                        onChannelChange={channel => void changeDetailChannel(modalAddon.id, channel)}
                         isOpen={Boolean(selectedAddon)}
                         isInstalled={installedStoreAddons.has(modalAddon.id)}
                         actionDisabled={

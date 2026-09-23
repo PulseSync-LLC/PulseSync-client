@@ -1,11 +1,12 @@
 import React, { useEffect, useMemo, useState } from 'react'
 
+import { Button as UIKitButton } from '@pulsesync/uikit/actions'
 import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { MdKeyboardArrowDown, MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
 import { useNavigate } from 'react-router'
 
 import config from '@common/appConfig'
@@ -32,6 +33,9 @@ interface Props {
     enableBlockedReason?: string | null
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
+    storeChannelLoading?: boolean
+    availableStoreChannels?: ('stable' | 'dev')[]
+    onStoreChannelChange?: (channel: 'stable' | 'dev') => void
     onStoreUpdate?: () => void
     themeActive: boolean
     onToggleEnabled: (enabled: boolean) => void
@@ -115,6 +119,9 @@ const ThemeInfo: React.FC<Props> = ({
     enableBlockedReason = null,
     hasStoreUpdate = false,
     storeUpdateBusy = false,
+    storeChannelLoading = false,
+    availableStoreChannels = [],
+    onStoreChannelChange,
     onStoreUpdate,
     themeActive,
     onToggleEnabled,
@@ -177,6 +184,11 @@ const ThemeInfo: React.FC<Props> = ({
     const authorsDisplay = authorNames.join(', ')
     const canAccessStore = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
     const storeAddonId = String(publication?.id || addon.storeAddonId || '').trim()
+    const storeReleaseChannel = addon.storeReleaseChannel ?? 'stable'
+    const storeChannelLabels = {
+        stable: t('extensions.publication.channelStable'),
+        dev: t('extensions.publication.channelDev'),
+    }
     const canOpenStorePublication = canAccessStore && Boolean(storeAddonId)
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
@@ -322,6 +334,37 @@ const ThemeInfo: React.FC<Props> = ({
                     <span className={s.label}>{t('extensions.meta.source')}</span>
                     <span className={s.value}>{addon.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')}</span>
                 </div>
+                {availableStoreChannels.includes('dev') && (
+                    <div className={s.channelMetaRow}>
+                        <span className={s.label}>{t('extensions.publication.channelLabel')}</span>
+                        <DropdownMenu
+                            items={(['stable', 'dev'] as const).map(channel => ({
+                                key: channel,
+                                label: storeChannelLabels[channel],
+                                radio: true,
+                                checked: storeReleaseChannel === channel,
+                                disabled:
+                                    storeChannelLoading ||
+                                    storeUpdateBusy ||
+                                    (channel !== storeReleaseChannel && !availableStoreChannels.includes(channel)),
+                                onClick: () => onStoreChannelChange?.(channel),
+                            }))}
+                            placement="bottom-start"
+                        >
+                            <UIKitButton
+                                type="button"
+                                variant="ghost"
+                                size="compact"
+                                uppercase={false}
+                                icon={<MdKeyboardArrowDown />}
+                                iconPosition="right"
+                                disabled={storeUpdateBusy}
+                            >
+                                {storeChannelLabels[storeReleaseChannel]}
+                            </UIKitButton>
+                        </DropdownMenu>
+                    </div>
+                )}
             </div>
 
             <section className={s.section}>

@@ -29,7 +29,6 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import { Avatar } from '@shared/ui/PSUI/Image'
 import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
 import TooltipButton from '@shared/ui/tooltip_button'
 
@@ -83,9 +82,7 @@ const formatAge = (value: string, locale: string) => {
 
 type StoreAddonDetailsModalProps = {
     releaseChannel: 'stable' | 'dev'
-    channelLoading: boolean
     isSwitchingChannel: boolean
-    onChannelChange: (channel: 'stable' | 'dev') => void
     addon: StoreAddon | null
     isOpen: boolean
     isInstalled: boolean
@@ -108,9 +105,7 @@ type StoreAddonDetailsModalProps = {
 export default function StoreAddonDetailsModal({
     addon,
     releaseChannel,
-    channelLoading,
     isSwitchingChannel,
-    onChannelChange,
     isOpen,
     isInstalled,
     actionDisabled,
@@ -189,7 +184,6 @@ export default function StoreAddonDetailsModal({
     const isRatingPublic = addon.ratingAverage > 0
     const kindIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
     const kindClass = addon.type === 'theme' ? st.kindTheme : addon.type === 'script' ? st.kindScript : st.kindWebAddon
-
     const submitRating = async (rating: number) => {
         if (ratingSaving) return
         setRatingSaving(true)
@@ -283,21 +277,9 @@ export default function StoreAddonDetailsModal({
                         </button>
                     </header>
 
-                    <SelectInput
-                        className={st.channelSelect}
-                        label={t('extensions.publication.channelLabel')}
-                        value={releaseChannel}
-                        options={[
-                            { value: 'stable', label: t('extensions.publication.channelStable') },
-                            { value: 'dev', label: t('extensions.publication.channelDev') },
-                        ]}
-                        onChange={value => onChannelChange(value === 'dev' ? 'dev' : 'stable')}
-                        disabled={channelLoading || release.status !== 'accepted' || installingAddonId === addon.id}
-                    />
-
                     <section className={st.overview}>
                         <div className={st.overviewCopy}>
-                            {release.status === 'accepted' && (canRateAddon || isRatingPublic) ? (
+                            {releaseChannel === 'stable' && release.status === 'accepted' && (canRateAddon || isRatingPublic) ? (
                                 <div className={st.ratingSection}>
                                     {canRateAddon ? (
                                         <>
@@ -458,7 +440,11 @@ export default function StoreAddonDetailsModal({
                                                 relatedAddon.downloadCount,
                                             )}
                                             ratingAverage={relatedAddon.ratingAverage}
-                                            ratingCount={relatedAddon.ratingCount}
+                                            ratingCount={
+                                                releaseChannel === 'stable' && relatedRelease.releaseChannels?.includes('stable') !== false
+                                                    ? relatedAddon.ratingCount
+                                                    : undefined
+                                            }
                                             iconImage={relatedRelease.avatarUrl || undefined}
                                             backgroundImage={relatedRelease.bannerUrl || undefined}
                                             kind={relatedAddon.type}
