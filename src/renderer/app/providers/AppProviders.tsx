@@ -141,7 +141,7 @@ export default function AppProviders({
         <div className="app-wrapper">
             <UserContext.Provider value={userContextValue}>
                 <NewsProvider key={user.id} enabled={!loading}>
-                    <ExperimentsProvider userId={user.id} userPerm={user.perms}>
+                    <ExperimentsProvider userId={user.id} userPerm={user.perms} enabled={!loading}>
                         <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
                         <SettingsModal onNavigate={path => void router.navigate(path)} />
                         <UpdateChannelOverrideModal />
