@@ -38,6 +38,7 @@ export type ExperimentsContextValue = {
 
 export type ExperimentsProviderProps = {
     children: ReactNode
+    enabled?: boolean
     userId?: string | null
     userPerm?: string | null
 }

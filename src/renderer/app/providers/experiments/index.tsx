@@ -78,14 +78,14 @@ function persistOverrides(nextValue: ExperimentOverrideMap) {
     } catch {}
 }
 
-export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsProviderProps) {
+export function ExperimentsProvider({ children, userId, userPerm, enabled = true }: ExperimentsProviderProps) {
     const [experiments, setExperiments] = useState<DesktopExperiment[]>([])
     const [loading, setLoading] = useState(true)
     const [localOverrides, setLocalOverrides] = useState<ExperimentOverrideMap>({})
     const identity = `${userId ?? ''}:${userPerm ?? ''}`
     const [resolvedIdentity, setResolvedIdentity] = useState(identity)
-    const activeExperiments = resolvedIdentity === identity ? experiments : EMPTY_EXPERIMENTS
-    const canOverride = Boolean(userId) && userPerm === 'developer'
+    const activeExperiments = enabled && resolvedIdentity === identity ? experiments : EMPTY_EXPERIMENTS
+    const canOverride = enabled && Boolean(userId) && userPerm === 'developer'
     const activeOverrides = canOverride ? localOverrides : EMPTY_OVERRIDES
 
     useEffect(() => {
@@ -93,10 +93,11 @@ export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsP
     }, [])
 
     useEffect(() => {
-        let active = true
-
         setLoading(true)
         setExperiments([])
+        if (!enabled) return
+
+        let active = true
 
         void fetchExperiments()
             .then(nextExperiments => {
@@ -123,7 +124,7 @@ export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsP
         return () => {
             active = false
         }
-    }, [identity])
+    }, [enabled, identity])
 
     const experimentsMap = useMemo(() => new Map(activeExperiments.map(experiment => [experiment.key, experiment])), [activeExperiments])
 
@@ -203,7 +204,7 @@ export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsP
     const value = useMemo(
         () => ({
             experiments: activeExperiments,
-            loading: loading || resolvedIdentity !== identity,
+            loading: !enabled || loading || resolvedIdentity !== identity,
             getExperiment,
             checkExperiment,
             isExperimentEnabled,
@@ -220,6 +221,7 @@ export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsP
             getExperiment,
             isExperimentEnabled,
             loading,
+            enabled,
             identity,
             resolvedIdentity,
             activeOverrides,
