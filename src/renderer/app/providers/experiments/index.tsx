@@ -20,6 +20,8 @@ const defaultExperimentsContextValue: ExperimentsContextValue = {
 }
 
 const ExperimentsContext = createContext<ExperimentsContextValue>(defaultExperimentsContextValue)
+const EMPTY_EXPERIMENTS: DesktopExperiment[] = []
+const EMPTY_OVERRIDES: ExperimentOverrideMap = {}
 
 function readOverrides(): ExperimentOverrideMap {
     if (typeof window === 'undefined') {
@@ -76,10 +78,15 @@ function persistOverrides(nextValue: ExperimentOverrideMap) {
     } catch {}
 }
 
-export function ExperimentsProvider({ children, userId }: ExperimentsProviderProps) {
+export function ExperimentsProvider({ children, userId, userPerm }: ExperimentsProviderProps) {
     const [experiments, setExperiments] = useState<DesktopExperiment[]>([])
     const [loading, setLoading] = useState(true)
     const [localOverrides, setLocalOverrides] = useState<ExperimentOverrideMap>({})
+    const identity = `${userId ?? ''}:${userPerm ?? ''}`
+    const [resolvedIdentity, setResolvedIdentity] = useState(identity)
+    const activeExperiments = resolvedIdentity === identity ? experiments : EMPTY_EXPERIMENTS
+    const canOverride = Boolean(userId) && userPerm === 'developer'
+    const activeOverrides = canOverride ? localOverrides : EMPTY_OVERRIDES
 
     useEffect(() => {
         setLocalOverrides(readOverrides())
@@ -108,6 +115,7 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
             })
             .finally(() => {
                 if (active) {
+                    setResolvedIdentity(identity)
                     setLoading(false)
                 }
             })
@@ -115,13 +123,13 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
         return () => {
             active = false
         }
-    }, [userId])
+    }, [identity])
 
-    const experimentsMap = useMemo(() => new Map(experiments.map(experiment => [experiment.key, experiment])), [experiments])
+    const experimentsMap = useMemo(() => new Map(activeExperiments.map(experiment => [experiment.key, experiment])), [activeExperiments])
 
     const getExperiment = useCallback(
         (key: ClientExperimentKey) => {
-            const overriddenExperiment = localOverrides[key]
+            const overriddenExperiment = activeOverrides[key]
             if (overriddenExperiment) {
                 return overriddenExperiment
             }
@@ -133,7 +141,7 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
 
             return experiment
         },
-        [experimentsMap, localOverrides],
+        [experimentsMap, activeOverrides],
     )
 
     const checkExperiment = useCallback(
@@ -161,23 +169,27 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
     )
 
     const getEnabledFlags = useCallback(() => {
-        const keys = new Set([...experiments.map(experiment => experiment.key), ...Object.keys(localOverrides)])
+        const keys = new Set([...activeExperiments.map(experiment => experiment.key), ...Object.keys(activeOverrides)])
         return Array.from(keys)
             .filter((key): key is ClientExperimentKey => isExperimentEnabled(key as ClientExperimentKey))
             .sort((a, b) => a.localeCompare(b))
-    }, [experiments, isExperimentEnabled, localOverrides])
+    }, [activeExperiments, isExperimentEnabled, activeOverrides])
 
-    const setLocalOverride = useCallback((experiment: DesktopExperiment) => {
-        setLocalOverrides(prev => {
-            const nextValue = {
-                ...prev,
-                [experiment.key]: experiment,
-            }
+    const setLocalOverride = useCallback(
+        (experiment: DesktopExperiment) => {
+            if (!canOverride) return
+            setLocalOverrides(prev => {
+                const nextValue = {
+                    ...prev,
+                    [experiment.key]: experiment,
+                }
 
-            persistOverrides(nextValue)
-            return nextValue
-        })
-    }, [])
+                persistOverrides(nextValue)
+                return nextValue
+            })
+        },
+        [canOverride],
+    )
 
     const clearLocalOverride = useCallback((key: ClientExperimentKey) => {
         setLocalOverrides(prev => {
@@ -190,25 +202,27 @@ export function ExperimentsProvider({ children, userId }: ExperimentsProviderPro
 
     const value = useMemo(
         () => ({
-            experiments,
-            loading,
+            experiments: activeExperiments,
+            loading: loading || resolvedIdentity !== identity,
             getExperiment,
             checkExperiment,
             isExperimentEnabled,
             getEnabledFlags,
-            localOverrides,
+            localOverrides: activeOverrides,
             setLocalOverride,
             clearLocalOverride,
         }),
         [
             checkExperiment,
             clearLocalOverride,
-            experiments,
+            activeExperiments,
             getEnabledFlags,
             getExperiment,
             isExperimentEnabled,
             loading,
-            localOverrides,
+            identity,
+            resolvedIdentity,
+            activeOverrides,
             setLocalOverride,
         ],
     )
