@@ -39,4 +39,5 @@ export type ExperimentsContextValue = {
 export type ExperimentsProviderProps = {
     children: ReactNode
     userId?: string | null
+    userPerm?: string | null
 }
