@@ -54,6 +54,8 @@ export interface DesktopSettingsPatch {
     modSavePath?: string
 }
 
+export type DesktopStoreReleaseChannel = 'stable' | 'dev'
+
 export interface DesktopNotificationRequest {
     title: string
     body: string
@@ -204,6 +206,8 @@ export interface PulseSyncDesktopApi {
     settings: {
         getSnapshot(): Promise<DesktopStateSnapshot>
         updatePreferences(patch: DesktopSettingsPatch): Promise<void>
+        getStoreReleaseChannel(): DesktopStoreReleaseChannel | null
+        setStoreReleaseChannel(channel: DesktopStoreReleaseChannel): Promise<void>
         setLanguage(language: string): Promise<void>
         resetModState(): Promise<void>
     }

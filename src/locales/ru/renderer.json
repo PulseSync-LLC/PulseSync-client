@@ -1291,6 +1291,10 @@
             "myAddons": "Мои аддоны",
             "moderation": "На модерации",
             "search": "Поиск",
+            "channel": {
+                "stable": "Основной",
+                "dev": "Тестовый"
+            },
             "results": "Результаты",
             "openFilters": "Открыть фильтры",
             "searchSort": {

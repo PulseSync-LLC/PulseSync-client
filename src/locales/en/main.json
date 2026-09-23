@@ -193,6 +193,7 @@
                 "saveWindowDimensionsOnRestart": "Save window size on close and restore on next launch",
                 "saveWindowPositionOnRestart": "Save window position on close and restore on next launch",
                 "showModModalAfterInstall": "Show mod info modal after installation",
+                "storeReleaseChannel": "Selected release channel in the add-on catalog",
                 "windowDimensions": "Last saved window size",
                 "windowPosition": "Last saved window position"
             },
