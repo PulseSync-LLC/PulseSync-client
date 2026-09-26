@@ -3,10 +3,15 @@ import { parse as parseJavaScript } from 'acorn'
 export const SUPPORTED_WEB_HOST_API_VERSION = 1
 
 export type WebHostAddonValidationCategory =
-    'empty-code' | 'invalid-javascript' | 'invalid-webhost-bundle' | 'unsupported-api-version' | 'blocked-isolated-capability'
+    | 'empty-code'
+    | 'invalid-javascript'
+    | 'invalid-webhost-bundle'
+    | 'unsupported-api-version'
+    | 'blocked-isolated-capability'
 
 export type WebHostAddonValidationResult =
-    { ok: true; code: string; apiVersion: number } | { ok: false; category: WebHostAddonValidationCategory; reason: string }
+    | { ok: true; code: string; apiVersion: number }
+    | { ok: false; category: WebHostAddonValidationCategory; reason: string }
 
 interface JavaScriptNode {
     type: string

@@ -13,12 +13,13 @@ import * as si from 'systeminformation'
 import { v4 } from 'uuid'
 
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { isDevmark } from '@common/appConfig'
+import { branch, isDevmark } from '@common/appConfig'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 import { STABLE_MOD_SOURCE } from '@common/types/modSource'
 
 import MainEvents from '../../common/types/mainEvents'
 import RendererEvents from '../../common/types/rendererEvents'
+import mainHttpClient from '../http/client'
 import { t } from '../i18n'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
 import { inSleepMode, mainWindow } from '../modules/createWindow'
@@ -1040,10 +1041,27 @@ const registerExtensionEvents = (): void => {
         let tempArchivePath = ''
 
         try {
-            const downloadUrl = payload?.downloadUrl?.trim()
-            if (!downloadUrl) {
-                return { success: false, reason: 'DOWNLOAD_URL_MISSING' }
+            const addonId = payload?.id?.trim().toLowerCase()
+            if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
+            const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
+            const authToken = State.get('tokens.token')
+            if (!authorized || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
+
+            const descriptor = await mainHttpClient.post<{
+                ok?: boolean
+                addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
+            }>('/extensions/updates', {
+                authToken,
+                headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
+                body: { ids: [addonId], releaseChannel },
+                timeoutMs: 15000,
+            })
+            const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
+            const downloadUrl = addon?.currentRelease?.status === 'accepted' ? addon.currentRelease.downloadUrl : null
+            if (!descriptor.ok || descriptor.data?.ok === false || !addon || !downloadUrl) {
+                return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
             }
+            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
 
             const parsedUrl = new URL(downloadUrl)
             if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
@@ -1056,13 +1074,14 @@ const registerExtensionEvents = (): void => {
             const response = await axios.get<ArrayBuffer>(downloadUrl, {
                 responseType: 'arraybuffer',
             })
+            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
 
             await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
 
             const addonName = await importAddonArchive(tempArchivePath, {
                 installSource: 'store',
-                storeAddonId: payload?.id || null,
-                releaseChannel: payload?.releaseChannel === 'dev' ? 'dev' : 'stable',
+                storeAddonId: addon.id,
+                releaseChannel,
             })
             if (!addonName) {
                 return { success: false, reason: 'IMPORT_FAILED' }

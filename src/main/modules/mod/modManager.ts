@@ -284,309 +284,306 @@ export const modManager = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on(
-        MainEvents.INSTALL_MOD,
-        async (_event, request: DesktopInstallModRequest) => {
+    ipcMain.on(MainEvents.INSTALL_MOD, async (_event, request: DesktopInstallModRequest) => {
+        try {
+            const { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source, channel, branch, commit } =
+                request
+            const requestIdentity = getModUpdateIdentity(request)
+            const preparedArtifacts = preparedModUpdate?.identity === requestIdentity ? preparedModUpdate : null
+
+            sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
+                isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
+                prepared: Boolean(preparedArtifacts),
+            })
+
+            const installSource = source === 'github' ? 'github' : 'backend'
+
+            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
+                State.set('settings.musicReinstalled', true)
+                await downloadYandexMusic('reinstall')
+                return
+            }
+
+            const paths = await ensureLinuxModPath(await resolveBasePaths())
+
+            const wasClosed = await closeMusicIfRunning(window)
+
+            const ymMetadata = await getInstalledYmMetadata()
+            const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
+            let finalProgressName = 'app.asar'
+
+            if (isMac()) {
+                try {
+                    await copyFile(paths.modAsar, paths.modAsar)
+                    await copyFile(paths.infoPlist, paths.infoPlist)
+                } catch {
+                    window.webContents.send(RendererEvents.REQUEST_MAC_PERMISSIONS)
+                    return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
+                }
+            }
+
             try {
-                const { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source, channel, branch, commit } =
-                    request
-                const requestIdentity = getModUpdateIdentity(request)
-                const preparedArtifacts = preparedModUpdate?.identity === requestIdentity ? preparedModUpdate : null
-
-                sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
-                    isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
-                    prepared: Boolean(preparedArtifacts),
-                })
-
-                const installSource = source === 'github' ? 'github' : 'backend'
-
-                if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
-                    State.set('settings.musicReinstalled', true)
+                await ensureBackup(paths)
+            } catch (e: any) {
+                if (e && e.code === 'file_not_found') {
+                    sendFailure(window, {
+                        error: t('main.modManager.modAsarNotFound', { name: path.basename(paths.modAsar) }),
+                        type: 'file_not_found',
+                    })
                     await downloadYandexMusic('reinstall')
                     return
                 }
-
-                const paths = await ensureLinuxModPath(await resolveBasePaths())
-
-                const wasClosed = await closeMusicIfRunning(window)
-
-                const ymMetadata = await getInstalledYmMetadata()
-                const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
-                let finalProgressName = 'app.asar'
-
-                if (isMac()) {
-                    try {
-                        await copyFile(paths.modAsar, paths.modAsar)
-                        await copyFile(paths.infoPlist, paths.infoPlist)
-                    } catch {
-                        window.webContents.send(RendererEvents.REQUEST_MAC_PERMISSIONS)
-                        return sendFailure(window, { error: t('main.modManager.fullDiskAccessRequired'), type: 'file_copy_error' })
-                    }
-                }
-
-                try {
-                    await ensureBackup(paths)
-                } catch (e: any) {
-                    if (e && e.code === 'file_not_found') {
-                        sendFailure(window, {
-                            error: t('main.modManager.modAsarNotFound', { name: path.basename(paths.modAsar) }),
-                            type: 'file_not_found',
-                        })
-                        await downloadYandexMusic('reinstall')
-                        return
-                    }
-                    if (isLinuxAccessError(e)) {
-                        sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
-                        return
-                    }
-                    HandleErrorsElectron.handleError('modManager', 'install', 'backup', e)
-                    sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
-                    return
-                }
-
-                const applyReleaseArtifacts = async (
-                    releaseData: {
-                        checksum?: string
-                        branch?: string
-                        channel?: 'stable' | 'branch'
-                        commit?: string
-                        link: string
-                        name: string
-                        preparedAsarPath?: string
-                        preparedUnpackedPath?: string
-                        unpackLink?: string
-                        unpackedChecksum?: string
-                        version: string
-                    },
-                    onFailure?: (failure: ModDownloadFailure) => void,
-                ): Promise<boolean> => {
-                    const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
-                    const hasUnpacked = Boolean(releaseData.unpackLink)
-                    finalProgressName = hasUnpacked ? 'app.asar.unpacked' : 'app.asar'
-                    const asarProgress = hasUnpacked ? PROGRESS_ASAR_WITH_UNPACKED : PROGRESS_ASAR_ONLY
-                    const unpackedProgress = hasUnpacked ? PROGRESS_UNPACKED : undefined
-                    let preparedAsarApplied = false
-
-                    if (releaseData.preparedAsarPath && (await isCachedArchiveValid(releaseData.preparedAsarPath, releaseData.checksum))) {
-                        try {
-                            const preparedFilePath = `${tempFilePath}.prepared.${process.pid}.${Date.now()}.asar`
-                            preparedAsarApplied = await prepareAndInstallAsarArtifact(
-                                releaseData.preparedAsarPath,
-                                preparedFilePath,
-                                releaseData.link,
-                                paths.modAsar,
-                                paths.backupAsar,
-                                releaseData.checksum,
-                            )
-                            if (preparedAsarApplied) {
-                                setProgressPercent(window, asarProgress.base + asarProgress.scale, 'app.asar')
-                            }
-                        } catch (cacheError) {
-                            logger.modManager.warn('Failed to apply prepared mod update cache, downloading again:', cacheError)
-                        }
-                    }
-
-                    if (preparedAsarApplied) {
-                        logger.modManager.info('Applied prepared app.asar update from cache')
-                    } else if (releaseData.checksum) {
-                        const cacheFile = path.join(CACHE_DIR, `${releaseData.checksum}.asar`)
-                        await fs.promises.mkdir(CACHE_DIR, { recursive: true }).catch(err => {
-                            logger.modManager.warn('Failed to create cache dir:', err)
-                        })
-
-                        const currentHash = fileExists(paths.modAsar) ? await readChecksum(paths.modAsar) : null
-                        if (currentHash === releaseData.checksum) {
-                            logger.modManager.info('app.asar hash matches, skipping download')
-                            sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
-                            if (hasUnpacked) {
-                                setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
-                            } else {
-                                setProgressPercent(window, PROGRESS_ASAR_ONLY.scale, 'app.asar')
-                            }
-                        } else if (
-                            !(await tryUseCacheOrDownload(
-                                window,
-                                cacheFile,
-                                tempFilePath,
-                                releaseData.link,
-                                paths,
-                                releaseData.checksum,
-                                CACHE_DIR,
-                                asarProgress,
-                                onFailure,
-                            ))
-                        ) {
-                            return false
-                        }
-                    } else {
-                        if (
-                            !(await downloadAndUpdateFile(
-                                window,
-                                releaseData.link,
-                                tempFilePath,
-                                paths.modAsar,
-                                paths.backupAsar,
-                                releaseData.checksum,
-                                CACHE_DIR,
-                                asarProgress,
-                                'app.asar',
-                                onFailure,
-                            ))
-                        ) {
-                            return false
-                        }
-                    }
-
-                    if (releaseData.unpackLink) {
-                        const unpackedBoundaryStartedAt = Date.now()
-                        setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
-                        logger.modManager.info('Starting app.asar.unpacked stage', {
-                            progressUpdateMs: Date.now() - unpackedBoundaryStartedAt,
-                        })
-
-                        const unpackName = path.basename(new URL(releaseData.unpackLink).pathname)
-                        const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
-                        const tempUnpackedDir = path.join(TEMP_DIR, `pulsesync-unpacked-${process.pid}-${Date.now()}`)
-                        const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
-
-                        const unpackedOk = await downloadAndExtractUnpacked(
-                            window,
-                            releaseData.unpackLink,
-                            tempUnpackedArchive,
-                            tempUnpackedDir,
-                            targetUnpackedDir,
-                            releaseData.unpackedChecksum,
-                            CACHE_DIR,
-                            unpackedProgress,
-                            onFailure,
-                            releaseData.preparedUnpackedPath,
-                        )
-                        if (!unpackedOk) return false
-                    }
-
-                    const actualAsarChecksum = (await readChecksum(paths.modAsar)) ?? releaseData.checksum
-                    if (actualAsarChecksum) {
-                        logger.modManager.info('Calculated actual asar checksum:', actualAsarChecksum)
-                    }
-
-                    State.set('mod', {
-                        version: releaseData.version,
-                        musicVersion: ymMetadata?.version,
-                        realMusicVersion: musicVersion,
-                        name: releaseData.name,
-                        checksum: actualAsarChecksum,
-                        unpackedChecksum: releaseData.unpackedChecksum,
-                        installed: true,
-                        sourceType: releaseData.channel === 'branch' ? 'branch' : 'stable',
-                        branch: releaseData.channel === 'branch' ? releaseData.branch || '' : '',
-                        commit: releaseData.channel === 'branch' ? releaseData.commit || '' : '',
-                    })
-
-                    return true
-                }
-
-                let primaryFailure: ModDownloadFailure | null = null
-                const installSucceeded = await applyReleaseArtifacts(
-                    {
-                        version,
-                        name,
-                        link,
-                        unpackLink,
-                        unpackedChecksum,
-                        checksum,
-                        channel,
-                        branch,
-                        commit,
-                        preparedAsarPath: preparedArtifacts?.asarPath,
-                        preparedUnpackedPath: preparedArtifacts?.unpackedPath,
-                    },
-                    installSource === 'backend'
-                        ? failure => {
-                              primaryFailure = failure
-                          }
-                        : undefined,
-                )
-
-                if (!installSucceeded) {
-                    if (installSource === 'backend' && isFallbackEligibleDownloadFailure(primaryFailure)) {
-                        const backendFailure = primaryFailure
-                        try {
-                            logger.modManager.warn('Backend mod download failed, trying GitHub fallback', backendFailure)
-                            const fallbackRelease = await getGithubModRelease()
-                            let fallbackFailure: ModDownloadFailure | null = null
-
-                            if (!fallbackRelease?.downloadUrl) {
-                                sendFailure(window, backendFailure)
-                                return
-                            }
-
-                            if (
-                                !(await applyReleaseArtifacts(
-                                    {
-                                        version: fallbackRelease.modVersion,
-                                        name: fallbackRelease.name,
-                                        link: fallbackRelease.downloadUrl,
-                                        unpackLink: fallbackRelease.downloadUnpackedUrl || undefined,
-                                        unpackedChecksum: fallbackRelease.unpackedChecksum || undefined,
-                                        checksum: fallbackRelease.checksum_v2 || undefined,
-                                        channel: 'stable',
-                                        branch: '',
-                                        commit: '',
-                                    },
-                                    failure => {
-                                        fallbackFailure = failure
-                                    },
-                                ))
-                            ) {
-                                sendFailure(window, fallbackFailure ?? backendFailure)
-                                return
-                            }
-                        } catch (fallbackError) {
-                            logger.modManager.error('GitHub fallback for mod update failed', fallbackError)
-                            HandleErrorsElectron.handleError('modManager', 'install', 'github_fallback', fallbackError)
-                            sendFailure(window, backendFailure)
-                            return
-                        }
-                    } else {
-                        if (primaryFailure) {
-                            sendFailure(window, primaryFailure)
-                        }
-                        return
-                    }
-                }
-
-                const versionFilePath = path.join(paths.music, 'version.bin')
-                const tempVersionFilePath = path.join(TEMP_DIR, `version.${Date.now()}.${process.pid}.bin`)
-                if (resolvedMusicVersion) {
-                    await fs.promises.writeFile(tempVersionFilePath, resolvedMusicVersion)
-                    try {
-                        await copyFile(tempVersionFilePath, versionFilePath)
-                    } finally {
-                        try {
-                            await fs.promises.unlink(tempVersionFilePath)
-                        } catch {}
-                    }
-                } else {
-                    logger.modManager.warn('Skipping version.bin update because no Yandex Music version was resolved')
-                }
-
-                setProgressPercent(window, 1, finalProgressName)
-                if (preparedModUpdate?.identity === requestIdentity) {
-                    preparedModUpdate = null
-                    preparedRequestIdentity = null
-                }
-                if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
-            } catch (error: any) {
-                logger.modManager.error('Unexpected error:', error)
-                if (isLinuxAccessError(error)) {
+                if (isLinuxAccessError(e)) {
                     sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
                     return
                 }
-                HandleErrorsElectron.handleError('modManager', 'install', 'unexpected', error)
-                sendFailure(window, { error: error.message, type: 'unexpected_error' })
+                HandleErrorsElectron.handleError('modManager', 'install', 'backup', e)
+                sendFailure(window, { error: e?.message || String(e), type: 'backup_error' })
+                return
             }
-        },
-    )
+
+            const applyReleaseArtifacts = async (
+                releaseData: {
+                    checksum?: string
+                    branch?: string
+                    channel?: 'stable' | 'branch'
+                    commit?: string
+                    link: string
+                    name: string
+                    preparedAsarPath?: string
+                    preparedUnpackedPath?: string
+                    unpackLink?: string
+                    unpackedChecksum?: string
+                    version: string
+                },
+                onFailure?: (failure: ModDownloadFailure) => void,
+            ): Promise<boolean> => {
+                const tempFilePath = path.join(TEMP_DIR, 'app.asar.download')
+                const hasUnpacked = Boolean(releaseData.unpackLink)
+                finalProgressName = hasUnpacked ? 'app.asar.unpacked' : 'app.asar'
+                const asarProgress = hasUnpacked ? PROGRESS_ASAR_WITH_UNPACKED : PROGRESS_ASAR_ONLY
+                const unpackedProgress = hasUnpacked ? PROGRESS_UNPACKED : undefined
+                let preparedAsarApplied = false
+
+                if (releaseData.preparedAsarPath && (await isCachedArchiveValid(releaseData.preparedAsarPath, releaseData.checksum))) {
+                    try {
+                        const preparedFilePath = `${tempFilePath}.prepared.${process.pid}.${Date.now()}.asar`
+                        preparedAsarApplied = await prepareAndInstallAsarArtifact(
+                            releaseData.preparedAsarPath,
+                            preparedFilePath,
+                            releaseData.link,
+                            paths.modAsar,
+                            paths.backupAsar,
+                            releaseData.checksum,
+                        )
+                        if (preparedAsarApplied) {
+                            setProgressPercent(window, asarProgress.base + asarProgress.scale, 'app.asar')
+                        }
+                    } catch (cacheError) {
+                        logger.modManager.warn('Failed to apply prepared mod update cache, downloading again:', cacheError)
+                    }
+                }
+
+                if (preparedAsarApplied) {
+                    logger.modManager.info('Applied prepared app.asar update from cache')
+                } else if (releaseData.checksum) {
+                    const cacheFile = path.join(CACHE_DIR, `${releaseData.checksum}.asar`)
+                    await fs.promises.mkdir(CACHE_DIR, { recursive: true }).catch(err => {
+                        logger.modManager.warn('Failed to create cache dir:', err)
+                    })
+
+                    const currentHash = fileExists(paths.modAsar) ? await readChecksum(paths.modAsar) : null
+                    if (currentHash === releaseData.checksum) {
+                        logger.modManager.info('app.asar hash matches, skipping download')
+                        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
+                        if (hasUnpacked) {
+                            setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
+                        } else {
+                            setProgressPercent(window, PROGRESS_ASAR_ONLY.scale, 'app.asar')
+                        }
+                    } else if (
+                        !(await tryUseCacheOrDownload(
+                            window,
+                            cacheFile,
+                            tempFilePath,
+                            releaseData.link,
+                            paths,
+                            releaseData.checksum,
+                            CACHE_DIR,
+                            asarProgress,
+                            onFailure,
+                        ))
+                    ) {
+                        return false
+                    }
+                } else {
+                    if (
+                        !(await downloadAndUpdateFile(
+                            window,
+                            releaseData.link,
+                            tempFilePath,
+                            paths.modAsar,
+                            paths.backupAsar,
+                            releaseData.checksum,
+                            CACHE_DIR,
+                            asarProgress,
+                            'app.asar',
+                            onFailure,
+                        ))
+                    ) {
+                        return false
+                    }
+                }
+
+                if (releaseData.unpackLink) {
+                    const unpackedBoundaryStartedAt = Date.now()
+                    setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
+                    logger.modManager.info('Starting app.asar.unpacked stage', {
+                        progressUpdateMs: Date.now() - unpackedBoundaryStartedAt,
+                    })
+
+                    const unpackName = path.basename(new URL(releaseData.unpackLink).pathname)
+                    const tempUnpackedArchive = path.join(TEMP_DIR, unpackName || 'app.asar.unpacked')
+                    const tempUnpackedDir = path.join(TEMP_DIR, `pulsesync-unpacked-${process.pid}-${Date.now()}`)
+                    const targetUnpackedDir = path.join(path.dirname(paths.modAsar), 'app.asar.unpacked')
+
+                    const unpackedOk = await downloadAndExtractUnpacked(
+                        window,
+                        releaseData.unpackLink,
+                        tempUnpackedArchive,
+                        tempUnpackedDir,
+                        targetUnpackedDir,
+                        releaseData.unpackedChecksum,
+                        CACHE_DIR,
+                        unpackedProgress,
+                        onFailure,
+                        releaseData.preparedUnpackedPath,
+                    )
+                    if (!unpackedOk) return false
+                }
+
+                const actualAsarChecksum = (await readChecksum(paths.modAsar)) ?? releaseData.checksum
+                if (actualAsarChecksum) {
+                    logger.modManager.info('Calculated actual asar checksum:', actualAsarChecksum)
+                }
+
+                State.set('mod', {
+                    version: releaseData.version,
+                    musicVersion: ymMetadata?.version,
+                    realMusicVersion: musicVersion,
+                    name: releaseData.name,
+                    checksum: actualAsarChecksum,
+                    unpackedChecksum: releaseData.unpackedChecksum,
+                    installed: true,
+                    sourceType: releaseData.channel === 'branch' ? 'branch' : 'stable',
+                    branch: releaseData.channel === 'branch' ? releaseData.branch || '' : '',
+                    commit: releaseData.channel === 'branch' ? releaseData.commit || '' : '',
+                })
+
+                return true
+            }
+
+            let primaryFailure: ModDownloadFailure | null = null
+            const installSucceeded = await applyReleaseArtifacts(
+                {
+                    version,
+                    name,
+                    link,
+                    unpackLink,
+                    unpackedChecksum,
+                    checksum,
+                    channel,
+                    branch,
+                    commit,
+                    preparedAsarPath: preparedArtifacts?.asarPath,
+                    preparedUnpackedPath: preparedArtifacts?.unpackedPath,
+                },
+                installSource === 'backend'
+                    ? failure => {
+                          primaryFailure = failure
+                      }
+                    : undefined,
+            )
+
+            if (!installSucceeded) {
+                if (installSource === 'backend' && isFallbackEligibleDownloadFailure(primaryFailure)) {
+                    const backendFailure = primaryFailure
+                    try {
+                        logger.modManager.warn('Backend mod download failed, trying GitHub fallback', backendFailure)
+                        const fallbackRelease = await getGithubModRelease()
+                        let fallbackFailure: ModDownloadFailure | null = null
+
+                        if (!fallbackRelease?.downloadUrl) {
+                            sendFailure(window, backendFailure)
+                            return
+                        }
+
+                        if (
+                            !(await applyReleaseArtifacts(
+                                {
+                                    version: fallbackRelease.modVersion,
+                                    name: fallbackRelease.name,
+                                    link: fallbackRelease.downloadUrl,
+                                    unpackLink: fallbackRelease.downloadUnpackedUrl || undefined,
+                                    unpackedChecksum: fallbackRelease.unpackedChecksum || undefined,
+                                    checksum: fallbackRelease.checksum_v2 || undefined,
+                                    channel: 'stable',
+                                    branch: '',
+                                    commit: '',
+                                },
+                                failure => {
+                                    fallbackFailure = failure
+                                },
+                            ))
+                        ) {
+                            sendFailure(window, fallbackFailure ?? backendFailure)
+                            return
+                        }
+                    } catch (fallbackError) {
+                        logger.modManager.error('GitHub fallback for mod update failed', fallbackError)
+                        HandleErrorsElectron.handleError('modManager', 'install', 'github_fallback', fallbackError)
+                        sendFailure(window, backendFailure)
+                        return
+                    }
+                } else {
+                    if (primaryFailure) {
+                        sendFailure(window, primaryFailure)
+                    }
+                    return
+                }
+            }
+
+            const versionFilePath = path.join(paths.music, 'version.bin')
+            const tempVersionFilePath = path.join(TEMP_DIR, `version.${Date.now()}.${process.pid}.bin`)
+            if (resolvedMusicVersion) {
+                await fs.promises.writeFile(tempVersionFilePath, resolvedMusicVersion)
+                try {
+                    await copyFile(tempVersionFilePath, versionFilePath)
+                } finally {
+                    try {
+                        await fs.promises.unlink(tempVersionFilePath)
+                    } catch {}
+                }
+            } else {
+                logger.modManager.warn('Skipping version.bin update because no Yandex Music version was resolved')
+            }
+
+            setProgressPercent(window, 1, finalProgressName)
+            if (preparedModUpdate?.identity === requestIdentity) {
+                preparedModUpdate = null
+                preparedRequestIdentity = null
+            }
+            if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
+        } catch (error: any) {
+            logger.modManager.error('Unexpected error:', error)
+            if (isLinuxAccessError(error)) {
+                sendFailure(window, { error: t('main.modManager.linuxPermissionsRequired'), type: 'linux_permissions_required' })
+                return
+            }
+            HandleErrorsElectron.handleError('modManager', 'install', 'unexpected', error)
+            sendFailure(window, { error: error.message, type: 'unexpected_error' })
+        }
+    })
 
     ipcMain.on(MainEvents.REMOVE_MOD, async () => {
         try {
