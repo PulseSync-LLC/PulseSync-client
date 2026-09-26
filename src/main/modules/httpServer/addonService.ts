@@ -9,6 +9,7 @@ import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonP
 import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
 import { sanitizeLegacyScript } from '../../utils/legacyScriptSanitizer'
 import { validateWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
+import { createModuleManifest, type ModuleManifest } from '../addonModules'
 import { readAddonSettings } from './addonSettings'
 
 import type { Server as IOServer, Socket } from 'socket.io'
@@ -66,6 +67,8 @@ type WebHostAssetBase = {
 type WebHostAddonPayload = WebHostAssetBase & {
     type: 'web-addon'
     code: string
+    securityManifest?: ModuleManifest
+    catalogAddonId?: string
 }
 
 type WebHostThemePayload = WebHostAssetBase & {
@@ -121,16 +124,14 @@ const WEB_HOST_THEME_PROTOCOL_VERSION = 2
 const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[]): string =>
     createHash('sha256')
         .update(
-            JSON.stringify(
-                {
-                    addons: [...addons].sort((left, right) => {
-                        const leftKey = JSON.stringify(left)
-                        const rightKey = JSON.stringify(right)
-                        return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
-                    }),
-                    allowedUrls: [...allowedUrls].sort(),
-                },
-            ),
+            JSON.stringify({
+                addons: [...addons].sort((left, right) => {
+                    const leftKey = JSON.stringify(left)
+                    const rightKey = JSON.stringify(right)
+                    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
+                }),
+                allowedUrls: [...allowedUrls].sort(),
+            }),
         )
         .digest('hex')
 
@@ -364,6 +365,12 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         version: typeof meta.version === 'string' ? meta.version : undefined,
                         css,
                         code: validation.code,
+                        ...(meta.modules
+                            ? {
+                                  securityManifest: createModuleManifest(meta.modules, meta.allowedUrls),
+                                  catalogAddonId: typeof meta.storeAddonId === 'string' ? meta.storeAddonId : id,
+                              }
+                            : {}),
                     }
                 } catch (error) {
                     logger.http.warn(
@@ -739,6 +746,13 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     return {
         getAllAllowedUrls,
+        readModuleAddon: (id: string) => {
+            const matches = readWebHostAddonPayloads().filter(addon => addon.id === id)
+            const addon = matches.length === 1 ? matches[0] : undefined
+            return addon?.securityManifest && addon.catalogAddonId
+                ? { id: addon.id, code: addon.code, catalogAddonId: addon.catalogAddonId, securityManifest: addon.securityManifest }
+                : undefined
+        },
         setAddon,
         sendAddon,
         sendExtensions,

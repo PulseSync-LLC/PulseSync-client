@@ -122,12 +122,7 @@ export const countMainMetric = (name: string, value: number, attributes?: MainMe
     }
 }
 
-export const distributeMainMetric = (
-    name: string,
-    value: number,
-    unit?: 'byte' | 'millisecond',
-    attributes?: MainMetricAttributes,
-): void => {
+export const distributeMainMetric = (name: string, value: number, unit?: 'byte' | 'millisecond', attributes?: MainMetricAttributes): void => {
     if (!isInitialized()) return
     try {
         Sentry.metrics.distribution(name, value, {

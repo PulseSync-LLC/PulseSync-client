@@ -33,11 +33,7 @@ function recordDeliveryTelemetry(result: Extract<PrepareUpdateResultV1, { state:
     )
     const deltaFailures = telemetry.artifacts.reduce(
         (total, artifact) =>
-            total +
-            artifact.deltaAttempts.reduce(
-                (artifactTotal, attempt) => artifactTotal + (attempt.outcome === 'applied' ? 0 : attempt.count),
-                0,
-            ),
+            total + artifact.deltaAttempts.reduce((artifactTotal, attempt) => artifactTotal + (attempt.outcome === 'applied' ? 0 : attempt.count), 0),
         0,
     )
     const attributes = baseAttributes(context)
@@ -101,11 +97,7 @@ function recordDeliveryTelemetry(result: Extract<PrepareUpdateResultV1, { state:
     }
 }
 
-export function recordUpdatePrepareResult(
-    result: PrepareUpdateResultV1,
-    context: UpdateTelemetryContext,
-    durationMs: number,
-): void {
+export function recordUpdatePrepareResult(result: PrepareUpdateResultV1, context: UpdateTelemetryContext, durationMs: number): void {
     const attributes = {
         ...baseAttributes(context),
         outcome: result.state,
@@ -138,11 +130,7 @@ export function recordUpdatePrepareFailure(error: unknown, context: UpdateTeleme
     })
 }
 
-export function recordUpdateTransition(
-    previous: BootstrapUiStateV1,
-    next: BootstrapUiStateV1,
-    context?: UpdateTelemetryContext,
-): void {
+export function recordUpdateTransition(previous: BootstrapUiStateV1, next: BootstrapUiStateV1, context?: UpdateTelemetryContext): void {
     if (previous.phase === next.phase && previous.statusKey === next.statusKey) return
     const attributes = {
         ...(context ? baseAttributes(context) : {}),

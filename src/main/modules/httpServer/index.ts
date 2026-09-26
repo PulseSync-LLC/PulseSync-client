@@ -11,6 +11,7 @@ import { authorized } from '../../events'
 import mainHttpClient from '../../http/client'
 import { selectedAddon } from '../../startup/runtimeState'
 import isAppDev from '../../utils/isAppDev'
+import { registerAddonModuleTransport } from '../addonModules'
 import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
 import { mainWindow } from '../createWindow'
 import { checkIsDeeplink, createDeeplinkCommandsHandler, navigateToDeeplink } from '../handleDeeplinks'
@@ -208,6 +209,14 @@ const initializeServer = () => {
     })
 
     io.on('connection', (socket: Socket) => {
+        registerAddonModuleTransport(
+            socket,
+            () => {
+                const token = State.get('tokens.token')
+                return authorized && typeof token === 'string' && token ? token : null
+            },
+            addonService.readModuleAddon,
+        )
         registerSocketClientEvents({
             socket,
             state: State,
