@@ -58,6 +58,37 @@ export function getNotificationPresentation(notification: NotificationItem): Not
             }
         }
 
+        case 'module.review.pending':
+            return {
+                tone: 'warning',
+                title: t('header.notifications.items.modulePendingTitle'),
+                body: t('header.notifications.items.modulePendingBody', {
+                    name: String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName')),
+                }),
+            }
+
+        case 'module.review.accepted':
+            return {
+                tone: 'success',
+                title: t('header.notifications.items.moduleAcceptedTitle'),
+                body: t('header.notifications.items.moduleAcceptedBody', {
+                    name: String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName')),
+                }),
+            }
+
+        case 'module.review.rejected': {
+            const name = String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName'))
+            const noteValue = notification.payload?.['reviewNote']
+            const note = typeof noteValue === 'string' ? noteValue.trim() : ''
+            return {
+                tone: 'error',
+                title: t('header.notifications.items.moduleRejectedTitle'),
+                body: note
+                    ? t('header.notifications.items.moduleRejectedWithNoteBody', { name, note })
+                    : t('header.notifications.items.moduleRejectedBody', { name }),
+            }
+        }
+
         case 'achievement.completed': {
             const achievementTitle = String(notification.payload?.['title'] || t('profile.achievements.title'))
             const points = Number(notification.payload?.['points'] || 0)
