@@ -10,6 +10,8 @@ import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '
 import { sanitizeLegacyScript } from '../../utils/legacyScriptSanitizer'
 import { validateWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
 import { createModuleManifest, type ModuleManifest } from '../addonModules'
+import { readLocalModules } from '../addonModules/local'
+import { type Descriptor, sha256, throwModuleError } from '../addonModules/protocol'
 import { readAddonSettings } from './addonSettings'
 
 import type { Server as IOServer, Socket } from 'socket.io'
@@ -69,6 +71,7 @@ type WebHostAddonPayload = WebHostAssetBase & {
     code: string
     securityManifest?: ModuleManifest
     catalogAddonId?: string
+    localModules?: Record<string, Descriptor>
 }
 
 type WebHostThemePayload = WebHostAssetBase & {
@@ -136,6 +139,7 @@ const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[])
         .digest('hex')
 
 export const createAddonService = ({ state, logger, getIo, getAuthorized, getSelectedAddon }: CreateAddonServiceOptions) => {
+    const developmentAddons = new Set<string>()
     const lastAddonSettings = new Map<string, string>()
     const pendingDataSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -357,6 +361,11 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         return null
                     }
 
+                    const local =
+                        developmentAddons.has(folderName) && meta.installSource !== 'store'
+                            ? readLocalModules(addonRoot, meta.allowedUrls)
+                            : undefined
+
                     return {
                         type: 'web-addon',
                         id,
@@ -365,12 +374,14 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         version: typeof meta.version === 'string' ? meta.version : undefined,
                         css,
                         code: validation.code,
-                        ...(meta.modules
-                            ? {
-                                  securityManifest: createModuleManifest(meta.modules, meta.allowedUrls),
-                                  catalogAddonId: typeof meta.storeAddonId === 'string' ? meta.storeAddonId : id,
-                              }
-                            : {}),
+                        ...(local
+                            ? { securityManifest: local.securityManifest, localModules: local.localModules, catalogAddonId: id }
+                            : meta.modules
+                              ? {
+                                    securityManifest: createModuleManifest(meta.modules, meta.allowedUrls),
+                                    catalogAddonId: typeof meta.storeAddonId === 'string' ? meta.storeAddonId : id,
+                                }
+                              : {}),
                     }
                 } catch (error) {
                     logger.http.warn(
@@ -582,6 +593,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             installSource?: unknown
             script?: unknown
             type?: unknown
+            allowedUrls?: unknown
         }
         if (metadata.type !== 'web-addon') throw new Error('Development reload only supports web-addon packages')
         if (metadata.installSource === 'store') throw new Error('Development reload refuses store-managed addons')
@@ -596,6 +608,8 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         const storedScripts = readStoredAddonScripts()
+        readLocalModules(path.dirname(metadataPath), metadata.allowedUrls)
+        developmentAddons.add(addonDirectory)
         const alreadyEnabled = storedScripts.some(script => resolveAddonDirectory(script) === addonDirectory)
         if (!alreadyEnabled) {
             state.set('addons.scripts', [...storedScripts, addonDirectory])
@@ -750,8 +764,25 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             const matches = readWebHostAddonPayloads().filter(addon => addon.id === id)
             const addon = matches.length === 1 ? matches[0] : undefined
             return addon?.securityManifest && addon.catalogAddonId
-                ? { id: addon.id, code: addon.code, catalogAddonId: addon.catalogAddonId, securityManifest: addon.securityManifest }
+                ? {
+                      id: addon.id,
+                      code: addon.code,
+                      catalogAddonId: addon.catalogAddonId,
+                      securityManifest: addon.securityManifest,
+                      localModules: addon.localModules,
+                  }
                 : undefined
+        },
+        readLocalModuleBytes: (id: string, alias: string, expectedHash: string) => {
+            const matches = readWebHostAddonPayloads().filter(addon => addon.id === id)
+            const addon = matches.length === 1 ? matches[0] : undefined
+            if (!addon?.localModules?.[alias] || addon.localModules[alias].sha256 !== expectedHash) return throwModuleError('aborted')
+            const local = readLocalModules(path.join(getAddonsRoot(), addon.directoryName), addon.securityManifest?.allowedUrls)
+            const file = local?.files[alias]
+            if (!file || local.localModules[alias].sha256 !== expectedHash) return throwModuleError('aborted')
+            const bytes = fs.readFileSync(file)
+            if (sha256(bytes) !== expectedHash) return throwModuleError('aborted')
+            return bytes.toString('base64')
         },
         setAddon,
         sendAddon,

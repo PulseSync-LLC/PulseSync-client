@@ -216,6 +216,7 @@ const initializeServer = () => {
                 return authorized && typeof token === 'string' && token ? token : null
             },
             addonService.readModuleAddon,
+            addonService.readLocalModuleBytes,
         )
         registerSocketClientEvents({
             socket,

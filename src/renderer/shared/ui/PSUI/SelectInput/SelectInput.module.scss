@@ -162,17 +162,14 @@
     cursor: pointer;
 
     background: transparent;
-    border: 1px solid transparent;
+    border: 0;
     border-radius: 8px;
 
-    transition:
-        background-color var(--transition),
-        border-color var(--transition);
+    transition: background-color var(--transition);
 
     &:hover,
     &.hover {
         background: var(--surface-tertiary);
-        border-color: var(--border-hover);
     }
 }
 
@@ -186,8 +183,6 @@
 
 .active {
     background: var(--surface-tertiary);
-    border-color: var(--accent-muted);
-    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent-muted) 24%, transparent);
 }
 
 .valueLine {

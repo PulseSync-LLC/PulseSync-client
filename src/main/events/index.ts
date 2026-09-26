@@ -1047,20 +1047,36 @@ const registerExtensionEvents = (): void => {
             const authToken = State.get('tokens.token')
             if (!authorized || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
 
-            const descriptor = await mainHttpClient.post<{
-                ok?: boolean
-                addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
-            }>('/extensions/updates', {
-                authToken,
-                headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
-                body: { ids: [addonId], releaseChannel },
-                timeoutMs: 15000,
-            })
-            const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
-            const downloadUrl = addon?.currentRelease?.status === 'accepted' ? addon.currentRelease.downloadUrl : null
-            if (!descriptor.ok || descriptor.data?.ok === false || !addon || !downloadUrl) {
-                return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
+            let downloadUrl: string | null | undefined
+            const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
+            if (reviewReleaseId) {
+                const descriptor = await mainHttpClient.get<{
+                    ok?: boolean
+                    release?: { id: string; addonId: string; downloadUrl?: string | null }
+                }>(`/extensions/${encodeURIComponent(addonId)}/releases/${encodeURIComponent(reviewReleaseId)}/review-download`, {
+                    authToken,
+                    timeoutMs: 15000,
+                })
+                const release = descriptor.data?.release
+                if (descriptor.ok && descriptor.data?.ok === true && release?.addonId === addonId && release.id === reviewReleaseId) {
+                    downloadUrl = release.downloadUrl
+                }
+            } else {
+                const descriptor = await mainHttpClient.post<{
+                    ok?: boolean
+                    addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
+                }>('/extensions/updates', {
+                    authToken,
+                    headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
+                    body: { ids: [addonId], releaseChannel },
+                    timeoutMs: 15000,
+                })
+                const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
+                if (descriptor.ok && descriptor.data?.ok !== false && addon?.currentRelease?.status === 'accepted') {
+                    downloadUrl = addon.currentRelease.downloadUrl
+                }
             }
+            if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
             if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
 
             const parsedUrl = new URL(downloadUrl)
@@ -1080,7 +1096,7 @@ const registerExtensionEvents = (): void => {
 
             const addonName = await importAddonArchive(tempArchivePath, {
                 installSource: 'store',
-                storeAddonId: addon.id,
+                storeAddonId: addonId,
                 releaseChannel,
             })
             if (!addonName) {

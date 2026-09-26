@@ -9,8 +9,24 @@ export type ModuleManifest = {
     allowedUrls: string[]
     modules: Record<string, { moduleId: string; apiMajor: number; optional: boolean; version?: string; channel?: 'stable' | 'dev' }>
 }
-export type ModuleAddon = { id: string; code: string; catalogAddonId: string; securityManifest: ModuleManifest }
-export type Descriptor = { sha256: string; size: number; versionId: string; kind: 'javascript' | 'wasm' }
+export type ModuleAddon = {
+    id: string
+    code: string
+    catalogAddonId: string
+    securityManifest: ModuleManifest
+    localModules?: Record<string, Descriptor>
+}
+export type Descriptor = {
+    formatVersion: 1
+    moduleId: string
+    version: string
+    apiMajor: number
+    access: 'public' | 'protected'
+    sha256: string
+    size: number
+    versionId: string
+    kind: 'javascript' | 'wasm'
+}
 export type Resolution = {
     releaseBinding: string
     resolution: string

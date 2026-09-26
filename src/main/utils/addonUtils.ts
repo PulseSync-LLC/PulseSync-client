@@ -178,7 +178,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 const resolvedId =
                     metadata.name === 'Default'
                         ? 'default'
-                        : resolvedInstallSource === 'store'
+                        : resolvedInstallSource === 'store' && metadata.type !== 'web-addon'
                           ? resolveAddonCanonicalId(metadata, metadata.id)
                           : resolveAddonStableId(metadata, metadata.id)
                 if (metadata.id !== resolvedId) {

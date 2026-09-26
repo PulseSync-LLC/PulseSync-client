@@ -28,7 +28,12 @@ function getTransportCapability(): string {
     return transportCapability
 }
 
-export function registerAddonModuleTransport(socket: Socket, getAuthToken: () => string | null, readAddon: (id: string) => ModuleAddon | undefined) {
+export function registerAddonModuleTransport(
+    socket: Socket,
+    getAuthToken: () => string | null,
+    readAddon: (id: string) => ModuleAddon | undefined,
+    readLocalModuleBytes: (id: string, alias: string, hash: string) => string,
+) {
     const capability = getTransportCapability()
     const activations = new Map<string, ModuleActivation>()
     const resolving = new Set<string>()
@@ -71,6 +76,7 @@ export function registerAddonModuleTransport(socket: Socket, getAuthToken: () =>
             activationId?: unknown
             alias?: unknown
             transportToken?: unknown
+            sha256?: unknown
         }
         const authToken = getAuthToken()
         if (
@@ -91,6 +97,11 @@ export function registerAddonModuleTransport(socket: Socket, getAuthToken: () =>
         inFlight++
         let resolvingAddon: string | undefined
         try {
+            if (packet.operation === 'load-local') {
+                if (typeof packet.addonId !== 'string' || typeof packet.alias !== 'string' || typeof packet.sha256 !== 'string') throwModuleError()
+                ack({ ok: true, value: { bytes: readLocalModuleBytes(packet.addonId, packet.alias, packet.sha256) } })
+                return
+            }
             if (packet.operation === 'resolve') {
                 if (typeof packet.addonId !== 'string') throwModuleError()
                 if (resolving.has(packet.addonId)) throwModuleError('unavailable')

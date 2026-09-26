@@ -25,7 +25,7 @@ import toast from '@shared/ui/toast'
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 
 import type AddonInterface from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 interface Props {
     addon: AddonInterface
@@ -51,7 +51,7 @@ interface Props {
         githubUrl: string,
         usedAiDuringDevelopment: boolean,
         previewPath: string,
-        visibility?: 'public' | 'dev',
+        visibility?: StoreAddonVisibility,
         releaseChannel?: 'stable' | 'dev',
     ) => void
     onUpdateAddon?: (
@@ -59,7 +59,7 @@ interface Props {
         githubUrl: string,
         usedAiDuringDevelopment: boolean,
         previewPath: string,
-        visibility?: 'public' | 'dev',
+        visibility?: StoreAddonVisibility,
         releaseChannel?: 'stable' | 'dev',
     ) => void
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>

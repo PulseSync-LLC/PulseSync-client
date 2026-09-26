@@ -4,7 +4,7 @@ import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 
 import type Addon from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 type OwnAddonsResponse = {
     addons?: StoreAddon[]
@@ -272,7 +272,7 @@ export async function submitAddonForStore(
     githubUrl: string,
     usedAiDuringDevelopment: boolean,
     existingAddonId?: string,
-    visibility: 'public' | 'dev' = 'public',
+    visibility: StoreAddonVisibility = 'public',
     releaseChannel: 'stable' | 'dev' = 'stable',
 ): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
@@ -295,7 +295,7 @@ export async function submitAddonArchiveForStore(options: {
     githubUrl: string
     usedAiDuringDevelopment: boolean
     existingAddonId?: string
-    visibility?: 'public' | 'dev'
+    visibility?: StoreAddonVisibility
     releaseChannel?: 'stable' | 'dev'
     blob: Blob
     fileName: string

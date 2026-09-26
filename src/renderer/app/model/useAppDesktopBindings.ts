@@ -71,7 +71,7 @@ export function useAppDesktopBindings({
 
                     if (!foundAddon) return
 
-                    if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
+                    if (!['theme', 'script', 'web-addon'].includes(foundAddon.type)) {
                         toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), undefined, undefined, 15000)
                         return
                     }
@@ -166,11 +166,7 @@ export function useAppDesktopBindings({
 
         const onDownloadProgress = (value: unknown) => {
             manualUpdateCheckPendingRef.current = false
-            const preparing =
-                value !== null &&
-                typeof value === 'object' &&
-                'phase' in value &&
-                (value as { phase?: unknown }).phase === 'preparing'
+            const preparing = value !== null && typeof value === 'object' && 'phase' in value && (value as { phase?: unknown }).phase === 'preparing'
             if (!toastReference.current) {
                 toastReference.current = toast.custom(
                     'loading',

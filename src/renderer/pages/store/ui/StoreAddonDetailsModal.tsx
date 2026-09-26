@@ -246,7 +246,9 @@ export default function StoreAddonDetailsModal({
                             ) : null}
                             <span className={st.metaChip}>
                                 <MdInventory2 aria-hidden="true" />v{release.version}
-                                {release.visibility === 'dev' ? ` · ${t('extensions.publication.visibilityDev')}` : ''}
+                                {release.visibility && release.visibility !== 'public'
+                                    ? ` · ${t(release.visibility === 'dev' ? 'extensions.publication.visibilityDev' : 'extensions.publication.visibilityDeveloper')}`
+                                    : ''}
                             </span>
                             <span className={st.metaChip}>
                                 <MdSchedule aria-hidden="true" />

@@ -1,11 +1,12 @@
 export type StoreAddonStatus = 'pending' | 'rejected' | 'accepted'
 export type StoreAddonKind = 'theme' | 'script' | 'web-addon'
+export type StoreAddonVisibility = 'public' | 'dev' | 'developer'
 
 export interface StoreAddonRelease {
     id: string
     version: string
     releaseChannels?: ('stable' | 'dev')[]
-    visibility?: 'public' | 'dev'
+    visibility?: StoreAddonVisibility
     description: string
     githubUrl?: string | null
     authors: string[]

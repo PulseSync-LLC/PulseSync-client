@@ -1,4 +1,4 @@
-.publicationModal {
+body div.publicationModal {
     gap: 18px;
 
     align-items: stretch;
@@ -10,7 +10,7 @@
     padding: 22px;
 }
 
-.publicationModalReadonly {
+body div.publicationModalReadonly {
     width: min(760px, calc(100vw - 32px));
     max-width: 760px;
 }
@@ -70,7 +70,6 @@
     gap: 12px;
 
     align-items: center;
-    justify-content: space-between;
 
     min-height: 30px;
 }
@@ -88,9 +87,11 @@
 }
 
 .closeButton {
-    display: grid;
+    position: absolute;
+    top: 22px;
+    right: 22px;
 
-    flex: 0 0 32px;
+    display: grid;
 
     place-items: center;
 
@@ -563,11 +564,16 @@
 }
 
 @media (width <= 760px) {
-    .publicationModal,
-    .publicationModalReadonly {
+    body div.publicationModal,
+    body div.publicationModalReadonly {
         width: min(100%, calc(100vw - 24px));
 
         padding: 16px;
+    }
+
+    .closeButton {
+        top: 16px;
+        right: 16px;
     }
 
     .body,

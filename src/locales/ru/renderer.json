@@ -465,6 +465,7 @@
             "visibilityLabel": "Видимость версии",
             "visibilityPublic": "Для всех",
             "visibilityDev": "Только dev",
+            "visibilityDeveloper": "Только DEVELOPER",
             "visibilityHint": "Версия появится только в каталоге dev-клиента. Остальные пользователи продолжат получать последнюю общедоступную версию.",
             "statusLabel": "Публикация",
             "modalTitle": "Публикация аддона",

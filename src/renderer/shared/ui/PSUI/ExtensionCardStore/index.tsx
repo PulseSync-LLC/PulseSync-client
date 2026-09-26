@@ -22,6 +22,8 @@ import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as st from '@shared/ui/PSUI/ExtensionCardStore/card.module.scss'
 
+import type { StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
+
 type ExtensionTheme = 'purple' | 'red' | 'wave'
 type ExtensionCardSize = 'default' | 'large'
 type ExtensionStatus = 'accepted' | 'active' | 'deprecated' | 'pending' | 'rejected'
@@ -45,7 +47,7 @@ export interface ExtensionCardStoreProps {
     iconImage?: string
     backgroundImage?: string
     className?: string
-    visibility?: 'public' | 'dev'
+    visibility?: StoreAddonVisibility
     status?: ExtensionStatus
     type?: ExtensionType
     kind?: AddonKind
@@ -192,7 +194,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                                     event.currentTarget.src = fallbackPosterBanner
                                 }}
                             />
-                            {iconImage ? <img src={iconImage} alt="" className={st.posterIcon} /> : <span className={st.posterIconFallback} />}
+                            {iconImage ? <img src={iconImage} alt="" className={st.posterIcon} /> : null}
                             <button
                                 type="button"
                                 className={cn(st.posterAction, downloadVariant === 'remove' && st.removeAction)}
@@ -221,9 +223,9 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         <p>{subtitle}</p>
                         <div className={st.metaRow}>
                             {ratingCount !== undefined ? <AddonRatingBadge average={ratingAverage} /> : null}
-                            {visibility === 'dev' ? (
-                                <Badge uppercase={false} size="md" variant="info" className={st.metaBadge}>
-                                    {t('extensions.publication.visibilityDev')}
+                            {visibility && visibility !== 'public' ? (
+                                <Badge uppercase={false} size="md" variant="info" className={cn(st.metaBadge, st.toneInfo)}>
+                                    {t(visibility === 'dev' ? 'extensions.publication.visibilityDev' : 'extensions.publication.visibilityDeveloper')}
                                 </Badge>
                             ) : null}
                             {status ? (
