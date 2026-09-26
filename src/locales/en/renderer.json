@@ -465,6 +465,7 @@
             "visibilityLabel": "Release visibility",
             "visibilityPublic": "Everyone",
             "visibilityDev": "Dev only",
+            "visibilityDeveloper": "DEVELOPER role only",
             "visibilityHint": "This release will only appear in the dev client catalog. Other users will keep receiving the latest public release.",
             "statusLabel": "Publication",
             "modalTitle": "Add-on publication",

@@ -10,6 +10,7 @@ import { NewsProvider } from '@app/providers/news'
 import { NotificationsProvider } from '@app/providers/notifications'
 import PlayerProvider from '@app/providers/PlayerProvider'
 import { useSocketContext } from '@app/providers/socket'
+import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
 import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import Preloader from '@widgets/preloader'
@@ -140,6 +141,7 @@ export default function AppProviders({
     return (
         <div className="app-wrapper">
             <UserContext.Provider value={userContextValue}>
+                <ExtensionPublicationModal />
                 <NewsProvider key={user.id} enabled={!loading}>
                     <ExperimentsProvider userId={user.id} userPerm={user.perms} enabled={!loading}>
                         <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />

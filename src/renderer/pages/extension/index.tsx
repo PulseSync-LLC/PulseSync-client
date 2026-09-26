@@ -63,7 +63,7 @@ import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
-import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -999,7 +999,7 @@ export default function ExtensionPage() {
             githubUrlOverride?: string,
             usedAiDuringDevelopmentOverride?: boolean,
             previewPathOverride?: string,
-            visibility?: 'public' | 'dev',
+            visibility?: StoreAddonVisibility,
             releaseChannel?: 'stable' | 'dev',
         ) => {
             if (!selectedAddon || !storePublishingEnabled) return
@@ -1145,7 +1145,7 @@ export default function ExtensionPage() {
                       githubUrl: string,
                       usedAiDuringDevelopment: boolean,
                       previewPath: string,
-                      visibility?: 'public' | 'dev',
+                      visibility?: StoreAddonVisibility,
                       releaseChannel?: 'stable' | 'dev',
                   ) => {
                       void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
@@ -1162,7 +1162,7 @@ export default function ExtensionPage() {
                       githubUrl: string,
                       usedAiDuringDevelopment: boolean,
                       previewPath: string,
-                      visibility?: 'public' | 'dev',
+                      visibility?: StoreAddonVisibility,
                       releaseChannel?: 'stable' | 'dev',
                   ) => {
                       void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)

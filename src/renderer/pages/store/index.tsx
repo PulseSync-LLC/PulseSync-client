@@ -512,7 +512,13 @@ export default function StorePage() {
             const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
 
             try {
-                const result = (await desktopApi.addons.installStore({ id: addon.id, downloadUrl, title: addon.name, releaseChannel: channel })) as {
+                const result = (await desktopApi.addons.installStore({
+                    id: addon.id,
+                    downloadUrl,
+                    title: addon.name,
+                    releaseChannel: channel,
+                    reviewReleaseId: catalogTab === 'moderation' ? release.id : undefined,
+                })) as {
                     reason?: string
                     success?: boolean
                 }
@@ -679,9 +685,13 @@ export default function StorePage() {
                         {releaseChannel === 'stable' && release.releaseChannels?.includes('stable') !== false ? (
                             <AddonRatingBadge average={addon.ratingAverage} />
                         ) : null}
-                        {release.visibility === 'dev' ? (
-                            <Badge uppercase={false} size="md" variant="info">
-                                {t('extensions.publication.visibilityDev')}
+                        {release.visibility && release.visibility !== 'public' ? (
+                            <Badge uppercase={false} size="md" variant="info" className={cn(st.metaBadge, st.toneInfo)}>
+                                {t(
+                                    release.visibility === 'dev'
+                                        ? 'extensions.publication.visibilityDev'
+                                        : 'extensions.publication.visibilityDeveloper',
+                                )}
                             </Badge>
                         ) : null}
                         <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdInventory2 />}>

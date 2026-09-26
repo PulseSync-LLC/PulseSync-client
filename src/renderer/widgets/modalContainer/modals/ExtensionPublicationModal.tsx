@@ -1,16 +1,19 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
 
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { MdClose } from 'react-icons/md'
 
 import { useModalContext } from '@app/providers/modal'
+import userContext from '@entities/user/model/context'
 import { staticAsset } from '@shared/lib/staticAssets'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import FileInput from '@shared/ui/PSUI/FileInput'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 
 import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModal.module.scss'
+
+import type { StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const ADDON_PUBLISHING_RULES_URL = 'https://pulsesync.dev/wiki/main/app/addons/publishing'
@@ -46,6 +49,8 @@ function PublicationCheckbox({ checked, onChange, children }: PublicationCheckbo
 
 const ExtensionPublicationModal: React.FC = () => {
     const { t, i18n } = useTranslation()
+    const { user } = useContext(userContext)
+    const isDeveloper = user?.perms === 'developer'
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
     const {
         addon,
@@ -66,7 +71,7 @@ const ExtensionPublicationModal: React.FC = () => {
     const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
     const [previewPath, setPreviewPath] = useState('')
     const [releaseChannel, setReleaseChannel] = useState<'stable' | 'dev'>('stable')
-    const [visibility, setVisibility] = useState<'public' | 'dev'>('public')
+    const [visibility, setVisibility] = useState<StoreAddonVisibility>('public')
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
@@ -165,7 +170,12 @@ const ExtensionPublicationModal: React.FC = () => {
     const hasValidGithubUrl = hasEnteredGithubUrl ? isGithubUrl(githubUrlText) : false
     const hasGithubForSubmit = isUpdateMode ? hasExistingGithubUrl || hasValidGithubUrl : hasValidGithubUrl
     const shouldShowGithubField = !isEditingMode || !isUpdateMode || !hasExistingGithubUrl
-    const canSubmit = normalizedChangelog.length > 0 && hasGithubForSubmit && (!requiresRulesAgreement || rulesAccepted) && !publicationBusy
+    const canSubmit =
+        normalizedChangelog.length > 0 &&
+        hasGithubForSubmit &&
+        (!requiresRulesAgreement || rulesAccepted) &&
+        !publicationBusy &&
+        (visibility !== 'developer' || isDeveloper)
 
     const primaryButton = onUpdate
         ? {
@@ -213,6 +223,11 @@ const ExtensionPublicationModal: React.FC = () => {
                     : promotionButtons
             }
         >
+            {!isEditingMode ? (
+                <button type="button" className={styles.closeButton} onClick={handleClose} aria-label={t('common.done')}>
+                    <MdClose aria-hidden="true" />
+                </button>
+            ) : null}
             <div className={cn(styles.body, !isEditingMode && styles.bodyReadonly)}>
                 <div className={styles.summaryPane}>
                     <div className={styles.header}>
@@ -220,11 +235,6 @@ const ExtensionPublicationModal: React.FC = () => {
                             <div className={styles.statusLine}>
                                 <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
                             </div>
-                            {!isEditingMode ? (
-                                <button type="button" className={styles.closeButton} onClick={handleClose} aria-label={t('common.done')}>
-                                    <MdClose aria-hidden="true" />
-                                </button>
-                            ) : null}
                         </div>
                         <div className={styles.headlineRow}>
                             <div className={styles.identity}>
@@ -306,9 +316,12 @@ const ExtensionPublicationModal: React.FC = () => {
                                 options={[
                                     { value: 'public', label: t('extensions.publication.visibilityPublic') },
                                     { value: 'dev', label: t('extensions.publication.visibilityDev') },
+                                    ...(isDeveloper || visibility === 'developer'
+                                        ? [{ value: 'developer', label: t('extensions.publication.visibilityDeveloper') }]
+                                        : []),
                                 ]}
-                                disabled={publicationBusy}
-                                onChange={value => setVisibility(value === 'dev' ? 'dev' : 'public')}
+                                disabled={publicationBusy || (!isDeveloper && visibility === 'developer')}
+                                onChange={value => setVisibility(value === 'dev' || (isDeveloper && value === 'developer') ? value : 'public')}
                             />
                         ) : (
                             <>
@@ -317,7 +330,9 @@ const ExtensionPublicationModal: React.FC = () => {
                                     {t(
                                         publicationRelease?.visibility === 'dev'
                                             ? 'extensions.publication.visibilityDev'
-                                            : 'extensions.publication.visibilityPublic',
+                                            : publicationRelease?.visibility === 'developer'
+                                              ? 'extensions.publication.visibilityDeveloper'
+                                              : 'extensions.publication.visibilityPublic',
                                     )}
                                 </span>
                             </>

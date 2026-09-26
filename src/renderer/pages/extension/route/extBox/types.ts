@@ -1,5 +1,5 @@
 import type AddonInterface from '@entities/addon/model/addon.interface'
-import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
 export const RELATIONS_TAB = 'Relations'
@@ -42,7 +42,7 @@ export interface ExtensionViewProps {
         githubUrl: string,
         usedAiDuringDevelopment: boolean,
         previewPath: string,
-        visibility?: 'public' | 'dev',
+        visibility?: StoreAddonVisibility,
         releaseChannel?: 'stable' | 'dev',
     ) => void
     onUpdateAddon?: (
@@ -50,7 +50,7 @@ export interface ExtensionViewProps {
         githubUrl: string,
         usedAiDuringDevelopment: boolean,
         previewPath: string,
-        visibility?: 'public' | 'dev',
+        visibility?: StoreAddonVisibility,
         releaseChannel?: 'stable' | 'dev',
     ) => void
 

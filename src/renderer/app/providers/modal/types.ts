@@ -1,7 +1,7 @@
 import type { Modals } from '@app/providers/modal/modals'
 import type { SettingsDeepLinkSection } from '@common/settingsDeepLink'
 import type Addon from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 import type { ReactNode } from 'react'
 
 export type ModalName = (typeof Modals)[keyof typeof Modals]
@@ -29,7 +29,7 @@ export type ModalAdditionalStateMap = {
                   githubUrl: string,
                   usedAiDuringDevelopment: boolean,
                   previewPath: string,
-                  visibility?: 'public' | 'dev',
+                  visibility?: StoreAddonVisibility,
                   releaseChannel?: 'stable' | 'dev',
               ) => void)
             | null
@@ -39,7 +39,7 @@ export type ModalAdditionalStateMap = {
                   githubUrl: string,
                   usedAiDuringDevelopment: boolean,
                   previewPath: string,
-                  visibility?: 'public' | 'dev',
+                  visibility?: StoreAddonVisibility,
                   releaseChannel?: 'stable' | 'dev',
               ) => void)
             | null

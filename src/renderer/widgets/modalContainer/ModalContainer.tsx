@@ -2,7 +2,6 @@ import React from 'react'
 
 import AppUpdateDialog from '@widgets/modalContainer/modals/AppUpdateDialog'
 import BasicConfirmationModal from '@widgets/modalContainer/modals/BasicConfirmationModal'
-import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
 import LinuxAsarPathDialog from '@widgets/modalContainer/modals/LinuxAsarPathDialog'
 import LinuxPermissionsModal from '@widgets/modalContainer/modals/LinuxPermissionsModal'
 import MacPermissionsModal from '@widgets/modalContainer/modals/MacPermissionsModal'
@@ -26,7 +25,6 @@ const ModalContainer: React.FC = () => {
             <PremiumPromoModal />
             <PremiumUnlockedModal />
             <PextDNDModal />
-            <ExtensionPublicationModal />
             <UntrustedLocalAddonModal />
             <SubscriptionGiveawaysModal />
             <BasicConfirmationModal />
