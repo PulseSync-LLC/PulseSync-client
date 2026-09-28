@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/ModChangelogShimmer.module.scss'
 
 export default function ModChangelogShimmer() {
@@ -8,6 +9,7 @@ export default function ModChangelogShimmer() {
                 <div key={index} className={styles.item}>
                     <div className={styles.versionInfo}>
                         <div className={styles.versionBadge} />
+                        <div className={styles.separator} />
                         <div className={styles.date} />
                     </div>
                     <div className={styles.content}>

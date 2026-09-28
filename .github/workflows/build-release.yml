@@ -9,12 +9,17 @@ permissions:
   contents: write
 
 jobs:
+  tests:
+    name: Test Desktop
+    uses: ./.github/workflows/desktop-tests.yml
+
   build:
+    needs: tests
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, blacksmith-6vcpu-macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -22,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -30,16 +36,9 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            nativeModules/**/node_modules
-            nativeModules/**/build
-            nativeModules/**/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+      - uses: ./.github/actions/cache-build-deps
 
       - name: Create .env
         shell: bash
@@ -57,9 +56,10 @@ jobs:
         run: yarn -s sentry-cli --version
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+        run: yarn build:package --nativeModules
         env:
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
@@ -67,6 +67,9 @@ jobs:
           SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout
 
       - name: Show release contents (debug)
         shell: bash
@@ -86,7 +89,7 @@ jobs:
           if-no-files-found: error
 
       - name: Publish changelog (single-run on ubuntu)
-        if: ${{ matrix.os == 'ubuntu-latest' && !contains(github.ref_name, 'dev') }}
+        if: ${{ matrix.os == 'blacksmith-4vcpu-ubuntu-2204' && !contains(github.ref_name, 'dev') }}
         shell: bash
         run: |
           VERSION_ARGS=()
@@ -101,9 +104,11 @@ jobs:
     name: Create GitHub Release
     needs: build
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-4vcpu-ubuntu-2204
 
     steps:
+      - uses: actions/checkout@v6
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
@@ -111,26 +116,12 @@ jobs:
           path: github-release-artifacts
 
       - name: Prepare GitHub Release assets
-        shell: bash
-        run: |
-          mkdir -p github-release-assets
-          declare -A NAME_COUNT=()
-
-          while IFS= read -r -d '' file; do
-            base_name="$(basename "$file")"
-            artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
-            target_name="$base_name"
-            name_count="${NAME_COUNT[$base_name]:-0}"
-
-            if (( name_count > 0 )); then
-              target_name="${artifact_dir}-${name_count}-${base_name}"
-            fi
-
-            NAME_COUNT["$base_name"]=$((name_count + 1))
-            cp "$file" "github-release-assets/$target_name"
-          done < <(find github-release-artifacts -type f -print0 | sort -z)
-
-          find github-release-assets -maxdepth 1 -type f | sort
+        run: >-
+          yarn tsx scripts/github-release-runtime.ts prepare
+          --source github-release-artifacts
+          --target github-release-assets
+          --repository ${{ github.repository }}
+          --tag ${{ github.ref_name }}
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2.6.1

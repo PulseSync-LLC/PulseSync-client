@@ -1,8 +1,11 @@
 import React, { useEffect, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
-import { useTranslation } from 'react-i18next'
 
 const YandexMusicUpdateDialog: React.FC = () => {
     const { t } = useTranslation()
@@ -21,9 +24,9 @@ const YandexMusicUpdateDialog: React.FC = () => {
             handleShowDialog()
         }
 
-        const unsubscribeShowDialog = window.desktopEvents?.on('SHOW_YANDEX_MUSIC_UPDATE_DIALOG', checkYandexMusic)
+        const unsubscribeShowDialog = desktopApi.music.onYandexMusicUpdateRequired(checkYandexMusic)
 
-        const handleDeleteResult = (event: any, data: any) => {
+        const handleDeleteResult = (data: { message?: string; success: boolean }) => {
             if (data.success) {
                 toast.custom('success', t('modals.yandexMusicUpdate.toasts.successTitle'), t('modals.yandexMusicUpdate.toasts.deleteSuccess'), {
                     duration: 3000,
@@ -39,7 +42,7 @@ const YandexMusicUpdateDialog: React.FC = () => {
             setIsDeleting(false)
         }
 
-        const unsubscribeDeleteResult = window.desktopEvents?.on('DELETE_YANDEX_MUSIC_RESULT', handleDeleteResult)
+        const unsubscribeDeleteResult = desktopApi.music.onYandexMusicDeleteResult(handleDeleteResult)
 
         return () => {
             if (typeof unsubscribeShowDialog === 'function') {
@@ -66,8 +69,8 @@ const YandexMusicUpdateDialog: React.FC = () => {
         )
 
         try {
-            window.desktopEvents?.send('DELETE_YANDEX_MUSIC_APP')
-        } catch (e) {
+            desktopApi.music.deleteYandexMusicApp()
+        } catch {
             setIsDeleting(false)
             toast.update(toastId, {
                 kind: 'error',

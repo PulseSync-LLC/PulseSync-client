@@ -6,6 +6,7 @@ on:
       - dev
 
 permissions:
+  actions: read
   contents: write
 
 concurrency:
@@ -16,25 +17,39 @@ jobs:
   changes:
     runs-on: ubuntu-latest
     outputs:
-      should_build: ${{ steps.filter.outputs.build }}
+      bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
+      desktop: ${{ steps.filter.outputs.desktop }}
+      renderer: ${{ steps.filter.outputs.renderer }}
+      retention: ${{ steps.filter.outputs.retention }}
     steps:
       - uses: actions/checkout@v6
         with:
           ref: ${{ github.sha }}
           fetch-depth: 50
 
-      - uses: dorny/paths-filter@v4.0.1
+      - uses: dorny/paths-filter@v4.0.2
         id: filter
         with:
           base: ${{ github.ref_name }}
-          list-files: shell
           filters: |
-            build:
-              - 'src/**'
-              - 'static/**'
+            desktop:
+              - 'src/bootstrap.ts'
+              - 'src/index.ts'
+              - 'src/main/**'
+              - 'src/common/**'
+              - 'src/locales/bundled/*/main.json'
+              - 'src/renderer/preloader.html'
+              - 'src/styles/fonts.css'
+              - 'src/styles/globals.css'
+              - 'src/styles/preloader.css'
+              - 'static/assets/icon/**'
               - 'icons/**'
               - 'nativeModules/**'
-              - 'scripts/**'
+              - 'packages/desktop-core/**'
+              - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
+              - 'scripts/!(@(bootstrapper|renderer))/**/*'
+              - 'scripts/resolve-dev-version.ts'
+              - 'scripts/s3-upload.ts'
               - 'scriptsInstaller/**'
               - 'package.json'
               - 'yarn.lock'
@@ -49,22 +64,45 @@ jobs:
               - 'Info.plist'
               - 'graphql.config.yml'
               - 'schema.graphql'
+              - '.github/actions/cache-build-deps/**'
               - '.github/workflows/build-dev.yml'
+              - '.github/workflows/desktop-tests.yml'
+            bootstrapper:
+              - 'packages/bootstrapper/**'
+              - 'scripts/bootstrapper/**'
+            renderer:
+              - 'src/renderer/**'
+              - 'src/common/**'
+              - 'src/main/renderer.ts'
+              - 'src/locales/**'
+              - 'src/styles/**'
+              - 'static/**'
+              - 'scripts/renderer/**'
+              - 'package.json'
+              - 'yarn.lock'
+              - '.yarnrc.yml'
+              - 'vite.renderer.config.ts'
+              - 'vite-env.d.ts'
+              - 'tsconfig*.json'
+            retention:
+              - 'scripts/s3-prune.ts'
+              - 'scripts/s3-retention.ts'
+              - '.github/workflows/desktop-s3-cleanup.yml'
+              - '.github/workflows/build-dev.yml'
+              - '.github/workflows/build-manual.yml'
+              - '.github/workflows/publish-component.yml'
 
       - name: Report changed build-related files
         shell: bash
         run: |
-          echo "should_build=${{ steps.filter.outputs.build }}"
-          if [ "${{ steps.filter.outputs.build }}" = "true" ]; then
-            echo "Changed build-related files:"
-            printf '%s\n' ${{ steps.filter.outputs.build_files }}
-          else
-            echo "No build-related changes detected"
-          fi
+          echo "bootstrapper=${{ steps.filter.outputs.bootstrapper }}"
+          echo "desktop=${{ steps.filter.outputs.desktop }}"
+          echo "renderer=${{ steps.filter.outputs.renderer }}"
+          echo "retention=${{ steps.filter.outputs.retention }}"
 
   version:
     needs: changes
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     outputs:
@@ -77,6 +115,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -96,20 +135,28 @@ jobs:
         id: version
         shell: bash
         run: |
-          BASE_VERSION="$(node -p "require('./package.json').version.split('-')[0]")"
+          BASE_VERSION="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
           DEV_VERSION="$(yarn -s tsx scripts/resolve-dev-version.ts --base-version "$BASE_VERSION")"
           echo "build_version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
           echo "Using BUILD_VERSION=$DEV_VERSION"
 
+  tests:
+    name: Test Desktop
+    needs: changes
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    uses: ./.github/workflows/desktop-tests.yml
+    with:
+      checkout_ref: ${{ github.sha }}
+
   build:
-    needs: [changes, version]
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+    needs: [changes, version, tests]
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
+        os: [ubuntu-latest, windows-2025, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -119,6 +166,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -127,16 +175,9 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            nativeModules/**/node_modules
-            nativeModules/**/build
-            nativeModules/**/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+      - uses: ./.github/actions/cache-build-deps
 
       - name: Create .env
         shell: bash
@@ -153,17 +194,23 @@ jobs:
       - name: Check Sentry CLI
         run: yarn -s sentry-cli --version
 
-      - name: Build and publish dev
-        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} --publish dev
+      - name: Build dev release
+        run: yarn build:package --nativeModules --publish dev
         env:
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
-          S3_KEEP_RECENT_VERSIONS: 3
+          DESKTOP_METADATA_VERSION: ${{ github.run_id }}
+          PULSESYNC_DEFER_S3_PUBLISH: "1"
+          PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
           SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
           SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
           SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout
 
       - name: Show release contents
         shell: bash
@@ -175,47 +222,210 @@ jobs:
             echo "release/ not found"; exit 1
           fi
 
-      - name: Upload release artifacts for GitHub prerelease
+      - name: Stage release output
         uses: actions/upload-artifact@v7
         with:
           name: release-${{ matrix.os }}
           path: release/**/*
           if-no-files-found: error
 
-  github_prerelease:
-    name: Create GitHub Prerelease
-    needs: [changes, version, build]
-    if: ${{ needs.changes.outputs.should_build == 'true' }}
+  publish_bootstrapper:
+    name: Publish Bootstrapper Component
+    needs: changes
+    if: ${{ needs.changes.outputs.bootstrapper == 'true' && needs.changes.outputs.desktop != 'true' }}
+    uses: ./.github/workflows/publish-component.yml
+    with:
+      ref: ${{ github.sha }}
+      channel: dev
+      component: bootstrapper
+      build_os: all
+      release_mode: reuse-latest
+    secrets: inherit
+
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [changes, build, publish_renderer, github_prerelease]
+    if: >-
+      ${{
+        always() &&
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.retention == 'true') &&
+        (needs.changes.outputs.bootstrapper != 'true' || needs.changes.outputs.desktop == 'true')
+      }}
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ github.sha }}
+    secrets: inherit
+
+  publish_renderer:
+    name: Publish Remote Renderer
+    needs: [changes, github_prerelease]
+    if: >-
+      ${{
+        always() &&
+        needs.changes.result == 'success' &&
+        needs.changes.outputs.renderer == 'true' &&
+        (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success')
+      }}
     runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+    concurrency:
+      group: remote-renderer-publish
+      cancel-in-progress: false
 
     steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Check Sentry CLI
+        run: yarn -s sentry-cli --version
+
+      - name: Publish remote renderer
+        id: renderer_publish
+        run: yarn renderer:publish --channel dev
+        env:
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
+          GLITCHTIP_SOURCEMAPS: "1"
+          GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Checkout renderer Pages repository
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
+        uses: actions/checkout@v6
+        with:
+          repository: PulseSync-LLC/PulseSync-renderer
+          token: ${{ secrets.RENDERER_REPO_TOKEN }}
+          ref: gh-pages
+          path: out/github-pages-repository
+
+      - name: Stage GitHub Pages renderer
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
+        run: yarn renderer:stage-pages --channel dev --source out/remote-renderer --target out/github-pages-repository
+
+      - name: Publish GitHub Pages renderer
+        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
+        shell: bash
+        working-directory: out/github-pages-repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "GitHub Pages renderer is already current."
+            exit 0
+          fi
+          expected_head="$(git rev-parse HEAD)"
+          git checkout --orphan pages-publish
+          git add --all
+          git commit -m "chore: publish renderer $GITHUB_RUN_ID"
+          git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
+
+  github_prerelease:
+    name: Publish Desktop Prerelease
+    needs: [changes, version, build]
+    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ github.sha }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: release-*
-          path: github-release-artifacts
+          path: staged-release
+          merge-multiple: true
+
+      - name: Validate complete staged release
+        shell: bash
+        env:
+          EXPECTED_VERSION: ${{ needs.version.outputs.build_version }}
+          EXPECTED_METADATA_VERSION: ${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const expected = [
+              ['desktop-update-hybrid-darwin-universal.json', 'darwin-universal'],
+              ['desktop-update-linux-x64.json', 'linux-x64'],
+              ['desktop-update-win32-x64.json', 'win32-x64'],
+          ]
+
+          for (const [name, dist] of expected) {
+              const file = path.join('staged-release', name)
+              if (!fs.existsSync(file)) throw new Error(`Missing staged manifest: ${name}`)
+              const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+              if (String(manifest.metadataVersion) !== process.env.EXPECTED_METADATA_VERSION) {
+                  throw new Error(`${name} metadataVersion mismatch: ${manifest.metadataVersion}`)
+              }
+              if (manifest.desktopVersion !== process.env.EXPECTED_VERSION) {
+                  throw new Error(`${name} desktopVersion mismatch: ${manifest.desktopVersion}`)
+              }
+              if (manifest.channel !== 'dev') throw new Error(`${name} channel mismatch: ${manifest.channel}`)
+              if (!manifest.targets?.[dist]) throw new Error(`${name} has no target for ${dist}`)
+          }
+          NODE
 
       - name: Prepare GitHub release assets
-        shell: bash
-        run: |
-          mkdir -p github-release-assets
-          declare -A NAME_COUNT=()
+        run: >-
+          yarn tsx scripts/github-release-runtime.ts prepare
+          --source staged-release
+          --target github-release-assets
+          --repository ${{ github.repository }}
+          --tag ${{ needs.version.outputs.build_version }}
 
-          while IFS= read -r -d '' file; do
-            base_name="$(basename "$file")"
-            artifact_dir="$(printf '%s' "$file" | sed -E 's#^github-release-artifacts/([^/]+)/.*#\1#')"
-            target_name="$base_name"
-            name_count="${NAME_COUNT[$base_name]:-0}"
-
-            if (( name_count > 0 )); then
-              target_name="${artifact_dir}-${name_count}-${base_name}"
-            fi
-
-            NAME_COUNT["$base_name"]=$((name_count + 1))
-            cp "$file" "github-release-assets/$target_name"
-          done < <(find github-release-artifacts -type f -print0 | sort -z)
-
-          find github-release-assets -maxdepth 1 -type f | sort
+      - name: Publish complete S3 release
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch dev
+          --dir staged-release
+          --version ${{ needs.version.outputs.build_version }}
+          --legacy-update-bridge
 
       - name: Create GitHub prerelease
         uses: softprops/action-gh-release@v2.6.1
@@ -232,8 +442,8 @@ jobs:
 
   skip-build:
     needs: changes
-    if: ${{ needs.changes.outputs.should_build != 'true' }}
+    if: ${{ needs.changes.outputs.bootstrapper != 'true' && needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip dev build
-        run: echo "Skipping dev build because no app or build files changed."
+        run: echo "Skipping dev workflow because no desktop, renderer, or retention files changed."

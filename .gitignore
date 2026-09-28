@@ -88,6 +88,7 @@ typings/
 # Vite
 .vite/
 .glitchtip-sourcemaps/
+/packages/bootstrapper/target/
 
 *.zip
 
@@ -113,3 +114,4 @@ Debug
 build
 *.node
 /nativeModules/checkAccess/yarn.lock
+docs/

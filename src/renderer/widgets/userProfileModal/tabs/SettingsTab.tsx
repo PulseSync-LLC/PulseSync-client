@@ -1,16 +1,17 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
-import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
-import { ExtendedUser } from '@entities/user/model/extendUser.interface'
+
 import Loader from '@shared/ui/PSUI/Loader'
 
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
+
 interface SettingsTabProps {
-    userProfile: ExtendedUser
     loading: boolean
     error: any
 }
 
-const SettingsTab: React.FC<SettingsTabProps> = ({ userProfile, loading, error }) => {
+const SettingsTab: React.FC<SettingsTabProps> = ({ loading, error }) => {
     const { t } = useTranslation()
 
     if (loading) {

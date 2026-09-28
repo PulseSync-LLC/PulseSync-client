@@ -1,4 +1,5 @@
 import { app } from 'electron'
+
 import * as fs from 'original-fs'
 import path from 'path'
 

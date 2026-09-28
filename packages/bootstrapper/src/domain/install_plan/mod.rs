@@ -1,0 +1,376 @@
+pub(crate) mod checks;
+mod model;
+mod paths;
+
+pub use model::{InstallPlan, InstallPlanArtifact, InstallPlanCheck};
+
+use crate::{
+    core::{
+        error::Result,
+        fs_ops::{directory_size, file_size},
+        layout::{is_inside, normalize_retain_app_versions},
+    },
+    domain::{
+        artifacts::{ArtifactKey, StagedArtifact},
+        install_plan::{
+            checks::{block, check_install_dir, pass},
+            paths::{action, backup_path, default_backup_dir, staging_dir, target_path},
+        },
+        manifest::{BootstrapperUpdateDecision, UpdatePlanAction},
+    },
+};
+use std::path::{Path, PathBuf};
+
+fn artifact_plan_entry(
+    staged: &StagedArtifact,
+    required: bool,
+    install_dir: &Path,
+    decision: &BootstrapperUpdateDecision,
+    staging_dir: &Path,
+    backup_dir: &Path,
+) -> Result<(Option<InstallPlanArtifact>, Vec<InstallPlanCheck>)> {
+    let key = staged.key.clone();
+    let source_path = staged.path.clone();
+    let artifact_file_name = source_path
+        .file_name()
+        .and_then(|value| value.to_str())
+        .ok_or("staged artifact file name is invalid")?;
+    let target_path = target_path(
+        install_dir,
+        decision
+            .artifacts
+            .as_ref()
+            .map(|value| value.layout)
+            .unwrap_or_default(),
+        &decision.host_version,
+        &key,
+        &decision.component_revisions,
+        &decision.component_disk_names,
+        artifact_file_name,
+    )?;
+    let backup_path = backup_path(backup_dir, &key, artifact_file_name);
+    let mut preflight = Vec::new();
+
+    preflight.push(if is_inside(staging_dir, &source_path) {
+        pass(
+            &format!("staged-{}-path", key.as_str()),
+            format!(
+                "{} staged path stays inside staging directory",
+                key.as_str()
+            ),
+            Some(source_path.clone()),
+        )
+    } else {
+        block(
+            &format!("staged-{}-path", key.as_str()),
+            format!("{} staged path escapes staging directory", key.as_str()),
+            Some(source_path.clone()),
+        )
+    });
+
+    preflight.push(if is_inside(install_dir, &target_path) {
+        pass(
+            &format!("target-{}-path", key.as_str()),
+            format!(
+                "{} target path stays inside install directory",
+                key.as_str()
+            ),
+            Some(target_path.clone()),
+        )
+    } else {
+        block(
+            &format!("target-{}-path", key.as_str()),
+            format!("{} target path escapes install directory", key.as_str()),
+            Some(target_path.clone()),
+        )
+    });
+
+    preflight.push(if is_inside(backup_dir, &backup_path) {
+        pass(
+            &format!("backup-{}-path", key.as_str()),
+            format!("{} backup path stays inside backup directory", key.as_str()),
+            Some(backup_path.clone()),
+        )
+    } else {
+        block(
+            &format!("backup-{}-path", key.as_str()),
+            format!("{} backup path escapes backup directory", key.as_str()),
+            Some(backup_path.clone()),
+        )
+    });
+
+    let source_is_directory = source_path.is_dir();
+    let artifact_action = match &key {
+        ArtifactKey::Host | ArtifactKey::Module(_) if source_is_directory => "replace-directory",
+        _ => action(&key),
+    };
+    let verification = (|| -> Result<u64> {
+        let size = if source_is_directory {
+            directory_size(&source_path)?
+        } else {
+            file_size(&source_path)?
+        };
+        if size != staged.size {
+            return Err(
+                format!("staged size mismatch: expected {}, got {size}", staged.size).into(),
+            );
+        }
+        Ok(size)
+    })();
+    match verification {
+        Ok(size) => {
+            preflight.push(pass(
+                &format!("staged-{}-artifact", key.as_str()),
+                format!("{} staged artifact exists and is valid", key.as_str()),
+                Some(source_path.clone()),
+            ));
+            Ok((
+                Some(InstallPlanArtifact {
+                    action: artifact_action.to_string(),
+                    backup_path,
+                    key: key.clone(),
+                    required,
+                    file_operations: staged.file_operations.clone(),
+                    sha256: staged.sha256.clone(),
+                    size,
+                    source_path,
+                    target_path,
+                }),
+                preflight,
+            ))
+        }
+        Err(error) => {
+            preflight.push(block(
+                &format!("staged-{}-artifact", key.as_str()),
+                format!(
+                    "{} staged artifact is missing or invalid: {error}",
+                    key.as_str()
+                ),
+                Some(source_path),
+            ));
+            Ok((None, preflight))
+        }
+    }
+}
+
+pub fn create_install_plan(
+    decision: &BootstrapperUpdateDecision,
+    install_dir: &Path,
+    staging_root: &Path,
+    backup_dir: Option<PathBuf>,
+    staged_artifacts: Vec<StagedArtifact>,
+    retain_app_versions: usize,
+    host_bundle: Option<PathBuf>,
+) -> Result<InstallPlan> {
+    let install_dir = install_dir
+        .canonicalize()
+        .unwrap_or_else(|_| install_dir.to_path_buf());
+    let staging_root = staging_root
+        .canonicalize()
+        .unwrap_or_else(|_| staging_root.to_path_buf());
+    let staging_dir = staging_dir(decision, &staging_root)?;
+    let backup_dir = backup_dir.unwrap_or(default_backup_dir(decision, &staging_root)?);
+    let mut preflight = Vec::new();
+    let mut artifacts = Vec::new();
+
+    preflight.push(if decision.update_available {
+        pass("update-available", "Update is available", None)
+    } else {
+        block(
+            "update-available",
+            format!("Update is not available: {}", decision.reason),
+            None,
+        )
+    });
+
+    preflight.push(if decision.artifacts.is_some() {
+        pass(
+            "manifest-dist-artifacts",
+            "Manifest includes artifacts for this dist",
+            None,
+        )
+    } else {
+        block(
+            "manifest-dist-artifacts",
+            format!("Manifest does not include artifacts for {}", decision.dist),
+            None,
+        )
+    });
+
+    preflight.push(check_install_dir(&install_dir));
+
+    let installs_host = decision.selected_artifacts.iter().any(|key| key == "host");
+    let requires_complete_slot = decision.artifacts.as_ref().is_some_and(|artifacts| {
+        artifacts.layout == crate::domain::manifest::ArtifactLayout::VersionedComponents
+    }) && installs_host;
+    if requires_complete_slot {
+        let missing_components = decision
+            .component_versions
+            .keys()
+            .filter(|name| {
+                !decision
+                    .selected_artifacts
+                    .iter()
+                    .any(|key| key == &format!("module:{name}"))
+            })
+            .cloned()
+            .collect::<Vec<_>>();
+        preflight.push(if missing_components.is_empty() {
+            pass(
+                "complete-versioned-runtime-slot",
+                "Host update installs every component into the new runtime slot",
+                None,
+            )
+        } else {
+            block(
+                "complete-versioned-runtime-slot",
+                format!(
+                    "Host update would reuse components from another runtime slot: {}",
+                    missing_components.join(", ")
+                ),
+                None,
+            )
+        });
+    }
+
+    if decision.artifacts.is_some() {
+        for staged in staged_artifacts {
+            let key = &staged.key;
+            let required = decision
+                .plan
+                .iter()
+                .find(|item| item.key == key.as_str())
+                .map(|item| item.required)
+                .unwrap_or(true);
+            let (artifact, checks) = artifact_plan_entry(
+                &staged,
+                required,
+                &install_dir,
+                decision,
+                &staging_dir,
+                &backup_dir,
+            )?;
+            preflight.extend(checks);
+            if let Some(artifact) = artifact {
+                artifacts.push(artifact);
+            }
+        }
+    }
+    if requires_complete_slot {
+        let mut missing_artifacts = Vec::new();
+        if !artifacts
+            .iter()
+            .any(|artifact| artifact.key.as_str() == "host")
+        {
+            missing_artifacts.push("host".to_string());
+        }
+        missing_artifacts.extend(
+            decision
+                .component_versions
+                .keys()
+                .filter(|name| {
+                    let key = format!("module:{name}");
+                    !artifacts
+                        .iter()
+                        .any(|artifact| artifact.key.as_str() == key)
+                })
+                .cloned()
+                .map(|name| format!("module:{name}")),
+        );
+        preflight.push(if missing_artifacts.is_empty() {
+            pass(
+                "complete-versioned-runtime-slot-artifacts",
+                "Every component artifact is staged for the new runtime slot",
+                None,
+            )
+        } else {
+            block(
+                "complete-versioned-runtime-slot-artifacts",
+                format!(
+                    "New runtime slot is missing staged components: {}",
+                    missing_artifacts.join(", ")
+                ),
+                None,
+            )
+        });
+    }
+    let omitted_components = decision
+        .plan
+        .iter()
+        .filter(|item| {
+            matches!(item.action, UpdatePlanAction::Remove)
+                || (matches!(item.action, UpdatePlanAction::Blocked) && !item.required)
+        })
+        .filter_map(|item| item.key.strip_prefix("module:").map(str::to_string))
+        .collect::<Vec<_>>();
+
+    Ok(InstallPlan {
+        artifact_layout: decision
+            .artifacts
+            .as_ref()
+            .map(|value| value.layout)
+            .unwrap_or_default(),
+        executable: preflight.iter().all(|entry| entry.status == "pass")
+            && (!artifacts.is_empty() || !omitted_components.is_empty()),
+        artifacts,
+        backup_dir,
+        channel: decision.channel.clone(),
+        current_version: decision.current_version.clone(),
+        dist: decision.dist.clone(),
+        install_dir,
+        installs_host,
+        preflight,
+        retain_app_versions: normalize_retain_app_versions(retain_app_versions),
+        staging_dir,
+        target_version: decision.target_version.clone(),
+        bundle_version: decision.bundle_version.clone(),
+        update_available: decision.update_available,
+        host_version: decision.host_version.clone(),
+        host_bundle,
+        host_bundle_version: decision.host_bundle_version.clone(),
+        bootstrapper_version: decision.bootstrapper_version.clone(),
+        component_versions: decision.component_versions.clone(),
+        component_revisions: decision.component_revisions.clone(),
+        component_disk_names: decision.component_disk_names.clone(),
+        metadata_version: decision.metadata_version,
+        host_electron_abi: decision.host_electron_abi.clone(),
+        host_content_sha256: decision
+            .artifacts
+            .as_ref()
+            .and_then(|artifacts| artifacts.host_files.as_ref())
+            .map(|files| files.content_sha256.clone()),
+        host_artifact_sha256: decision
+            .artifacts
+            .as_ref()
+            .map(|artifacts| artifacts.host.sha256.clone()),
+        bootstrapper_artifact_sha256: decision
+            .artifacts
+            .as_ref()
+            .and_then(|artifacts| artifacts.bootstrapper.as_ref())
+            .map(|artifact| artifact.sha256.clone()),
+        component_electron_abis: decision.component_electron_abis.clone(),
+        component_content_sha256s: decision
+            .artifacts
+            .as_ref()
+            .map(|artifacts| {
+                artifacts
+                    .module_files
+                    .iter()
+                    .map(|(name, files)| (name.clone(), files.content_sha256.clone()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        component_artifact_sha256s: decision
+            .artifacts
+            .as_ref()
+            .map(|artifacts| {
+                artifacts
+                    .modules
+                    .iter()
+                    .map(|(name, artifact)| (name.clone(), artifact.sha256.clone()))
+                    .collect()
+            })
+            .unwrap_or_default(),
+        omitted_components,
+    })
+}

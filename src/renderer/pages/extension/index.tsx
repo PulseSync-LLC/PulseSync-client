@@ -1,21 +1,13 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
+import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router'
+import semver from 'semver'
 
-import userContext from '@entities/user/model/context'
-import Addon from '@entities/addon/model/addon.interface'
-import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
-import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
-import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
-import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
-
-import toast from '@shared/ui/toast'
-
-import PageLayout from '@widgets/layout/PageLayout'
-import Loader from '@shared/ui/PSUI/Loader'
-
-import ExtensionView from '@pages/extension/route/extensionview'
-import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
 import {
+    type AddonTypeFilter,
     buildAddonImagePath,
     checkAddonVersionSupported,
     createWhitelistedAddonNames,
@@ -24,26 +16,54 @@ import {
     getUniqueAddonCreators,
     getUniqueAddonTags,
     isAddonWhitelisted,
-    safeStoreGet,
-    SortKey,
+    type SortKey,
     useDebouncedValue,
 } from '@pages/extension/model/addonCatalog'
-import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
+import {
+    assignAddonCategory,
+    createAddonCategory,
+    deleteAddonCategory,
+    EMPTY_ADDON_ORGANIZATION,
+    normalizeAddonOrganization,
+    setAddonFavorite,
+} from '@pages/extension/model/addonOrganization'
+import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import ExtensionView from '@pages/extension/route/extensionview'
 import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
+import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
 import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
-
-import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
-import MainEvents from '@common/types/mainEvents'
-import { staticAsset } from '@shared/lib/staticAssets'
-import apolloClient from '@shared/api/apolloClient'
+import PageLayout from '@widgets/layout/PageLayout'
 import GetAddonWhitelistQuery from '@entities/addon/api/getAddonWhitelist.query'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
-import { useTranslation } from 'react-i18next'
-import { AddonStoreSubmitError, fetchOwnStoreAddons, persistAddonStoreLink, submitAddonForStore } from '@entities/addon/api/storeAddons'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
-import { compareVersions } from '@shared/lib/utils'
-import { useModalContext } from '@app/providers/modal'
+import {
+    AddonStoreSubmitError,
+    fetchInstalledStoreAddonUpdates,
+    fetchOwnStoreAddons,
+    fetchStoreAddonUpdates,
+    persistAddonPreview,
+    persistAddonStoreLink,
+    promoteAddonRelease,
+    submitAddonForStore,
+} from '@entities/addon/api/storeAddons'
+import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
+import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
+import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
+import userContext from '@entities/user/model/context'
+import apolloClient from '@shared/api/apolloClient'
 import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { compareVersions } from '@shared/lib/utils'
+import Loader from '@shared/ui/PSUI/Loader'
+import toast from '@shared/ui/toast'
+
+import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
+
+import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonsPayload, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -106,9 +126,33 @@ function withDisplayRelease(addon: StoreAddon): StoreAddon {
     }
 }
 
-function readEnabledScriptsState(): string[] {
-    const rawValue = safeStoreGet<string[] | string>('addons.scripts', [])
+function findMatchingStoreAddon(addon: Addon | null | undefined, candidates: StoreAddon[]): StoreAddon | null {
+    if (!addon) {
+        return null
+    }
 
+    const linkedAddonId = addon.storeAddonId?.trim()
+    if (linkedAddonId) {
+        const linkedAddon = candidates.find(candidate => candidate.id === linkedAddonId)
+        if (linkedAddon) {
+            return withDisplayRelease(linkedAddon)
+        }
+    }
+
+    const addonName = addon.name.trim().toLowerCase()
+    const addonVersion = addon.version?.trim().toLowerCase()
+    const matches = candidates
+        .filter(candidate => candidate.type === addon.type && candidate.name.trim().toLowerCase() === addonName)
+        .map(withDisplayRelease)
+
+    return (
+        matches.find(candidate => candidate.currentRelease?.version.trim().toLowerCase() === addonVersion) ||
+        matches.sort((a, b) => getStoreAddonReleaseTimestamp(b.currentRelease) - getStoreAddonReleaseTimestamp(a.currentRelease))[0] ||
+        null
+    )
+}
+
+function readEnabledScriptsState(rawValue: unknown): string[] {
     if (typeof rawValue === 'string') {
         return rawValue
             .split(',')
@@ -138,12 +182,14 @@ function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
-    const { isExperimentEnabled } = useExperiments()
+    const { getExperiment, isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
-    const [currentTheme, setCurrentTheme] = useState<string>(() => safeStoreGet<string>('addons.theme', 'Default'))
-    const [enabledScripts, setEnabledScripts] = useState<string[]>(() => safeStoreGet<string[]>('addons.scripts', []))
+    const [currentTheme, setCurrentTheme] = useState<string>('Default')
+    const [enabledScripts, setEnabledScripts] = useState<string[]>([])
+    const [addonOrganization, setAddonOrganization] = useState<DesktopAddonOrganization>(EMPTY_ADDON_ORGANIZATION)
+    const addonOrganizationRef = useRef(addonOrganization)
     const [searchQuery, setSearchQuery] = useState('')
     const debouncedSearchQuery = useDebouncedValue(searchQuery.toLowerCase(), 250)
 
@@ -153,6 +199,9 @@ export default function ExtensionPage() {
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
     const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
+    const [installedStoreUpdates, setInstalledStoreUpdates] = useState<StoreAddon[]>([])
+    const [storeChannelReleases, setStoreChannelReleases] = useState<Partial<Record<'stable' | 'dev', StoreAddon>>>({})
+    const [storeChannelLoading, setStoreChannelLoading] = useState(false)
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
     const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
@@ -170,12 +219,32 @@ export default function ExtensionPage() {
 
     const [showFilters, setShowFilters] = useState(false)
     const [sort, setSort] = useState<SortKey>('type')
-    const [type, setType] = useState<'all' | 'theme' | 'script'>('all')
+    const [type, setType] = useState<AddonTypeFilter>('all')
     const [selectedTags, setSelectedTags] = useState<Set<string>>(new Set())
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
-
     const loadedRef = useRef(false)
+
+    const commitAddonOrganization = useCallback(
+        (update: (current: DesktopAddonOrganization) => DesktopAddonOrganization) => {
+            const previous = addonOrganizationRef.current
+            const next = update(previous)
+            if (next === previous) return false
+
+            addonOrganizationRef.current = next
+            setAddonOrganization(next)
+            void desktopApi.addons.saveOrganization(next).catch(error => {
+                console.error('[Addons] failed to save sidebar organization', error)
+                if (addonOrganizationRef.current === next) {
+                    addonOrganizationRef.current = previous
+                    setAddonOrganization(previous)
+                }
+                toast.custom('error', t('common.oopsTitle'), t('extensions.organization.saveFailed'))
+            })
+            return true
+        },
+        [t],
+    )
     const requestedAddonId = useMemo(() => {
         const stateAddon = (location.state as { theme?: Addon } | null)?.theme
         const raw = stateAddon?.directoryName ?? stateAddon?.name ?? contactId
@@ -221,6 +290,19 @@ export default function ExtensionPage() {
 
         fetchAddonWhitelist()
     }, [])
+
+    useEffect(() => {
+        let active = true
+        setInstalledStoreUpdates([])
+        void fetchInstalledStoreAddonUpdates(addons)
+            .then(updates => {
+                if (active) setInstalledStoreUpdates(updates)
+            })
+            .catch(error => console.error('[ExtensionPage] failed to load channel updates', error))
+        return () => {
+            active = false
+        }
+    }, [addons])
 
     const refreshOwnPublications = useCallback(async () => {
         if (!user?.id || user.id === '-1') {
@@ -298,15 +380,17 @@ export default function ExtensionPage() {
     }, [])
 
     const loadAddons = useCallback(
-        async (force = false): Promise<Addon[]> => {
+        async (_force = false): Promise<Addon[]> => {
             try {
-                const result = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force })
+                const [result, snapshot] = await Promise.all([desktopApi.addons.list(), desktopApi.settings.getSnapshot()])
                 const fetchedAddons: Addon[] = Array.isArray(result) ? result : []
                 const filtered = fetchedAddons.filter(a => a.name !== 'Default')
                 setAddons(filtered)
-                const themeFromStore = safeStoreGet<string>('addons.theme', 'Default') || 'Default'
-                setCurrentTheme(themeFromStore)
-                setEnabledScripts(readEnabledScriptsState())
+                setCurrentTheme(String(snapshot.addons.theme || 'Default'))
+                setEnabledScripts(readEnabledScriptsState(snapshot.addons.scripts))
+                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization)
+                addonOrganizationRef.current = nextOrganization
+                setAddonOrganization(nextOrganization)
                 return filtered
             } catch (error) {
                 console.error(t('extensions.loadError'), error)
@@ -435,10 +519,16 @@ export default function ExtensionPage() {
             const previousScripts = [...enabledScripts]
             const previousEnabledKeys = buildEnabledAddonKeys(previousTheme, previousScripts)
 
-            const result = await window.desktopEvents?.invoke(MainEvents.SET_ADDON_ENABLED, {
+            const result = (await desktopApi.addons.setEnabled({
                 directoryName: addon.directoryName,
                 enabled: newChecked,
-            })
+            })) as {
+                addons?: Addon[]
+                reason?: string
+                scripts?: unknown[]
+                success?: boolean
+                theme?: string
+            }
             if (!result?.success) {
                 throw new Error(result?.reason || 'SET_ADDON_ENABLED_FAILED')
             }
@@ -448,10 +538,12 @@ export default function ExtensionPage() {
                 : await loadAddons(true)
             setAddons(refreshedAddons)
 
-            const nextTheme = String(result.theme || 'Default')
+            const enabledStateSnapshot =
+                typeof result.theme !== 'string' || !Array.isArray(result.scripts) ? await desktopApi.settings.getSnapshot() : null
+            const nextTheme = typeof result.theme === 'string' ? result.theme : String(enabledStateSnapshot?.addons.theme || 'Default')
             const nextEnabledScripts = Array.isArray(result.scripts)
-                ? result.scripts.map((script: unknown) => String(script || '').trim()).filter(Boolean)
-                : readEnabledScriptsState()
+                ? readEnabledScriptsState(result.scripts)
+                : readEnabledScriptsState(enabledStateSnapshot?.addons.scripts)
             setCurrentTheme(nextTheme)
             setEnabledScripts(nextEnabledScripts)
             const nextEnabledKeys = buildEnabledAddonKeys(nextTheme, nextEnabledScripts)
@@ -584,20 +676,6 @@ export default function ExtensionPage() {
         setSearchQuery(e.target.value)
     }, [])
 
-    const handleTypeChange = useCallback((newType: 'all' | 'theme' | 'script') => {
-        setType(newType)
-    }, [])
-
-    const toggleSet = useCallback((setVal: Set<string>, value: string, setter: React.Dispatch<React.SetStateAction<Set<string>>>) => {
-        const newSet = new Set(setVal)
-        if (newSet.has(value)) {
-            newSet.delete(value)
-        } else {
-            newSet.add(value)
-        }
-        setter(newSet)
-    }, [])
-
     const handleSortChange = useCallback(
         (option: SortKey) => {
             if (option === sort) {
@@ -667,22 +745,12 @@ export default function ExtensionPage() {
 
     const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
 
-    const toggleFilterPanel = useCallback(() => {
-        setShowFilters(prev => !prev)
-        setOptionMenu(false)
-    }, [])
-
-    const toggleOptionMenu = useCallback(() => {
-        setOptionMenu(prev => !prev)
-        setShowFilters(false)
-    }, [])
-
     const getImagePath = useCallback((addon: Addon) => buildAddonImagePath(addon, fallbackAddonImage), [fallbackAddonImage])
 
     const handleReloadAddons = useCallback(async () => {
         try {
             clearAddonFilesCache()
-            window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+            desktopApi.addons.refreshClients()
             await loadAddons(true)
             setSelectedAddonId(null)
             toast.custom('success', t('common.doneTitle'), t('extensions.reloadSuccess'))
@@ -693,13 +761,12 @@ export default function ExtensionPage() {
     }, [loadAddons, t])
 
     const handleOpenAddonsDirectory = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_PATH, {
-            action: 'addonsPath',
-        })
+        desktopApi.addons.openRootDirectory()
     }, [])
 
     const handleCreateNewAddon = useCallback(() => {
-        window.desktopEvents.invoke(MainEvents.CREATE_NEW_EXTENSION).then(async res => {
+        desktopApi.addons.createNew().then(async response => {
+            const res = response as { canceled?: boolean; error?: string; name?: string; success?: boolean }
             if (res?.success) {
                 toast.custom('success', t('extensions.addonCreatedTitle'), t('extensions.addonCreatedMessage', { name: res.name }))
                 return
@@ -711,23 +778,85 @@ export default function ExtensionPage() {
         })
     }, [t])
 
-    const enabledAddons = useMemo(
-        () =>
-            mergedAddons.filter(addon =>
-                addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName),
-            ),
-        [mergedAddons, currentTheme, enabledScripts],
+    const handleCreateCategory = useCallback(
+        (name: string) => {
+            const created = commitAddonOrganization(current => createAddonCategory(current, name))
+            if (!created) {
+                toast.custom('error', t('common.oopsTitle'), t('extensions.organization.categoryInvalid'))
+            }
+            return created
+        },
+        [commitAddonOrganization, t],
     )
 
-    const disabledAddons = useMemo(
-        () =>
-            mergedAddons.filter(
-                addon => !(addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)),
-            ),
-        [mergedAddons, currentTheme, enabledScripts],
+    const handleDeleteCategory = useCallback(
+        (categoryId: string, categoryName: string) => {
+            setModalState(Modals.BASIC_CONFIRMATION, {
+                title: t('extensions.organization.deleteCategoryTitle'),
+                description: t('extensions.organization.deleteCategoryConfirm', { name: categoryName }),
+                confirmLabel: t('modals.basicConfirmation.delete'),
+                confirmVariant: 'danger',
+                onConfirm: () => {
+                    commitAddonOrganization(current => deleteAddonCategory(current, categoryId))
+                },
+            })
+            openModal(Modals.BASIC_CONFIRMATION)
+        },
+        [Modals.BASIC_CONFIRMATION, commitAddonOrganization, openModal, setModalState, t],
+    )
+
+    const handleSetAddonFavorite = useCallback(
+        (addon: Addon, favorite: boolean) => {
+            commitAddonOrganization(current => setAddonFavorite(current, addon.id, favorite))
+        },
+        [commitAddonOrganization],
+    )
+
+    const handleAssignAddonCategory = useCallback(
+        (addon: Addon, categoryId: string | null) => {
+            commitAddonOrganization(current => assignAddonCategory(current, addon.id, categoryId))
+        },
+        [commitAddonOrganization],
+    )
+
+    const handleMoveAddon = useCallback(
+        (addon: Addon, categoryId: string | null, favorite: boolean) => {
+            commitAddonOrganization(current => assignAddonCategory(setAddonFavorite(current, addon.id, favorite), addon.id, categoryId))
+        },
+        [commitAddonOrganization],
     )
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
+    const selectedStoreAddonId = selectedAddon?.installSource === 'store' ? selectedAddon.storeAddonId?.trim() : undefined
+
+    useEffect(() => {
+        setStoreChannelReleases({})
+        if (!selectedStoreAddonId) {
+            setStoreChannelLoading(false)
+            return
+        }
+
+        let active = true
+        setStoreChannelLoading(true)
+        void Promise.all([fetchStoreAddonUpdates([selectedStoreAddonId], 'stable'), fetchStoreAddonUpdates([selectedStoreAddonId], 'dev')])
+            .then(([stableAddons, devAddons]) => {
+                if (!active) return
+                setStoreChannelReleases({
+                    stable: stableAddons.find(
+                        addon => addon.id === selectedStoreAddonId && addon.currentRelease?.releaseChannels?.includes('stable'),
+                    ),
+                    dev: devAddons.find(addon => addon.id === selectedStoreAddonId && addon.currentRelease?.releaseChannels?.includes('dev')),
+                })
+            })
+            .catch(error => console.error('[ExtensionPage] failed to load addon channels', error))
+            .finally(() => {
+                if (active) setStoreChannelLoading(false)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [selectedStoreAddonId])
 
     const selectedAddonMissingDependencies = useMemo(
         () => (selectedAddon && addonRelationsEnabled ? getMissingDependencyLabels(selectedAddon) : []),
@@ -756,6 +885,11 @@ export default function ExtensionPage() {
     }, [selectedAddon])
 
     const storePublishingEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStorePublishing, false)
+    const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
+    const legacyAddonRestrictionsExperiment = getExperiment(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions)
+    const selectedAddonIsRestrictedLegacy = isRestrictedLegacyAddon(selectedAddon, legacyAddonRestrictionsEnabled)
+    const selectedAddonIsAuthoredByUser = isAddonAuthor(selectedAddon, user)
+    const openLegacyAddonMigrationModal = useLegacyAddonMigrationModal()
 
     const canManagePublication = useMemo(() => {
         if (!storePublishingEnabled || !selectedAddon || !user) return false
@@ -774,44 +908,29 @@ export default function ExtensionPage() {
     }, [selectedAddon, selectedAddonAuthors, storePublishingEnabled, user])
 
     const selectedPublication = useMemo(() => {
-        if (!selectedAddon) return null
-
-        const addonName = selectedAddon.name.trim().toLowerCase()
-        const exactVersion = selectedAddon.version?.trim().toLowerCase()
-
-        const sameName = storePublications.filter(item => item.name.trim().toLowerCase() === addonName).map(withDisplayRelease)
-        if (!sameName.length) return null
-
-        return (
-            sameName.find(item => item.currentRelease?.version.trim().toLowerCase() === exactVersion) ||
-            sameName.sort((a, b) => getStoreAddonReleaseTimestamp(b.currentRelease) - getStoreAddonReleaseTimestamp(a.currentRelease))[0]
-        )
+        return findMatchingStoreAddon(selectedAddon, storePublications)
     }, [selectedAddon, storePublications])
+
+    const selectedCatalogPublication = useMemo(() => {
+        return findMatchingStoreAddon(selectedAddon, installedStoreUpdates) ?? findMatchingStoreAddon(selectedAddon, storeCatalog)
+    }, [selectedAddon, storeCatalog, installedStoreUpdates])
 
     const selectedStoreUpdate = useMemo(() => {
         if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
             return null
         }
 
-        const publishedAddon = storeCatalog.find(item => item.id === selectedAddon.storeAddonId)
+        const publishedAddon = installedStoreUpdates.find(item => item.id === selectedAddon.storeAddonId)
         if (!publishedAddon?.currentRelease) {
             return null
         }
 
         return compareVersions(publishedAddon.currentRelease.version, selectedAddon.version) > 0 ? publishedAddon : null
-    }, [selectedAddon, storeCatalog])
+    }, [selectedAddon, installedStoreUpdates])
 
     const selectedPublishedAddon = useMemo(() => {
-        if (!selectedAddon) {
-            return null
-        }
-
-        if (selectedAddon.installSource === 'store' && selectedAddon.storeAddonId) {
-            return storeCatalog.find(item => item.id === selectedAddon.storeAddonId) ?? null
-        }
-
-        return selectedPublication
-    }, [selectedAddon, selectedPublication, storeCatalog])
+        return selectedPublication ?? selectedCatalogPublication
+    }, [selectedCatalogPublication, selectedPublication])
 
     const visiblePublicationReleases = useMemo(() => {
         if (!selectedAddon || selectedAddon.installSource !== 'store' || !selectedAddon.storeAddonId) {
@@ -846,12 +965,12 @@ export default function ExtensionPage() {
     ])
 
     const publicationActionMode = useMemo<'publish' | 'update' | 'none'>(() => {
-        if (!selectedAddon) {
+        if (!selectedAddon || selectedAddonIsRestrictedLegacy) {
             return 'none'
         }
 
         if (!selectedPublication) {
-            return 'publish'
+            return selectedCatalogPublication ? 'none' : 'publish'
         }
 
         const localVersion = selectedAddon.version?.trim().toLowerCase()
@@ -871,12 +990,34 @@ export default function ExtensionPage() {
         }
 
         return 'none'
-    }, [selectedAddon, selectedPublication])
+    }, [selectedAddon, selectedAddonIsRestrictedLegacy, selectedCatalogPublication, selectedPublication])
 
     const handleSubmitAddon = useCallback(
-        async (mode: 'create' | 'update', changelogTextOverride?: string, githubUrlOverride?: string, usedAiDuringDevelopmentOverride?: boolean) => {
+        async (
+            mode: 'create' | 'update',
+            changelogTextOverride?: string,
+            githubUrlOverride?: string,
+            usedAiDuringDevelopmentOverride?: boolean,
+            previewPathOverride?: string,
+            visibility?: StoreAddonVisibility,
+            releaseChannel?: 'stable' | 'dev',
+        ) => {
             if (!selectedAddon || !storePublishingEnabled) return
             if (publicationSubmitBusyRef.current) return
+            if (selectedAddonIsRestrictedLegacy) {
+                if (selectedAddonIsAuthoredByUser) {
+                    openLegacyAddonMigrationModal()
+                } else {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.publicationBlocked'))
+                }
+                return
+            }
+
+            const addonVersion = selectedAddon.version?.trim() || ''
+            if (semver.valid(addonVersion) !== addonVersion.split('+', 1)[0]) {
+                toast.custom('error', t('common.errorTitle'), t('extensions.publication.errors.ADDON_VERSION_INVALID'))
+                return
+            }
 
             const changelog = normalizeChangelogInput(changelogTextOverride ?? publicationChangelogText)
             if (!changelog) {
@@ -902,12 +1043,15 @@ export default function ExtensionPage() {
             publicationSubmitBusyRef.current = true
             setPublicationBusy(true)
             try {
+                await persistAddonPreview(selectedAddon, previewPathOverride ?? selectedAddon.preview ?? '')
                 let linkedStoreAddonId = await submitAddonForStore(
                     selectedAddon,
                     changelog,
                     effectiveGithubUrl,
                     usedAiDuringDevelopment,
                     mode === 'update' ? selectedPublication?.id : undefined,
+                    visibility ?? selectedPublication?.currentRelease?.visibility ?? 'public',
+                    releaseChannel ?? 'stable',
                 )
                 const ownAddons = await fetchOwnStoreAddons()
                 setStorePublications(ownAddons)
@@ -961,9 +1105,12 @@ export default function ExtensionPage() {
         [
             i18n.language,
             loadAddons,
+            openLegacyAddonMigrationModal,
             publicationChangelogText,
             publicationGithubUrlText,
             selectedAddon,
+            selectedAddonIsAuthoredByUser,
+            selectedAddonIsRestrictedLegacy,
             selectedPublication?.id,
             selectedPublication?.currentRelease?.githubUrl,
             selectedPublication?.currentRelease?.usedAiDuringDevelopment,
@@ -972,11 +1119,36 @@ export default function ExtensionPage() {
         ],
     )
 
+    const handlePromoteRelease = useCallback(async () => {
+        const release = selectedPublication?.currentRelease
+        if (!selectedPublication || !release || publicationSubmitBusyRef.current) return
+        publicationSubmitBusyRef.current = true
+        setPublicationBusy(true)
+        try {
+            await promoteAddonRelease(selectedPublication.id, release.id)
+            await refreshOwnPublications()
+            toast.custom('success', t('common.doneTitle'), t('extensions.publication.promoted'))
+        } catch (error) {
+            console.error('[ExtensionPage] failed to promote release', error)
+            toast.custom('error', t('common.errorTitle'), t('extensions.publication.promoteFailed'))
+        } finally {
+            publicationSubmitBusyRef.current = false
+            setPublicationBusy(false)
+        }
+    }, [selectedPublication, refreshOwnPublications, t])
+
     const handlePublishAddon = useMemo(
         () =>
             publicationActionMode === 'publish'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
-                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment)
+                ? (
+                      changelogText: string,
+                      githubUrl: string,
+                      usedAiDuringDevelopment: boolean,
+                      previewPath: string,
+                      visibility?: StoreAddonVisibility,
+                      releaseChannel?: 'stable' | 'dev',
+                  ) => {
+                      void handleSubmitAddon('create', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -985,8 +1157,15 @@ export default function ExtensionPage() {
     const handleUpdateAddon = useMemo(
         () =>
             publicationActionMode === 'update'
-                ? (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => {
-                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment)
+                ? (
+                      changelogText: string,
+                      githubUrl: string,
+                      usedAiDuringDevelopment: boolean,
+                      previewPath: string,
+                      visibility?: StoreAddonVisibility,
+                      releaseChannel?: 'stable' | 'dev',
+                  ) => {
+                      void handleSubmitAddon('update', changelogText, githubUrl, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                   }
                 : undefined,
         [handleSubmitAddon, publicationActionMode],
@@ -998,52 +1177,90 @@ export default function ExtensionPage() {
         }
 
         setModalState(Modals.EXTENSION_PUBLICATION_MODAL, {
-            publication: selectedPublication ?? null,
+            publication: selectedPublishedAddon ?? null,
             publicationBusy,
             githubUrlText: publicationGithubUrlText,
+            onPromote: selectedPublication?.submittedById === user.id ? handlePromoteRelease : null,
             onPublish: handlePublishAddon ?? null,
             onUpdate: handleUpdateAddon ?? null,
         })
     }, [
         Modals.EXTENSION_PUBLICATION_MODAL,
         handlePublishAddon,
+        handlePromoteRelease,
+        selectedPublication?.submittedById,
+        user.id,
         handleUpdateAddon,
         isPublicationModalOpen,
         publicationBusy,
         publicationGithubUrlText,
-        selectedPublication,
+        selectedPublishedAddon,
         setModalState,
     ])
 
-    const handleStoreAddonUpdate = useCallback(async () => {
-        if (!selectedAddon || !selectedStoreUpdate || !window.desktopEvents) {
-            return
-        }
-
-        setStoreUpdateBusy(true)
-        const toastId = toast.custom('loading', t('layout.updateAction'), t('common.pleaseWait'))
-
-        try {
-            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
-                id: selectedStoreUpdate.id,
-                downloadUrl: selectedStoreUpdate.currentRelease?.downloadUrl,
-                title: selectedStoreUpdate.name,
-            })
-
-            if (!result?.success) {
-                throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
+    const handleStoreAddonUpdate = useCallback(
+        async (channel?: 'stable' | 'dev') => {
+            if (!selectedAddon || storeUpdateBusy || (channel && channel === (selectedAddon.storeReleaseChannel ?? 'stable'))) return
+            const targetAddon = channel ? storeChannelReleases[channel] : selectedStoreUpdate
+            if (!targetAddon?.currentRelease) {
+                if (channel) toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
+                return
             }
 
-            const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
-            setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-            toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: selectedStoreUpdate.name }), { id: toastId })
-        } catch (error) {
-            console.error('[ExtensionPage] failed to update store addon', error)
-            toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateFailed', { name: selectedAddon.name }), { id: toastId })
-        } finally {
-            setStoreUpdateBusy(false)
-        }
-    }, [selectedAddon, selectedStoreUpdate, setAddons, t])
+            if (selectedAddonIsRestrictedLegacy && targetAddon.type === 'script') {
+                if (selectedAddonIsAuthoredByUser) {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
+                    void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
+                } else {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'))
+                }
+                return
+            }
+
+            setStoreUpdateBusy(true)
+            const toastId = toast.custom(
+                'loading',
+                t(channel ? 'extensions.publication.switchChannel' : 'layout.updateAction'),
+                t('common.pleaseWait'),
+            )
+
+            try {
+                const result = (await desktopApi.addons.installStore({
+                    id: targetAddon.id,
+                    downloadUrl: targetAddon.currentRelease.downloadUrl || undefined,
+                    title: targetAddon.name,
+                    releaseChannel: channel ?? selectedAddon.storeReleaseChannel ?? 'stable',
+                })) as {
+                    reason?: string
+                    success?: boolean
+                }
+
+                if (!result?.success) {
+                    throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
+                }
+
+                const nextInstalledAddons = await desktopApi.addons.list()
+                setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
+                toast.custom('success', t('common.doneTitle'), t('extensions.storeUpdateComplete', { name: targetAddon.name }), { id: toastId })
+            } catch (error) {
+                console.error('[ExtensionPage] failed to update store addon', error)
+                toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateFailed', { name: selectedAddon.name }), { id: toastId })
+            } finally {
+                setStoreUpdateBusy(false)
+            }
+        },
+        [
+            legacyAddonRestrictionsExperiment?.meta,
+            selectedAddon,
+            selectedAddonIsAuthoredByUser,
+            selectedAddonIsRestrictedLegacy,
+            selectedStoreUpdate,
+            setAddons,
+            storeChannelReleases,
+            storeUpdateBusy,
+            t,
+        ],
+    )
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
 
@@ -1175,7 +1392,10 @@ export default function ExtensionPage() {
     )
 
     return (
-        <PageLayout title={t('extensions.pageTitle')}>
+        <PageLayout
+            title={t('extensions.pageTitle')}
+            titleDetail={selectedAddon ? { label: selectedAddon.name, icon: getImagePath(selectedAddon) } : undefined}
+        >
             <EnableAddonModal
                 addon={modalAddon}
                 isOpen={modalOpen}
@@ -1195,26 +1415,30 @@ export default function ExtensionPage() {
             />
             <div className={extensionStylesV2.container}>
                 <ExtensionSidebar
+                    addons={mergedAddons}
+                    addonOrganization={addonOrganization}
+                    addonImagesReady={isLoaded}
                     containerRef={containerRef}
                     currentTheme={currentTheme}
-                    disabledAddons={disabledAddons}
-                    enabledAddons={enabledAddons}
                     enabledScripts={enabledScripts}
                     fallbackAddonImage={fallbackAddonImage}
                     filterButtonRef={filterButtonRef}
                     getImagePath={getImagePath}
                     onAddonClick={handleAddonClick}
                     onCreateNewAddon={handleCreateNewAddon}
+                    onCreateCategory={handleCreateCategory}
+                    onDeleteCategory={handleDeleteCategory}
                     onDisableAddon={addon => handleCheckboxChange(addon, false, true)}
                     onEnableAddon={handleEnableAddon}
+                    onAssignAddonCategory={handleAssignAddonCategory}
+                    onSetAddonFavorite={handleSetAddonFavorite}
                     onOpenAddonsDirectory={handleOpenAddonsDirectory}
                     onReloadAddons={handleReloadAddons}
                     onSearchChange={handleSearchChange}
+                    onMoveAddon={handleMoveAddon}
                     onSortChange={handleSortChange}
-                    onToggleCreator={creator => toggleSet(selectedCreators, creator, setSelectedCreators)}
-                    onToggleFilters={toggleFilterPanel}
-                    onToggleOptionMenu={toggleOptionMenu}
-                    onToggleTag={tag => toggleSet(selectedTags, tag, setSelectedTags)}
+                    onFiltersOpenChange={setShowFilters}
+                    onOptionMenuOpenChange={setOptionMenu}
                     optionButtonRef={optionButtonRef}
                     optionMenu={optionMenu}
                     searchQuery={searchQuery}
@@ -1252,10 +1476,13 @@ export default function ExtensionPage() {
                                     relationLabels={relationLabels}
                                     hasStoreUpdate={!!selectedStoreUpdate}
                                     storeUpdateBusy={storeUpdateBusy}
+                                    storeChannelLoading={storeChannelLoading}
+                                    availableStoreChannels={(['stable', 'dev'] as const).filter(channel => Boolean(storeChannelReleases[channel]))}
+                                    onStoreChannelChange={channel => void handleStoreAddonUpdate(channel)}
                                     onStoreUpdate={() => {
                                         void handleStoreAddonUpdate()
                                     }}
-                                    publication={selectedPublication}
+                                    publication={selectedPublishedAddon}
                                     publicationReleases={visiblePublicationReleases}
                                     publicationChangelogText={publicationChangelogText}
                                     publicationGithubUrlText={publicationGithubUrlText}

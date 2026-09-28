@@ -1,58 +1,49 @@
 import React, { useCallback, useContext } from 'react'
+
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
-import MainEvents from '@common/types/mainEvents'
-import { MdDownload, MdHandyman, MdHome, MdPeople, MdPower, MdStoreMallDirectory } from 'react-icons/md'
-import Header from '@widgets/layout/header'
-import NavButtonPulse from '@shared/ui/PSUI/NavButton'
-import Preloader from '@widgets/preloader'
-import userContext from '@entities/user/model/context'
-import toast from '@shared/ui/toast'
-import * as pageStyles from '@widgets/layout/layout.module.scss'
-import { isDevmark } from '@common/appConfig'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { useModalContext } from '@app/providers/modal'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { useNavigate } from 'react-router'
+
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
+import Header from '@widgets/layout/header'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
 import ModUpdateBanner from '@widgets/layout/ui/ModUpdateBanner'
-import { useNavigate } from 'react-router-dom'
+import Preloader from '@widgets/preloader'
+import userContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import NavButtonPulse from '@shared/ui/PSUI/NavButton'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as pageStyles from '@widgets/layout/layout.module.scss'
 
 interface LayoutProps {
     title: string
+    titleDetail?: {
+        label: string
+        icon?: string
+    }
     children: React.ReactNode
     goBack?: boolean
 }
 
-const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
-    const {
-        user,
-        app,
-        setApp,
-        updateAvailable,
-        setUpdate,
-        modInfo,
-        modInfoFetched,
-        musicInstalled,
-        setMusicInstalled,
-        setMusicVersion,
-        isAutonomousMode,
-    } = useContext(userContext)
+const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack }) => {
+    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
+        useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
     const navigate = useNavigate()
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
-    const { isModUpdateAvailable, modInstallError, startUpdate, isUserDeveloper } = useLayoutInstallers({
+    const { isModUpdateAvailable, modInstallError, startUpdate } = useLayoutInstallers({
         app,
         modInfo,
-        modInfoFetched,
         musicInstalled,
         openModal,
         setApp,
         setMusicInstalled,
         setMusicVersion,
-        setUpdate,
         t,
         modals: {
             LINUX_ASAR_PATH: Modals.LINUX_ASAR_PATH,
@@ -74,23 +65,32 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
         },
         [Modals.BASIC_CONFIRMATION, navigate, openModal, t],
     )
+    const openSettings = useCallback(
+        (event: React.MouseEvent<HTMLAnchorElement>) => {
+            event.preventDefault()
+            openModal(Modals.SETTINGS)
+        },
+        [Modals.SETTINGS, openModal],
+    )
 
     if (!modInfoFetched) {
         return <Preloader />
     }
 
+    const showDevFrame = app.info.devmark && app.settings.showDevFrame
+
     return (
         <HelmetProvider>
             <Helmet>
-                <title>{title + ' - PulseSync'}</title>
+                <title>{`${title}${titleDetail ? ` / ${titleDetail.label}` : ''} - PulseSync`}</title>
             </Helmet>
             <div className={pageStyles.children}>
-                <Header goBack={goBack} />
-                <div className={pageStyles.main_window} style={isDevmark ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
+                <Header goBack={goBack} title={title} titleDetail={titleDetail} />
+                <div className={pageStyles.main_window} style={showDevFrame ? { bottom: '20px', borderRadius: '0 0 7px 7px' } : {}}>
                     <div className={pageStyles.navigation_bar}>
                         <div className={pageStyles.navigation_buttons}>
                             <NavButtonPulse to="/home" text={t('layout.nav.home')}>
-                                <MdHome size={24} />
+                                <img src={staticAsset('assets/icons/ui/home.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/extensions"
@@ -98,15 +98,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <MdPower size={24} />
-                            </NavButtonPulse>
-                            <NavButtonPulse
-                                to="/store"
-                                text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
-                                disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
-                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
-                            >
-                                <MdStoreMallDirectory size={24} />
+                                <img src={staticAsset('assets/icons/ui/extensions.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                             <NavButtonPulse
                                 to="/users"
@@ -114,25 +106,31 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                                 disabled={!musicInstalled || (!isAutonomousMode && !usersPageEnabled)}
                                 onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
                             >
-                                <MdPeople size={24} />
+                                <img src={staticAsset('assets/icons/ui/users.svg')} alt="" aria-hidden="true" />
+                            </NavButtonPulse>
+                            <NavButtonPulse
+                                to="/store"
+                                text={t('layout.nav.extensionsStore').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}
+                                disabled={!musicInstalled || (!isAutonomousMode && !storePageEnabled)}
+                                onClick={isAutonomousMode ? openAuthRequiredModal : undefined}
+                            >
+                                <img src={staticAsset('assets/icons/ui/store.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
                         </div>
                         <div className={clsx(pageStyles.navigation_buttons, pageStyles.alert_fix)}>
-                            {isUserDeveloper(user?.perms) && (
-                                <NavButtonPulse to="/dev" text={t('layout.nav.development')}>
-                                    <MdHandyman size={24} />
-                                </NavButtonPulse>
-                            )}
+                            <NavButtonPulse text={t('settingsModal.title')} onClick={openSettings}>
+                                <img src={staticAsset('assets/icons/ui/settings.svg')} alt="" aria-hidden="true" />
+                            </NavButtonPulse>
                             {updateAvailable && (
                                 <TooltipButton tooltipText={t('layout.installUpdateTooltip')} as={'div'}>
                                     <button
                                         onClick={() => {
                                             setUpdate(false)
-                                            window.desktopEvents?.send(MainEvents.UPDATE_INSTALL)
+                                            desktopApi.updates.install()
                                         }}
                                         className={pageStyles.update_download}
                                     >
-                                        <MdDownload size={24} />
+                                        <img src={staticAsset('assets/icons/ui/download.svg')} alt="" aria-hidden="true" />
                                     </button>
                                 </TooltipButton>
                             )}
@@ -140,7 +138,7 @@ const Layout: React.FC<LayoutProps> = ({ title, children, goBack }) => {
                     </div>
                     <ModUpdateBanner
                         app={app}
-                        isModUpdateAvailable={isModUpdateAvailable}
+                        isModUpdateAvailable={isModUpdateAvailable && !(app.mod.installed && app.mod.version)}
                         modInstallError={modInstallError}
                         modInfo={modInfo}
                         onStartUpdate={startUpdate}

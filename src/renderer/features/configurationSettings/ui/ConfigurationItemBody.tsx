@@ -1,18 +1,18 @@
 import React from 'react'
-import clsx from 'clsx'
-
-import { Item, ButtonItem, SliderItem, ColorItem, FileItem, SelectorItem, TextItem, AddonConfig } from '@features/configurationSettings/types'
-import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
-
-import ButtonInput from '@shared/ui/PSUI/ButtonInput'
-import TextInput from '@shared/ui/PSUI/TextInput'
-import ColorInput from '@shared/ui/PSUI/ColorInput'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
-import SliderInput from '@shared/ui/PSUI/SliderInput'
-import FileInput from '@shared/ui/PSUI/FileInput'
 
 import { MdAdd, MdDelete } from 'react-icons/md'
+
+import { produce } from '@features/configurationSettings/model/useConfigurationEditor'
+import ButtonInput from '@shared/ui/PSUI/ButtonInput'
+import ColorInput from '@shared/ui/PSUI/ColorInput'
+import FileInput from '@shared/ui/PSUI/FileInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
+import SliderInput from '@shared/ui/PSUI/SliderInput'
+import TextInput from '@shared/ui/PSUI/TextInput'
+
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
+
+import type { AddonConfig, ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
 
 type Props = {
     cfg: AddonConfig
@@ -32,18 +32,15 @@ type Props = {
 
 export default function ConfigurationItemBody({
     addSelectorOption,
-    addTextButton,
     cfg,
     filePreviewSrc,
     ii,
     item,
     removeSelectorOption,
-    removeTextButton,
     setConfig,
     si,
     t,
     updateItem,
-    updateTextButton,
 }: Props) {
     switch (item.type) {
         case 'button': {

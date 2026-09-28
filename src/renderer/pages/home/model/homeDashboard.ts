@@ -27,12 +27,12 @@ export const primaryComponents: HomePrimaryComponent[] = [
     {
         id: 'client',
         titleKey: 'pages.home.clientName',
-        iconAsset: 'icons/homeClient.svg',
+        iconAsset: 'icons/homePulseSync.svg',
     },
 ]
 
 export const secondaryComponents: HomeSecondaryComponent[] = [
     { id: 'ffmpeg', title: 'FFmpeg', iconAsset: 'icons/homeFfmpeg.svg' },
-    { id: 'ytdlp', title: 'YT Dlp', iconAsset: 'icons/homeYtdlp.svg' },
+    { id: 'ytdlp', title: 'Yt Dlp', iconAsset: 'icons/homeYtdlp.svg' },
     { id: 'obs-widget', title: 'OBS Widget', iconAsset: 'icons/homeObs.svg' },
 ]

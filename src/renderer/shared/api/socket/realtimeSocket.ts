@@ -1,7 +1,10 @@
-import { io, Socket } from 'socket.io-client'
-import config from '@common/appConfig'
+import { io } from 'socket.io-client'
+
+import config, { branch } from '@common/appConfig'
+
 import type { ClientBuildIdentity } from '@common/types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '@common/types/clientHardwareIdentity'
+import type { Socket } from 'socket.io-client'
 
 export type GatewayFrame<T = any> = {
     e?: string
@@ -26,13 +29,13 @@ export function createRealtimeSocket(auth: RealtimeSocketAuth): Socket {
         reconnectionAttempts: Infinity,
         reconnectionDelay: 1000,
         reconnectionDelayMax: 10000,
-        auth,
+        auth: { ...auth, addonReleaseChannels: true, clientChannel: branch === 'dev' ? 'dev' : 'beta' },
         transports: ['websocket'],
     })
 }
 
 export function updateRealtimeSocketAuth(socket: Socket, auth: RealtimeSocketAuth) {
-    socket.auth = auth
+    socket.auth = { ...auth, addonReleaseChannels: true, clientChannel: branch === 'dev' ? 'dev' : 'beta' }
 }
 
 export function parseGatewayFrame(buf: ArrayBuffer | Uint8Array, zstd: any): GatewayFrame | null {

@@ -14,7 +14,7 @@ on:
         options:
           - all
           - ubuntu-latest
-          - windows-latest
+          - windows-2025
           - macos-26
           - windows+macos
         default: all
@@ -23,14 +23,28 @@ on:
         required: true
         type: boolean
         default: true
-      s3_prefix:
-        description: "S3 prefix inside the bucket (e.g. 'builds' or 'builds/tests')"
+      upload_to_glitchtip:
+        description: "Upload source maps to GlitchTip"
         required: true
-        default: "builds"
+        type: boolean
+        default: false
       s3_branch:
-        description: "Subpath under prefix (e.g. 'tests', 'beta', 'alpha', 'dev')"
+        description: "Subpath under prefix (e.g. 'tests', 'beta', 'dev')"
         required: true
         default: "tests"
+      publish_renderer:
+        description: "Publish the remote renderer"
+        required: true
+        type: boolean
+        default: false
+      renderer_channel:
+        description: "Renderer channel to publish"
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+        default: dev
       publish_changelog:
         description: "Publish changelog (API/Discord)"
         required: true
@@ -54,13 +68,25 @@ concurrency:
   group: build-manual-${{ github.workflow }}-${{ inputs.target }}-${{ inputs.build_os }}
   cancel-in-progress: true
 
+permissions:
+  actions: read
+  contents: read
+
 jobs:
+  tests:
+    name: Test Desktop
+    uses: ./.github/workflows/desktop-tests.yml
+    with:
+      checkout_ref: ${{ inputs.target }}
+      build_os: ${{ inputs.build_os }}
+
   build:
+    needs: tests
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-latest","macos-26","macos-26-intel"]' || (inputs.build_os == 'macos-26' && '["macos-26","macos-26-intel"]' || (inputs.build_os == 'windows+macos' && '["windows-latest","macos-26","macos-26-intel"]' || format('["{0}"]', inputs.build_os)))) }}
+        os: ${{ fromJson(inputs.build_os == 'all' && '["ubuntu-latest","windows-2025","macos-26"]' || (inputs.build_os == 'windows+macos' && '["windows-2025","macos-26"]' || format('["{0}"]', inputs.build_os))) }}
 
     steps:
       - uses: actions/checkout@v6
@@ -70,6 +96,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -78,16 +105,9 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            nativeModules/**/node_modules
-            nativeModules/**/build
-            nativeModules/**/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+      - uses: ./.github/actions/cache-build-deps
 
       - name: Create .env
         shell: bash
@@ -101,8 +121,25 @@ jobs:
       - name: Install deps
         run: yarn install --frozen-lockfile
 
+      - name: Check Sentry CLI
+        if: ${{ inputs.upload_to_glitchtip == true }}
+        run: yarn -s sentry-cli --version
+
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }} ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
+        run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
+        env:
+          DESKTOP_METADATA_VERSION: ${{ github.run_id }}
+          PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
+          GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
+          GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout
 
       - name: Show release contents (debug)
         shell: bash
@@ -113,6 +150,14 @@ jobs:
           else
             echo "release/ not found"; exit 1
           fi
+
+      - name: Stage release output
+        if: ${{ inputs.upload_to_s3 == true }}
+        uses: actions/upload-artifact@v7
+        with:
+          name: s3-release-${{ matrix.os }}
+          path: release/**/*
+          if-no-files-found: error
 
       - name: Publish changelog (optional, single-run on ubuntu)
         if: ${{ inputs.publish_changelog == true && matrix.os == 'ubuntu-latest' }}
@@ -138,3 +183,188 @@ jobs:
               echo "Unknown changelog_target"; exit 1
               ;;
           esac
+
+  publish_desktop_s3:
+    name: Publish Desktop S3 Release
+    needs: build
+    if: ${{ inputs.upload_to_s3 == true }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Download staged release
+        uses: actions/download-artifact@v8
+        with:
+          pattern: s3-release-*
+          path: staged-release
+          merge-multiple: true
+
+      - id: release
+        name: Validate staged release
+        shell: bash
+        env:
+          BUILD_OS: ${{ inputs.build_os }}
+          EXPECTED_METADATA_VERSION: ${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+
+          const manifestsByOs = {
+              'windows-2025': 'desktop-update-win32-x64.json',
+              'ubuntu-latest': 'desktop-update-linux-x64.json',
+              'macos-26': 'desktop-update-hybrid-darwin-universal.json',
+          }
+          const expected = process.env.BUILD_OS === 'all'
+              ? Object.values(manifestsByOs)
+              : process.env.BUILD_OS === 'windows+macos'
+                ? [manifestsByOs['windows-2025'], manifestsByOs['macos-26']]
+                : [manifestsByOs[process.env.BUILD_OS]]
+          const versions = new Set()
+
+          for (const name of expected) {
+              if (!name) throw new Error(`Unsupported build_os: ${process.env.BUILD_OS}`)
+              const file = path.join('staged-release', name)
+              if (!fs.existsSync(file)) throw new Error(`Missing staged manifest: ${name}`)
+              const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+              if (String(manifest.metadataVersion) !== process.env.EXPECTED_METADATA_VERSION) {
+                  throw new Error(`${name} metadataVersion mismatch: ${manifest.metadataVersion}`)
+              }
+              if (typeof manifest.desktopVersion !== 'string' || !manifest.desktopVersion) {
+                  throw new Error(`${name} has no desktopVersion`)
+              }
+              versions.add(manifest.desktopVersion)
+          }
+
+          if (versions.size !== 1) throw new Error(`Desktop versions differ: ${[...versions].join(', ')}`)
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${[...versions][0]}\n`)
+          NODE
+
+      - name: Publish complete S3 release
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch ${{ inputs.s3_branch }}
+          --dir staged-release
+          --version ${{ steps.release.outputs.version }}
+          ${{ (inputs.s3_branch == 'dev' || inputs.s3_branch == 'beta') && '--legacy-update-bridge' || '' }}
+
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [publish_desktop_s3, publish_renderer]
+    if: >-
+      ${{
+        always() &&
+        inputs.upload_to_s3 == true &&
+        needs.publish_desktop_s3.result == 'success' &&
+        (inputs.s3_branch == 'dev' || inputs.s3_branch == 'beta')
+      }}
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ inputs.target }}
+    secrets: inherit
+
+  publish_renderer:
+    name: Publish Remote Renderer
+    needs: [build, publish_desktop_s3]
+    if: >-
+      ${{
+        always() &&
+        inputs.publish_renderer == true &&
+        needs.build.result == 'success' &&
+        (inputs.upload_to_s3 != true || needs.publish_desktop_s3.result == 'success')
+      }}
+    runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
+    concurrency:
+      group: remote-renderer-publish
+      cancel-in-progress: false
+
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.target }}
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Check Sentry CLI
+        if: ${{ inputs.upload_to_glitchtip == true }}
+        run: yarn -s sentry-cli --version
+
+      - name: Publish remote renderer
+        run: yarn renderer:publish --channel ${{ inputs.renderer_channel }}
+        env:
+          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
+          GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
+          GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
+          SENTRY_URL: https://issues.pulsesync.dev
+          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
+          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
+          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
+
+      - name: Checkout renderer Pages repository
+        uses: actions/checkout@v6
+        with:
+          repository: PulseSync-LLC/PulseSync-renderer
+          token: ${{ secrets.RENDERER_REPO_TOKEN }}
+          ref: gh-pages
+          path: out/github-pages-repository
+
+      - name: Stage GitHub Pages renderer
+        run: yarn renderer:stage-pages --channel ${{ inputs.renderer_channel }} --source out/remote-renderer --target out/github-pages-repository
+
+      - name: Publish GitHub Pages renderer
+        shell: bash
+        working-directory: out/github-pages-repository
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          if git diff --cached --quiet; then
+            echo "GitHub Pages renderer is already current."
+            exit 0
+          fi
+          expected_head="$(git rev-parse HEAD)"
+          git checkout --orphan pages-publish
+          git add --all
+          git commit -m "chore: publish renderer $GITHUB_RUN_ID"
+          git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages

@@ -1,8 +1,10 @@
-import type Addon from '@entities/addon/model/addon.interface'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import path from 'path'
+
 import rendererHttpClient from '@shared/api/http/client'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 type OwnAddonsResponse = {
     addons?: StoreAddon[]
@@ -124,10 +126,10 @@ function base64ToBlob(base64: string, mimeType: string): Blob {
 }
 
 async function packageAddon(addon: Addon): Promise<{ blob: Blob; fileName: string }> {
-    const packaged = (await window.desktopEvents?.invoke(MainEvents.PACKAGE_ADDON_ARCHIVE, {
+    const packaged = (await desktopApi.addons.packageArchive({
         name: addon.directoryName || addon.name,
         path: addon.path,
-    })) as PackageArchiveResponse | undefined
+    })) as PackageArchiveResponse
 
     if (!packaged?.success || !packaged.base64 || !packaged.fileName) {
         throw new AddonStoreSubmitError(packaged?.reason || 'PACKAGE_FAILED')
@@ -155,7 +157,11 @@ export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
-export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[]> {
+export async function fetchStoreAddonUpdates(
+    ids: string[],
+    releaseChannel: 'stable' | 'dev' = 'stable',
+    includeRatings = false,
+): Promise<StoreAddon[]> {
     const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean)))
 
     if (!normalizedIds.length) {
@@ -167,7 +173,7 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
         headers: {
             Accept: 'application/json',
         },
-        body: { ids: normalizedIds },
+        body: { ids: normalizedIds, releaseChannel, ...(includeRatings ? { includeRatings: true } : {}) },
     })
 
     const payload = response.data ?? null
@@ -178,6 +184,29 @@ export async function fetchStoreAddonUpdates(ids: string[]): Promise<StoreAddon[
     return Array.isArray(payload?.addons) ? payload.addons : []
 }
 
+export async function fetchInstalledStoreAddonUpdates(addons: Addon[]): Promise<StoreAddon[]> {
+    return (
+        await Promise.all(
+            (['stable', 'dev'] as const).map(channel =>
+                fetchStoreAddonUpdates(
+                    addons
+                        .filter(addon => addon.installSource === 'store' && (addon.storeReleaseChannel === 'dev' ? 'dev' : 'stable') === channel)
+                        .map(addon => addon.storeAddonId || ''),
+                    channel,
+                ),
+            ),
+        )
+    ).flat()
+}
+
+export async function promoteAddonRelease(addonId: string, releaseId: string): Promise<void> {
+    const response = await rendererHttpClient.post(
+        '/extensions/' + encodeURIComponent(addonId) + '/releases/' + encodeURIComponent(releaseId) + '/promote',
+        { auth: true },
+    )
+    if (!response.ok) throw new Error('ADDON_PROMOTION_FAILED')
+}
+
 export async function persistAddonStoreLink(addon: Addon, storeAddonId: string): Promise<void> {
     if (!addon?.path || !storeAddonId.trim()) {
         return
@@ -185,9 +214,7 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
 
     try {
         const metadataPath = `${addon.path}/metadata.json`
-        const rawMetadata = (await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, metadataPath, {
-            encoding: 'utf8',
-        })) as string | null
+        const rawMetadata = await desktopApi.addons.files.readText(metadataPath, 'utf8')
 
         if (!rawMetadata) {
             return
@@ -197,10 +224,46 @@ export async function persistAddonStoreLink(addon: Addon, storeAddonId: string):
         parsedMetadata.storeAddonId = storeAddonId.trim()
         parsedMetadata.installSource = parsedMetadata.installSource === 'store' ? 'store' : 'local'
 
-        await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, metadataPath, JSON.stringify(parsedMetadata, null, 4))
+        await desktopApi.addons.files.writeText(metadataPath, JSON.stringify(parsedMetadata, null, 4))
     } catch (error) {
         console.error('[AddonStore] failed to persist store addon link', error)
     }
+}
+
+export async function persistAddonPreview(addon: Addon, previewPath: string): Promise<void> {
+    if (!addon?.path) {
+        throw new Error('ADDON_PATH_MISSING')
+    }
+
+    const metadataPath = `${addon.path}/metadata.json`
+    const rawMetadata = await desktopApi.addons.files.readText(metadataPath, 'utf8')
+    if (!rawMetadata) {
+        throw new Error('ADDON_METADATA_MISSING')
+    }
+
+    const parsedMetadata = JSON.parse(rawMetadata) as Partial<Addon>
+    let normalizedPreviewPath = previewPath.trim()
+
+    if (normalizedPreviewPath && path.isAbsolute(normalizedPreviewPath)) {
+        const extension = path.extname(normalizedPreviewPath)
+        const copyResult = await desktopApi.addons.files.copyInto({
+            addonPath: addon.path,
+            preferredName: `preview${extension}`,
+            sourcePath: normalizedPreviewPath,
+        })
+        if (!copyResult.success || !copyResult.relativePath) {
+            throw new Error(copyResult.error || 'ADDON_PREVIEW_COPY_FAILED')
+        }
+        normalizedPreviewPath = copyResult.relativePath
+    }
+
+    if (normalizedPreviewPath) {
+        parsedMetadata.preview = normalizedPreviewPath
+    } else {
+        delete parsedMetadata.preview
+    }
+
+    await desktopApi.addons.files.writeText(metadataPath, JSON.stringify(parsedMetadata, null, 4))
 }
 
 export async function submitAddonForStore(
@@ -209,9 +272,21 @@ export async function submitAddonForStore(
     githubUrl: string,
     usedAiDuringDevelopment: boolean,
     existingAddonId?: string,
+    visibility: StoreAddonVisibility = 'public',
+    releaseChannel: 'stable' | 'dev' = 'stable',
 ): Promise<string | null> {
     const { blob, fileName } = await packageAddon(addon)
-    return submitAddonArchiveForStore({ addon, blob, changelog, existingAddonId, fileName, githubUrl, usedAiDuringDevelopment })
+    return submitAddonArchiveForStore({
+        addon,
+        blob,
+        changelog,
+        existingAddonId,
+        fileName,
+        githubUrl,
+        usedAiDuringDevelopment,
+        visibility,
+        releaseChannel,
+    })
 }
 
 export async function submitAddonArchiveForStore(options: {
@@ -220,6 +295,8 @@ export async function submitAddonArchiveForStore(options: {
     githubUrl: string
     usedAiDuringDevelopment: boolean
     existingAddonId?: string
+    visibility?: StoreAddonVisibility
+    releaseChannel?: 'stable' | 'dev'
     blob: Blob
     fileName: string
 }): Promise<string | null> {
@@ -229,6 +306,8 @@ export async function submitAddonArchiveForStore(options: {
     formData.append('githubUrl', options.githubUrl.trim())
     formData.append('changelog', options.changelog)
     formData.append('usedAiDuringDevelopment', String(options.usedAiDuringDevelopment))
+    formData.append('releaseChannel', options.releaseChannel ?? 'stable')
+    formData.append('visibility', options.visibility ?? 'public')
     formData.append('zipFile', options.blob, options.fileName)
 
     const targetUrl = options.existingAddonId ? `/extensions/${encodeURIComponent(options.existingAddonId)}/update` : '/extensions/create'

@@ -1,11 +1,12 @@
-import * as http from 'http'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { parse } from 'url'
-import type { Track } from '@entities/track/model/track.interface'
+
+import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../../utils/addonPaths'
 import { resolveAddonDirectory } from '../../utils/addonRegistry'
 import { buildCorsHeaders } from './cors'
-import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../../utils/addonPaths'
+
+import type { Track } from '@entities/track/model/track.interface'
+import type * as http from 'http'
 
 interface LoggerLike {
     http: {
@@ -21,9 +22,25 @@ interface CreateHttpRequestHandlerOptions {
     logger: LoggerLike
     allowedOrigins: string[]
     getTrackData: () => Track
+    reloadDevelopmentAddon: (directoryName: string) => Promise<{ enabled: true; recipients: number }>
 }
 
 const ASSET_PREFIX = '/assets/'
+const REQUEST_URL_BASE = 'http://127.0.0.1'
+const DEVELOPMENT_RELOAD_HEADER = 'x-pulsesync-addon-dev'
+
+const isLoopbackAddress = (value: string | undefined): boolean =>
+    value === '127.0.0.1' || value === '::1' || value?.startsWith('::ffff:127.') === true
+
+const parseRequestUrl = (value: string | undefined): URL => {
+    try {
+        return new URL(value || '/', REQUEST_URL_BASE)
+    } catch {
+        return new URL('/', REQUEST_URL_BASE)
+    }
+}
+
+const getRequestQuery = (value: string | undefined): Record<string, string> => Object.fromEntries(parseRequestUrl(value).searchParams.entries())
 
 const sendJson = (res: http.ServerResponse, status: number, payload: unknown) => {
     res.writeHead(status, { 'Content-Type': 'application/json' })
@@ -41,7 +58,7 @@ const setCorsHeaders = (req: http.IncomingMessage, res: http.ServerResponse, all
     res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
     res.setHeader(
         'Access-Control-Allow-Headers',
-        'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers',
+        'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, X-PulseSync-Channel',
     )
 }
 
@@ -103,11 +120,11 @@ const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
     return ''
 }
 
-export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData }: CreateHttpRequestHandlerOptions) => {
+export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData, reloadDevelopmentAddon }: CreateHttpRequestHandlerOptions) => {
     const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
 
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
@@ -130,8 +147,9 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { pathname, query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
+            const { pathname } = parseRequestUrl(req.url)
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
             if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
 
             const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
@@ -157,9 +175,9 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
         try {
-            const { query } = parse(req.url || '', true)
-            const directory = resolveAddonDirectoryRef(query as Record<string, unknown>)
-            const fileName = query.file as string
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
+            const fileName = query.file
 
             if (!directory || !fileName) return sendJson(res, 400, { error: 'Missing query parameters: directory/id/name or file' })
             if (/^https?:\/\//i.test(fileName)) {
@@ -203,6 +221,26 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
         }
     }
 
+    const handleDevelopmentAddonReload = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+        if (!isLoopbackAddress(req.socket.remoteAddress) || req.headers[DEVELOPMENT_RELOAD_HEADER] !== '1') {
+            return sendJson(res, 403, { ok: false, error: 'Development addon reload is only available to the local template' })
+        }
+
+        const directoryName = String(getRequestQuery(req.url).directory || '').trim()
+        if (!directoryName || directoryName === '.' || directoryName === '..' || path.basename(directoryName) !== directoryName) {
+            return sendJson(res, 400, { ok: false, error: 'Invalid addon directory' })
+        }
+
+        try {
+            const result = await reloadDevelopmentAddon(directoryName)
+            logger.http.log(`Development addon reloaded: directory=${directoryName}, recipients=${result.recipients}`)
+            return sendJson(res, 200, { ok: true, protocolVersion: 1, ...result })
+        } catch (error) {
+            logger.http.error('Development addon reload failed:', error)
+            return sendJson(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Development addon reload failed' })
+        }
+    }
+
     const routes: Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => void> = {
         '/assets': handleGetAssetsRequest,
         '/addon_file': handleGetAddonRootFileRequest,
@@ -211,7 +249,7 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
 
     return (req: http.IncomingMessage, res: http.ServerResponse) => {
         const { method, url } = req
-        const { pathname } = parse(url || '', true)
+        const { pathname } = parseRequestUrl(url)
 
         setCorsHeaders(req, res, allowedOrigins)
 
@@ -225,6 +263,10 @@ export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData 
         if (method === 'GET') {
             if (pathname && routes[pathname]) return routes[pathname](req, res)
             if (pathname && pathname.startsWith(ASSET_PREFIX)) return handleGetAssetFileRequest(req, res)
+        }
+        if (method === 'POST' && pathname === '/dev/addons/reload') {
+            void handleDevelopmentAddonReload(req, res)
+            return
         }
 
         sendJson(res, 404, { error: 'Not found' })

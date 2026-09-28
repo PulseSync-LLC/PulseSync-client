@@ -1,5 +1,5 @@
-import type { ReactNode } from 'react'
 import type { ClientExperimentKey } from '@app/providers/experiments/constants'
+import type { ReactNode } from 'react'
 
 export type ExperimentMeta = Record<string, unknown>
 
@@ -38,5 +38,7 @@ export type ExperimentsContextValue = {
 
 export type ExperimentsProviderProps = {
     children: ReactNode
+    enabled?: boolean
     userId?: string | null
+    userPerm?: string | null
 }

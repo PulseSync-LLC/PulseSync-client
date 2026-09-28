@@ -1,7 +1,10 @@
-import { BrowserWindow } from 'electron'
-import type { BrowserAuthCredentials } from '../auth/browserAuth'
 import auth from './auth'
 import patch from './patch'
+import settings from './settings'
+import store from './store'
+
+import type { BrowserAuthCredentials } from '../auth/browserAuth'
+import type { BrowserWindow } from 'electron'
 
 export interface DeeplinkCommandContext {
     rawUrl: string
@@ -25,6 +28,8 @@ export default class deeplinkCommands {
         return [
             { name: 'browser_auth', run: auth },
             { name: 'patch', run: patch },
+            { name: 'settings', run: settings },
+            { name: 'store', run: store },
         ]
     }
 

@@ -1,21 +1,24 @@
-import React, { useCallback, useMemo } from 'react'
-import { RouterProvider } from 'react-router'
-import { Toaster } from 'react-hot-toast'
+import React, { useCallback, useEffect, useMemo } from 'react'
+
 import { CssVarsProvider } from '@mui/joy'
 import { SkeletonTheme } from 'react-loading-skeleton'
+import { RouterProvider } from 'react-router/dom'
 
-import UserContext from '@entities/user/model/context'
-import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
-import { NotificationsProvider } from '@app/providers/notifications'
-import { NewsProvider } from '@app/providers/news'
-import { useSocketContext } from '@app/providers/socket'
 import { ExperimentsProvider } from '@app/providers/experiments'
-import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
-import Preloader from '@widgets/preloader'
-import ExperimentOverridesDevModal from '@widgets/modalContainer/modals/ExperimentOverridesDevModal'
-import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
-import type { AppProvidersProps } from '@app/AppShell.types'
+import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'
+import { NewsProvider } from '@app/providers/news'
+import { NotificationsProvider } from '@app/providers/notifications'
 import PlayerProvider from '@app/providers/PlayerProvider'
+import { useSocketContext } from '@app/providers/socket'
+import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionPublicationModal'
+import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
+import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
+import Preloader from '@widgets/preloader'
+import UserContext from '@entities/user/model/context'
+import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
+
+import type { AppProvidersProps } from '@app/AppShell.types'
+import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
 
 export default function AppProviders({
     user,
@@ -41,12 +44,25 @@ export default function AppProviders({
     setMod,
     modInfo,
     modInfoFetched,
+    preparedModUpdate,
     allAchievements,
     setAllAchievements,
+    checkModUpdates,
+    refreshAddons,
     notificationsValue,
     router,
+    onLegacyAddonRestrictionsChange,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
+
+    useEffect(() => {
+        const showDevFrame = app.info.devmark && app.settings.showDevFrame
+        document.body.classList.toggle('devmark-border', showDevFrame)
+
+        return () => {
+            document.body.classList.remove('devmark-border')
+        }
+    }, [app.info.devmark, app.settings.showDevFrame])
 
     const setAppWithSocket = useCallback(
         (updater: SettingsUpdater) => {
@@ -87,8 +103,11 @@ export default function AppProviders({
             setMod,
             modInfo,
             modInfoFetched,
+            preparedModUpdate,
             allAchievements,
             setAllAchievements,
+            checkModUpdates,
+            refreshAddons,
             emitGateway,
         }),
         [
@@ -96,14 +115,17 @@ export default function AppProviders({
             app,
             appInfo,
             authorize,
+            checkModUpdates,
             emitGateway,
             isAppDeprecated,
             loading,
             allAchievements,
             modInfo,
             modInfoFetched,
+            preparedModUpdate,
             musicInstalled,
             musicVersion,
+            refreshAddons,
             setAppWithSocket,
             setAllAchievements,
             setIsAppDeprecated,
@@ -118,22 +140,12 @@ export default function AppProviders({
 
     return (
         <div className="app-wrapper">
-            <Toaster
-                position="top-center"
-                reverseOrder={false}
-                containerStyle={{
-                    zIndex: 100050,
-                }}
-                toastOptions={{
-                    style: {
-                        zIndex: 100050,
-                    },
-                }}
-            />
             <UserContext.Provider value={userContextValue}>
+                <ExtensionPublicationModal />
                 <NewsProvider key={user.id} enabled={!loading}>
-                    <ExperimentsProvider userId={user.id}>
-                        <ExperimentOverridesDevModal />
+                    <ExperimentsProvider userId={user.id} userPerm={user.perms} enabled={!loading}>
+                        <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
+                        <SettingsModal onNavigate={path => void router.navigate(path)} />
                         <UpdateChannelOverrideModal />
                         <NotificationsProvider value={notificationsValue}>
                             <PlayerProvider>

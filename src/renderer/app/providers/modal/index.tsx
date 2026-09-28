@@ -1,13 +1,15 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
-import RendererEvents from '@common/types/rendererEvents'
+
+import { isSettingsDeepLinkSection } from '@common/settingsDeepLink'
 import { Modals } from '@app/providers/modal/modals'
-import type { ModalName, ModalProviderProps, ModalState, ModalStatePatch, ModalsContextValue, ModalsState } from '@app/providers/modal/types'
+import { desktopApi } from '@shared/desktop/desktopApi'
+
+import type { ModalName, ModalProviderProps, ModalsContextValue, ModalsState, ModalState, ModalStatePatch } from '@app/providers/modal/types'
 
 const initialModalsState: ModalsState = {
     [Modals.MOD_CHANGELOG]: { isOpen: false },
     [Modals.APP_CHANGELOG]: { isOpen: false },
     [Modals.YANDEX_MUSIC_CHANGELOG]: { isOpen: false, currentVersion: null },
-    [Modals.MAC_UPDATE_DIALOG]: { isOpen: false },
     [Modals.LINUX_ASAR_PATH]: { isOpen: false },
     [Modals.APP_UPDATE_DIALOG]: { isOpen: false },
     [Modals.YANDEX_MUSIC_UPDATE_DIALOG]: { isOpen: false },
@@ -28,10 +30,17 @@ const initialModalsState: ModalsState = {
         onChangeGithubUrl: null,
     },
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: { isOpen: false, addonName: '', onConfirm: null },
-    [Modals.EXPERIMENT_OVERRIDES_DEV]: { isOpen: false },
+    [Modals.SETTINGS]: { isOpen: false, activeSection: undefined },
     [Modals.UPDATE_CHANNEL_OVERRIDE]: { isOpen: false },
     [Modals.SUBSCRIPTION_GIVEAWAYS]: { isOpen: false },
-    [Modals.BASIC_CONFIRMATION]: { isOpen: false, title: '', description: '', confirmLabel: undefined, onConfirm: undefined },
+    [Modals.BASIC_CONFIRMATION]: {
+        isOpen: false,
+        title: '',
+        description: '',
+        confirmLabel: undefined,
+        onConfirm: undefined,
+    },
+    [Modals.USER_PROFILE]: { isOpen: false, profileName: '' },
 }
 
 export const ModalsContext = createContext<ModalsContextValue>({
@@ -53,7 +62,7 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
                     ...prev,
                     [modal]: {
                         ...prev[modal],
-                        ...(state ?? {}),
+                        ...state,
                         isOpen: true,
                     },
                 }) as ModalsState,
@@ -108,20 +117,38 @@ export const ModalProvider: React.FC<ModalProviderProps> = ({ children }) => {
         [openModal],
     )
 
+    const openModalFromPayload = useCallback(
+        (payload: unknown) => {
+            if (typeof payload === 'string') {
+                return openModalByName(payload)
+            }
+            if (!payload || typeof payload !== 'object') {
+                return false
+            }
+
+            const { activeSection, modalName } = payload as { activeSection?: unknown; modalName?: unknown }
+            if (modalName !== Modals.SETTINGS || !isSettingsDeepLinkSection(activeSection)) {
+                return false
+            }
+
+            openModal(Modals.SETTINGS, { activeSection })
+            return true
+        },
+        [openModal, openModalByName],
+    )
+
     useEffect(() => {
-        const unsubscribe = window.desktopEvents?.on(RendererEvents.OPEN_MODAL, (_event, modalName: string) => {
-            const ok = openModalByName(modalName)
+        const unsubscribe = desktopApi.system.onOpenModal(payload => {
+            const ok = openModalFromPayload(payload)
             if (!ok) {
-                console.warn('[ModalProvider] Unknown modal name for open:', modalName)
+                console.warn('[ModalProvider] Unknown modal request:', payload)
             }
         })
 
         return () => {
-            if (typeof unsubscribe === 'function') {
-                unsubscribe()
-            }
+            unsubscribe()
         }
-    }, [openModalByName])
+    }, [openModalFromPayload])
 
     const value = useMemo<ModalsContextValue>(
         () => ({

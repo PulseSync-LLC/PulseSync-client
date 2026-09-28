@@ -1,7 +1,9 @@
 import React, { useCallback, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
-import MainEvents from '@common/types/mainEvents'
+
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
 
@@ -19,7 +21,7 @@ const LinuxPermissionsModal: React.FC = () => {
         if (isApplying) return
         setIsApplying(true)
         try {
-            const result = await window.desktopEvents?.invoke(MainEvents.FIX_LINUX_MUSIC_PERMISSIONS)
+            const result = (await desktopApi.music.fixLinuxPermissions()) as { success?: boolean; error?: string } | null | undefined
             if (result?.success) {
                 toast.custom('success', t('modals.linuxPermissions.toasts.successTitle'), t('modals.linuxPermissions.toasts.successDescription'))
                 closeModal(Modals.LINUX_PERMISSIONS_MODAL)
@@ -38,10 +40,6 @@ const LinuxPermissionsModal: React.FC = () => {
             setIsApplying(false)
         }
     }, [Modals.LINUX_PERMISSIONS_MODAL, closeModal, isApplying, t])
-
-    if (!window.electron.isLinux()) {
-        return null
-    }
 
     return (
         <CustomModalPS

@@ -1,7 +1,7 @@
 :root {
-    --cfg-text: var(--text-primary, #e7ecf3);
-    --cfg-accent: var(--accent, #6ea8fe);
-    --cfg-bar-brd: rgba(255, 255, 255, 0.14);
+    --cfg-text: var(--text-primary);
+    --cfg-accent: var(--accent);
+    --cfg-bar-brd: var(--active);
 }
 
 .changesBar {
@@ -10,109 +10,165 @@
     z-index: 40;
 
     display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
     align-items: center;
-    gap: 16px;
 
     padding: 12px 16px;
-    border-radius: 14px;
 
-    background: #3b4052;
+    pointer-events: none;
+
+    background: var(--border);
     border: 1px solid var(--cfg-bar-brd);
+    border-radius: 14px;
     box-shadow:
-        0 10px 30px rgba(0, 0, 0, 0.55),
-        0 0 0 2px rgba(110, 168, 254, 0.12) inset,
-        inset 0 1px 0 rgba(255, 255, 255, 0.05);
-    backdrop-filter: saturate(160%) blur(8px);
+        0 10px 30px rgb(0, 0, 0, 0.55),
+        0 0 0 2px color-mix(in srgb, var(--accent) 12%, transparent) inset,
+        inset 0 1px 0 var(--hover);
 
     opacity: 0;
+
+    backdrop-filter: saturate(160%) blur(8px);
+
     transform: translateY(16px) scale(0.98);
+
     transition:
         opacity 0.22s ease,
         transform 0.22s ease;
-    pointer-events: none;
 }
 
 .show {
-    opacity: 1;
-    transform: translateY(0) scale(1);
     pointer-events: auto;
+
+    opacity: 1;
+
+    transform: translateY(0) scale(1);
 }
+
 .hide {
-    opacity: 0;
-    transform: translateY(16px) scale(0.98);
     pointer-events: none;
+
+    opacity: 0;
+
+    transform: translateY(16px) scale(0.98);
 }
+
 .saving {
     cursor: progress;
 }
 
 .changesText {
     flex: 1 1 auto;
-    font-weight: 800;
-    letter-spacing: 0.2px;
-    font-size: 14px;
-    color: #fff;
-    white-space: nowrap;
+
+    min-width: 160px;
+
     overflow: hidden;
     text-overflow: ellipsis;
-    text-shadow: 0 1px 0 rgba(0, 0, 0, 0.35);
+
+    font-size: 14px;
+    font-weight: 800;
+
+    color: #fff;
+
+    letter-spacing: 0.2px;
+    white-space: nowrap;
+
+    text-shadow: 0 1px 0 rgb(0, 0, 0, 0.35);
+}
+
+.actions {
+    display: flex;
+
+    gap: 12px;
+
+    align-items: center;
+    justify-content: flex-end;
+
+    margin-left: auto;
 }
 
 .linkBtn {
-    appearance: none;
-    border: 1px solid rgb(254 110 110 / 25%);
-    background: rgb(254 110 110 / 8%);
-    color: #ff9f9f;
-    font-weight: 700;
-    cursor: pointer;
     padding: 6px 10px;
+
+    font-weight: 700;
+
+    color: var(--danger);
+
+    white-space: nowrap;
+
+    appearance: none;
+    cursor: pointer;
+
+    background: rgb(254 110 110 / 8%);
+    border: 1px solid rgb(254 110 110 / 25%);
     border-radius: 10px;
+
     transition:
         transform 0.06s ease,
         background 0.15s ease,
         border-color 0.15s ease;
 }
+
 .linkBtn:hover {
     background: rgb(254 110 110 / 16%);
     border-color: rgb(254 110 110 / 45%);
+
     transform: translateY(-1px);
 }
+
 .linkBtn:active {
     transform: translateY(0);
 }
 
 .saveBtn {
+    padding: 10px 16px;
+
+    font-weight: 800;
+
+    color: var(--accent-foreground, #040404);
+
+    white-space: nowrap;
+
     appearance: none;
     cursor: pointer;
-    border: 1px solid rgba(0, 0, 0, 0.25);
-    background: #98ffd6;
-    color: #3b4052;
-    font-weight: 800;
-    padding: 10px 16px;
-    border-radius: 10px;
-    box-shadow:
-        0 4px 0 rgba(0, 0, 0, 0.25),
-        0 0 0 1px rgba(255, 255, 255, 0.08) inset,
-        0 8px 22px rgba(35, 193, 101, 0.35);
+
+    background: var(--accent);
+    border: 0;
+    border-radius: 8px;
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--surface-tertiary) 8%, transparent);
+
     transition:
         transform 0.06s ease,
-        filter 0.15s ease;
+        opacity 0.15s ease,
+        box-shadow 0.15s ease;
 }
+
 .saveBtn:hover {
-    filter: brightness(1.06);
     transform: translateY(-1px);
 }
+
 .saveBtn:active {
     transform: translateY(0);
 }
 
-@media (max-width: 680px) {
+.saveBtn:focus-visible {
+    outline: none;
+
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent) 65%, transparent);
+}
+
+@media (width <= 680px) {
     .changesText {
         font-size: 13px;
     }
+
     .saveBtn {
         padding: 9px 14px;
     }
+
     .linkBtn {
         padding: 6px 8px;
     }

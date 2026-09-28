@@ -1,83 +1,109 @@
 .achievementList {
     display: flex;
+
     flex-direction: column;
-    align-items: flex-start;
-    padding: 0px;
+
     gap: 5px;
+
+    align-items: flex-start;
+
     width: 100%;
+
+    padding: 0;
 }
 
 .achievementCard {
     position: relative;
+
     display: flex;
+
     flex-direction: column;
-    background: #474c5c;
-    border-radius: 15px;
-    padding: 10px 15px;
+
     gap: 10px;
+
     width: 100%;
+
+    padding: 12px 16px;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 12px;
 }
 
 .achievementHeader {
     display: flex;
+
     gap: 15px;
 }
 
 .achievementCompletedAt {
-    font-weight: 500;
     font-size: 10px;
+    font-weight: 500;
+
     line-height: 140%;
 
-    color: #8e98b8;
+    color: var(--text-secondary);
 }
 
 .image {
     position: relative;
-    width: 45px;
-    height: 45px;
-    border-radius: 8px;
-    object-fit: cover;
 
     display: flex;
+
     flex-direction: column;
-    justify-content: center;
+
     align-items: center;
+    justify-content: center;
 
-    background: #393d4a;
+    width: 45px;
+    height: 45px;
 
-    font-weight: 900;
     font-size: 24px;
+    font-weight: 900;
 
-    color: #bac8f4;
+    color: var(--text-secondary);
+
+    object-fit: cover;
+
+    background: var(--surface-tertiary);
+    border-radius: 8px;
 }
 
 .imageSolid {
-    display: flex;
-    flex-direction: row;
-    justify-content: flex-end;
-    align-items: flex-end;
     position: absolute;
     top: 0;
     left: 0;
     z-index: 1;
+
+    display: flex;
+
+    flex-direction: row;
+
+    align-items: flex-end;
+    justify-content: flex-end;
+
     width: 46px;
     height: 46px;
-    background: rgba(117, 233, 135, 0.22);
-    border-radius: 8px;
 
-    color: #75e987;
+    color: var(--success);
+
+    background: color-mix(in srgb, var(--success) 22%, transparent);
+    border-radius: 8px;
 }
 
 .achievementInfo {
     flex-grow: 1;
+
     width: min-content;
 }
 
 .achievementTitle {
-    font-weight: 900;
     font-size: 16px;
+    font-weight: 900;
+
     line-height: 140%;
-    color: #ffffff;
+
+    color: var(--text-primary);
 }
 
 .contentWrapper {
@@ -86,73 +112,92 @@
 
 .achievementDescription,
 .achievementHint {
-    transition: opacity 0.3s ease;
     width: 100%;
-    color: #bac8f4;
+
+    color: var(--text-secondary);
+
+    transition: opacity 0.3s ease;
 }
 
 .achievementDescription {
     opacity: 1;
 }
+
 .achievementHint {
     opacity: 0;
 }
 
 .buttonsItem {
     display: flex;
+
     gap: 5px;
 }
 
 .editButton,
 .deleteButton,
 .expandButton {
-    transition: var(--transition);
-    cursor: pointer;
     display: flex;
+
     flex-direction: row;
-    align-items: center;
-    border-radius: 33px;
-    padding: 4px 10px;
+
     gap: 10px;
 
-    font-weight: 700;
+    align-items: center;
+
+    padding: 4px 10px;
+
     font-size: 14px;
+    font-weight: 700;
+
     line-height: 19px;
+
+    cursor: pointer;
+
+    border-radius: 33px;
+
+    transition: var(--transition);
 }
 
 .editButton {
     height: fit-content;
-    background: #5a76ff;
-    color: white;
+
+    color: var(--accent-foreground);
+
+    background: var(--accent);
 
     &:hover {
-        background: #8196ff;
+        filter: brightness(0.85);
     }
 }
 
 .deleteButton {
     height: fit-content;
-    background: #dc4d4d;
-    color: white;
+
+    color: var(--text-primary);
+
+    background: var(--danger);
 
     &:hover {
-        background: #e77474;
+        filter: brightness(0.85);
     }
 }
 
 .expandButton {
     height: fit-content;
-    background: none;
+
+    padding: 4px;
+
     color: white;
+
+    background: none;
     border-radius: 100%;
-    padding: 4px 4px;
 
     > svg {
         transition: var(--transition);
     }
 
     &:hover {
-        background: rgba(255, 255, 255, 0.158);
+        background: rgb(255, 255, 255, 0.158);
     }
 }
 
@@ -162,61 +207,92 @@
 
 .trackList {
     display: flex;
+
     flex-direction: column;
-    align-items: flex-start;
-    padding: 10px 0px 10px 61px;
+
     gap: 3px;
-    background: #393d4a;
-    border-radius: 8px;
+
+    align-items: flex-start;
+
     width: 100%;
+
+    padding: 10px 0 10px 61px;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
 }
 
 .trackItem {
-    font-weight: 500;
     font-size: 12px;
+    font-weight: 500;
+
     line-height: 140%;
 
-    color: #99a4c9;
+    color: var(--text-secondary);
 }
 
 .criteriaDone {
-    color: #ffffff;
+    color: var(--text-primary);
 }
 
 .achievementFooter {
     display: flex;
+
     flex-direction: row;
-    align-items: center;
-    padding: 0px;
+
     gap: 10px;
+
+    align-items: center;
+
+    padding: 0;
 }
 
 .goal,
 .points,
 .difficulty {
     display: flex;
+
     flex-direction: row;
-    justify-content: center;
-    align-items: center;
-    padding: 4px 12px;
+
     gap: 5px;
 
-    background: #393d4a;
-    border-radius: 8px;
+    align-items: center;
+    justify-content: center;
 
-    font-weight: 800;
+    padding: 4px 12px;
+
     font-size: 14px;
+    font-weight: 800;
+
     line-height: 140%;
+
+    background: var(--surface-tertiary);
+    border-radius: 8px;
+}
+
+@media (width <= 760px) {
+    .achievementCard {
+        padding: 12px;
+    }
+
+    .achievementHeader {
+        gap: 10px;
+    }
+
+    .achievementFooter {
+        flex-wrap: wrap;
+    }
 }
 
 .goal {
-    color: #ff9292;
+    color: var(--danger);
 }
 
 .points {
-    color: #ff9292;
+    color: var(--danger);
 }
 
 .difficulty {
-    color: #ff9292;
+    color: var(--danger);
 }

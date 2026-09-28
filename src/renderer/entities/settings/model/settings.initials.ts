@@ -1,4 +1,4 @@
-import SettingsInterface from '@entities/settings/model/settings.interface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const settingsInitials: SettingsInterface = {
     settings: {
@@ -14,11 +14,19 @@ const settingsInitials: SettingsInterface = {
         askSavePath: false,
         saveAsMp3: false,
         devSocket: false,
+        showDevFrame: true,
         showModModalAfterInstall: true,
         language: 'ru',
+        modSavePath: '',
+        modSource: {
+            type: 'stable',
+            branch: '',
+        },
     },
     info: {
         version: '',
+        branch: '',
+        devmark: false,
     },
     mod: {
         version: '',
@@ -28,6 +36,9 @@ const settingsInitials: SettingsInterface = {
         showModal: true,
         updated: false,
         changelog: [],
+        sourceType: 'stable',
+        branch: '',
+        commit: '',
     },
     tokens: {
         token: '',

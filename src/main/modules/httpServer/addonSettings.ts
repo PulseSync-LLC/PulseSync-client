@@ -1,16 +1,18 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
+
 import {
     type AddonSettingsValues,
-    type HandleConfig,
-    HANDLE_EVENTS_FILENAME,
-    HANDLE_EVENTS_SETTINGS_FILENAME,
     extractHandleConfigItemDefaultValue,
     extractHandleConfigItemValue,
+    HANDLE_EVENTS_FILENAME,
+    HANDLE_EVENTS_SETTINGS_FILENAME,
+    type HandleConfig,
     normalizeAddonSettingsValues,
 } from '@common/addons/handleEvents'
-import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
+
 import { getAddonsRoot } from '../../utils/addonPaths'
+import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
 
 export type AddonSettingsPayload = Record<string, any>
 
@@ -38,6 +40,34 @@ const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => 
         return normalizeAddonSettingsValues(JSON.parse(fs.readFileSync(valuesPath, 'utf8')))
     } catch {
         return {}
+    }
+}
+
+const readAddonSettingsSchema = (directory: string): HandleConfig | null => {
+    const addonRoot = path.join(getAddonsRoot(), directory)
+    const metadataPath = path.join(addonRoot, 'metadata.json')
+
+    try {
+        if (fs.existsSync(metadataPath)) {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as { type?: unknown; settings?: unknown }
+            if (
+                metadata.type === 'web-addon' &&
+                metadata.settings &&
+                typeof metadata.settings === 'object' &&
+                Array.isArray((metadata.settings as HandleConfig).sections)
+            ) {
+                return metadata.settings as HandleConfig
+            }
+        }
+    } catch {}
+
+    const handlePath = path.join(addonRoot, HANDLE_EVENTS_FILENAME)
+    if (!fs.existsSync(handlePath)) return null
+
+    try {
+        return JSON.parse(fs.readFileSync(handlePath, 'utf8')) as HandleConfig
+    } catch {
+        return null
     }
 }
 
@@ -97,15 +127,8 @@ export const readAddonSettings = (addonName: string): AddonSettingsPayload => {
     const directory = resolveAddonDirectory(addonName)
     if (!directory) return {}
 
-    const handlePath = path.join(getAddonsRoot(), directory, HANDLE_EVENTS_FILENAME)
-    if (!fs.existsSync(handlePath)) return {}
-
-    try {
-        const parsed = JSON.parse(fs.readFileSync(handlePath, 'utf8')) as HandleConfig
-        return transformAddonHandleConfig(parsed, readAddonSettingsValuesFile(directory))
-    } catch {
-        return {}
-    }
+    const schema = readAddonSettingsSchema(directory)
+    return schema ? transformAddonHandleConfig(schema, readAddonSettingsValuesFile(directory)) : {}
 }
 
 export const readAllAddonSettings = (): Record<string, AddonSettingsPayload> => {
@@ -120,9 +143,9 @@ export const readAllAddonSettings = (): Record<string, AddonSettingsPayload> => 
     }
 
     for (const folder of folders) {
-        const handlePath = path.join(addonsRoot, folder, HANDLE_EVENTS_FILENAME)
-        if (!fs.existsSync(handlePath)) continue
-        result[resolveAddonDisplayName(folder) || folder] = readAddonSettings(folder)
+        const schema = readAddonSettingsSchema(folder)
+        if (!schema) continue
+        result[resolveAddonDisplayName(folder) || folder] = transformAddonHandleConfig(schema, readAddonSettingsValuesFile(folder))
     }
 
     return result

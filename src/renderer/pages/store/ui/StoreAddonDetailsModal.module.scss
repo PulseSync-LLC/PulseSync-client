@@ -1,0 +1,844 @@
+.backdrop.backdrop {
+    position: absolute;
+    inset: 0;
+    z-index: 20;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    background: transparent;
+
+    backdrop-filter: none;
+}
+
+.modal.modal {
+    position: relative;
+
+    gap: 0;
+
+    align-items: stretch;
+    justify-content: flex-start;
+
+    width: 100%;
+    min-width: 0;
+    max-width: 100%;
+    height: 100%;
+    max-height: 100%;
+
+    padding: 0;
+
+    overflow: hidden;
+
+    font-family: var(--font-family), sans-serif;
+
+    color: var(--text-primary);
+
+    background: #040404;
+    border: 0;
+    border-radius: 11px;
+    box-shadow: none;
+
+    isolation: isolate;
+}
+
+.scrollArea {
+    position: absolute;
+    inset: 26px 28px;
+
+    box-sizing: border-box;
+
+    overflow: hidden auto;
+
+    scrollbar-color: color-mix(in srgb, var(--text-primary) 22%, transparent) transparent;
+    scrollbar-width: thin;
+
+    border: 1px solid color-mix(in srgb, var(--text-primary) 18%, transparent);
+    border-radius: 11px;
+}
+
+.scrollArea::-webkit-scrollbar {
+    width: 6px;
+}
+
+.scrollArea::-webkit-scrollbar-thumb {
+    background: color-mix(in srgb, var(--text-primary) 22%, transparent);
+    border-radius: 10px;
+}
+
+.heroBackdrop {
+    position: absolute;
+    top: 0;
+    right: 0;
+    left: 0;
+    z-index: -1;
+
+    height: 395px;
+
+    overflow: hidden;
+
+    background: #040404;
+}
+
+.heroBackdrop img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    opacity: 0.55;
+
+    filter: saturate(0.8) brightness(0.68);
+}
+
+.heroBackdrop::after {
+    position: absolute;
+    inset: 0;
+
+    content: '';
+
+    background:
+        linear-gradient(90deg, rgb(4, 4, 4, 0.1), transparent 45%, rgb(4, 4, 4, 0.12)),
+        linear-gradient(180deg, rgb(4, 4, 4, 0.05) 0%, rgb(4, 4, 4, 0.12) 44%, #040404 100%);
+}
+
+.contentShell {
+    position: relative;
+    z-index: 1;
+
+    box-sizing: border-box;
+
+    width: 100%;
+    max-width: 1200px;
+    min-height: 100%;
+
+    padding: 275px 25px 43px;
+    margin: 0 auto;
+}
+
+.closeButton {
+    position: absolute;
+    top: 40px;
+    right: 45px;
+    z-index: 5;
+
+    display: grid;
+
+    place-items: center;
+
+    width: 43px;
+    height: 43px;
+
+    padding: 0;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: color-mix(in srgb, var(--text-primary) 5%, transparent);
+    border: 0;
+    border-radius: 50%;
+
+    transition: background-color 150ms ease;
+}
+
+.closeButton:hover,
+.closeButton:focus-visible {
+    outline: none;
+
+    background: color-mix(in srgb, var(--text-primary) 14%, transparent);
+}
+
+.closeButton svg {
+    width: 19px;
+    height: 19px;
+}
+
+.heroHeader {
+    display: flex;
+
+    gap: 16px;
+
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 30px;
+}
+
+.heroIdentity {
+    display: flex;
+
+    gap: 5px;
+
+    align-items: center;
+
+    min-width: 0;
+}
+
+.heroAvatar,
+.heroAvatarFallback {
+    display: block;
+
+    flex: 0 0 30px;
+
+    width: 30px;
+    height: 30px;
+
+    object-fit: cover;
+
+    background: var(--surface-elevated);
+    border-radius: 6px;
+}
+
+.heroIdentity h1 {
+    min-width: 0;
+
+    margin: 0 0 0 5px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    line-height: 30px;
+
+    white-space: nowrap;
+}
+
+.verifiedTooltip {
+    display: inline-flex;
+
+    flex: 0 0 auto;
+
+    align-items: center;
+}
+
+.verified {
+    flex: 0 0 auto;
+
+    width: 18px;
+    height: 18px;
+
+    color: var(--accent);
+}
+
+.metaChip,
+.tagChip,
+.authorChip,
+.githubButton {
+    box-sizing: border-box;
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 24px;
+
+    padding: 4px 7px;
+
+    font: inherit;
+    font-size: 12px;
+    font-weight: 600;
+
+    line-height: 16px;
+
+    color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    border: 0;
+    border-radius: 6px;
+}
+
+.metaChip {
+    flex: 0 0 auto;
+}
+
+.aiTooltip {
+    display: inline-flex;
+
+    flex: 0 0 auto;
+}
+
+.aiChip {
+    color: var(--warning);
+
+    background: color-mix(in srgb, var(--warning) 15%, transparent);
+}
+
+.metaChip svg,
+.tagChip svg,
+.githubButton svg {
+    flex: 0 0 16px;
+
+    width: 16px;
+    height: 16px;
+}
+
+.actionButton {
+    display: inline-flex;
+
+    flex: 0 0 auto;
+
+    gap: 6px;
+
+    align-items: center;
+    justify-content: center;
+
+    min-width: 115px;
+    height: 36px;
+
+    padding: 0 18px;
+
+    font: inherit;
+    font-size: 16px;
+    font-weight: 600;
+
+    cursor: pointer;
+
+    border: 0;
+    border-radius: 6px;
+
+    transition:
+        color 150ms ease,
+        background-color 150ms ease;
+}
+
+.actionButton svg {
+    width: 18px;
+    height: 18px;
+}
+
+.actionButton:disabled {
+    cursor: default;
+
+    opacity: 0.5;
+}
+
+.installAction {
+    color: var(--success);
+
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.dangerAction {
+    color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 15%, transparent);
+}
+
+.installAction:hover:not(:disabled) {
+    color: var(--background);
+
+    background: var(--success);
+}
+
+.dangerAction:hover:not(:disabled) {
+    color: var(--text-primary);
+
+    background: var(--danger);
+}
+
+.overview {
+    display: grid;
+
+    grid-template-columns: minmax(0, 432px) minmax(0, 1fr);
+
+    gap: 15px;
+
+    min-height: 378px;
+
+    margin-top: 15px;
+}
+
+.overviewCopy {
+    min-width: 0;
+}
+
+.overviewMedia {
+    height: 378px;
+
+    overflow: hidden;
+
+    background: var(--surface-secondary);
+    border-radius: 10px;
+}
+
+.overviewMedia img {
+    display: block;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+}
+
+.ratingSection {
+    display: flex;
+
+    gap: 10px;
+
+    align-items: flex-start;
+
+    min-height: 42px;
+}
+
+.ratingAvatar {
+    flex: 0 0 34px;
+
+    width: 34px;
+    height: 34px;
+
+    object-fit: cover;
+
+    background: #a0a0a0;
+    border-radius: 50%;
+}
+
+.ratingControl {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+}
+
+.ratingControl > span {
+    margin: 0 5px;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    line-height: 15px;
+
+    color: var(--text-secondary);
+}
+
+.ratingStars {
+    display: flex;
+
+    gap: 3px;
+
+    align-items: center;
+}
+
+.ratingStars button {
+    display: grid;
+
+    place-items: center;
+
+    width: 25px;
+    height: 25px;
+
+    padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 5px;
+}
+
+.ratingStars button:hover,
+.ratingStars button:focus-visible,
+.ratingStars button.ratingStarActive {
+    color: var(--rating);
+
+    outline: none;
+}
+
+.ratingStars button:disabled {
+    cursor: wait;
+
+    opacity: 0.6;
+}
+
+.ratingStars svg {
+    width: 22px;
+    height: 22px;
+}
+
+.ratingScore {
+    display: flex;
+
+    flex: 0 0 58px;
+    flex-direction: column;
+
+    width: 58px;
+
+    margin-left: auto;
+}
+
+.ratingScore strong {
+    font-size: 18px;
+    font-weight: 800;
+
+    line-height: 25px;
+
+    color: var(--rating);
+}
+
+.ratingScore span {
+    font-size: 11px;
+    font-weight: 600;
+
+    line-height: 15px;
+
+    color: var(--rating);
+}
+
+.description {
+    margin: 15px 0 0;
+
+    font-size: 12px;
+    font-weight: 600;
+
+    line-height: 16px;
+
+    color: var(--text-secondary);
+}
+
+.infoSection {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    margin-top: 12px;
+}
+
+.infoSection h2 {
+    margin: 0;
+
+    font-size: 14px;
+    font-weight: 800;
+
+    line-height: 19px;
+}
+
+.chipRow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 5px;
+}
+
+.authorChip,
+.githubButton {
+    cursor: pointer;
+
+    transition: background-color 150ms ease;
+}
+
+.authorChip {
+    color: var(--info, #2a89f9);
+
+    background: color-mix(in srgb, var(--info, #2a89f9) 15%, transparent);
+}
+
+.authorChip > span {
+    flex: 0 0 8px;
+
+    width: 8px;
+    height: 8px;
+
+    background: currentcolor;
+    border-radius: 50%;
+}
+
+.authorChip:hover,
+.githubButton:hover {
+    background: var(--border-hover);
+}
+
+.githubButton {
+    align-self: flex-start;
+}
+
+.kindChip {
+    color: var(--text-primary);
+}
+
+.kindTheme {
+    color: #6effee;
+
+    background: color-mix(in srgb, #6effee 15%, transparent);
+}
+
+.kindScript {
+    color: #ffee6e;
+
+    background: color-mix(in srgb, #ffee6e 15%, transparent);
+}
+
+.kindWebAddon {
+    color: var(--success);
+
+    background: color-mix(in srgb, var(--success) 15%, transparent);
+}
+
+.descriptionSection {
+    margin-top: 15px;
+}
+
+.sectionTitle {
+    display: inline-flex;
+
+    gap: 10px;
+
+    align-items: center;
+
+    min-width: 145px;
+    height: 43px;
+}
+
+.sectionTitle svg {
+    width: 19px;
+    height: 19px;
+}
+
+.sectionTitle h2 {
+    margin: 0;
+
+    font-size: 14px;
+    font-weight: 700;
+
+    line-height: 19px;
+}
+
+.readmePanel {
+    min-height: 120px;
+
+    margin-top: 15px;
+}
+
+.readmeState {
+    display: grid;
+
+    place-items: center;
+
+    min-height: 160px;
+
+    color: var(--text-secondary);
+}
+
+.markdown.markdown {
+    padding: 0;
+
+    font-family: var(--font-family), sans-serif;
+    font-size: 14px;
+
+    line-height: 1.5;
+
+    color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+}
+
+.markdown.markdown > :first-child,
+.markdown.markdown h1:first-child,
+.markdown.markdown h2:first-child,
+.markdown.markdown h3:first-child,
+.markdown.markdown p:first-child {
+    margin-top: 0;
+}
+
+.markdown.markdown h1,
+.markdown.markdown h2,
+.markdown.markdown h3 {
+    padding: 0;
+    margin: 20px 0 8px;
+
+    font-family: var(--font-family), sans-serif;
+    font-size: 16px;
+    font-weight: 800;
+
+    line-height: 22px;
+
+    border: 0;
+}
+
+.markdown.markdown p,
+.markdown.markdown li {
+    margin-bottom: 10px;
+
+    font-size: 14px;
+    font-weight: 500;
+
+    line-height: 1.5;
+}
+
+.markdown.markdown img {
+    border-radius: 6px;
+    box-shadow: none;
+}
+
+.fallbackDescription {
+    font-size: 14px;
+    font-weight: 500;
+
+    line-height: 1.5;
+
+    color: color-mix(in srgb, var(--text-primary) 78%, transparent);
+}
+
+.relatedSection {
+    margin-top: 15px;
+}
+
+.relatedHeader {
+    display: flex;
+
+    align-items: center;
+    justify-content: space-between;
+
+    min-height: 30px;
+}
+
+.relatedHeader h2 {
+    margin: 0;
+
+    font-size: 22px;
+    font-weight: 700;
+
+    line-height: 30px;
+}
+
+.relatedControls {
+    display: flex;
+
+    gap: 5px;
+}
+
+.relatedControls button {
+    display: grid;
+
+    place-items: center;
+
+    width: 30px;
+    height: 30px;
+
+    padding: 0;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: color-mix(in srgb, var(--text-primary) 15%, transparent);
+    border: 0;
+    border-radius: 6px;
+
+    transition: background-color 150ms ease;
+}
+
+.relatedControls button:hover {
+    background: var(--border-hover);
+}
+
+.relatedControls svg {
+    width: 22px;
+    height: 22px;
+}
+
+.relatedRow {
+    display: flex;
+
+    gap: 10px;
+
+    margin-top: 15px;
+
+    overflow: auto hidden;
+
+    scroll-snap-type: x proximity;
+
+    scrollbar-width: none;
+}
+
+.relatedRow::-webkit-scrollbar {
+    display: none;
+}
+
+.relatedRow > * {
+    flex: 0 0 460px;
+
+    scroll-snap-align: start;
+}
+
+@media (width <= 900px) {
+    .contentShell {
+        padding-top: 220px;
+    }
+
+    .heroBackdrop {
+        height: 330px;
+    }
+
+    .heroHeader {
+        align-items: flex-end;
+    }
+
+    .heroIdentity {
+        flex-wrap: wrap;
+    }
+
+    .overview {
+        grid-template-columns: 1fr;
+    }
+
+    .overviewMedia {
+        height: auto;
+        min-height: 280px;
+        aspect-ratio: 1.86 / 1;
+    }
+}
+
+@media (width <= 620px) {
+    .scrollArea {
+        inset: 12px;
+    }
+
+    .closeButton {
+        top: 21px;
+        right: 21px;
+    }
+
+    .contentShell {
+        padding: 170px 15px 30px;
+    }
+
+    .heroBackdrop {
+        height: 270px;
+    }
+
+    .heroHeader {
+        flex-direction: column;
+
+        align-items: stretch;
+    }
+
+    .heroIdentity h1 {
+        flex-basis: calc(100% - 45px);
+    }
+
+    .actionButton {
+        align-self: flex-end;
+    }
+
+    .overviewMedia {
+        min-height: 210px;
+    }
+
+    .ratingScore {
+        margin-left: 0;
+    }
+
+    .relatedRow > * {
+        flex-basis: min(460px, calc(100vw - 92px));
+    }
+}

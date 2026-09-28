@@ -1,9 +1,12 @@
+import type { HandleConfig } from '@common/addons/handleEvents'
+
 export default interface Addon {
     id: string
     name: string
     directoryName: string
     installSource?: 'store' | 'local'
     storeAddonId?: string
+    storeReleaseChannel?: 'stable' | 'dev'
     packageHash?: string
     description: string
     version: string
@@ -11,6 +14,7 @@ export default interface Addon {
 
     image: string
     banner: string
+    preview?: string
     libraryLogo: string
 
     path: string
@@ -18,7 +22,8 @@ export default interface Addon {
     lastModifiedAt?: number
     size: string
 
-    type: 'theme' | 'script'
+    type: 'theme' | 'script' | 'web-addon'
+    runtime?: 'legacy' | 'isolated' | 'style'
     tags: string[]
 
     enabled: boolean
@@ -32,4 +37,5 @@ export default interface Addon {
 
     supportedVersions?: string[]
     rootFiles?: string[]
+    settings?: HandleConfig
 }

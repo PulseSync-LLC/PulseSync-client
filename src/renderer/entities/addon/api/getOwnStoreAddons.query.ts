@@ -6,12 +6,18 @@ export default gql`
             id
             name
             type
+            downloadCount
+            ratingAverage
+            ratingCount
+            myRating
             submittedById
             submittedByUsername
             submittedByNickname
             currentRelease {
                 id
                 version
+                visibility
+                releaseChannels
                 description
                 authors
                 changelog
@@ -20,8 +26,13 @@ export default gql`
                 usesOfficialTemplate
                 avatarUrl
                 bannerUrl
+                previewUrl
+                bannerLeftColor
+                bannerRightColor
                 downloadUrl
+                githubUrl
                 approvedAt
+                assetsPurgedAt
                 status
                 moderationNote
                 createdAt
@@ -30,6 +41,8 @@ export default gql`
             releases {
                 id
                 version
+                visibility
+                releaseChannels
                 description
                 authors
                 changelog
@@ -38,8 +51,13 @@ export default gql`
                 usesOfficialTemplate
                 avatarUrl
                 bannerUrl
+                previewUrl
+                bannerLeftColor
+                bannerRightColor
                 downloadUrl
+                githubUrl
                 approvedAt
+                assetsPurgedAt
                 status
                 moderationNote
                 createdAt

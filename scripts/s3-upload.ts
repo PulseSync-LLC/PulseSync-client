@@ -1,35 +1,75 @@
 import 'dotenv/config'
-import fs from 'fs'
-import os from 'os'
-import path from 'path'
-import crypto from 'crypto'
-import yaml from 'js-yaml'
-import chalk from 'chalk'
+
+import { fileURLToPath, pathToFileURL } from 'node:url'
+
 import {
     AbortMultipartUploadCommand,
     CompleteMultipartUploadCommand,
+    CopyObjectCommand,
     CreateMultipartUploadCommand,
     DeleteObjectsCommand,
+    GetObjectCommand,
+    HeadObjectCommand,
     ListObjectsV2Command,
     PutObjectCommand,
     S3Client,
     UploadPartCommand,
 } from '@aws-sdk/client-s3'
-import https from 'https'
-import { fileURLToPath, pathToFileURL } from 'node:url'
-import semver from 'semver'
+import chalk from 'chalk'
+import crypto from 'crypto'
+import fs from 'fs'
+import path from 'path'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_PART_SIZE = 8 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_CONCURRENCY = 4
+const REMOTE_RENDERER_RETAIN_VERSIONS = 5
 
 enum LogLevel {
     INFO = 'INFO',
     SUCCESS = 'SUCCESS',
     WARN = 'WARN',
     ERROR = 'ERROR',
+}
+
+type UploadHeaders = {
+    CacheControl?: string
+    ContentType?: string
+}
+
+type UploadFileOptions = {
+    skipIfUnchanged?: boolean
+}
+
+export type RemoteRendererPublishPlan = {
+    artifactSha256: string
+    buildNumber: string
+    filesBeforePointers: string[]
+    manifestPath: string
+    publicEntrypointPath: string
+}
+
+const CONTENT_TYPES_BY_EXTENSION: Record<string, string> = {
+    '.css': 'text/css; charset=utf-8',
+    '.deb': 'application/vnd.debian.binary-package',
+    '.html': 'text/html; charset=utf-8',
+    '.ico': 'image/x-icon',
+    '.jpeg': 'image/jpeg',
+    '.jpg': 'image/jpeg',
+    '.js': 'text/javascript; charset=utf-8',
+    '.json': 'application/json; charset=utf-8',
+    '.mjs': 'text/javascript; charset=utf-8',
+    '.map': 'application/json; charset=utf-8',
+    '.otf': 'font/otf',
+    '.png': 'image/png',
+    '.svg': 'image/svg+xml',
+    '.ttf': 'font/ttf',
+    '.webp': 'image/webp',
+    '.woff': 'font/woff',
+    '.woff2': 'font/woff2',
+    '.yml': 'text/yaml; charset=utf-8',
 }
 
 function log(level: LogLevel, message: string): void {
@@ -59,7 +99,8 @@ function createS3Client(): S3Client {
         },
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: true,
-        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
+        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 5,
+        retryMode: 'standard',
     })
 }
 
@@ -77,16 +118,6 @@ function getMultipartUploadConfig() {
     return { threshold, partSize, concurrency }
 }
 
-async function hashFileSha512(filePath: string): Promise<string> {
-    return await new Promise<string>((resolve, reject) => {
-        const hash = crypto.createHash('sha512')
-        const stream = fs.createReadStream(filePath)
-        stream.on('data', chunk => hash.update(chunk))
-        stream.on('error', reject)
-        stream.on('end', () => resolve(hash.digest('hex')))
-    })
-}
-
 async function readFileChunk(filePath: string, start: number, length: number): Promise<Buffer> {
     const handle = await fs.promises.open(filePath, 'r')
     try {
@@ -98,116 +129,6 @@ async function readFileChunk(filePath: string, start: number, length: number): P
     }
 }
 
-function isDmg(name: string) {
-    return name.toLowerCase().endsWith('.dmg')
-}
-function isZip(name: string) {
-    return name.toLowerCase().endsWith('.zip')
-}
-function fileTypeOf(name: string): 'dmg' | 'zip' {
-    return isZip(name) ? 'zip' : 'dmg'
-}
-
-function parseMacArtifactArch(name: string): 'arm64' | 'x64' | null {
-    const lower = name.toLowerCase()
-    if (lower.includes('arm64')) return 'arm64'
-    if (lower.includes('x64') || lower.includes('intel')) return 'x64'
-    if (lower.includes('-mac') || lower.includes('mac')) return null
-    if (lower.includes('universal')) return null
-    return null
-}
-
-function collectMacArtifacts(releaseDir: string, version: string) {
-    const files = fs.readdirSync(releaseDir).filter(n => (!version || n.includes(version)) && (isDmg(n) || isZip(n)))
-    const out: Array<{ arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }> = []
-    for (const n of files) {
-        const arch = parseMacArtifactArch(n)
-        if (!arch) continue
-        out.push({ arch, file: path.join(releaseDir, n), type: fileTypeOf(n) })
-    }
-    const uniq = new Map<string, { arch: 'arm64' | 'x64'; file: string; type: 'dmg' | 'zip' }>()
-    for (const a of out) {
-        const key = `${a.arch}:${a.type}`
-        if (!uniq.has(key)) uniq.set(key, a)
-    }
-    return Array.from(uniq.values())
-}
-
-async function collectRemoteMacArtifacts(
-    client: S3Client,
-    bucket: string,
-    prefix: string,
-    branch: string,
-    version: string,
-    baseUrl: string,
-) {
-    const branchPrefix = `${prefix}/${branch}/`
-    const normalizedBaseUrl = baseUrl.replace(/\/+$/u, '')
-    const uniq = new Map<string, { arch: 'arm64' | 'x64'; fileName: string; url: string; type: 'dmg' | 'zip' }>()
-    let continuationToken: string | undefined
-
-    do {
-        const response = await client.send(
-            new ListObjectsV2Command({
-                Bucket: bucket,
-                Prefix: branchPrefix,
-                ContinuationToken: continuationToken,
-            }),
-        )
-
-        for (const object of response.Contents ?? []) {
-            if (!object.Key) continue
-
-            const fileName = path.basename(object.Key)
-            if ((version && !fileName.includes(version)) || (!isDmg(fileName) && !isZip(fileName))) {
-                continue
-            }
-
-            const arch = parseMacArtifactArch(fileName)
-            if (!arch) continue
-
-            const type = fileTypeOf(fileName)
-            const key = `${arch}:${type}`
-            if (uniq.has(key)) continue
-
-            uniq.set(key, {
-                arch,
-                fileName,
-                url: `${normalizedBaseUrl}/${object.Key}`,
-                type,
-            })
-        }
-
-        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
-    } while (continuationToken)
-
-    return Array.from(uniq.values())
-}
-
-async function fetchJson(url: string): Promise<any | null> {
-    return await new Promise(resolve => {
-        https
-            .get(url, res => {
-                if (res.statusCode && res.statusCode >= 400) {
-                    res.resume()
-                    resolve(null)
-                    return
-                }
-                const chunks: Buffer[] = []
-                res.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
-                res.on('end', () => {
-                    try {
-                        const raw = Buffer.concat(chunks).toString('utf-8')
-                        resolve(JSON.parse(raw))
-                    } catch {
-                        resolve(null)
-                    }
-                })
-            })
-            .on('error', () => resolve(null))
-    })
-}
-
 function walkFiles(dir: string): string[] {
     return fs.readdirSync(dir).flatMap(name => {
         const full = path.join(dir, name)
@@ -215,18 +136,212 @@ function walkFiles(dir: string): string[] {
     })
 }
 
-function isUpdaterManifestFile(filePath: string): boolean {
+function isLegacyUpdaterArtifact(filePath: string): boolean {
     const fileName = path.basename(filePath).toLowerCase()
-    return fileName === 'latest.yml' || fileName === 'latest-linux.yml'
+    return fileName === 'download.json' || fileName.startsWith('latest') || fileName.endsWith('.blockmap')
 }
 
-const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
-
-function parseKeepRecentVersions(rawValue?: string | null): number | null {
-    if (!rawValue) return null
-    const parsed = Number.parseInt(rawValue, 10)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : null
+function isLegacyUpdateBridgeMetadata(filePath: string): boolean {
+    const fileName = path.basename(filePath).toLowerCase()
+    return fileName === 'download.json' || fileName === 'latest.yml' || fileName === 'latest-linux.yml'
 }
+
+async function hashFileSha256(filePath: string): Promise<string> {
+    return await new Promise<string>((resolve, reject) => {
+        const hash = crypto.createHash('sha256')
+        const stream = fs.createReadStream(filePath)
+        stream.on('data', chunk => hash.update(chunk))
+        stream.on('error', reject)
+        stream.on('end', () => resolve(hash.digest('hex')))
+    })
+}
+
+function isDesktopReleaseManifestFile(filePath: string): boolean {
+    return /^desktop-update-[a-z0-9_-]+\.json$/iu.test(path.basename(filePath))
+}
+
+function getContentType(filePath: string): string | undefined {
+    return CONTENT_TYPES_BY_EXTENSION[path.extname(filePath).toLowerCase()]
+}
+
+function getRemoteRendererUploadHeaders(relativePath: string, filePath: string): UploadHeaders {
+    const normalizedPath = relativePath.replace(/\\/g, '/')
+    const contentType = getContentType(filePath)
+    const cacheControl =
+        normalizedPath === 'desktop/manifest.json'
+            ? 'no-store, no-cache, must-revalidate, max-age=0'
+            : normalizedPath.startsWith('versions/')
+              ? 'public, max-age=31536000, immutable'
+              : 'public, max-age=3600'
+
+    return {
+        ...(contentType ? { ContentType: contentType } : {}),
+        CacheControl: cacheControl,
+    }
+}
+
+function getRemoteRendererPointerUploadHeaders(filePath: string): UploadHeaders {
+    return {
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
+function getDesktopUpdateUploadHeaders(filePath: string): UploadHeaders | undefined {
+    if (!isDesktopReleaseManifestFile(filePath) && !isLegacyUpdateBridgeMetadata(filePath)) {
+        return undefined
+    }
+
+    return {
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
+function getLatestAliasUploadHeaders(filePath: string): UploadHeaders {
+    return {
+        ...(getContentType(filePath) ? { ContentType: getContentType(filePath) } : {}),
+        CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+    }
+}
+
+function escapeRegExp(value: string): string {
+    return value.replace(/[.*+?^${}()|[\]\\]/gu, '\\$&')
+}
+
+function normalizeLinuxPackageArch(arch: string): string {
+    const normalizedArch = arch.toLowerCase()
+    if (normalizedArch === 'amd64' || normalizedArch === 'x86_64') return 'x64'
+    if (normalizedArch === 'aarch64') return 'arm64'
+    return normalizedArch
+}
+
+async function immutablePublishPath(filePath: string, prefix: string): Promise<string> {
+    const sha256 = await hashFileSha256(filePath)
+    return `${prefix}/${sha256.slice(0, 16)}/${path.basename(filePath)}`
+}
+
+export async function resolveStructuredPublishPath(filePath: string, version?: string): Promise<string> {
+    const fileName = path.basename(filePath)
+    if (isDesktopReleaseManifestFile(filePath)) {
+        return fileName
+    }
+    if (!version) {
+        return fileName
+    }
+
+    const escapedVersion = escapeRegExp(version)
+    const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (hostMatch) {
+        const [, hostVersion, dist] = hostMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}`)
+    }
+
+    const hostFileMatch = /^pulsesync-host-file-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (hostFileMatch) {
+        const [, hostVersion, , dist] = hostFileMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}/files`)
+    }
+
+    const hostPatchMatch = /^pulsesync-host-patch-bsdiff-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (hostPatchMatch) {
+        const [, hostVersion, fromSha, , dist] = hostPatchMatch
+        return await immutablePublishPath(filePath, `hosts/${hostVersion}/${dist}/patches/bsdiff/${fromSha}`)
+    }
+
+    const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (macosHostMatch) {
+        const [, bundleVersion, dist] = macosHostMatch
+        return await immutablePublishPath(filePath, `bundles/${bundleVersion}/${dist}`)
+    }
+
+    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
+    if (bootstrapperMatch) {
+        const [, bootstrapperVersion, dist] = bootstrapperMatch
+        return await immutablePublishPath(filePath, `components/bootstrapper/${bootstrapperVersion}/${dist}`)
+    }
+
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(
+        fileName,
+    )
+    if (componentFileMatch) {
+        const [, moduleName, componentVersion, , dist] = componentFileMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/files`)
+    }
+
+    const componentPatchMatch =
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(
+            fileName,
+        )
+    if (componentPatchMatch) {
+        const [, moduleName, componentVersion, fromSha, , dist] = componentPatchMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}/patches/bsdiff/${fromSha}`)
+    }
+
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (componentMatch) {
+        const [, moduleName, componentVersion, dist] = componentMatch
+        return await immutablePublishPath(filePath, `components/${moduleName}/${componentVersion}/${dist}`)
+    }
+
+    const moduleMatch = new RegExp(`^pulsesync-module-([a-z0-9_-]+)-${escapedVersion}-([a-z0-9_-]+)\\.zip$`, 'iu').exec(fileName)
+    if (moduleMatch) {
+        const [, moduleName, dist] = moduleMatch
+        const sha256 = await hashFileSha256(filePath)
+        const componentVersion = moduleName === 'desktopCore' ? version : sha256.slice(0, 16)
+        return `components/${moduleName}/${componentVersion}/${dist}/${sha256.slice(0, 16)}/${fileName}`
+    }
+
+    const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe(?:\\.blockmap)?$`, 'iu').exec(fileName)
+    if (setupMatch) {
+        const arch = setupMatch[1].toLowerCase()
+        return await immutablePublishPath(filePath, `setups/${version}/win32-${arch}`)
+    }
+
+    const macSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.dmg$`, 'iu').exec(fileName)
+    if (macSetupMatch) {
+        const arch = macSetupMatch[1].toLowerCase()
+        return await immutablePublishPath(filePath, `setups/${version}/darwin-${arch}`)
+    }
+
+    const linuxSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.deb$`, 'iu').exec(fileName)
+    if (linuxSetupMatch) {
+        const arch = normalizeLinuxPackageArch(linuxSetupMatch[1])
+        return await immutablePublishPath(filePath, `setups/${version}/linux-${arch}`)
+    }
+
+    return fileName
+}
+
+function resolveLatestAliasPublishPath(filePath: string, version?: string): string | null {
+    if (!version) {
+        return null
+    }
+
+    const fileName = path.basename(filePath)
+    const escapedVersion = escapeRegExp(version)
+    const setupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.exe$`, 'iu').exec(fileName)
+    if (setupMatch) {
+        const arch = setupMatch[1].toLowerCase()
+        return `latest/win32-${arch}/PulseSyncSetup.exe`
+    }
+
+    const macSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.dmg$`, 'iu').exec(fileName)
+    if (macSetupMatch) {
+        const arch = macSetupMatch[1].toLowerCase()
+        return `latest/darwin-${arch}/PulseSync.dmg`
+    }
+
+    const linuxSetupMatch = new RegExp(`^pulsesync-app-${escapedVersion}-([a-z0-9_-]+)\\.deb$`, 'iu').exec(fileName)
+    if (linuxSetupMatch) {
+        const arch = normalizeLinuxPackageArch(linuxSetupMatch[1])
+        return `latest/linux-${arch}/PulseSync.deb`
+    }
+
+    return null
+}
+
+const STRUCTURED_DIST_RE = /^(win32|darwin|linux)-([a-z0-9_-]+)$/iu
 
 type ArtifactPlatform = 'win32' | 'darwin' | 'linux'
 
@@ -238,159 +353,167 @@ type VersionedArtifactDescriptor = {
     family: string
 }
 
-function resolveArtifactPlatform(suffix: string): ArtifactPlatform | null {
-    switch (suffix) {
-        case 'exe':
-        case 'exe.blockmap':
-            return 'win32'
-        case 'dmg':
-        case 'zip':
-            return 'darwin'
-        case 'deb':
-        case 'rpm':
-        case 'appimage':
-        case 'tar.gz':
-            return 'linux'
-        default:
-            return null
+function parseArtifactDist(dist: string): { platform: ArtifactPlatform; arch: string } | null {
+    const match = STRUCTURED_DIST_RE.exec(dist)
+    if (!match) return null
+
+    return {
+        platform: match[1].toLowerCase() as ArtifactPlatform,
+        arch: match[2].toLowerCase(),
     }
 }
 
-function parseVersionedArtifactDescriptor(key: string): VersionedArtifactDescriptor | null {
-    const fileName = path.basename(key)
-    const match = VERSIONED_ARTIFACT_RE.exec(fileName)
-    if (!match) return null
-
-    const [, version, rawArch, rawSuffix] = match
-    const arch = rawArch.toLowerCase()
-    const suffix = rawSuffix.toLowerCase()
-    const platform = resolveArtifactPlatform(suffix)
-    if (!platform) return null
+function structuredArtifactDescriptor(version: string, dist: string, suffix: string, familyKind: string): VersionedArtifactDescriptor | null {
+    const parsedDist = parseArtifactDist(dist)
+    if (!parsedDist) return null
 
     return {
         version,
-        arch,
-        platform,
+        arch: parsedDist.arch,
+        platform: parsedDist.platform,
         suffix,
-        family: `${platform}:${arch}:${suffix}`,
+        family: `${parsedDist.platform}:${parsedDist.arch}:${familyKind}`,
     }
 }
 
-function collectArtifactFamilies(filePaths: string[]): Set<string> {
-    const families = new Set<string>()
-    for (const filePath of filePaths) {
-        const descriptor = parseVersionedArtifactDescriptor(filePath)
-        if (!descriptor) continue
-        families.add(descriptor.family)
+function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactDescriptor | null {
+    const setupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.exe$/iu.exec(fileName)
+    if (setupMatch) {
+        const [, version, arch] = setupMatch
+        return structuredArtifactDescriptor(version, `win32-${arch}`, 'exe', 'setup')
     }
-    return families
+
+    const macSetupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.dmg$/iu.exec(fileName)
+    if (macSetupMatch) {
+        const [, version, arch] = macSetupMatch
+        return structuredArtifactDescriptor(version, `darwin-${arch}`, 'dmg', 'setup')
+    }
+
+    const linuxSetupMatch = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.deb$/iu.exec(fileName)
+    if (linuxSetupMatch) {
+        const [, version, arch] = linuxSetupMatch
+        return structuredArtifactDescriptor(version, `linux-${normalizeLinuxPackageArch(arch)}`, 'deb', 'setup')
+    }
+
+    const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (hostMatch) {
+        const [, version, dist] = hostMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', 'host')
+    }
+
+    const hostFileMatch = /^pulsesync-host-file-(.+)-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.bin$/iu.exec(fileName)
+    if (hostFileMatch) {
+        const [, version, , dist] = hostFileMatch
+        return structuredArtifactDescriptor(version, dist, 'bin', 'host-file')
+    }
+
+    const hostPatchMatch = /^pulsesync-host-patch-bsdiff-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|linux)-[a-z0-9_-]+)\.patch$/iu.exec(fileName)
+    if (hostPatchMatch) {
+        const [, version, , , dist] = hostPatchMatch
+        return structuredArtifactDescriptor(version, dist, 'patch', 'host-patch')
+    }
+
+    const macosHostMatch = /^pulsesync-host-bundle-(.+)-(darwin-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (macosHostMatch) {
+        const [, version, dist] = macosHostMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', 'macos-host')
+    }
+
+    const bootstrapperMatch = /^pulsesync-bootstrapper-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)(?:\.exe)?$/iu.exec(fileName)
+    if (bootstrapperMatch) {
+        const [, version, dist] = bootstrapperMatch
+        return structuredArtifactDescriptor(version, dist, path.extname(fileName).toLowerCase() === '.exe' ? 'exe' : 'binary', 'bootstrapper')
+    }
+
+    const componentFileMatch = /^pulsesync-component-file-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.bin$/iu.exec(
+        fileName,
+    )
+    if (componentFileMatch) {
+        const [, componentName, version, , dist] = componentFileMatch
+        return structuredArtifactDescriptor(version, dist, 'bin', `component-file:${componentName.toLowerCase()}`)
+    }
+
+    const componentPatchMatch =
+        /^pulsesync-component-patch-bsdiff-([a-z0-9_]+)-(.+)-([a-f0-9]{16})-([a-f0-9]{16})-((?:win32|darwin|linux)-[a-z0-9_-]+)\.patch$/iu.exec(
+            fileName,
+        )
+    if (componentPatchMatch) {
+        const [, componentName, version, , , dist] = componentPatchMatch
+        return structuredArtifactDescriptor(version, dist, 'patch', `component-patch:${componentName.toLowerCase()}`)
+    }
+
+    const moduleMatch = /^pulsesync-module-([a-z0-9_-]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (moduleMatch) {
+        const [, moduleName, version, dist] = moduleMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', `module:${moduleName.toLowerCase()}`)
+    }
+
+    const componentMatch = /^pulsesync-component-([a-z0-9_]+)-(.+)-((?:win32|darwin|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
+    if (componentMatch) {
+        const [, componentName, version, dist] = componentMatch
+        return structuredArtifactDescriptor(version, dist, 'zip', `component:${componentName.toLowerCase()}`)
+    }
+
+    return null
 }
 
-function compareVersionsDesc(left: string, right: string): number {
-    const leftValid = semver.valid(left)
-    const rightValid = semver.valid(right)
-
-    if (leftValid && rightValid) {
-        return semver.rcompare(leftValid, rightValid)
-    }
-    if (leftValid) return -1
-    if (rightValid) return 1
-    return right.localeCompare(left)
+function isMissingS3Object(error: unknown): boolean {
+    const value = error as { $metadata?: { httpStatusCode?: number }; name?: string }
+    return value.$metadata?.httpStatusCode === 404 || value.name === 'NotFound' || value.name === 'NoSuchKey'
 }
 
-async function pruneOldArtifacts(
+async function hasMatchingS3Object(
     client: S3Client,
     bucket: string,
-    prefix: string,
-    branch: string,
-    currentVersion: string,
-    keepRecentVersions: number,
-    artifactFamilies: Set<string>,
-): Promise<void> {
-    const branchPrefix = `${prefix}/${branch}/`
-    const familyToVersionedKeys = new Map<string, Map<string, string[]>>()
-    let continuationToken: string | undefined
-
-    do {
-        const response = await client.send(
-            new ListObjectsV2Command({
-                Bucket: bucket,
-                Prefix: branchPrefix,
-                ContinuationToken: continuationToken,
-            }),
+    key: string,
+    size: number,
+    sha256: string,
+    headers: UploadHeaders,
+): Promise<boolean> {
+    try {
+        const object = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
+        return (
+            object.ContentLength === size &&
+            object.Metadata?.sha256?.toLowerCase() === sha256 &&
+            (headers.CacheControl === undefined || object.CacheControl === headers.CacheControl) &&
+            (headers.ContentType === undefined || object.ContentType === headers.ContentType)
         )
-
-        for (const object of response.Contents ?? []) {
-            if (!object.Key) continue
-            const descriptor = parseVersionedArtifactDescriptor(object.Key)
-            if (!descriptor || !artifactFamilies.has(descriptor.family)) continue
-
-            const versionToKeys = familyToVersionedKeys.get(descriptor.family) ?? new Map<string, string[]>()
-            const keys = versionToKeys.get(descriptor.version) ?? []
-            keys.push(object.Key)
-            versionToKeys.set(descriptor.version, keys)
-            familyToVersionedKeys.set(descriptor.family, versionToKeys)
-        }
-
-        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
-    } while (continuationToken)
-
-    if (!familyToVersionedKeys.size) {
-        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: no existing matching versioned artifacts found`)
-        return
+    } catch (error) {
+        if (isMissingS3Object(error)) return false
+        throw error
     }
-
-    const keysToDelete: string[] = []
-    const removedGroups: string[] = []
-    for (const [family, versionToKeys] of familyToVersionedKeys.entries()) {
-        if (!versionToKeys.has(currentVersion)) {
-            versionToKeys.set(currentVersion, [])
-        }
-
-        const sortedVersions = Array.from(versionToKeys.keys()).sort(compareVersionsDesc)
-        const keptVersions = new Set(sortedVersions.slice(0, keepRecentVersions))
-        keptVersions.add(currentVersion)
-
-        const familyKeysToDelete = Array.from(versionToKeys.entries())
-            .filter(([version]) => !keptVersions.has(version))
-            .flatMap(([, keys]) => keys)
-
-        if (!familyKeysToDelete.length) {
-            continue
-        }
-
-        keysToDelete.push(...familyKeysToDelete)
-        removedGroups.push(`${family} => ${sortedVersions.filter(version => !keptVersions.has(version)).join(', ')}`)
-    }
-
-    if (!keysToDelete.length) {
-        const familyList = Array.from(artifactFamilies).sort().join(', ')
-        log(LogLevel.INFO, `Retention skipped for ${branchPrefix}: nothing to delete for ${familyList}`)
-        return
-    }
-
-    for (let index = 0; index < keysToDelete.length; index += 1000) {
-        const chunk = keysToDelete.slice(index, index + 1000)
-        await client.send(
-            new DeleteObjectsCommand({
-                Bucket: bucket,
-                Delete: {
-                    Objects: chunk.map(Key => ({ Key })),
-                    Quiet: false,
-                },
-            }),
-        )
-    }
-
-    log(
-        LogLevel.SUCCESS,
-        `Retention removed ${keysToDelete.length} artifacts from ${branchPrefix} (${removedGroups.join(' | ')})`,
-    )
 }
 
-async function uploadFileToS3(client: S3Client, bucket: string, key: string, filePath: string): Promise<void> {
+async function uploadFileToS3(
+    client: S3Client,
+    bucket: string,
+    key: string,
+    filePath: string,
+    headers?: UploadHeaders,
+    options?: UploadFileOptions,
+): Promise<void> {
     const { size } = await fs.promises.stat(filePath)
     const { threshold, partSize, concurrency } = getMultipartUploadConfig()
+    const defaultUploadHeaders = isDesktopReleaseManifestFile(filePath)
+        ? {
+              CacheControl: 'no-store, no-cache, must-revalidate, max-age=0',
+              ContentType: 'application/json; charset=utf-8',
+          }
+        : /\/(?:versions|hosts|components|setups)\//u.test(`/${key}`)
+          ? {
+                CacheControl: 'public, max-age=31536000, immutable',
+            }
+          : {}
+    const uploadHeaders = {
+        ...defaultUploadHeaders,
+        ...headers,
+    }
+    const sha256 = options?.skipIfUnchanged ? await hashFileSha256(filePath) : null
+    if (sha256 && (await hasMatchingS3Object(client, bucket, key, size, sha256, uploadHeaders))) {
+        log(LogLevel.INFO, `Skipped unchanged ${key}`)
+        return
+    }
+    const metadata = sha256 ? { Metadata: { sha256 } } : {}
 
     if (size < threshold) {
         await client.send(
@@ -399,6 +522,8 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 Key: key,
                 Body: fs.createReadStream(filePath),
                 ACL: 'public-read',
+                ...uploadHeaders,
+                ...metadata,
             }),
         )
         log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
@@ -410,6 +535,8 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
             Bucket: bucket,
             Key: key,
             ACL: 'public-read',
+            ...uploadHeaders,
+            ...metadata,
         }),
     )
 
@@ -419,7 +546,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
     }
 
     const partCount = Math.ceil(size / partSize)
-    const completedParts = new Array<{ ETag: string; PartNumber: number }>(partCount)
+    const completedParts = Array.from<{ ETag: string; PartNumber: number }>({ length: partCount })
     let nextPartNumber = 1
     let uploadedBytes = 0
     let finishedParts = 0
@@ -461,10 +588,7 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
                 uploadedBytes += contentLength
                 finishedParts += 1
 
-                log(
-                    LogLevel.INFO,
-                    `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`,
-                )
+                log(LogLevel.INFO, `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`)
             }
         }
 
@@ -494,11 +618,93 @@ async function uploadFileToS3(client: S3Client, bucket: string, key: string, fil
     log(LogLevel.INFO, `Uploaded ${key} (${finishedParts} parts, multipart)`)
 }
 
+async function copyUploadedFileInS3(
+    client: S3Client,
+    bucket: string,
+    sourceKey: string,
+    targetKey: string,
+    filePath: string,
+    headers: UploadHeaders,
+): Promise<void> {
+    const { size } = await fs.promises.stat(filePath)
+    const sha256 = await hashFileSha256(filePath)
+    if (await hasMatchingS3Object(client, bucket, targetKey, size, sha256, headers)) {
+        log(LogLevel.INFO, `Skipped unchanged ${targetKey}`)
+        return
+    }
+
+    const copySource = `${encodeURIComponent(bucket)}/${sourceKey.split('/').map(encodeURIComponent).join('/')}`
+    try {
+        await client.send(
+            new CopyObjectCommand({
+                Bucket: bucket,
+                Key: targetKey,
+                CopySource: copySource,
+                ACL: 'public-read',
+                MetadataDirective: 'REPLACE',
+                Metadata: { sha256 },
+                ...headers,
+            }),
+        )
+        log(LogLevel.INFO, `Copied ${sourceKey} -> ${targetKey} (${Math.ceil(size / 1024)} KiB, server-side)`)
+    } catch {
+        log(LogLevel.WARN, `Server-side copy failed for ${targetKey}; falling back to upload`)
+        await uploadFileToS3(client, bucket, targetKey, filePath, headers, { skipIfUnchanged: true })
+    }
+}
+
+async function readStoredText(client: S3Client, bucket: string, key: string): Promise<string> {
+    const response = await client.send(new GetObjectCommand({ Bucket: bucket, Key: key }))
+    if (!response.Body) {
+        throw new Error(`S3 object has no body: ${key}`)
+    }
+    return await response.Body.transformToString('utf8')
+}
+
+async function archiveStoredDesktopManifest(client: S3Client, bucket: string, currentKey: string, archiveRoot: string): Promise<void> {
+    let body: string
+    try {
+        body = await readStoredText(client, bucket, currentKey)
+    } catch (error) {
+        if (isMissingS3Object(error)) return
+        throw error
+    }
+
+    const manifest = JSON.parse(body) as { metadataVersion?: unknown }
+    if (!Number.isSafeInteger(manifest.metadataVersion) || Number(manifest.metadataVersion) <= 0) {
+        throw new Error(`Published desktop manifest has an invalid metadataVersion: ${currentKey}`)
+    }
+
+    const archiveKey = `${archiveRoot}/${String(manifest.metadataVersion)}/${path.basename(currentKey)}`
+    const size = Buffer.byteLength(body)
+    const sha256 = crypto.createHash('sha256').update(body).digest('hex')
+    const headers: UploadHeaders = {
+        CacheControl: 'public, max-age=31536000, immutable',
+        ContentType: 'application/json; charset=utf-8',
+    }
+    if (await hasMatchingS3Object(client, bucket, archiveKey, size, sha256, headers)) {
+        log(LogLevel.INFO, `Skipped unchanged ${archiveKey}`)
+        return
+    }
+
+    await client.send(
+        new PutObjectCommand({
+            Bucket: bucket,
+            Key: archiveKey,
+            Body: body,
+            ACL: 'public-read',
+            ...headers,
+            Metadata: { sha256 },
+        }),
+    )
+    log(LogLevel.INFO, `Archived current manifest as ${archiveKey}`)
+}
+
 export async function publishToS3(
     branch: string,
     dir: string,
     version?: string,
-    opts?: { prefix?: string; keepRecentVersions?: number | null },
+    opts?: { prefix?: string; legacyUpdateBridge?: boolean; keepRecentVersions?: null },
 ): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
@@ -506,153 +712,220 @@ export async function publishToS3(
         process.exit(1)
     }
     const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const keepRecentVersions = opts?.keepRecentVersions ?? parseKeepRecentVersions(process.env.S3_KEEP_RECENT_VERSIONS)
+    const legacyUpdateBridge = opts?.legacyUpdateBridge === true
     const client = createS3Client()
 
-    let files = walkFiles(dir)
+    let files = fs
+        .readdirSync(dir)
+        .map(name => path.join(dir, name))
+        .filter(filePath => fs.statSync(filePath).isFile())
         .filter(fp => path.basename(fp) !== 'builder-debug.yml')
-        .filter(fp => (version ? path.basename(fp).includes(version) || /latest(-linux)?\.yml$/.test(path.basename(fp)) : true))
-    const artifactFamilies = collectArtifactFamilies(files)
-
-    const platform = os.platform()
-    let variantFile: string | null = 'latest.yml'
-    if (platform === 'darwin') variantFile = null
-    else if (platform === 'linux') variantFile = 'latest-linux.yml'
-
-    if (variantFile) {
-        const variantPath = path.join(dir, variantFile)
-        if (fs.existsSync(variantPath)) {
-            log(LogLevel.INFO, `Processing ${variantFile}`)
-            const raw = fs.readFileSync(variantPath, 'utf-8')
-            let data: any = {}
-            try {
-                data = yaml.load(raw) as any
-            } catch (e: any) {
-                log(LogLevel.ERROR, `Failed to parse ${variantFile}: ${e.message || e}`)
-            }
-            data.updateUrgency = 'soft'
-            data.commonConfig = {
-                DEPRECATED_VERSIONS: process.env.DEPRECATED_VERSIONS,
-                UPDATE_URL: `${process.env.S3_URL}/${prefix}/${branch}/`,
-            }
-            fs.writeFileSync(variantPath, yaml.dump(data), 'utf-8')
-            if (!files.includes(variantPath)) files.push(variantPath)
-            log(LogLevel.SUCCESS, `Updated and queued ${variantFile}`)
-        }
-    }
-
+        .filter(fp => !isLegacyUpdaterArtifact(fp) || (legacyUpdateBridge && isLegacyUpdateBridgeMetadata(fp)))
+        .filter(fp =>
+            version
+                ? isDesktopReleaseManifestFile(fp) ||
+                  (legacyUpdateBridge && isLegacyUpdateBridgeMetadata(fp)) ||
+                  parseStructuredArtifactDescriptor(path.basename(fp)) !== null
+                : true,
+        )
     const zipFiles = fs
         .readdirSync(dir)
-        .filter(name => name.endsWith('.zip') && (!version || name.includes(version)))
+        .filter(name => name.endsWith('.zip'))
         .map(name => path.join(dir, name))
     for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
-    files = [
-        ...files.filter(filePath => !isUpdaterManifestFile(filePath)),
-        ...files.filter(filePath => isUpdaterManifestFile(filePath)),
-    ]
-
-    if (version && keepRecentVersions && artifactFamilies.size) {
-        await pruneOldArtifacts(client, bucket, prefix, branch, version, keepRecentVersions, artifactFamilies)
-    }
+    const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
+    files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
     for (const filePath of files) {
-        const key = `${prefix}/${branch}/${path.relative(dir, filePath).replace(/\\/g, '/')}`
-        await uploadFileToS3(client, bucket, key, filePath)
+        const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
+        if (isDesktopReleaseManifestFile(filePath)) {
+            await archiveStoredDesktopManifest(client, bucket, key, `${prefix}/${branch}/manifests`)
+            const manifest = JSON.parse(fs.readFileSync(filePath, 'utf8')) as { metadataVersion?: unknown }
+            if (!Number.isSafeInteger(manifest.metadataVersion) || Number(manifest.metadataVersion) <= 0) {
+                throw new Error(`Desktop manifest has an invalid metadataVersion: ${filePath}`)
+            }
+            const archiveKey = `${prefix}/${branch}/manifests/${String(manifest.metadataVersion)}/${path.basename(filePath)}`
+            await uploadFileToS3(
+                client,
+                bucket,
+                archiveKey,
+                filePath,
+                {
+                    CacheControl: 'public, max-age=31536000, immutable',
+                    ContentType: 'application/json; charset=utf-8',
+                },
+                { skipIfUnchanged: true },
+            )
+        }
+        await uploadFileToS3(client, bucket, key, filePath, getDesktopUpdateUploadHeaders(filePath), {
+            skipIfUnchanged: !isMutableUpdatePointer(filePath),
+        })
+        const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
+        if (latestAliasPath) {
+            await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
+        }
+        if (legacyUpdateBridge && version) {
+            const escapedVersion = escapeRegExp(version)
+            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.(?:exe|deb)$`, 'iu').test(path.basename(filePath))) {
+                await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
+                    CacheControl: 'public, max-age=31536000, immutable',
+                })
+            }
+        }
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')
 }
 
-export async function generateAndPublishMacDownloadJson(
-    branch: string,
-    releaseDir: string,
-    version: string,
-    opts?: { prefix?: string },
-): Promise<void> {
-    if (os.platform() !== 'darwin') return
+export function createRemoteRendererPublishPlan(dir: string): RemoteRendererPublishPlan {
+    const rootDir = path.resolve(dir)
+    if (!fs.existsSync(rootDir) || !fs.statSync(rootDir).isDirectory()) {
+        throw new Error(`Publish directory does not exist: ${rootDir}`)
+    }
+
+    const manifestPath = path.join(rootDir, 'desktop', 'manifest.json')
+    if (!fs.existsSync(manifestPath) || !fs.statSync(manifestPath).isFile()) {
+        throw new Error(`Remote renderer manifest does not exist: ${manifestPath}`)
+    }
+
+    const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as { artifactSha256?: unknown; buildNumber?: unknown; url?: unknown }
+    if (typeof manifest.buildNumber !== 'string' || !/^(?:0|[1-9]\d*)$/u.test(manifest.buildNumber)) {
+        throw new Error(`Remote renderer manifest has an invalid buildNumber: ${String(manifest.buildNumber)}`)
+    }
+    if (typeof manifest.url !== 'string') {
+        throw new Error('Remote renderer manifest has an invalid URL')
+    }
+    if (typeof manifest.artifactSha256 !== 'string' || !/^[a-f0-9]{64}$/u.test(manifest.artifactSha256)) {
+        throw new Error(`Remote renderer manifest has an invalid artifactSha256: ${String(manifest.artifactSha256)}`)
+    }
+
+    const rendererUrl = new URL(manifest.url)
+    const expectedPathSuffix = `/versions/${manifest.buildNumber}/index.html`
+    if (!rendererUrl.pathname.endsWith(expectedPathSuffix)) {
+        throw new Error(`Remote renderer URL must end with ${expectedPathSuffix}: ${manifest.url}`)
+    }
+
+    const publicEntrypointPath = path.join(rootDir, 'versions', manifest.buildNumber, 'index.html')
+    if (!fs.existsSync(publicEntrypointPath) || !fs.statSync(publicEntrypointPath).isFile()) {
+        throw new Error(`Remote renderer public entrypoint does not exist: ${publicEntrypointPath}`)
+    }
+
+    const rootEntrypointPath = path.join(rootDir, 'index.html')
+    const filesBeforePointers = walkFiles(rootDir)
+        .filter(filePath => filePath !== manifestPath && filePath !== rootEntrypointPath)
+        .sort((left, right) => left.localeCompare(right))
+
+    return {
+        artifactSha256: manifest.artifactSha256,
+        buildNumber: manifest.buildNumber,
+        filesBeforePointers,
+        manifestPath,
+        publicEntrypointPath,
+    }
+}
+
+async function pruneRemoteRendererVersions(client: S3Client, bucket: string, prefix: string, currentBuildNumber: string): Promise<void> {
+    const versionsPrefix = `${prefix}/versions/`
+    const keysByVersion = new Map<string, string[]>()
+    let continuationToken: string | undefined
+
+    do {
+        const response = await client.send(
+            new ListObjectsV2Command({
+                Bucket: bucket,
+                Prefix: versionsPrefix,
+                ContinuationToken: continuationToken,
+            }),
+        )
+        for (const object of response.Contents ?? []) {
+            const key = object.Key
+            if (!key) continue
+            const relativeKey = key.slice(versionsPrefix.length)
+            const version = relativeKey.split('/', 1)[0]
+            if (!/^(?:0|[1-9]\d*)$/u.test(version)) continue
+            const versionKeys = keysByVersion.get(version)
+            if (versionKeys) versionKeys.push(key)
+            else keysByVersion.set(version, [key])
+        }
+        continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
+    } while (continuationToken)
+
+    const versions = [...keysByVersion.keys()].sort((left, right) => (BigInt(left) > BigInt(right) ? -1 : BigInt(left) < BigInt(right) ? 1 : 0))
+    const retainedVersions = new Set<string>([currentBuildNumber])
+    for (const version of versions) {
+        if (retainedVersions.size >= REMOTE_RENDERER_RETAIN_VERSIONS) break
+        retainedVersions.add(version)
+    }
+
+    const versionsToRemove = versions.filter(version => !retainedVersions.has(version))
+    const keysToDelete = versionsToRemove.flatMap(version => keysByVersion.get(version) ?? [])
+    for (let index = 0; index < keysToDelete.length; index += 1000) {
+        const keys = keysToDelete.slice(index, index + 1000)
+        const response = await client.send(
+            new DeleteObjectsCommand({
+                Bucket: bucket,
+                Delete: {
+                    Objects: keys.map(Key => ({ Key })),
+                    Quiet: true,
+                },
+            }),
+        )
+        if (response.Errors?.length) {
+            throw new Error(`Failed to prune remote renderer versions: ${response.Errors.map(error => `${error.Key}: ${error.Code}`).join(', ')}`)
+        }
+    }
+
+    log(
+        LogLevel.SUCCESS,
+        `Remote renderer retention: kept ${versions.length - versionsToRemove.length} version(s), removed ${keysToDelete.length} object(s) from ${versionsToRemove.length} version(s)`,
+    )
+}
+
+export async function publishDirectoryToS3(dir: string, opts?: { prefix?: string }): Promise<RemoteRendererPublishPlan> {
     const bucket = process.env.S3_BUCKET
-    const baseUrl = process.env.S3_URL
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
-    if (!baseUrl) {
-        log(LogLevel.ERROR, 'S3_URL is not set in env')
-        process.exit(1)
-    }
-    const prefix = (opts?.prefix || 'builds/app').replace(/^\/+|\/+$/g, '')
-    const localArtifacts = collectMacArtifacts(releaseDir, version)
-    if (!localArtifacts.length) {
-        log(LogLevel.ERROR, `No macOS artifacts found for version ${version} in ${releaseDir}`)
-        process.exit(1)
-    }
-    const patchPath = path.resolve(__dirname, '../PATCHNOTES.md')
-    let releaseNotes = ''
-    if (fs.existsSync(patchPath)) {
-        releaseNotes = fs.readFileSync(patchPath, 'utf-8')
-    }
+
+    const rootDir = path.resolve(dir)
+    const plan = createRemoteRendererPublishPlan(rootDir)
+
+    const prefix = (opts?.prefix || process.env.S3_PREFIX || 'app').replace(/^\/+|\/+$/g, '')
     const client = createS3Client()
-    const assets: Array<{ arch: string; url: string; fileType: string; sha512: string }> = []
-    for (const a of localArtifacts) {
-        const sha512 = await hashFileSha512(a.file)
-        const fileName = path.basename(a.file)
-        assets.push({
-            arch: a.arch,
-            url: `${baseUrl}/${prefix}/${branch}/${fileName}`,
-            fileType: a.type,
-            sha512,
-        })
-    }
-    const existingUrl = `${baseUrl}/${prefix}/${branch}/download.json`
-    const existing = await fetchJson(existingUrl)
-    const existingAssets = Array.isArray(existing?.assets) ? existing.assets : []
-    const remoteAssets = await collectRemoteMacArtifacts(client, bucket, prefix, branch, version, baseUrl)
-    const merged = new Map<string, { arch: string; url: string; fileType: string; sha512?: string }>()
-    for (const a of existingAssets) {
-        if (a?.arch && a?.fileType && a?.url) {
-            merged.set(`${a.arch}:${a.fileType}`, a)
-        }
-    }
-    for (const a of remoteAssets) {
-        const key = `${a.arch}:${a.type}`
-        const current = merged.get(key)
-        merged.set(key, {
-            arch: a.arch,
-            url: a.url,
-            fileType: a.type,
-            sha512: current?.sha512,
-        })
-    }
-    for (const a of assets) {
-        merged.set(`${a.arch}:${a.fileType}`, a)
-    }
-    const mergedAssets = Array.from(merged.values())
-    const preferred = mergedAssets.find(x => x.arch === 'x64') || mergedAssets.find(x => x.arch === 'arm64') || mergedAssets[0]
-    const manifest = {
-        version,
-        url: preferred.url,
-        fileType: preferred.fileType,
-        sha512: preferred.sha512,
-        releaseNotes: releaseNotes || existing?.releaseNotes || '',
-        updateUrgency: 'soft',
-        minOsVersion: '>=10.13',
-        assets: mergedAssets,
-    }
-    const body = Buffer.from(JSON.stringify(manifest, null, 2), 'utf-8')
-    const key = `${prefix}/${branch}/download.json`
-    await client.send(
-        new PutObjectCommand({
-            Bucket: bucket,
-            Key: key,
-            Body: body,
-            ACL: 'public-read',
-            ContentType: 'application/json',
-        }),
+
+    log(
+        LogLevel.INFO,
+        `Publishing renderer build ${plan.buildNumber} (${plan.filesBeforePointers.length} immutable/shared files, then public alias, then manifest) to s3://${bucket}/${prefix}/`,
     )
-    log(LogLevel.SUCCESS, `Uploaded macOS download.json → s3://${bucket}/${key}`)
+
+    for (const filePath of plan.filesBeforePointers) {
+        const relativePath = path.relative(rootDir, filePath).replace(/\\/g, '/')
+        const key = `${prefix}/${relativePath}`
+        await uploadFileToS3(client, bucket, key, filePath, getRemoteRendererUploadHeaders(relativePath, filePath), { skipIfUnchanged: true })
+    }
+
+    await uploadFileToS3(
+        client,
+        bucket,
+        `${prefix}/index.html`,
+        plan.publicEntrypointPath,
+        getRemoteRendererPointerUploadHeaders(plan.publicEntrypointPath),
+    )
+    await uploadFileToS3(
+        client,
+        bucket,
+        `${prefix}/desktop/manifest.json`,
+        plan.manifestPath,
+        getRemoteRendererPointerUploadHeaders(plan.manifestPath),
+    )
+    await pruneRemoteRendererVersions(client, bucket, prefix, plan.buildNumber)
+
+    log(LogLevel.SUCCESS, 'Publish directory to S3 completed')
+    return plan
 }
 
 function readPkgVersion(): string {
@@ -667,36 +940,25 @@ function argValue(flag: string): string | null {
     if (i === -1) return null
     return process.argv[i + 1] || null
 }
-function hasFlag(flag: string): boolean {
-    return process.argv.includes(flag)
-}
 
 async function cli(): Promise<void> {
     const branch = argValue('--branch') || argValue('-b')
     if (!branch) {
         log(
             LogLevel.ERROR,
-            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--mac-manifest]',
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--legacy-update-bridge]',
         )
         process.exit(1)
     }
     const dir = argValue('--dir') || 'release'
     const version = argValue('--version') || readPkgVersion()
     const prefix = argValue('--prefix') || process.env.S3_PREFIX || 'builds/app'
-    const macManifest = hasFlag('--mac-manifest')
-    const keepRecentVersions = parseKeepRecentVersions(argValue('--keep-last') || argValue('--keepLast') || process.env.S3_KEEP_RECENT_VERSIONS)
-
+    const legacyUpdateBridge = process.argv.includes('--legacy-update-bridge')
     log(LogLevel.INFO, `Branch: ${branch}`)
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
-    log(LogLevel.INFO, `macOS download.json: ${macManifest ? 'ON' : 'OFF'}`)
-    log(LogLevel.INFO, `Retention keep recent versions: ${keepRecentVersions ?? 'OFF'}`)
-
-    await publishToS3(branch, dir, version, { prefix, keepRecentVersions })
-    if (macManifest) {
-        await generateAndPublishMacDownloadJson(branch, dir, version, { prefix })
-    }
+    await publishToS3(branch, dir, version, { prefix, legacyUpdateBridge })
 }
 
 const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url

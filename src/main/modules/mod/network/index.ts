@@ -1,25 +1,23 @@
-import { BrowserWindow } from 'electron'
-import axios from 'axios'
 import * as fs from 'original-fs'
 import * as path from 'path'
-import logger from '../../logger'
-import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
-import { installPreparedAsarAndPatchBundle, isCompressedArchiveLink } from '../mod-files'
+
 import { t } from '../../../i18n'
 import { copyFile } from '../../../utils/appUtils'
+import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
+import { HandleErrorsElectron } from '../../handlers/handleErrorsElectron'
+import logger from '../../logger'
 import {
-    sendToRenderer,
-    resetProgress,
-    sendFailure,
-    unlinkIfExists,
-    restoreBackupIfExists,
-    downloadToTempWithProgress,
     DownloadError,
+    downloadToTempWithProgress,
+    resetProgress,
+    restoreBackupIfExists,
+    sendFailure,
     sendProgress,
     setProgress,
+    unlinkIfExists,
 } from '../download.helpers'
-import { isLinuxAccessError } from '../../../utils/appUtils/elevation'
-import type { DownloadProgress, ModDownloadFailure } from './types'
+import { installPreparedAsarAndPatchBundle, isCompressedArchiveLink } from '../mod-files'
+import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
 import {
     ensureDir,
     isCachedArchiveValid,
@@ -30,8 +28,10 @@ import {
     UNPACKED_MARKER_FILE,
     writeUnpackedMarker,
 } from './helpers'
-import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
 import { getPulseSyncUserAgent } from './userAgent'
+
+import type { DownloadProgress, ModDownloadFailure } from './types'
+import type { BrowserWindow } from 'electron'
 const NETWORK_PROGRESS_RATIO = 0.85
 const DERIVED_UNPACKED_DIRECTORY_SUFFIX = '.unpacked-dir'
 const LEGACY_PREPARED_UNPACKED_SUFFIX = '.unpacked.zip'
@@ -217,6 +217,7 @@ export async function downloadAndExtractUnpacked(
     cacheDir?: string,
     progress?: DownloadProgress,
     onFailure?: (failure: ModDownloadFailure) => void,
+    sourceArchivePath?: string,
 ): Promise<boolean> {
     const progressBase = progress?.base ?? 0
     const progressScale = progress?.scale ?? 1
@@ -258,7 +259,12 @@ export async function downloadAndExtractUnpacked(
         let archiveChecksum = checksum
         let downloaded = false
 
-        if (cacheDir) {
+        if (sourceArchivePath && (await isCachedArchiveValid(sourceArchivePath, checksum))) {
+            cacheFile = sourceArchivePath
+            archivePath = sourceArchivePath
+        }
+
+        if (cacheDir && archivePath === tempArchivePath) {
             const cacheDirStartedAt = Date.now()
             await ensureDir(cacheDir)
             const cacheDirMs = Date.now() - cacheDirStartedAt

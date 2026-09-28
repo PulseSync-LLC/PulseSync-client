@@ -8,26 +8,58 @@ import {
     ERROR_TRACKING_DSN,
     ERROR_TRACKING_ENABLED,
     ERROR_TRACKING_ENVIRONMENT,
-    ERROR_TRACKING_RELEASE,
     sanitizeErrorTrackingEvent,
 } from '@common/errorTracking'
+import { getDesktopErrorTrackingRelease } from '@common/errorTrackingRelease'
+
+import { BootstrapperCommandError } from './bootstrapper/command'
+import { isUpdateErrorV1 } from './bootstrapper/contracts'
 import logger from './logger'
 
-let initialized = false
+const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
+const errorTrackingRuntime = globalThis as typeof globalThis & { [INITIALIZED_KEY]?: boolean }
+type MainErrorTrackingIdentity = { version: string; commit: string }
 
-export const initMainErrorTracking = (): void => {
-    if (!ERROR_TRACKING_ENABLED || initialized) return
+let currentIdentity: MainErrorTrackingIdentity = {
+    version: PULSESYNC_VERSION,
+    commit: PULSESYNC_BRANCH || 'unknown',
+}
+
+const isInitialized = (): boolean => errorTrackingRuntime[INITIALIZED_KEY] === true
+
+const applyMainErrorTrackingIdentity = (identity: MainErrorTrackingIdentity): void => {
+    currentIdentity = identity
+    if (!isInitialized()) return
+
+    Sentry.setTags({
+        ...ERROR_TRACKING_BUILD_TAGS,
+        'desktop.commit': identity.commit,
+        'desktop.version': identity.version,
+        process: 'main',
+        platform: process.platform,
+        architecture: process.arch,
+    })
+}
+
+export const initMainErrorTracking = (identity: MainErrorTrackingIdentity): void => {
+    if (!ERROR_TRACKING_ENABLED) return
+
+    currentIdentity = identity
+    if (isInitialized()) {
+        applyMainErrorTrackingIdentity(identity)
+        return
+    }
 
     try {
         Sentry.init({
             dsn: ERROR_TRACKING_DSN,
-            release: ERROR_TRACKING_RELEASE,
+            release: getDesktopErrorTrackingRelease(identity.version, identity.commit),
             dist: ERROR_TRACKING_DIST,
             environment: ERROR_TRACKING_ENVIRONMENT,
             dataCollection: {
                 userInfo: false,
             },
-            maxBreadcrumbs: 0,
+            maxBreadcrumbs: 25,
             tracesSampleRate: 0,
             attachScreenshot: false,
             includeLocalVariables: false,
@@ -36,25 +68,22 @@ export const initMainErrorTracking = (): void => {
                     integration =>
                         !['OnUncaughtException', 'OnUnhandledRejection', 'PreloadInjection', 'MainProcessSession'].includes(integration.name),
                 ),
+            beforeBreadcrumb: breadcrumb => (breadcrumb.category?.startsWith('pulsesync.') ? breadcrumb : null),
             beforeSend: event => {
                 event.platform = 'javascript'
+                event.release = getDesktopErrorTrackingRelease(currentIdentity.version, currentIdentity.commit)
                 return addErrorTrackingDebugIds(addErrorTrackingRuntimeTags(sanitizeErrorTrackingEvent(event)))
             },
         })
-        Sentry.setTags({
-            ...ERROR_TRACKING_BUILD_TAGS,
-            process: 'main',
-            platform: process.platform,
-            architecture: process.arch,
-        })
-        initialized = true
+        errorTrackingRuntime[INITIALIZED_KEY] = true
+        applyMainErrorTrackingIdentity(identity)
     } catch (error) {
         logger.main.warn('Failed to initialize error tracking:', error)
     }
 }
 
 export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: string | null } | null): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     const id = user?.id?.trim()
     if (!id || id === '-1') {
         Sentry.setUser(null)
@@ -68,11 +97,69 @@ export const setMainErrorTrackingUser = (user?: { id?: string | null; email?: st
     })
 }
 
+export const addMainBreadcrumb = (category: string, message: string, data?: Record<string, unknown>): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.addBreadcrumb({
+            category,
+            message,
+            level: 'info',
+            ...(data ? { data } : {}),
+        })
+    } catch (error) {
+        logger.main.warn('Failed to add error tracking breadcrumb:', error)
+    }
+}
+
+type MainMetricAttributes = Record<string, string | number | boolean>
+
+export const countMainMetric = (name: string, value: number, attributes?: MainMetricAttributes): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.metrics.count(name, value, attributes ? { attributes } : undefined)
+    } catch (error) {
+        logger.main.warn('Failed to record error tracking counter:', error)
+    }
+}
+
+export const distributeMainMetric = (name: string, value: number, unit?: 'byte' | 'millisecond', attributes?: MainMetricAttributes): void => {
+    if (!isInitialized()) return
+    try {
+        Sentry.metrics.distribution(name, value, {
+            ...(unit ? { unit } : {}),
+            ...(attributes ? { attributes } : {}),
+        })
+    } catch (error) {
+        logger.main.warn('Failed to record error tracking distribution:', error)
+    }
+}
+
 export const captureMainException = (error: unknown, source: string): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         Sentry.withScope(scope => {
             scope.setTag('source', source)
+            if (error instanceof BootstrapperCommandError) {
+                const result = isUpdateErrorV1(error.result) ? error.result : null
+                const operation = result?.command ?? error.invocation.operation
+                const errorCode = result?.error.code ?? `exit-${error.exitCode ?? 'unknown'}`
+                const phase = result?.error.phase ?? 'unknown'
+                scope.setFingerprint(['bootstrapper-command', operation, errorCode, phase])
+                scope.setTags({
+                    'bootstrapper.command': operation,
+                    'bootstrapper.error_code': errorCode,
+                    'bootstrapper.phase': phase,
+                })
+                scope.setContext('bootstrapper', {
+                    operation,
+                    exitCode: error.exitCode,
+                    launcherKind: error.invocation.launcherKind,
+                    launcherSource: error.invocation.launcherSource,
+                    retryable: result?.error.retryable,
+                    safeToContinue: result?.error.safeToContinue,
+                    diagnostics: error.diagnostics.slice(0, 8).map(line => line.slice(0, 1_000)),
+                })
+            }
             Sentry.captureException(error instanceof Error ? error : new Error(String(error)))
         })
     } catch (captureError) {
@@ -81,7 +168,7 @@ export const captureMainException = (error: unknown, source: string): void => {
 }
 
 export const captureRendererTermination = (details: Electron.RenderProcessGoneDetails): void => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         Sentry.withScope(scope => {
             scope.setTags({
@@ -97,7 +184,7 @@ export const captureRendererTermination = (details: Electron.RenderProcessGoneDe
 }
 
 export const flushErrorTracking = async (timeout = 1500): Promise<void> => {
-    if (!initialized) return
+    if (!isInitialized()) return
     try {
         await Sentry.flush(timeout)
     } catch (error) {

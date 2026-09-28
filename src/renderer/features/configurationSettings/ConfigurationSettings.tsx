@@ -1,28 +1,20 @@
-import React, { useEffect, useMemo, useRef, useState, useCallback, useLayoutEffect } from 'react'
-import clsx from 'clsx'
-import {
-    AddonConfig,
-    Item,
-    ButtonItem,
-    SliderItem,
-    ColorItem,
-    FileItem,
-    SelectorItem,
-    TextItem,
-    normalizeAddonConfig,
-} from '@features/configurationSettings/types'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
-import ButtonInput from '@shared/ui/PSUI/ButtonInput'
-import TextInput from '@shared/ui/PSUI/TextInput'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
-import FileInput from '@shared/ui/PSUI/FileInput'
+import clsx from 'clsx'
+import { useTranslation } from 'react-i18next'
 
 import BufferedColorInput from '@features/configurationSettings/BufferedColorInput'
 import BufferedSliderInput from '@features/configurationSettings/BufferedSliderInput'
+import { normalizeAddonConfig } from '@features/configurationSettings/types'
+import ButtonInput from '@shared/ui/PSUI/ButtonInput'
+import ChangesBar from '@shared/ui/PSUI/ChangesBar'
+import FileInput from '@shared/ui/PSUI/FileInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
+import TextInput from '@shared/ui/PSUI/TextInput'
 
 import * as css from '@features/configurationSettings/ConfigurationSettings.module.scss'
-import ChangesBar from '@shared/ui/PSUI/ChangesBar'
-import { useTranslation } from 'react-i18next'
+
+import type { AddonConfig, ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
 
 type Props = {
     configData: AddonConfig
@@ -255,6 +247,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <ButtonInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             defaultValue={it.value}
@@ -277,6 +270,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <BufferedColorInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={it.value}
@@ -303,6 +297,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <SelectInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={String(it.value)}
@@ -325,6 +320,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <BufferedSliderInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             min={it.min}
@@ -356,6 +352,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <FileInput
+                            className={css.controlCard}
                             label={it.name}
                             description={it.description}
                             value={current}
@@ -379,6 +376,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
                 return (
                     <>
                         <TextInput
+                            className={css.controlCard}
                             name={it.id}
                             label={it.name}
                             description={it.description}

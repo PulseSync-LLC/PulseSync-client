@@ -1,9 +1,12 @@
 import { BrowserWindow } from 'electron'
+
+import { processBrowserAuth } from './auth/browserAuth'
 import deeplinkCommands from './deeplinkCommands'
 import logger from './logger'
-import { BrowserAuthCredentials, extractBrowserAuthFromDeepLink, processBrowserAuth } from './auth/browserAuth'
 import { extractInstallModUpdateFromDeepLink, installModUpdateFromAsar } from './mod/installModUpdateFrom'
 import { isUiReady, runWhenUiReady } from './uiReady'
+
+import type { BrowserAuthCredentials } from './auth/browserAuth'
 
 let pendingInstallModUpdateFrom: { path: string; source: 'deeplink' } | null = null
 let pendingBrowserAuthFromDeepLink: BrowserAuthCredentials | null = null
@@ -110,12 +113,6 @@ export const navigateToDeeplink = async (url: string, deeplinkCommandsHandler: d
     if (commandName) {
         const commandHandled = await deeplinkCommandsHandler.runCommand(commandName, args, url, window)
         if (commandHandled) return
-    }
-
-    const browserAuth = extractBrowserAuthFromDeepLink(url)
-    if (browserAuth) {
-        await handleBrowserAuthDeepLink(browserAuth, window)
-        return
     }
 
     const asarPath = extractInstallModUpdateFromDeepLink(url)

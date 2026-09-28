@@ -1,78 +1,147 @@
 .stack {
     position: fixed;
     bottom: -20px;
-    width: 500px;
     z-index: 10050;
+
+    width: 500px;
+
     pointer-events: none;
     cursor: default;
 }
 
 .card {
     position: absolute;
-    left: 0;
     right: 0;
+    left: 0;
+
     display: flex;
-    align-items: center;
+
     gap: 18px;
+
+    align-items: center;
+
     padding: 8px 18px;
-    border-radius: 10px;
-    background: #292c36;
-    box-shadow: 0 0 10px rgba(0, 0, 0, 0.25);
+
+    color: var(--clr);
+
     pointer-events: auto;
+
+    background: var(--border);
+    border-radius: 10px;
+    box-shadow: 0 0 10px rgb(0, 0, 0, 0.25);
+
     transform: translateY(var(--y)) scale(var(--s));
+
     transition:
         transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
         opacity 0.35s;
-    color: var(--clr);
 }
 
 .cardIn {
     opacity: 1;
 }
+
 .cardOut {
-    opacity: 0;
     pointer-events: none;
+
+    opacity: 0;
 }
 
 .icon {
-    flex-shrink: 0;
     display: flex;
+
+    flex-shrink: 0;
+}
+
+.loading .icon > svg {
+    animation: toast-loading-spin 1s linear infinite;
+}
+
+@keyframes toast-loading-spin {
+    from {
+        transform: rotate(0deg) scaleX(-1);
+    }
+
+    to {
+        transform: rotate(360deg) scaleX(-1);
+    }
+}
+
+@media (prefers-reduced-motion: reduce) {
+    .loading .icon > svg {
+        animation: none;
+    }
 }
 
 .text {
     display: flex;
+
+    flex: 1 1 auto;
     flex-direction: column;
+
+    min-width: 0;
 }
 
 .title {
     font-size: 16px;
     font-weight: 900;
+
     color: var(--clr);
 }
 
 .msg {
     font-size: 14px;
     font-weight: 400;
+
     color: var(--clr);
 }
 
+.action {
+    flex-shrink: 0;
+
+    padding: 7px 12px;
+    margin-left: 0;
+
+    font: inherit;
+    font-size: 13px;
+    font-weight: 700;
+
+    color: var(--surface-primary);
+
+    cursor: pointer;
+
+    background: var(--clr);
+    border: 0;
+    border-radius: 7px;
+
+    transition: opacity 0.2s;
+
+    &:hover {
+        opacity: 0.86;
+    }
+}
+
 .hide {
-    margin-left: auto;
+    padding: 4px;
+    margin-left: 0;
+
+    pointer-events: auto;
+    cursor: pointer;
+
     background: transparent;
     border: 0;
     border-radius: 6px;
-    padding: 4px;
-    pointer-events: auto;
-    cursor: pointer;
+
     transition: background 0.2s;
 
     &:hover {
-        background: #363944;
+        background: var(--border);
     }
 }
 
 .progressContainer {
     position: relative;
+
     width: 36px;
     height: 36px;
 }
@@ -83,40 +152,49 @@
 }
 
 .bg {
-    stroke: rgba(255, 255, 255, 0.2);
     fill: none;
+    stroke: var(--focus-ring);
     stroke-width: 3;
 }
 
 .fg {
-    stroke: currentColor;
     fill: none;
+    stroke: currentcolor;
     stroke-width: 3;
     stroke-linecap: round;
+
     transform: rotate(-90deg);
     transform-origin: center;
 }
 
 .progressText {
-    font-size: 10px;
-    font-weight: 700;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    color: currentColor;
     position: absolute;
+
+    display: flex;
+
+    align-items: center;
+    justify-content: center;
+
     width: -webkit-fill-available;
     height: -webkit-fill-available;
+
+    font-size: 10px;
+    font-weight: 700;
+
+    color: currentcolor;
 }
 
 .fadeEnter {
     opacity: 0;
+
     transform: translateY(8px) scale(0.97);
 }
 
 .fadeEnterActive {
     opacity: 1;
+
     transform: translateY(0) scale(1);
+
     transition:
         opacity 0.3s ease,
         transform 0.3s cubic-bezier(0.22, 1, 0.36, 1);
@@ -124,12 +202,15 @@
 
 .fadeExit {
     opacity: 1;
+
     transform: translateY(0) scale(1);
 }
 
 .fadeExitActive {
     opacity: 0;
+
     transform: translateY(-8px) scale(0.97);
+
     transition:
         opacity 0.25s ease,
         transform 0.25s cubic-bezier(0.55, 0, 0.1, 1);
@@ -142,7 +223,7 @@
 }
 
 .error {
-    --clr: #ff7777;
+    --clr: var(--danger);
 }
 
 .warning,
@@ -169,5 +250,6 @@
 .import,
 .default {
     cursor: pointer;
+
     border-left: 4px solid var(--clr);
 }

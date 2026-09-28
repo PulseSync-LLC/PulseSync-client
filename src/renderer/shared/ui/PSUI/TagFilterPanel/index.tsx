@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as extensionStyles from '@pages/extension/extension.module.scss'
 
 interface TagFilterPanelProps {

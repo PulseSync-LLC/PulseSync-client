@@ -1,25 +1,36 @@
 @use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
 
 :root {
-    --cfg-text: var(--text-primary, #e7ecf3);
-    --cfg-muted: var(--text-secondary, #9fb0c6);
-    --cfg-accent: var(--accent, #6ea8fe);
+    --cfg-text: var(--text-primary);
+    --cfg-muted: var(--text-secondary);
+    --cfg-accent: var(--accent);
 }
 
 .root {
+    box-sizing: border-box;
     display: flex;
+
     flex-direction: column;
+
     gap: 14px;
+
+    width: 100%;
+    min-width: 0;
+
+    padding: 14px 24px;
+
+    container-name: metadata-editor;
+    container-type: inline-size;
+
     color: var(--cfg-text);
-    width: -webkit-fill-available;
-    padding: 14px 40px;
 }
 
 .alert {
     padding: 18px 24px;
     margin: 16px 40px;
-    background: #3b4052;
-    border: 1px solid #4a526d;
+
+    background: var(--border);
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
 }
 
@@ -27,8 +38,8 @@
 .skeletonFieldMedium,
 .skeletonFieldTall,
 .skeletonCard {
-    @include shimmer.surface(rgba(129, 141, 179, 0.14));
-    border: 1px solid rgba(74, 82, 109, 0.5);
+    @include shimmer.surface(color-mix(in srgb, var(--text-secondary) 14%, transparent));
+    border: 1px solid color-mix(in srgb, var(--border-hover) 50%, transparent);
     border-radius: 14px;
 }
 
@@ -50,9 +61,14 @@
 
 .metaGrid {
     display: grid;
-    gap: 12px;
+
     grid-template-columns: repeat(2, minmax(240px, 1fr));
+
+    gap: 12px;
+
     align-items: start;
+
+    min-width: 0;
 }
 
 .metaWide {
@@ -61,20 +77,28 @@
 
 .metaSplit {
     display: grid;
+
     grid-template-columns: minmax(0, 1.15fr) minmax(280px, 0.85fr);
+
     gap: 12px;
+
     align-items: start;
 }
 
 .metaMainColumn,
 .metaSideColumn {
     display: grid;
+
     gap: 12px;
+
+    min-width: 0;
 }
 
 .metaSideRow {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 12px;
 }
 
@@ -85,28 +109,76 @@
 
 .metaDescription [role='textbox'] {
     font-size: 16px;
+
     line-height: 1.35;
+}
+
+.metadataField {
+    box-sizing: border-box;
+
+    min-width: 0;
+
+    outline-color: transparent;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    box-shadow: none;
+}
+
+.metadataField:hover {
+    outline-color: transparent;
+
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+}
+
+.metadataField:focus-within {
+    outline-color: transparent;
+
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .authorField {
     display: grid;
+
     gap: 4px;
+
     min-width: 0;
+
     padding: 10px 16px;
-    background: #3b4052;
-    border-radius: 8px;
+
     outline: transparent solid 2px;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
     transition: var(--transition);
 }
 
 .authorField:hover {
-    outline: #8d9dd6 solid 2px;
+    outline-color: transparent;
+
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+}
+
+.authorField:focus-within {
+    outline-color: transparent;
+
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    box-shadow: 0 0 0 2px var(--focus-ring);
 }
 
 .authorFieldLabel {
     font-size: 12px;
+
     line-height: 1.4;
-    color: #fff;
+
+    color: var(--text-primary);
 }
 
 .authorSearchWrap {
@@ -115,15 +187,22 @@
 
 .authorCombobox {
     display: flex;
-    align-items: center;
+
     flex-wrap: wrap;
+
     gap: 6px;
+
+    align-items: center;
+
     min-height: 24px;
+
+    padding: 0;
+
+    cursor: text;
+
+    background: transparent;
     border: 0;
     border-radius: 0;
-    background: transparent;
-    padding: 0;
-    cursor: text;
 }
 
 .authorCombobox:focus-within {
@@ -132,20 +211,26 @@
 
 .authorSearchInput {
     flex: 1 1 56px;
+
     min-width: 48px;
     height: auto;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: var(--cfg-text);
+
     padding: 0;
+
     font-size: 14px;
     font-weight: 500;
+
     line-height: 1.35;
+
+    color: var(--cfg-text);
+
+    background: transparent;
+    border: 0;
+    border-radius: 0;
 }
 
 .authorSearchInput::placeholder {
-    color: #7d849d;
+    color: var(--text-secondary);
 }
 
 .authorSearchInput:focus {
@@ -155,35 +240,47 @@
 .authorSearchDropdown {
     position: absolute;
     top: calc(100% + 8px);
-    left: 0;
     right: 0;
+    left: 0;
     z-index: 12;
+
     display: flex;
+
     flex-direction: column;
-    border: 1px solid #3e465f;
-    border-radius: 12px;
-    background: #2b3042;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+
     padding: 6px;
+
     overflow: hidden;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgb(0, 0, 0, 0.45);
 }
 
 .authorSearchState {
     padding: 10px 12px;
-    color: #9fb0c6;
+
     font-size: 13px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .fileCol {
     display: grid;
+
     gap: 8px;
 }
 
 .assetGrid {
     display: grid;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
     gap: 12px;
+
     align-items: start;
 }
 
@@ -192,25 +289,34 @@
 }
 
 .editorCard {
-    grid-column: 1 / -1;
     display: grid;
+
+    grid-column: 1 / -1;
+
     gap: 14px;
+
     padding: 16px 18px;
-    background: #313748;
-    border: 1px solid #434b61;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
     border-radius: 14px;
 }
 
 .listEditorHeader {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 16px;
+
     align-items: start;
 }
 
 .listEditorHeaderContent {
     display: grid;
+
     gap: 6px;
+
     min-width: 0;
 }
 
@@ -220,92 +326,141 @@
 }
 
 .listEditorDescription {
-    color: var(--cfg-muted);
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorButton {
+    box-sizing: border-box;
+
     min-width: 140px;
+    max-width: 100%;
+
     padding: 10px 14px;
-    border: 1px solid #5b6687;
-    border-radius: 10px;
-    background: #3b4460;
-    color: #f4f7ff;
+
     font-size: 13px;
     font-weight: 600;
+
+    color: var(--text-primary);
+
     cursor: pointer;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
 }
 
 .listEditorButton:hover {
-    background: #45506f;
+    background: var(--border-hover);
 }
 
 .listSummaryRow {
     display: grid;
-    gap: 12px;
+
     grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+
+    gap: 12px;
+
     padding-top: 2px;
 }
 
 .listSummaryMeta {
     display: grid;
+
     gap: 4px;
+
     min-width: 0;
 }
 
 .listSummaryLabel {
     font-size: 13px;
     font-weight: 700;
-    color: #f2f6ff;
+
+    color: var(--text-primary);
 }
 
 .listSummaryValue {
-    color: #b8c5dd;
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--text-secondary);
+
     word-break: break-word;
 }
 
 .listPreviewEmpty {
-    color: var(--cfg-muted);
     font-size: 13px;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorModal {
-    max-width: 1040px !important;
+    min-width: min(760px, calc(100vw - 32px)) !important;
+    max-width: min(760px, calc(100vw - 32px)) !important;
+
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    border-radius: var(--ps-radius-xl);
+    box-shadow: none;
+}
+
+.listEditorCancelButton {
+    color: var(--text-primary) !important;
+
+    background: var(--surface-elevated) !important;
+    border: 1px solid var(--border-hover) !important;
+}
+
+.listEditorCancelButton:hover:not(:disabled) {
+    background: var(--border) !important;
+    border-color: var(--border-hover) !important;
 }
 
 .relationsModal {
+    gap: 16px !important;
+
+    align-items: stretch !important;
+
     min-width: min(760px, calc(100vw - 32px)) !important;
     max-width: min(760px, calc(100vw - 32px)) !important;
+
     padding: 24px !important;
-    gap: 16px !important;
-    align-items: stretch !important;
 }
 
 .relationsModalHeader {
     display: grid;
+
     gap: 8px;
 }
 
 .relationsModalTitle {
     font-size: 24px;
     font-weight: 800;
+
     line-height: 1.2;
-    color: #ffffff;
+
+    color: var(--text-primary);
 }
 
 .relationsModalDescription {
-    color: #cfd8ea;
     font-size: 15px;
+
     line-height: 1.45;
+
+    color: var(--text-secondary);
 }
 
 .listEditorModalBody {
     display: grid;
-    gap: 16px;
+
     grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 16px;
+
     align-items: start;
 }
 
@@ -315,35 +470,46 @@
 
 .listEditorSection {
     display: grid;
+
     gap: 12px;
+
     padding: 12px;
-    border-radius: 14px;
-    background: #282e3d;
-    border: 1px solid #3d4458;
-    color: #e7ecf3;
+
+    color: var(--text-primary);
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 12px;
 }
 
 .listEditorSectionHeader {
     display: grid;
+
     gap: 6px;
 }
 
 .listEditorFieldLabel {
     font-size: 14px;
     font-weight: 700;
-    color: #f2f6ff;
+
+    color: var(--text-primary);
 }
 
 .listEditorHint {
-    color: var(--cfg-muted);
     font-size: 12px;
+
     line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorComposer {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 10px;
+
     align-items: end;
 }
 
@@ -352,66 +518,86 @@
 }
 
 .listEditorInput {
-    height: 44px;
     width: 100%;
-    border: 1px solid #4a526d;
-    border-radius: 12px;
-    background: #242a39;
-    color: var(--cfg-text);
+    height: 44px;
+
     padding: 0 14px;
+
     font: inherit;
+
     line-height: 1.5;
+
+    color: var(--cfg-text);
+
+    background: var(--surface-tertiary);
+    border: 2px solid var(--border-hover);
+    border-radius: 12px;
 }
 
 .listEditorInput::placeholder {
-    color: #8f9bb3;
+    color: var(--text-secondary);
 }
 
 .listEditorInput:focus {
     outline: none;
+
     border-color: var(--cfg-accent);
-    box-shadow: 0 0 0 3px rgba(110, 168, 254, 0.18);
+    box-shadow: 0 0 0 3px var(--focus-ring);
 }
 
 .authorSearchResults {
     display: grid;
+
     gap: 4px;
+
     max-height: 220px;
+
     overflow: auto;
 }
 
 .authorSearchOption {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 12px;
+
     align-items: center;
+
     padding: 8px 10px;
+
+    color: var(--text-primary);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    background: transparent;
     border: 1px solid transparent;
     border-radius: 8px;
-    background: transparent;
-    color: #dfe7f8;
-    cursor: pointer;
+
     transition:
         background 0.16s ease,
         border-color 0.16s ease,
         color 0.16s ease;
-    text-align: left;
 }
 
 .authorSearchOption:hover {
-    background: #3a4057;
-    border-color: #4a5473;
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
 }
 
 .authorSearchOptionSelected {
-    background: #3a4057;
-    border-color: #8d9dd6;
-    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+    background: var(--surface-tertiary);
+    border-color: var(--border-hover);
+    box-shadow: inset 0 0 0 2px color-mix(in srgb, var(--text-secondary) 15%, transparent);
 }
 
 .authorSearchBody {
     display: grid;
+
     gap: 2px;
+
     min-width: 0;
 }
 
@@ -419,24 +605,29 @@
 .authorSearchSecondary {
     overflow: hidden;
     text-overflow: ellipsis;
+
     white-space: nowrap;
 }
 
 .authorSearchPrimary {
     font-size: 13px;
     font-weight: 700;
-    color: #f4f7ff;
+
+    color: var(--text-primary);
 }
 
 .authorSearchSecondary {
     font-size: 12px;
-    color: #9fb0c6;
+
+    color: var(--text-secondary);
 }
 
 .authorSearchAction {
     font-size: 12px;
     font-weight: 700;
-    color: #6ea8fe;
+
+    color: var(--accent);
+
     white-space: nowrap;
 }
 
@@ -446,80 +637,114 @@
 
 .authorChip {
     display: flex;
-    align-items: center;
+
     gap: 4px;
+
+    align-items: center;
+
     min-width: 0;
     max-width: 100%;
+
     padding: 1px 7px;
-    background: rgba(110, 168, 254, 0.12);
-    border: 1px solid rgba(141, 157, 214, 0.22);
+
+    background: color-mix(in srgb, var(--ps-info, #4af) 12%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ps-info, #4af) 28%, transparent);
     border-radius: 999px;
 }
 
 .authorChipText {
-    font-size: 13px;
-    line-height: 1.3;
-    color: #e6eeff;
-    font-weight: 600;
     overflow: hidden;
     text-overflow: ellipsis;
+
+    font-size: 13px;
+    font-weight: 600;
+
+    line-height: 1.3;
+
+    color: var(--ps-info, #4af);
+
     white-space: nowrap;
 }
 
 .authorChipRemove {
-    width: 14px;
-    height: 14px;
-    border: 0;
-    border-radius: 0;
-    background: transparent;
-    color: #7d849d;
     display: inline-flex;
+
+    flex: 0 0 auto;
+
     align-items: center;
     justify-content: center;
-    cursor: pointer;
-    flex: 0 0 auto;
+
+    width: 14px;
+    height: 14px;
+
     padding: 0;
+
+    color: var(--text-secondary);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 0;
+
     opacity: 0.72;
 }
 
 .authorChipRemove:hover {
+    color: var(--text-secondary);
+
     background: transparent;
-    color: #c8d2ea;
+
     opacity: 1;
 }
 
 .listEditorAddButton {
-    min-height: 44px;
-    padding: 0 16px !important;
     align-items: center !important;
+
+    min-height: 44px;
+
+    padding: 0 16px !important;
 }
 
 .listEditorItems {
     display: grid;
+
     gap: 0;
+
     max-height: 180px;
-    overflow: auto;
+
     padding-right: 2px;
-    border: 1px solid #343c50;
+
+    overflow: auto;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border-hover);
     border-radius: 12px;
-    background: #242a39;
 }
 
 .listEditorEmpty {
-    color: var(--cfg-muted);
-    font-size: 13px;
-    line-height: 1.5;
     padding: 4px 2px 0;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: var(--cfg-muted);
 }
 
 .listEditorRow {
     display: grid;
+
     grid-template-columns: minmax(0, 1fr) auto;
+
     gap: 10px;
+
     align-items: center;
+
     padding: 12px 14px;
+
     background: transparent;
-    border-bottom: 1px solid rgba(74, 82, 109, 0.5);
+    border-bottom: 1px solid color-mix(in srgb, var(--border-hover) 50%, transparent);
 }
 
 .listEditorRow:last-child {
@@ -528,78 +753,131 @@
 
 .listEditorRowValue {
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--text-primary);
+
     word-break: break-word;
-    color: #e7ecf3;
 }
 
 .listEditorRemoveButton {
-    width: 30px;
-    height: 30px;
-    border: 0;
-    border-radius: 8px;
-    background: rgba(255, 107, 107, 0.12);
-    color: #ffb1b1;
     display: flex;
+
     align-items: center;
     justify-content: center;
+
+    width: 30px;
+    height: 30px;
+
+    color: var(--danger);
+
     cursor: pointer;
+
+    background: color-mix(in srgb, var(--danger) 12%, transparent);
+    border: 0;
+    border-radius: 8px;
 }
 
 .listEditorRemoveButton:hover {
-    background: rgba(255, 107, 107, 0.2);
+    background: color-mix(in srgb, var(--danger) 20%, transparent);
 }
 
 .listEditorInlineError,
 .listEditorError {
     padding: 12px 14px;
-    border-radius: 12px;
-    background: rgba(255, 107, 107, 0.14);
-    border: 1px solid rgba(255, 107, 107, 0.32);
-    color: #ffb1b1;
+
     font-size: 13px;
+
     line-height: 1.5;
+
+    color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 14%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
+    border-radius: 12px;
 }
 
 .preview {
     width: 100%;
     max-height: 220px;
+
     object-fit: cover;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
     border-radius: 10px;
-    border: 1px solid #4a526d;
-    background: #2f3443;
 }
 
 .inlineActions {
     display: flex;
-    justify-content: flex-end;
+
     gap: 10px;
+
+    justify-content: flex-end;
+
     margin-top: 8px;
 }
 
 .primaryBtn {
-    background: #3468f2 !important;
-    color: #fff !important;
+    color: var(--accent-foreground) !important;
+
+    background: var(--accent) !important;
     border: 0 !important;
 }
+
 .primaryBtn:hover {
     filter: brightness(1.06);
 }
 
 .secondaryBtn {
-    background: rgba(254, 110, 110, 0.12) !important;
-    color: #ff9f9f !important;
+    color: var(--danger) !important;
+
+    background: color-mix(in srgb, var(--danger) 12%, transparent) !important;
     border: 0 !important;
 }
+
 .secondaryBtn:hover {
-    background: rgba(254, 110, 110, 0.2) !important;
+    background: color-mix(in srgb, var(--danger) 20%, transparent) !important;
 }
 
 .footerSpace {
     height: 56px;
 }
 
-@media (max-width: 920px) {
+@container metadata-editor (max-width: 720px) {
+    .metaGrid,
+    .metaSplit,
+    .assetGrid,
+    .listSummaryRow {
+        grid-template-columns: 1fr;
+    }
+
+    .metaWide,
+    .assetWide {
+        grid-column: auto;
+    }
+
+    .listEditorHeader {
+        grid-template-columns: 1fr;
+    }
+
+    .listEditorButton {
+        width: 100%;
+    }
+}
+
+@container metadata-editor (max-width: 440px) {
+    .metaSideRow {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (width <= 920px) {
+    .root {
+        padding: 14px 16px;
+    }
+
     .metaGrid,
     .listSummaryRow,
     .listEditorModalBody {

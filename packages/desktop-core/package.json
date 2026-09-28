@@ -1,0 +1,20 @@
+{
+    "name": "@pulsesync/desktop-core",
+    "private": true,
+    "version": "3.0.0",
+    "main": "index.cjs",
+    "componentVersions": {
+        "artifactWorker": "1",
+        "pulsesyncNative": "1"
+    },
+    "componentRevisions": {
+        "desktopCore": 1,
+        "artifactWorker": 1,
+        "pulsesyncNative": 1
+    },
+    "componentDiskNames": {
+        "desktopCore": "pulsesync_desktop_core",
+        "artifactWorker": "pulsesync_artifact_worker",
+        "pulsesyncNative": "pulsesync_native"
+    }
+}

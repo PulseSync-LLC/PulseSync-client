@@ -1,5 +1,5 @@
 import rendererHttpClient from '@shared/api/http/client'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 
 export type SubscriptionGiveaway = {
     uuid: string
@@ -28,13 +28,13 @@ export type SubscriptionGiveawaysSnapshot = {
     giveaways: SubscriptionGiveaway[]
 }
 
-const CACHE_TTL_MS = 5_000
+const CACHE_TTL_MS = 60_000
 
 let cachedSnapshot: { authKey: string; fetchedAt: number; value: SubscriptionGiveawaysSnapshot } | null = null
 let snapshotRequest: { authKey: string; promise: Promise<SubscriptionGiveawaysSnapshot> } | null = null
 
 export async function loadSubscriptionGiveawaysSnapshot(options?: { force?: boolean }): Promise<SubscriptionGiveawaysSnapshot> {
-    const authKey = getUserToken() ?? ''
+    const authKey = (await getUserTokenAsync()) ?? ''
     const currentRequest = snapshotRequest
     if (currentRequest && currentRequest.authKey === authKey) {
         return currentRequest.promise

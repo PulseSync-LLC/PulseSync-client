@@ -1,5 +1,6 @@
 import { createContext } from 'react'
-import { Track } from '@entities/track/model/track.interface'
+
+import type { Track } from '@entities/track/model/track.interface'
 
 interface p {
     currentTrack?: Track

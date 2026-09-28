@@ -1,26 +1,21 @@
 import React, { useEffect, useRef } from 'react'
+
 import cn from 'clsx'
-import * as cm from '@features/context_menu_themes/contextMenu.module.scss'
-import { MenuItem } from '@features/context_menu_themes/sectionConfig'
+
 import TooltipButton from '@shared/ui/tooltip_button'
 
-interface ContextMenuProps {
-    items: MenuItem[]
-    position: { x: number; y: number }
-    onClose: () => void
-    isFadingOut: boolean
-    setIsFadingOut: React.Dispatch<React.SetStateAction<boolean>>
-}
+import * as cm from '@features/context_menu_themes/contextMenu.module.scss'
+
+import type { MenuItem } from '@features/context_menu_themes/sectionConfig'
 
 interface ContextMenuProps {
     items: MenuItem[]
     position: { x: number; y: number }
     onClose: () => void
     isFadingOut: boolean
-    setIsFadingOut: React.Dispatch<React.SetStateAction<boolean>>
 }
 
-const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isFadingOut, setIsFadingOut }) => {
+const ContextMenu: React.FC<ContextMenuProps> = ({ items, position, onClose, isFadingOut }) => {
     const menuRef = useRef<HTMLDivElement | null>(null)
 
     useEffect(() => {

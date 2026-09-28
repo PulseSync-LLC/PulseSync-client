@@ -1,9 +1,14 @@
-import React, { ReactNode, useCallback, useEffect, useMemo, useRef } from 'react'
-import cn from 'clsx'
+import React, { useCallback, useEffect, useMemo, useRef } from 'react'
 import ReactDOM from 'react-dom'
-import { motion, AnimatePresence } from 'framer-motion'
+
+import cn from 'clsx'
+import { AnimatePresence, motion } from 'framer-motion'
+
 import ButtonV2 from '@shared/ui/buttonV2'
+
 import * as styles from '@shared/ui/PSUI/CustomModalPS/CustomModalPS.module.scss'
+
+import type { ReactNode } from 'react'
 
 export interface ModalButton {
     text: string
@@ -15,7 +20,9 @@ export interface ModalButton {
 
 export interface CustomModalPSProps {
     className?: string
+    backdropClassName?: string
     isOpen: boolean
+    inline?: boolean
     allowNoChoice?: boolean
     onClose: () => void
     title?: ReactNode
@@ -56,7 +63,9 @@ const modalVariants = {
 
 const CustomModalPS: React.FC<CustomModalPSProps> = ({
     className,
+    backdropClassName,
     isOpen,
+    inline = false,
     onClose,
     title,
     text,
@@ -135,12 +144,12 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({
         )
     }
 
-    return ReactDOM.createPortal(
+    const modal = (
         <AnimatePresence>
             {isOpen && (
                 <motion.div
                     key="backdrop"
-                    className={styles.backdrop}
+                    className={cn(styles.backdrop, backdropClassName)}
                     variants={backdropVariants}
                     initial="hidden"
                     animate="visible"
@@ -180,9 +189,10 @@ const CustomModalPS: React.FC<CustomModalPSProps> = ({
                     </motion.div>
                 </motion.div>
             )}
-        </AnimatePresence>,
-        document.body,
+        </AnimatePresence>
     )
+
+    return inline ? modal : ReactDOM.createPortal(modal, document.body)
 }
 
 export default CustomModalPS

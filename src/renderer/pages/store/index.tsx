@@ -1,23 +1,55 @@
-import { useCallback, useContext, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
+import { Button } from '@pulsesync/uikit/actions'
+import { Badge } from '@pulsesync/uikit/data-display'
+import { SearchBox } from '@pulsesync/uikit/inputs'
+import { DropdownMenu, type DropdownMenuItem, Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
-import { useNavigate } from 'react-router-dom'
-import { MdKeyboardArrowDown, MdKeyboardArrowUp, MdSearch } from 'react-icons/md'
-import { isDev } from '@common/appConfig'
+import { useTranslation } from 'react-i18next'
+import { FaGithub } from 'react-icons/fa'
+import {
+    MdChevronLeft,
+    MdChevronRight,
+    MdDataArray,
+    MdDownload,
+    MdFilterAlt,
+    MdInventory2,
+    MdKeyboardArrowDown,
+    MdLabel,
+    MdLanguage,
+    MdLightMode,
+    MdSchedule,
+    MdSort,
+    MdSwapVert,
+    MdViewModule,
+} from 'react-icons/md'
+import { useLocation, useNavigate } from 'react-router'
+
+import { useModalContext } from '@app/providers/modal'
+import useCarouselDrag from '@pages/store/lib/useCarouselDrag'
+import useStoreReleaseChannel from '@pages/store/lib/useStoreReleaseChannel'
+import StoreAddonDetailsModal from '@pages/store/ui/StoreAddonDetailsModal'
+import StoreVirtualList from '@pages/store/ui/StoreVirtualList'
 import PageLayout from '@widgets/layout/PageLayout'
-import * as st from '@pages/store/store.module.scss'
+import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.query'
+import GetNewStoreAddonsQuery from '@entities/addon/api/getNewStoreAddons.query'
+import GetOwnStoreAddonsQuery from '@entities/addon/api/getOwnStoreAddons.query'
+import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
+import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
+import UserContext from '@entities/user/model/context'
+import apolloClient from '@shared/api/apolloClient'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
+import AddonRatingBadge from '@shared/ui/PSUI/AddonRatingBadge'
 import ExtensionCardStore from '@shared/ui/PSUI/ExtensionCardStore'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
-import { useTranslation } from 'react-i18next'
-import apolloClient from '@shared/api/apolloClient'
-import type Addon from '@entities/addon/model/addon.interface'
-import GetModerationAddonsQuery from '@entities/addon/api/getModerationAddons.query'
-import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
-import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 import StoreShimmer from '@shared/ui/PSUI/Shimmer/variants/StoreShimmer'
-import MainEvents from '@common/types/mainEvents'
 import toast from '@shared/ui/toast'
-import UserContext from '@entities/user/model/context'
-import { useModalContext } from '@app/providers/modal'
+
+import * as st from '@pages/store/store.module.scss'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 
 type StoreAddonsQuery = {
     getStoreAddons: StoreAddonsPayload
@@ -27,118 +59,260 @@ type ModerationAddonsQuery = {
     getModerationAddons: StoreAddon[]
 }
 
-type StoreTypeFilter = 'all' | 'theme' | 'script'
-type StoreSortKey = 'latestRelease' | 'name' | 'downloads'
-
-const STORE_CARD_MIN_HEIGHT = 238
-const STORE_GRID_ROW_GAP = 16
-const STORE_GRID_OVERSCAN_ROWS = 2
-
-function resolveTheme(index: number): 'purple' | 'red' | 'wave' {
-    const themes: Array<'purple' | 'red' | 'wave'> = ['purple', 'red', 'wave']
-    return themes[index % themes.length]
+type OwnStoreAddonsQuery = {
+    getOwnStoreAddons: StoreAddon[]
 }
 
-function resolveType(type: StoreAddon['type']): 'css' | 'js' {
-    return type === 'script' ? 'js' : 'css'
+type CatalogTab = 'main' | 'owned' | 'moderation'
+type StoreSearchSort = 'downloads' | 'latestRelease' | 'name'
+type StoreSearchType = 'all' | StoreAddon['type']
+
+type StoreRouteState = {
+    openAddon?: StoreAddon
+    openAddonId?: string
 }
 
-function formatDate(value: string, locale?: string): string {
-    const date = new Date(value)
-    if (Number.isNaN(date.getTime())) {
-        return value
-    }
-
-    return new Intl.DateTimeFormat(locale, {
-        day: '2-digit',
-        month: 'short',
-        year: 'numeric',
-    }).format(date)
+type AddonRatingSummary = {
+    average: number
+    count: number
+    myRating: number | null
 }
 
-function getDefaultSortOrder(sortKey: StoreSortKey): 'asc' | 'desc' {
-    return sortKey === 'name' ? 'asc' : 'desc'
+const fallbackBanner = staticAsset('assets/images/no_themeBackground.png')
+
+function formatAge(value: string, locale: string): string {
+    const timestamp = new Date(value).getTime()
+    if (Number.isNaN(timestamp)) return value
+
+    const days = Math.max(0, Math.round((Date.now() - timestamp) / 86_400_000))
+    return locale === 'ru' ? `${days}д` : `${days}d`
 }
 
 export default function StorePage() {
     const INITIAL_SHIMMER_FADE_MS = 180
 
     const { t, i18n } = useTranslation()
+    const location = useLocation()
     const navigate = useNavigate()
     const { addons: installedAddons, setAddons: setInstalledAddons, user } = useContext(UserContext)
     const { Modals, openModal, setModalState } = useModalContext()
     const [addons, setAddons] = useState<StoreAddon[]>([])
-    const [storeTotalCount, setStoreTotalCount] = useState(0)
+    const [newAddons, setNewAddons] = useState<StoreAddon[]>([])
+    const [popularAddons, setPopularAddons] = useState<StoreAddon[]>([])
+    const [ownAddons, setOwnAddons] = useState<StoreAddon[]>([])
     const [pendingAddons, setPendingAddons] = useState<StoreAddon[]>([])
+    const [releaseChannel, setReleaseChannel] = useStoreReleaseChannel()
+    const [detailChannel, setDetailChannel] = useState<'stable' | 'dev'>('stable')
+    const [channelLoading, setChannelLoading] = useState(false)
+    const [resolvedDetailRelease, setResolvedDetailRelease] = useState<string | null>(null)
+    const detailRequestRef = useRef(0)
+    const [catalogTab, setCatalogTab] = useState<CatalogTab>('main')
+    const [featuredIndex, setFeaturedIndex] = useState(0)
+    const [featuredDirection, setFeaturedDirection] = useState<-1 | 1>(1)
     const [searchQuery, setSearchQuery] = useState('')
     const [debouncedSearchQuery, setDebouncedSearchQuery] = useState('')
-    const [typeFilter, setTypeFilter] = useState<StoreTypeFilter>('all')
-    const [sortKey, setSortKey] = useState<StoreSortKey>('latestRelease')
-    const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(() => getDefaultSortOrder('latestRelease'))
+    const [isSearchOpen, setIsSearchOpen] = useState(false)
+    const [searchSort, setSearchSort] = useState<StoreSearchSort>('latestRelease')
+    const [searchSortOrder, setSearchSortOrder] = useState<'asc' | 'desc'>('desc')
+    const [searchType, setSearchType] = useState<StoreSearchType>('all')
     const [loading, setLoading] = useState(true)
+    const [ownAddonsLoading, setOwnAddonsLoading] = useState(true)
     const [installingAddonId, setInstallingAddonId] = useState<string | null>(null)
+    const [selectedAddon, setSelectedAddon] = useState<StoreAddon | null>(null)
     const [isInitialShimmerVisible, setIsInitialShimmerVisible] = useState(true)
     const [isInitialShimmerFading, setIsInitialShimmerFading] = useState(false)
-    const [scrollTop, setScrollTop] = useState(0)
-    const [scrollViewportHeight, setScrollViewportHeight] = useState(0)
-    const [gridTopOffset, setGridTopOffset] = useState(0)
-    const [gridColumns, setGridColumns] = useState(2)
+    const modalAddonRef = useRef<StoreAddon | null>(null)
     const animationsEnabledRef = useRef(false)
     const shimmerFadeTimeoutRef = useRef<number | null>(null)
     const shimmerFadeRafRef = useRef<number | null>(null)
     const scrollContainerRef = useRef<HTMLDivElement>(null)
-    const storeContentRef = useRef<HTMLDivElement>(null)
-    const isDeveloperUser = user?.perms === 'developer' || isDev
+    const newAddonsRef = useRef<HTMLDivElement>(null)
+    const isDeveloperUser = user?.perms === 'developer'
+    const routeState = location.state as StoreRouteState | null
 
     useEffect(() => {
-        const timeoutId = window.setTimeout(() => {
-            setDebouncedSearchQuery(searchQuery.trim())
-        }, 250)
+        if (selectedAddon) modalAddonRef.current = selectedAddon
+    }, [selectedAddon])
 
+    const closeSearch = () => {
+        setIsSearchOpen(false)
+        setSearchQuery('')
+        setDebouncedSearchQuery('')
+    }
+
+    const handleCatalogTabChange = (value: string) => {
+        closeSearch()
+        setCatalogTab(value as CatalogTab)
+    }
+
+    const handleRatingChange = useCallback((addonId: string, summary: AddonRatingSummary) => {
+        const updateAddon = (addon: StoreAddon): StoreAddon =>
+            addon.id === addonId
+                ? {
+                      ...addon,
+                      myRating: summary.myRating,
+                      ratingAverage: summary.average,
+                      ratingCount: summary.count,
+                  }
+                : addon
+
+        setAddons(current => current.map(updateAddon))
+        setNewAddons(current => current.map(updateAddon))
+        setPopularAddons(current => current.map(updateAddon))
+        setOwnAddons(current => current.map(updateAddon))
+        setPendingAddons(current => current.map(updateAddon))
+        setSelectedAddon(current => (current ? updateAddon(current) : current))
+    }, [])
+
+    useEffect(() => {
+        const requestedAddonId = String(routeState?.openAddon?.id || routeState?.openAddonId || '').trim()
+        if (!requestedAddonId) return
+
+        const routeAddon = routeState?.openAddon?.currentRelease
+            ? routeState.openAddon
+            : [...addons, ...newAddons, ...popularAddons, ...ownAddons, ...pendingAddons].find(addon => addon.id === requestedAddonId)
+        const openRouteAddon = (addon: StoreAddon) => {
+            setCatalogTab('main')
+            setSelectedAddon(addon)
+            navigate('/store', { replace: true, state: null })
+        }
+
+        if (routeAddon?.currentRelease) {
+            openRouteAddon(routeAddon)
+            return
+        }
+        if (loading) return
+
+        let active = true
+        void fetchStoreAddonUpdates([requestedAddonId], releaseChannel, true)
+            .then(([addon]) => {
+                if (active && addon?.currentRelease) openRouteAddon(addon)
+            })
+            .catch(error => console.error('[Store] failed to open requested addon', error))
+
+        return () => {
+            active = false
+        }
+    }, [addons, loading, navigate, newAddons, ownAddons, pendingAddons, popularAddons, routeState, releaseChannel])
+
+    useEffect(() => {
+        const timeoutId = window.setTimeout(() => setDebouncedSearchQuery(searchQuery.trim()), 250)
         return () => window.clearTimeout(timeoutId)
     }, [searchQuery])
 
     useEffect(() => {
         let active = true
 
+        if (catalogTab !== 'main')
+            return () => {
+                active = false
+            }
+
         const loadAddons = async () => {
             setLoading(true)
             try {
-                const response = await apolloClient.query<StoreAddonsQuery>({
-                    query: GetStoreAddonsQuery,
-                    variables: {
-                        page: 1,
-                        pageSize: 50,
-                        search: debouncedSearchQuery || undefined,
-                        sortBy: sortKey,
-                        sortOrder,
-                        type: typeFilter === 'all' ? undefined : typeFilter,
-                    },
-                    fetchPolicy: 'no-cache',
-                })
+                const [response, newAddonsResponse, popularAddonsResponse] = await Promise.all([
+                    apolloClient.query<StoreAddonsQuery>({
+                        query: GetStoreAddonsQuery,
+                        variables: {
+                            page: 1,
+                            releaseChannel,
+                            pageSize: 50,
+                            search: debouncedSearchQuery || undefined,
+                            type: (isSearchOpen || debouncedSearchQuery) && searchType !== 'all' ? searchType : undefined,
+                            sortBy: isSearchOpen || debouncedSearchQuery ? searchSort : 'latestRelease',
+                            sortOrder: isSearchOpen || debouncedSearchQuery ? searchSortOrder : 'desc',
+                        },
+                        fetchPolicy: 'no-cache',
+                    }),
+                    apolloClient.query<StoreAddonsQuery>({
+                        query: GetNewStoreAddonsQuery,
+                        variables: {
+                            releaseChannel,
+                            pageSize: 12,
+                            search: debouncedSearchQuery || undefined,
+                        },
+                        fetchPolicy: 'no-cache',
+                    }),
+                    apolloClient.query<StoreAddonsQuery>({
+                        query: GetStoreAddonsQuery,
+                        variables: {
+                            page: 1,
+                            releaseChannel,
+                            pageSize: 5,
+                            search: debouncedSearchQuery || undefined,
+                            sortBy: 'downloads',
+                            sortOrder: 'desc',
+                        },
+                        fetchPolicy: 'no-cache',
+                    }),
+                ])
 
                 if (!active) return
                 setAddons(Array.isArray(response.data?.getStoreAddons?.addons) ? response.data.getStoreAddons.addons : [])
-                setStoreTotalCount(Number(response.data?.getStoreAddons?.totalCount) || 0)
+                setNewAddons(
+                    (Array.isArray(newAddonsResponse.data?.getStoreAddons?.addons) ? newAddonsResponse.data.getStoreAddons.addons : []).filter(
+                        addon => addon.currentRelease?.status === 'accepted',
+                    ),
+                )
+                setPopularAddons(
+                    (Array.isArray(popularAddonsResponse.data?.getStoreAddons?.addons)
+                        ? popularAddonsResponse.data.getStoreAddons.addons
+                        : []
+                    ).filter(addon => addon.currentRelease?.status === 'accepted'),
+                )
             } catch (error) {
                 console.error('[Store] failed to load addons', error)
                 if (active) {
                     setAddons([])
-                    setStoreTotalCount(0)
+                    setNewAddons([])
+                    setPopularAddons([])
                 }
             } finally {
-                if (active) {
-                    setLoading(false)
-                }
+                if (active) setLoading(false)
             }
         }
 
         void loadAddons()
-
         return () => {
             active = false
         }
-    }, [debouncedSearchQuery, sortKey, sortOrder, typeFilter])
+    }, [catalogTab, debouncedSearchQuery, isSearchOpen, searchSort, searchSortOrder, searchType, releaseChannel])
+
+    useEffect(() => {
+        let active = true
+
+        if (!user?.id || user.id === '-1') {
+            setOwnAddons([])
+            setOwnAddonsLoading(false)
+            return () => {
+                active = false
+            }
+        }
+
+        const loadOwnAddons = async () => {
+            setOwnAddonsLoading(true)
+            try {
+                const response = await apolloClient.query<OwnStoreAddonsQuery>({
+                    query: GetOwnStoreAddonsQuery,
+                    fetchPolicy: 'no-cache',
+                })
+
+                if (!active) return
+                setOwnAddons(Array.isArray(response.data?.getOwnStoreAddons) ? response.data.getOwnStoreAddons : [])
+            } catch (error) {
+                console.error('[Store] failed to load own addons', error)
+                if (active) setOwnAddons([])
+            } finally {
+                if (active) setOwnAddonsLoading(false)
+            }
+        }
+
+        void loadOwnAddons()
+        return () => {
+            active = false
+        }
+    }, [user?.id])
 
     useEffect(() => {
         let active = true
@@ -156,84 +330,162 @@ export default function StorePage() {
                     query: GetModerationAddonsQuery,
                     variables: {
                         search: debouncedSearchQuery || undefined,
-                        sortBy: sortKey,
-                        sortOrder,
+                        sortBy: 'latestRelease',
+                        sortOrder: 'desc',
                         status: 'pending',
-                        type: typeFilter === 'all' ? undefined : typeFilter,
                     },
                     fetchPolicy: 'no-cache',
                 })
 
                 if (!active) return
-
                 setPendingAddons(
-                    (Array.isArray(response.data?.getModerationAddons) ? response.data.getModerationAddons : []).filter(addon => {
-                        const release = addon.currentRelease
-                        return Boolean(release && release.status === 'pending')
-                    }),
+                    (Array.isArray(response.data?.getModerationAddons) ? response.data.getModerationAddons : []).filter(
+                        addon => addon.currentRelease?.status === 'pending',
+                    ),
                 )
             } catch (error) {
                 console.error('[Store] failed to load moderation addons', error)
-                if (active) {
-                    setPendingAddons([])
-                }
+                if (active) setPendingAddons([])
             }
         }
 
         void loadPendingAddons()
-
         return () => {
             active = false
         }
-    }, [debouncedSearchQuery, isDeveloperUser, sortKey, sortOrder, typeFilter, user?.id])
+    }, [debouncedSearchQuery, isDeveloperUser, user?.id])
 
     const installedStoreAddons = useMemo(
         () => new Map(installedAddons.filter(addon => addon.storeAddonId).map(addon => [addon.storeAddonId!, addon])),
         [installedAddons],
     )
 
-    const shouldRenderCards = addons.length > 0
-    const hasSearchOrFilter = Boolean(debouncedSearchQuery) || typeFilter !== 'all'
-    const shouldShowPendingSection = isDeveloperUser && (pendingAddons.length > 0 || hasSearchOrFilter)
+    const visibleAddons = useMemo(() => {
+        const source = catalogTab === 'main' ? addons : catalogTab === 'moderation' ? pendingAddons : ownAddons
+        const targetStatus = catalogTab === 'moderation' ? 'pending' : 'accepted'
+        let relevantAddons = source.filter(addon => addon.currentRelease?.status === targetStatus)
+        const normalizedSearch = debouncedSearchQuery.toLocaleLowerCase()
+        if (!normalizedSearch && !isSearchOpen) return relevantAddons
 
-    const handleSortOptionClick = useCallback(
-        (option: StoreSortKey) => {
-            setSortKey(option)
-            setSortOrder(currentOrder => {
-                if (sortKey === option) {
-                    return currentOrder === 'asc' ? 'desc' : 'asc'
-                }
-
-                return getDefaultSortOrder(option)
+        if (normalizedSearch && catalogTab !== 'main') {
+            relevantAddons = relevantAddons.filter(addon => {
+                const release = addon.currentRelease
+                return [addon.name, release?.description, ...(release?.authors || []), ...(release?.tags || [])]
+                    .filter(Boolean)
+                    .some(value => value!.toLocaleLowerCase().includes(normalizedSearch))
             })
+        }
+
+        if (searchType !== 'all') {
+            relevantAddons = relevantAddons.filter(addon => addon.type === searchType)
+        }
+
+        const direction = searchSortOrder === 'asc' ? 1 : -1
+        return relevantAddons.slice().sort((left, right) => {
+            if (searchSort === 'name') return left.name.localeCompare(right.name, i18n.language) * direction
+            if (searchSort === 'downloads') return (left.downloadCount - right.downloadCount) * direction
+
+            const leftUpdatedAt = new Date(left.currentRelease?.approvedAt || left.currentRelease?.updatedAt || left.updatedAt).getTime() || 0
+            const rightUpdatedAt = new Date(right.currentRelease?.approvedAt || right.currentRelease?.updatedAt || right.updatedAt).getTime() || 0
+            return (leftUpdatedAt - rightUpdatedAt) * direction
+        })
+    }, [addons, catalogTab, debouncedSearchQuery, i18n.language, isSearchOpen, ownAddons, pendingAddons, searchSort, searchSortOrder, searchType])
+
+    const featuredAddons = popularAddons.slice(0, 5)
+    const featuredAddon = featuredAddons[featuredIndex] ?? featuredAddons[0] ?? null
+    const featuredLeftColor = featuredAddon?.currentRelease?.bannerLeftColor?.trim() || ''
+    const featuredRightColor = featuredAddon?.currentRelease?.bannerRightColor?.trim() || ''
+    const shouldRenderCards = visibleAddons.length > 0
+    const hasSearchOrFilter = Boolean(debouncedSearchQuery)
+    const isSearchMode = Boolean(isSearchOpen || searchQuery.trim() || debouncedSearchQuery)
+    const isSearchDebouncing = searchQuery.trim() !== debouncedSearchQuery
+    const activeLoading = catalogTab === 'main' ? loading : ownAddonsLoading
+
+    const searchFilterItems: DropdownMenuItem[] = [
+        {
+            key: 'sort',
+            label: t('store.filters.sort'),
+            icon: <MdSort />,
+            children: (['latestRelease', 'name', 'downloads'] as StoreSearchSort[]).map(option => ({
+                key: `sort-${option}`,
+                label: t(`store.filters.${option}`),
+                radio: true,
+                checked: searchSort === option,
+                onClick: () => setSearchSort(option),
+            })),
         },
-        [sortKey],
-    )
+        {
+            key: 'type',
+            label: t('store.filters.type'),
+            icon: <MdViewModule />,
+            children: (['all', 'theme', 'script', 'web-addon'] as StoreSearchType[]).map(option => ({
+                key: `type-${option}`,
+                label: t(`store.filters.types.${option}`),
+                radio: true,
+                checked: searchType === option,
+                onClick: () => setSearchType(option),
+            })),
+        },
+        {
+            key: 'order',
+            label: t('store.filters.order'),
+            icon: <MdSwapVert />,
+            children: (['desc', 'asc'] as const).map(order => ({
+                key: `order-${order}`,
+                label: t(order === 'asc' ? 'store.filters.orderAsc' : 'store.filters.orderDesc'),
+                radio: true,
+                checked: searchSortOrder === order,
+                onClick: () => setSearchSortOrder(order),
+            })),
+        },
+    ]
+
+    useEffect(() => {
+        const container = scrollContainerRef.current
+        if (!container) return
+
+        if (featuredLeftColor) container.style.setProperty('--catalog-edge-left', featuredLeftColor)
+        else container.style.removeProperty('--catalog-edge-left')
+
+        if (featuredRightColor) container.style.setProperty('--catalog-edge-right', featuredRightColor)
+        else container.style.removeProperty('--catalog-edge-right')
+    }, [featuredLeftColor, featuredRightColor])
+
+    useEffect(() => {
+        setFeaturedIndex(current => (featuredAddons.length ? Math.min(current, featuredAddons.length - 1) : 0))
+    }, [featuredAddons.length])
 
     const handleStoreAddonAction = useCallback(
-        async (addon: StoreAddon, release: StoreAddon['currentRelease'], installedStoreAddon?: Addon) => {
-            if (!window.desktopEvents || !release || !addon.id || installingAddonId === addon.id) return
+        async (
+            addon: StoreAddon,
+            release: StoreAddon['currentRelease'],
+            installedStoreAddon?: Addon,
+            channel: 'stable' | 'dev' = catalogTab === 'main'
+                ? releaseChannel
+                : release?.releaseChannels?.includes('stable') === false
+                  ? 'dev'
+                  : 'stable',
+            switchChannel = false,
+        ) => {
+            if (!release || !addon.id || installingAddonId === addon.id) return
 
-            if (installedStoreAddon) {
+            if (installedStoreAddon && !switchChannel) {
                 const removeInstalledAddon = async () => {
                     setInstallingAddonId(addon.id)
                     const toastId = toast.custom('loading', t('common.delete'), t('common.pleaseWait'))
 
                     try {
-                        const result = await window.desktopEvents.invoke(MainEvents.DELETE_ADDON_DIRECTORY, installedStoreAddon.path)
-                        if (!result?.success) {
-                            throw new Error(result?.reason || 'DELETE_FAILED')
+                        const result = (await desktopApi.addons.deleteDirectory(installedStoreAddon.path)) as {
+                            reason?: string
+                            success?: boolean
                         }
+                        if (!result?.success) throw new Error(result?.reason || 'DELETE_FAILED')
 
-                        const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                        const nextInstalledAddons = await desktopApi.addons.list()
                         setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-                        toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), {
-                            id: toastId,
-                        })
+                        toast.custom('success', t('common.doneTitle'), t('store.removeComplete', { title: addon.name }), { id: toastId })
                     } catch (error: any) {
-                        toast.custom('error', t('common.errorTitle'), t('store.removeFailed', { title: addon.name }), {
-                            id: toastId,
-                        })
+                        toast.custom('error', t('common.errorTitle'), t('store.removeFailed', { title: addon.name }), { id: toastId })
                         console.error('[Store] failed to remove addon', error)
                     } finally {
                         setInstallingAddonId(current => (current === addon.id ? null : current))
@@ -244,9 +496,7 @@ export default function StorePage() {
                     description: t('store.removeConfirm', { title: addon.name }),
                     confirmLabel: t('modals.basicConfirmation.delete'),
                     confirmVariant: 'danger',
-                    onConfirm: () => {
-                        void removeInstalledAddon()
-                    },
+                    onConfirm: () => void removeInstalledAddon(),
                 })
                 openModal(Modals.BASIC_CONFIRMATION)
                 return
@@ -262,19 +512,20 @@ export default function StorePage() {
             const toastId = toast.custom('loading', t('common.importTitle'), t('common.pleaseWait'))
 
             try {
-                const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                const result = (await desktopApi.addons.installStore({
                     id: addon.id,
                     downloadUrl,
                     title: addon.name,
-                })
-
-                if (!result?.success) {
-                    throw new Error(result?.reason || 'INSTALL_FAILED')
+                    releaseChannel: channel,
+                    reviewReleaseId: catalogTab === 'moderation' ? release.id : undefined,
+                })) as {
+                    reason?: string
+                    success?: boolean
                 }
+                if (!result?.success) throw new Error(result?.reason || 'INSTALL_FAILED')
 
-                const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                const nextInstalledAddons = await desktopApi.addons.list()
                 setInstalledAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
-
                 toast.custom('success', t('common.doneTitle'), t('store.installComplete', { title: addon.name }), { id: toastId })
             } catch (error: any) {
                 toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: addon.name }), { id: toastId })
@@ -283,38 +534,32 @@ export default function StorePage() {
                 setInstallingAddonId(current => (current === addon.id ? null : current))
             }
         },
-        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t],
+        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t, releaseChannel, catalogTab],
     )
 
     const renderStoreCard = useCallback(
-        (addon: StoreAddon, index: number, options?: { forceStatus?: 'pending' | 'rejected' | 'accepted'; topRightMeta?: string }) => {
+        (addon: StoreAddon, variant: 'poster' | 'list', options?: { forceStatus?: 'pending' | 'rejected' | 'accepted'; installLabel?: string }) => {
             const release = addon.currentRelease
             if (!release) return null
 
             const installedStoreAddon = installedStoreAddons.get(addon.id)
-            const isInstalled = !!installedStoreAddon
+            const isInstalled = Boolean(installedStoreAddon)
             const hasDownloadUrl = Boolean(release.downloadUrl?.trim())
 
             return (
                 <ExtensionCardStore
-                    key={addon.id}
-                    theme={resolveTheme(index)}
+                    key={`${variant}:${addon.id}`}
+                    variant={variant}
+                    eagerVisible={variant === 'list'}
                     title={addon.name}
                     subtitle={release.description}
-                    version={`v${release.version}`}
                     authors={release.authors}
                     status={options?.forceStatus}
-                    downloads={
-                        release.status === 'accepted'
-                            ? t('store.approvedAt', {
-                                  date: formatDate(release.approvedAt || release.updatedAt, i18n.language),
-                              })
-                            : t('store.submittedAt', {
-                                  date: formatDate(release.createdAt, i18n.language),
-                              })
-                    }
-                    topRightMeta={options?.topRightMeta}
-                    type={resolveType(addon.type)}
+                    visibility={release.visibility}
+                    downloads={formatAge(release.approvedAt || release.updatedAt, i18n.language)}
+                    topRightMeta={new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
+                    ratingAverage={addon.ratingAverage}
+                    ratingCount={releaseChannel === 'stable' && release.releaseChannels?.includes('stable') !== false ? addon.ratingCount : undefined}
                     kind={addon.type}
                     tags={release.tags || []}
                     usedAiDuringDevelopment={release.usedAiDuringDevelopment}
@@ -331,142 +576,42 @@ export default function StorePage() {
                             : installingAddonId === addon.id
                               ? t('common.importing')
                               : hasDownloadUrl
-                                ? t('store.download')
+                                ? options?.installLabel || t('store.download')
                                 : t('common.notAvailable')
                     }
-                    onDownloadClick={() => {
-                        void handleStoreAddonAction(addon, release, installedStoreAddon)
-                    }}
+                    onDownloadClick={() => void handleStoreAddonAction(addon, release, installedStoreAddon)}
                     onAuthorClick={author => {
-                        if (!author) return
-                        navigate(`/profile/${encodeURIComponent(author)}`)
+                        if (author) openModal(Modals.USER_PROFILE, { profileName: author })
                     }}
+                    onClick={() => setSelectedAddon(addon)}
                 />
             )
         },
-        [animationsEnabledRef, handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, navigate, t],
+        [Modals.USER_PROFILE, handleStoreAddonAction, i18n.language, installedStoreAddons, installingAddonId, openModal, releaseChannel, t],
     )
 
-    const measureVirtualGrid = useCallback(() => {
-        const container = scrollContainerRef.current
-        const content = storeContentRef.current
-
-        if (!container || !content) return
-
-        const nextViewportHeight = container.clientHeight
-        const nextGridTopOffset = content.offsetTop
-        const nextGridColumns = window.innerWidth <= 1024 ? 1 : 2
-
-        setScrollViewportHeight(prevHeight => (prevHeight === nextViewportHeight ? prevHeight : nextViewportHeight))
-        setGridTopOffset(prevOffset => (prevOffset === nextGridTopOffset ? prevOffset : nextGridTopOffset))
-        setGridColumns(prevColumns => (prevColumns === nextGridColumns ? prevColumns : nextGridColumns))
-    }, [])
-
-    useLayoutEffect(() => {
-        const runMeasure = () => {
-            measureVirtualGrid()
-            setScrollTop(prevScrollTop => {
-                const nextScrollTop = scrollContainerRef.current?.scrollTop ?? 0
-                return prevScrollTop === nextScrollTop ? prevScrollTop : nextScrollTop
-            })
-        }
-
-        runMeasure()
-
-        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(runMeasure)
-
-        if (observer) {
-            if (scrollContainerRef.current) observer.observe(scrollContainerRef.current)
-            if (storeContentRef.current) observer.observe(storeContentRef.current)
-        }
-
-        window.addEventListener('resize', runMeasure)
-
-        return () => {
-            observer?.disconnect()
-            window.removeEventListener('resize', runMeasure)
-        }
-    }, [measureVirtualGrid])
-
-    const virtualizedGrid = useMemo(() => {
-        if (!addons.length) {
-            return {
-                startIndex: 0,
-                topSpacerHeight: 0,
-                bottomSpacerHeight: 0,
-                visibleAddons: [] as StoreAddon[],
-            }
-        }
-
-        const columns = Math.max(1, gridColumns)
-        const totalRows = Math.ceil(addons.length / columns)
-        const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
-        const totalHeight = totalRows * STORE_CARD_MIN_HEIGHT + Math.max(0, totalRows - 1) * STORE_GRID_ROW_GAP
-        const relativeScrollTop = Math.max(0, scrollTop - gridTopOffset)
-        const visibleHeight = Math.max(rowHeight, scrollViewportHeight - Math.max(0, gridTopOffset - scrollTop))
-        const startRow = Math.min(totalRows, Math.max(0, Math.floor(relativeScrollTop / rowHeight) - STORE_GRID_OVERSCAN_ROWS))
-        const endRow = Math.min(totalRows, Math.ceil((relativeScrollTop + visibleHeight) / rowHeight) + STORE_GRID_OVERSCAN_ROWS)
-        const startIndex = startRow * columns
-        const endIndex = Math.min(addons.length, endRow * columns)
-        const visibleAddons = addons.slice(startIndex, endIndex)
-        const visibleRowCount = Math.ceil(visibleAddons.length / columns)
-        const topSpacerHeight = Math.min(totalHeight, startRow * rowHeight)
-        const renderedHeight = visibleRowCount * STORE_CARD_MIN_HEIGHT + Math.max(0, visibleRowCount - 1) * STORE_GRID_ROW_GAP
-        const bottomSpacerHeight = Math.max(0, totalHeight - topSpacerHeight - renderedHeight)
-
-        return {
-            startIndex,
-            topSpacerHeight,
-            bottomSpacerHeight,
-            visibleAddons,
-        }
-    }, [addons, gridColumns, gridTopOffset, scrollTop, scrollViewportHeight])
-
-    const shimmerCount = useMemo(() => {
-        const columns = Math.max(1, gridColumns)
-        const fallbackViewportHeight =
-            scrollViewportHeight ||
-            (typeof window === 'undefined' ? STORE_CARD_MIN_HEIGHT * 2 : Math.max(window.innerHeight - 220, STORE_CARD_MIN_HEIGHT * 2))
-        const rowHeight = STORE_CARD_MIN_HEIGHT + STORE_GRID_ROW_GAP
-        const rows = Math.max(2, Math.ceil(fallbackViewportHeight / rowHeight) + 1)
-
-        return columns * rows
-    }, [gridColumns, scrollViewportHeight])
-
     const clearInitialShimmerTimers = useCallback(() => {
-        if (shimmerFadeTimeoutRef.current !== null) {
-            window.clearTimeout(shimmerFadeTimeoutRef.current)
-            shimmerFadeTimeoutRef.current = null
-        }
-
-        if (shimmerFadeRafRef.current !== null) {
-            window.cancelAnimationFrame(shimmerFadeRafRef.current)
-            shimmerFadeRafRef.current = null
-        }
+        if (shimmerFadeTimeoutRef.current !== null) window.clearTimeout(shimmerFadeTimeoutRef.current)
+        if (shimmerFadeRafRef.current !== null) window.cancelAnimationFrame(shimmerFadeRafRef.current)
+        shimmerFadeTimeoutRef.current = null
+        shimmerFadeRafRef.current = null
     }, [])
 
-    useEffect(() => {
-        return () => {
-            clearInitialShimmerTimers()
-        }
-    }, [clearInitialShimmerTimers])
+    useEffect(() => () => clearInitialShimmerTimers(), [clearInitialShimmerTimers])
 
     useEffect(() => {
         if (loading) return
-
         if (!shouldRenderCards) {
             clearInitialShimmerTimers()
             setIsInitialShimmerVisible(false)
             setIsInitialShimmerFading(false)
             return
         }
-
         if (!isInitialShimmerVisible || isInitialShimmerFading) return
 
         shimmerFadeRafRef.current = window.requestAnimationFrame(() => {
             shimmerFadeRafRef.current = null
             setIsInitialShimmerFading(true)
-
             shimmerFadeTimeoutRef.current = window.setTimeout(() => {
                 shimmerFadeTimeoutRef.current = null
                 setIsInitialShimmerVisible(false)
@@ -475,170 +620,509 @@ export default function StorePage() {
         })
     }, [INITIAL_SHIMMER_FADE_MS, clearInitialShimmerTimers, isInitialShimmerFading, isInitialShimmerVisible, loading, shouldRenderCards])
 
-    const content = useMemo(() => {
-        if (loading) {
-            return (
-                <div className={st.store_loading}>
-                    <StoreShimmer count={shimmerCount} />
-                </div>
-            )
-        }
+    const scrollNewAddons = (direction: -1 | 1) => {
+        const container = newAddonsRef.current
+        if (!container) return
+        container.scrollBy({ left: direction * Math.max(320, container.clientWidth * 0.82), behavior: 'smooth' })
+    }
 
-        if (!addons.length) {
-            return <div className={st.store_state}>{t(hasSearchOrFilter ? 'store.noResults' : 'store.empty')}</div>
-        }
+    const scrollFeatured = (direction: -1 | 1) => {
+        setFeaturedDirection(direction)
+        setFeaturedIndex(current => {
+            const count = featuredAddons.length
+            return count ? (current + direction + count) % count : 0
+        })
+    }
+
+    const featuredDragProps = useCarouselDrag<HTMLElement>({
+        mode: 'swipe',
+        draggingClassName: st.featuredDragging,
+        onSwipe: scrollFeatured,
+    })
+    const newAddonsDragProps = useCarouselDrag<HTMLDivElement>({
+        mode: 'scroll',
+        draggingClassName: st.posterRailDragging,
+    })
+
+    const renderFeatured = () => {
+        const addon = featuredAddon
+        const release = addon?.currentRelease
+        if (!addon || !release) return null
+
+        const installedAddon = installedStoreAddons.get(addon.id)
+        const isInstalled = Boolean(installedAddon)
+        const hasDownloadUrl = Boolean(release.downloadUrl?.trim())
+        const previewImage = release.previewUrl?.trim()
+        const bannerImage = release.bannerUrl?.trim()
+        const image = previewImage || bannerImage || fallbackBanner
+        const hasImage = Boolean(previewImage || bannerImage)
+        const releaseTags = release.tags || []
+        const kindBadgeIcon = addon.type === 'theme' ? <MdLightMode /> : addon.type === 'script' ? <MdDataArray /> : <MdLanguage />
+        const kindBadgeVariant = addon.type === 'theme' ? 'info' : addon.type === 'script' ? 'warning' : 'success'
 
         return (
-            <div className={st.initialContentShell}>
-                {virtualizedGrid.topSpacerHeight > 0 && (
-                    <div className={st.store_virtualSpacer} style={{ height: `${virtualizedGrid.topSpacerHeight}px` }} aria-hidden="true" />
-                )}
-
-                <div className={st.store_grid}>
-                    {virtualizedGrid.visibleAddons.map((addon, index) =>
-                        renderStoreCard(addon, virtualizedGrid.startIndex + index, {
-                            topRightMeta: new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount),
-                        }),
-                    )}
+            <section
+                key={addon.id}
+                className={cn(st.featured, st.featuredClickable, featuredDirection === 1 ? st.featuredEnterNext : st.featuredEnterPrevious)}
+                {...featuredDragProps}
+                onClick={event => {
+                    if (event.target instanceof Element && event.target.closest('button, a')) return
+                    setSelectedAddon(addon)
+                }}
+                onKeyDown={event => {
+                    if (event.target !== event.currentTarget || !['Enter', ' '].includes(event.key)) return
+                    event.preventDefault()
+                    setSelectedAddon(addon)
+                }}
+                role="button"
+                tabIndex={0}
+                aria-label={addon.name}
+            >
+                <div className={st.featuredTopline}>
+                    <div className={st.featuredIdentity}>
+                        {release.avatarUrl ? <img src={release.avatarUrl} alt="" className={st.featuredAvatar} /> : null}
+                        <h1 className={st.featuredTitle}>{addon.name}</h1>
+                        {releaseChannel === 'stable' && release.releaseChannels?.includes('stable') !== false ? (
+                            <AddonRatingBadge average={addon.ratingAverage} />
+                        ) : null}
+                        {release.visibility && release.visibility !== 'public' ? (
+                            <Badge uppercase={false} size="md" variant="info" className={cn(st.metaBadge, st.toneInfo)}>
+                                {t(
+                                    release.visibility === 'dev'
+                                        ? 'extensions.publication.visibilityDev'
+                                        : 'extensions.publication.visibilityDeveloper',
+                                )}
+                            </Badge>
+                        ) : null}
+                        <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdInventory2 />}>
+                            {`v${release.version}`}
+                        </Badge>
+                        <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdSchedule />}>
+                            {formatAge(release.approvedAt || release.updatedAt, i18n.language)}
+                        </Badge>
+                        <Badge uppercase={false} size="md" className={cn(st.metaBadge, st.neutralBadge)} icon={<MdDownload />}>
+                            {new Intl.NumberFormat(i18n.language === 'ru' ? 'ru-RU' : 'en-US').format(addon.downloadCount)}
+                        </Badge>
+                    </div>
+                    <button
+                        type="button"
+                        className={cn(st.installButton, isInstalled && st.removeButton)}
+                        disabled={installingAddonId === addon.id || (!isInstalled && !hasDownloadUrl)}
+                        onClick={() => void handleStoreAddonAction(addon, release, installedAddon)}
+                    >
+                        <MdDownload aria-hidden="true" />
+                        {isInstalled ? t('store.remove') : installingAddonId === addon.id ? t('common.importing') : t('store.download')}
+                    </button>
                 </div>
 
-                {virtualizedGrid.bottomSpacerHeight > 0 && (
-                    <div className={st.store_virtualSpacer} style={{ height: `${virtualizedGrid.bottomSpacerHeight}px` }} aria-hidden="true" />
-                )}
-
-                {isInitialShimmerVisible && (
-                    <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
-                        <StoreShimmer count={shimmerCount} />
-                    </div>
-                )}
-            </div>
-        )
-    }, [
-        addons,
-        hasSearchOrFilter,
-        i18n.language,
-        installedStoreAddons,
-        installingAddonId,
-        isInitialShimmerFading,
-        isInitialShimmerVisible,
-        loading,
-        renderStoreCard,
-        shimmerCount,
-        t,
-        virtualizedGrid.startIndex,
-        virtualizedGrid.bottomSpacerHeight,
-        virtualizedGrid.topSpacerHeight,
-        virtualizedGrid.visibleAddons,
-    ])
-
-    return (
-        <PageLayout title={t('pages.store.title')}>
-            <Scrollbar
-                ref={scrollContainerRef}
-                className={st.containerFix}
-                classNameInner={cn(st.containerFixInner, (loading || isInitialShimmerVisible) && st.containerFixInnerLocked)}
-                onScroll={event => {
-                    animationsEnabledRef.current = true
-                    const nextScrollTop = event.currentTarget?.scrollTop ?? scrollContainerRef.current?.scrollTop ?? 0
-                    setScrollTop(prevScrollTop => {
-                        return prevScrollTop === nextScrollTop ? prevScrollTop : nextScrollTop
-                    })
-                }}
-            >
-                <section className={st.store}>
-                    <header className={st.store_header}>
-                        <div className={st.store_title}>{t('pages.store.headerTitle')}</div>
-                        <div className={st.store_subtitle}>{t('pages.store.headerSubtitle')}</div>
-                        <div className={st.store_toolbar}>
-                            <div className={cn(st.store_toolbarSide, st.store_toolbarSideStart)}>
-                                <div className={st.store_filterOptions}>
-                                    {(['all', 'theme', 'script'] as const).map(option => (
-                                        <button
-                                            key={option}
-                                            type="button"
-                                            className={cn(st.store_filterChip, st.store_typeChip, typeFilter === option && st.store_filterChipActive)}
-                                            onClick={() => setTypeFilter(option)}
-                                        >
-                                            {option === 'all'
-                                                ? t('filters.type.all')
-                                                : option === 'theme'
-                                                  ? t('filters.type.themes')
-                                                  : t('filters.type.scripts')}
-                                        </button>
+                <div className={st.featuredBody}>
+                    <div className={st.featuredCopy}>
+                        <p className={st.featuredDescription}>{release.description}</p>
+                        <div className={st.featuredGroup}>
+                            <h2>{t('store.catalog.authors')}</h2>
+                            <div className={st.badgeRow}>
+                                {release.authors.map((author, index) => (
+                                    <button
+                                        key={`${author}:${index}`}
+                                        type="button"
+                                        className={cn(st.authorBadge, st.toneInfo)}
+                                        onClick={() => author && openModal(Modals.USER_PROFILE, { profileName: author })}
+                                    >
+                                        <span aria-hidden="true" />
+                                        {author}
+                                    </button>
+                                ))}
+                            </div>
+                        </div>
+                        {releaseTags.length ? (
+                            <div className={st.featuredGroup}>
+                                <h2>{t('store.catalog.tags')}</h2>
+                                <div className={st.badgeRow}>
+                                    <Badge
+                                        variant={kindBadgeVariant}
+                                        uppercase={false}
+                                        size="md"
+                                        className={cn(
+                                            st.metaBadge,
+                                            addon.type === 'theme' ? st.toneInfo : addon.type === 'script' ? st.toneWarning : st.toneSuccess,
+                                        )}
+                                        icon={kindBadgeIcon}
+                                    >
+                                        {addon.type === 'theme' ? t('store.kind.theme') : t(`store.kind.${addon.type}`)}
+                                    </Badge>
+                                    {releaseTags.map(tag => (
+                                        <Badge key={tag} uppercase={false} size="md" icon={<MdLabel />} className={cn(st.metaBadge, st.neutralBadge)}>
+                                            {tag}
+                                        </Badge>
                                     ))}
                                 </div>
                             </div>
-                            <div
-                                className={st.store_search}
-                                onClick={event => (event.currentTarget.querySelector('input') as HTMLInputElement | null)?.focus()}
-                            >
-                                <input
-                                    type="text"
-                                    value={searchQuery}
-                                    onChange={event => setSearchQuery(event.target.value)}
-                                    placeholder={t('store.searchPlaceholder')}
-                                    className={st.store_search_input}
-                                />
-                                <MdSearch className={st.store_search_icon} />
+                        ) : null}
+                        {release.githubUrl ? (
+                            <div className={cn(st.featuredGroup, st.featuredGroupCompact)}>
+                                <h2>{t('store.catalog.links')}</h2>
+                                <button type="button" className={st.githubLink} onClick={() => desktopApi.system.openExternal(release.githubUrl!)}>
+                                    <FaGithub aria-hidden="true" />
+                                    {t('store.catalog.openGithub')}
+                                </button>
                             </div>
-                            <div className={cn(st.store_toolbarSide, st.store_toolbarSideEnd)}>
-                                <div className={st.store_filterOptions}>
-                                    {(['latestRelease', 'name', 'downloads'] as const).map(option => (
-                                        <button
-                                            key={option}
-                                            type="button"
-                                            className={cn(st.store_filterChip, sortKey === option && st.store_filterChipActive)}
-                                            onClick={() => handleSortOptionClick(option)}
-                                        >
-                                            <span className={st.store_filterChipContent}>
-                                                <span>
-                                                    {option === 'latestRelease'
-                                                        ? t('store.filters.latestRelease')
-                                                        : option === 'name'
-                                                          ? t('store.filters.name')
-                                                          : t('store.filters.downloads')}
-                                                </span>
-                                                {sortKey === option &&
-                                                    (sortOrder === 'asc' ? (
-                                                        <MdKeyboardArrowUp className={st.store_filterChipDirection} />
-                                                    ) : (
-                                                        <MdKeyboardArrowDown className={st.store_filterChipDirection} />
-                                                    ))}
-                                            </span>
-                                        </button>
-                                    ))}
+                        ) : null}
+                    </div>
+                    <div className={st.featuredMedia}>
+                        <img
+                            src={image}
+                            alt=""
+                            className={cn(!hasImage && st.featuredMediaFallback)}
+                            onError={event => {
+                                event.currentTarget.onerror = null
+                                event.currentTarget.src = fallbackBanner
+                                event.currentTarget.classList.add(st.featuredMediaFallback)
+                            }}
+                        />
+                    </div>
+                </div>
+            </section>
+        )
+    }
+
+    const searchResults = (
+        <section className={st.searchResults}>
+            <header className={st.searchResultsHeader}>
+                <div className={st.searchResultsHeading}>
+                    <h2>{t('store.catalog.results')}</h2>
+                    <div className={st.searchResultsSort}>
+                        <MdFilterAlt aria-hidden="true" />
+                        <span>{t(`store.catalog.searchSort.${searchSort}`)}</span>
+                    </div>
+                </div>
+                <DropdownMenu items={searchFilterItems} menuClassName={st.searchFilterMenu} placement="left-start" closeOnSelect={false}>
+                    <button type="button" className={st.searchFilterButton} aria-label={t('store.catalog.openFilters')}>
+                        <MdFilterAlt aria-hidden="true" />
+                    </button>
+                </DropdownMenu>
+            </header>
+            {activeLoading || isSearchDebouncing ? (
+                <div className={st.searchResultsLoading}>
+                    <StoreShimmer count={6} variant="list" />
+                </div>
+            ) : !visibleAddons.length ? (
+                <div className={st.storeState}>{t('store.noResults')}</div>
+            ) : (
+                <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                    {addon => renderStoreCard(addon, 'list', { installLabel: t('layout.installAction') })}
+                </StoreVirtualList>
+            )}
+        </section>
+    )
+
+    const selectDetailChannel = useCallback((addonId: string, channel: 'stable' | 'dev', addon: StoreAddon) => {
+        setSelectedAddon(current =>
+            current?.id === addonId
+                ? {
+                      ...current,
+                      ...addon,
+                      ratingAverage: current.ratingAverage,
+                      ratingCount: current.ratingCount,
+                      myRating: current.myRating,
+                  }
+                : current,
+        )
+        setDetailChannel(channel)
+        setResolvedDetailRelease(`${addon.id}:${addon.currentRelease?.id}:${channel}`)
+    }, [])
+
+    useEffect(() => {
+        if (!selectedAddon?.id) {
+            ++detailRequestRef.current
+            return
+        }
+        const addonId = selectedAddon.id
+        const initialChannel = selectedAddon.currentRelease?.releaseChannels?.includes(releaseChannel)
+            ? releaseChannel
+            : selectedAddon.currentRelease?.releaseChannels?.includes('stable') === false
+              ? 'dev'
+              : 'stable'
+        const preferredChannel =
+            installedAddons.find(addon => addon.storeAddonId === addonId && addon.installSource === 'store')?.storeReleaseChannel ?? initialChannel
+        setDetailChannel(initialChannel)
+        setResolvedDetailRelease(null)
+        if (selectedAddon.currentRelease?.status !== 'accepted') {
+            setResolvedDetailRelease(`${addonId}:${selectedAddon.currentRelease?.id}:${initialChannel}`)
+            setChannelLoading(false)
+            return
+        }
+        const request = ++detailRequestRef.current
+        setChannelLoading(true)
+        void Promise.all([fetchStoreAddonUpdates([addonId], 'stable', true), fetchStoreAddonUpdates([addonId], 'dev', true)])
+            .then(([stableAddons, devAddons]) => {
+                if (request !== detailRequestRef.current) return
+                const channelAddons = {
+                    stable: stableAddons.find(addon => addon.id === addonId && addon.currentRelease?.releaseChannels?.includes('stable')),
+                    dev: devAddons.find(addon => addon.id === addonId && addon.currentRelease?.releaseChannels?.includes('dev')),
+                }
+                const channel = channelAddons[preferredChannel]
+                    ? preferredChannel
+                    : channelAddons[initialChannel]
+                      ? initialChannel
+                      : channelAddons.stable
+                        ? 'stable'
+                        : 'dev'
+                const addon = channelAddons[channel]
+                if (!addon?.currentRelease) throw new Error('ADDON_CHANNEL_UNAVAILABLE')
+                selectDetailChannel(addonId, channel, addon)
+            })
+            .catch(error => {
+                console.error('[Store] failed to select channel', error)
+                if (request === detailRequestRef.current)
+                    toast.custom('error', t('common.errorTitle'), t('extensions.publication.channelUnavailable'))
+            })
+            .finally(() => {
+                if (request === detailRequestRef.current) setChannelLoading(false)
+            })
+        return () => {
+            ++detailRequestRef.current
+        }
+    }, [selectedAddon?.id, releaseChannel, selectDetailChannel])
+
+    const modalAddon = selectedAddon ?? modalAddonRef.current
+    const modalInstalledAddon = modalAddon ? installedStoreAddons.get(modalAddon.id) : undefined
+    const isSwitchingChannel = Boolean(modalInstalledAddon && (modalInstalledAddon.storeReleaseChannel ?? 'stable') !== detailChannel)
+    const content = isSearchMode ? (
+        searchResults
+    ) : activeLoading ? (
+        <div className={st.storeLoading}>
+            <StoreShimmer count={6} variant={catalogTab === 'main' ? 'catalog' : 'list'} />
+        </div>
+    ) : !visibleAddons.length ? (
+        <div className={st.storeState}>
+            {t(hasSearchOrFilter ? 'store.noResults' : catalogTab === 'moderation' ? 'store.pendingEmpty' : 'store.empty')}
+        </div>
+    ) : catalogTab !== 'main' ? (
+        <section className={st.catalogSection}>
+            <header className={st.sectionHeader}>
+                <div>
+                    <h2>{t(catalogTab === 'moderation' ? 'store.pendingSectionTitle' : 'store.catalog.myAddons')}</h2>
+                    {catalogTab === 'moderation' ? <p>{t('store.pendingSectionSubtitle')}</p> : null}
+                </div>
+            </header>
+            <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                {addon => renderStoreCard(addon, 'list', catalogTab === 'moderation' ? { forceStatus: 'pending' } : undefined)}
+            </StoreVirtualList>
+        </section>
+    ) : (
+        <>
+            {renderFeatured()}
+
+            <div className={st.pagerDots}>
+                <button
+                    type="button"
+                    className={st.pagerArrow}
+                    onClick={() => scrollFeatured(-1)}
+                    disabled={featuredAddons.length <= 1}
+                    aria-label={t('store.catalog.previous')}
+                >
+                    <MdChevronLeft />
+                </button>
+                {featuredAddons.map((addon, index) => (
+                    <button
+                        key={addon.id}
+                        type="button"
+                        className={cn(st.pagerDot, index === featuredIndex && st.pagerDotActive)}
+                        onClick={() => {
+                            setFeaturedDirection(index >= featuredIndex ? 1 : -1)
+                            setFeaturedIndex(index)
+                        }}
+                        aria-label={addon.name}
+                        aria-current={index === featuredIndex ? 'true' : undefined}
+                    />
+                ))}
+                <button
+                    type="button"
+                    className={st.pagerArrow}
+                    onClick={() => scrollFeatured(1)}
+                    disabled={featuredAddons.length <= 1}
+                    aria-label={t('store.catalog.next')}
+                >
+                    <MdChevronRight />
+                </button>
+            </div>
+
+            <section className={st.catalogSection}>
+                <header className={st.sectionHeader}>
+                    <h2>{t('store.catalog.newAddons')}</h2>
+                    <div className={st.sectionActions}>
+                        <button type="button" onClick={() => scrollNewAddons(-1)} aria-label={t('store.catalog.previous')}>
+                            <MdChevronLeft />
+                        </button>
+                        <button type="button" onClick={() => scrollNewAddons(1)} aria-label={t('store.catalog.next')}>
+                            <MdChevronRight />
+                        </button>
+                    </div>
+                </header>
+                <div ref={newAddonsRef} className={st.posterRail} {...newAddonsDragProps}>
+                    {newAddons.map(addon => renderStoreCard(addon, 'poster'))}
+                </div>
+            </section>
+
+            <section className={st.catalogSection}>
+                <header className={st.sectionHeader}>
+                    <h2>{t('store.catalog.recentlyUpdated')}</h2>
+                </header>
+                <div className={st.listShell}>
+                    <StoreVirtualList addons={visibleAddons} scrollElementRef={scrollContainerRef}>
+                        {addon => renderStoreCard(addon, 'list')}
+                    </StoreVirtualList>
+                    {isInitialShimmerVisible ? (
+                        <div className={cn(st.initialShimmerOverlay, isInitialShimmerFading && st.initialShimmerOverlayHidden)}>
+                            <StoreShimmer count={6} />
+                        </div>
+                    ) : null}
+                </div>
+            </section>
+        </>
+    )
+
+    return (
+        <PageLayout
+            title={selectedAddon ? t('extensions.pageTitle') : t('pages.store.title')}
+            titleDetail={
+                selectedAddon
+                    ? {
+                          label: selectedAddon.name,
+                          icon: selectedAddon.currentRelease?.avatarUrl || undefined,
+                      }
+                    : undefined
+            }
+        >
+            <>
+                <Scrollbar
+                    ref={scrollContainerRef}
+                    className={st.containerFix}
+                    classNameInner={cn(st.containerFixInner, (activeLoading || isInitialShimmerVisible) && st.containerFixInnerLocked)}
+                    onScroll={() => {
+                        animationsEnabledRef.current = true
+                    }}
+                >
+                    <main className={st.store}>
+                        <div className={st.catalogToolbar}>
+                            <Tabs
+                                key={isSearchMode ? 'search' : 'catalog'}
+                                value={isSearchMode ? '__search__' : catalogTab}
+                                onChange={handleCatalogTabChange}
+                                className={st.catalogTabsRoot}
+                            >
+                                <TabList className={st.catalogTabs}>
+                                    <Tab value="main">{t('store.catalog.main')}</Tab>
+                                    <Tab value="owned">{t('store.catalog.myAddons')}</Tab>
+                                    {isDeveloperUser && <Tab value="moderation">{t('store.catalog.moderation')}</Tab>}
+                                </TabList>
+                            </Tabs>
+                            <div className={st.catalogControls}>
+                                <DropdownMenu
+                                    items={(['stable', 'dev'] as const).map(channel => ({
+                                        key: channel,
+                                        label: t(`store.catalog.channel.${channel}`),
+                                        radio: true,
+                                        checked: releaseChannel === channel,
+                                        onClick: () => void setReleaseChannel(channel),
+                                    }))}
+                                    placement="bottom-start"
+                                >
+                                    <Button
+                                        type="button"
+                                        variant="ghost"
+                                        size="compact"
+                                        uppercase={false}
+                                        icon={<MdKeyboardArrowDown />}
+                                        iconPosition="right"
+                                        aria-label={`${t('extensions.publication.channelLabel')}: ${t(`store.catalog.channel.${releaseChannel}`)}`}
+                                    >
+                                        {t(`store.catalog.channel.${releaseChannel}`)}
+                                    </Button>
+                                </DropdownMenu>
+                                <div className={st.catalogSearchSlot}>
+                                    <img className={st.catalogSearchIcon} src={staticAsset('assets/icons/package_search.svg')} alt="" />
+                                    <SearchBox
+                                        value={searchQuery}
+                                        onChange={setSearchQuery as never}
+                                        onFocus={() => setIsSearchOpen(true)}
+                                        onKeyDown={event => {
+                                            if (event.key !== 'Escape') return
+                                            closeSearch()
+                                            if (event.target instanceof HTMLElement) event.target.blur()
+                                        }}
+                                        placeholder={t('store.catalog.search')}
+                                        className={st.catalogSearch}
+                                    />
                                 </div>
                             </div>
                         </div>
-                        <div className={st.store_subtitle_stats}>{''.concat(String(addons?.length)).concat('/').concat(String(storeTotalCount))}</div>
-                    </header>
 
-                    <div ref={storeContentRef}>{content}</div>
-
-                    {shouldShowPendingSection ? (
-                        <section className={st.store_section}>
-                            <div className={st.store_sectionHeader}>
-                                <div>
-                                    <h2 className={st.store_sectionTitle}>{t('store.pendingSectionTitle')}</h2>
-                                    <p className={st.store_sectionSubtitle}>{t('store.pendingSectionSubtitle')}</p>
-                                </div>
-                            </div>
-
-                            {pendingAddons.length ? (
-                                <div className={st.store_sectionGrid}>
-                                    {pendingAddons.map((addon, index) =>
-                                        renderStoreCard(addon, index, {
-                                            forceStatus: 'pending',
-                                        }),
-                                    )}
-                                </div>
-                            ) : (
-                                <div className={st.store_sectionState}>{t('store.pendingEmpty')}</div>
-                            )}
-                        </section>
-                    ) : null}
-                </section>
-            </Scrollbar>
+                        {content}
+                    </main>
+                </Scrollbar>
+                {modalAddon ? (
+                    <StoreAddonDetailsModal
+                        key={modalAddon.id}
+                        addon={modalAddon}
+                        releaseChannel={detailChannel}
+                        isSwitchingChannel={isSwitchingChannel}
+                        isOpen={Boolean(selectedAddon)}
+                        isInstalled={installedStoreAddons.has(modalAddon.id)}
+                        actionDisabled={
+                            channelLoading ||
+                            ((!modalInstalledAddon || isSwitchingChannel) &&
+                                resolvedDetailRelease !== `${modalAddon.id}:${modalAddon.currentRelease?.id}:${detailChannel}`) ||
+                            installingAddonId === modalAddon.id ||
+                            (!installedStoreAddons.has(modalAddon.id) && !modalAddon.currentRelease?.downloadUrl?.trim())
+                        }
+                        actionLabel={
+                            installedStoreAddons.has(modalAddon.id)
+                                ? isSwitchingChannel
+                                    ? t('extensions.publication.switchChannel')
+                                    : t('store.remove')
+                                : installingAddonId === modalAddon.id
+                                  ? t('common.importing')
+                                  : modalAddon.currentRelease?.downloadUrl?.trim()
+                                    ? t('layout.installAction')
+                                    : t('common.notAvailable')
+                        }
+                        currentUserId={user.id}
+                        currentUserAvatarHash={user.avatarHash}
+                        currentUserAvatarType={user.avatarType}
+                        relatedAddons={addons.filter(addon => addon.id !== modalAddon.id && addon.currentRelease).slice(0, 8)}
+                        installingAddonId={installingAddonId}
+                        isAddonInstalled={addonId => installedStoreAddons.has(addonId)}
+                        onAction={() => {
+                            if (!modalAddon.currentRelease) return
+                            setSelectedAddon(null)
+                            void handleStoreAddonAction(
+                                modalAddon,
+                                modalAddon.currentRelease,
+                                installedStoreAddons.get(modalAddon.id),
+                                detailChannel,
+                                isSwitchingChannel,
+                            )
+                        }}
+                        onRelatedAddonAction={relatedAddon => {
+                            if (!relatedAddon.currentRelease) return
+                            void handleStoreAddonAction(
+                                relatedAddon,
+                                relatedAddon.currentRelease,
+                                installedStoreAddons.get(relatedAddon.id),
+                                releaseChannel,
+                            )
+                        }}
+                        onRelatedAddonSelect={setSelectedAddon}
+                        onAuthorClick={author => {
+                            setSelectedAddon(null)
+                            openModal(Modals.USER_PROFILE, { profileName: author })
+                        }}
+                        onRatingChange={handleRatingChange}
+                        onClose={() => setSelectedAddon(null)}
+                    />
+                ) : null}
+            </>
         </PageLayout>
     )
 }

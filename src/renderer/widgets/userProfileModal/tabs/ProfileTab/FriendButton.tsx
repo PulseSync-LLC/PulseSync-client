@@ -1,13 +1,16 @@
 import React, { useCallback, useState } from 'react'
-import cn from 'clsx'
-import { MdPersonAdd, MdPeopleAlt, MdHowToReg, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
+
 import { useMutation } from '@apollo/client/react'
-import Button from '@shared/ui/buttonV2'
-import toggleFollowMutation from '@features/toggleFollow/api/toggleFollow.query'
-import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdHowToReg, MdPeopleAlt, MdPersonAdd, MdPersonOff, MdPersonRemove, MdSettings } from 'react-icons/md'
+
 import config from '@common/appConfig'
+import toggleFollowMutation from '@features/toggleFollow/api/toggleFollow.query'
 import { isProfileSlugForUser } from '@shared/lib/profileSlug'
+import Button from '@shared/ui/buttonV2'
+
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface FriendButtonProps {
     userProfile: any

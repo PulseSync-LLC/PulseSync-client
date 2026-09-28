@@ -13,10 +13,15 @@
 
 .block {
     @include shimmer.surface;
-    min-height: 78px;
-    border-radius: 16px;
-    padding: 16px;
     display: flex;
+
     flex-direction: column;
+
     gap: 12px;
+
+    min-height: 78px;
+
+    padding: 16px;
+
+    border-radius: 16px;
 }

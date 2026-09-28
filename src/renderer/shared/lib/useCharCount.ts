@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react'
+
 import { t } from '@app/i18n'
 
 interface Addon {

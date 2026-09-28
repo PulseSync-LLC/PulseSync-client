@@ -1,59 +1,52 @@
-import { app, BrowserWindow, ipcMain } from 'electron'
-import process from 'process'
-import path from 'path'
-import * as fs from 'original-fs'
-import createTray from './main/modules/tray'
-import {
-    checkForSingleInstance,
-    consumePendingBrowserAuthFromDeepLink,
-    consumePendingInstallModUpdateFromPath,
-    isFirstInstance,
-} from './main/modules/singleInstance'
-import { sendAddonSettings, sendAllAddonSettings, sendExtensions, setAddon } from './main/modules/httpServer'
-import { checkAsar, findAppByName, getPathToYandexMusic, isLinux, isMac, isWindows } from './main/utils/appUtils'
-import logger from './main/modules/logger'
-import isAppDev from './main/utils/isAppDev'
-import { modManager } from './main/modules/mod/modManager'
-import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
+import { app, BrowserWindow, type BrowserWindow as BrowserWindowType, dialog, ipcMain } from 'electron'
 
-import { checkCLIArguments } from './main/utils/processUtils'
-import { registerSchemes } from './main/utils/serverUtils'
-import { createDefaultAddonIfNotExists, loadAddons } from './main/utils/addonUtils'
-import { migrateLegacyAddonSettings } from './main/utils/addonSettingsMigration'
-import { createWindow, mainWindow } from './main/modules/createWindow'
-import { handleEvents } from './main/events'
-import { initMainI18n, t } from './main/i18n'
-import Addon from '@entities/addon/model/addon.interface'
-import { getState } from './main/modules/state'
-import { startThemeWatcher } from './main/modules/nativeModules'
 import * as fsp from 'fs/promises'
+import * as fs from 'original-fs'
+import path from 'path'
+import process from 'process'
+
+import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
 import MainEvents from './common/types/mainEvents'
 import RendererEvents from './common/types/rendererEvents'
-import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
+import { handleEvents } from './main/events'
+import { initMainI18n, t } from './main/i18n'
 import { processBrowserAuth } from './main/modules/auth/browserAuth'
-import { runWhenUiReady } from './main/modules/uiReady'
-import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
+import { migrateCompletedLaunchRequestIds, writeCompletedLaunchRequestIds } from './main/modules/bootstrap/launchCompletionStore'
+import { createWindow, mainWindow } from './main/modules/createWindow'
+import { HandleErrorsElectron } from './main/modules/handlers/handleErrorsElectron'
+import { sendAddonSettings, sendAllAddonSettings, sendExtensions, setAddon } from './main/modules/httpServer'
+import { registerLocalizationIpc } from './main/modules/localization'
+import logger from './main/modules/logger'
+import { installModUpdateFromAsar } from './main/modules/mod/installModUpdateFrom'
+import { modManager } from './main/modules/mod/modManager'
 import { enableSystemProxySupport } from './main/modules/network/systemProxy'
-import { initMainErrorTracking } from './main/modules/errorTracking'
-import { handleUncaughtException } from './main/modules/handlers/handleError'
-import { getAddonsRoot, resolveExistingDirectoryInsideBase } from './main/utils/addonPaths'
+import {
+    consumePendingBrowserAuthFromDeepLink,
+    consumePendingInstallModUpdateFromPath,
+    createApplicationLaunchRequestHandler,
+    setIsFirstInstance,
+} from './main/modules/singleInstance'
+import { getState } from './main/modules/state'
+import { sendAppStartupTelemetry } from './main/modules/telemetry/appTelemetry'
+import createTray from './main/modules/tray'
+import { runWhenUiReady } from './main/modules/uiReady'
+import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './main/modules/updater/updater'
+import { prestartCheck } from './main/startup/prestartCheck'
+import { selectedAddon, setMusicPath, setSelectedAddon, setUpdated } from './main/startup/runtimeState'
+import { getAddonsRoot, resolveExistingDirectoryInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from './main/utils/addonPaths'
+import { loadAddons } from './main/utils/addonUtils'
+import { findAppByName, getPathToYandexMusic, isMac, isWindows } from './main/utils/appUtils'
+import isAppDev from './main/utils/isAppDev'
+import { checkCLIArguments } from './main/utils/processUtils'
+import { readBufResilient } from './main/utils/readBufResilient'
 
-export let updated = false
-export let musicPath: string
-export let asarFilename = 'app.backup.asar'
-export let asarBackup: string
-export let selectedAddon: string
+import type { LaunchRequestEnvelopeV1 } from './main/modules/bootstrapper/contracts'
+import type Addon from '@entities/addon/model/addon.interface'
 
-initMainErrorTracking()
-handleUncaughtException()
-registerSchemes()
 const State = getState()
 initMainI18n(State.get('settings.language'))
-
-if (isWindows()) {
-    app.setAppUserModelId('pulsesync.app')
-}
+registerLocalizationIpc()
 
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',
@@ -69,9 +62,11 @@ const registerPulseSyncProtocol = (): void => {
     try {
         const entryFile = process.argv[1]
         const isDevProtocolRegistration = Boolean(process.defaultApp || (isAppDev && entryFile))
-        isDevProtocolRegistration
-            ? app.setAsDefaultProtocolClient('pulsesync', process.execPath, entryFile ? [path.resolve(entryFile)] : [])
-            : app.setAsDefaultProtocolClient('pulsesync')
+        if (isDevProtocolRegistration && entryFile) {
+            app.setAsDefaultProtocolClient('pulsesync', process.execPath, [path.resolve(entryFile)])
+        } else {
+            app.setAsDefaultProtocolClient('pulsesync')
+        }
     } catch (error) {
         logger.main.warn('Failed to register pulsesync:// protocol handler:', error)
     }
@@ -86,7 +81,7 @@ const checkOldYandexMusic = async () => {
 
         if (pkg && mainWindow && !mainWindow.isDestroyed()) {
             logger.main.info('Old Yandex Music found, sending dialog event to renderer')
-            mainWindow.webContents.send('SHOW_YANDEX_MUSIC_UPDATE_DIALOG')
+            mainWindow.webContents.send(RendererEvents.SHOW_YANDEX_MUSIC_UPDATE_DIALOG)
         }
     } catch (err) {
         logger.main.warn('Unable to check old Yandex Music AppX package:', err)
@@ -95,37 +90,78 @@ const checkOldYandexMusic = async () => {
 
 const initializeMusicPath = async () => {
     try {
-        musicPath = await getPathToYandexMusic()
-        asarBackup = path.join(musicPath, asarFilename)
+        setMusicPath(await getPathToYandexMusic())
     } catch (err) {
         logger.main.error(t('main.index.musicPathError'), err)
     }
 }
-initializeMusicPath()
-
-if (isAppDev && (isWindows() || isMac())) {
-    const openAtLogin = app.getLoginItemSettings().openAtLogin
-    if (openAtLogin) {
-        app.setLoginItemSettings({
-            openAtLogin: false,
-            path: app.getPath('exe'),
-        })
-    }
+export type ApplicationStartupContext = {
+    bootstrapRuntime?: UpdaterBootstrapRuntime
+    bootstrapWindow?: BrowserWindowType
 }
 
-app.on('ready', async () => {
+export type ApplicationStartupHandle = {
+    deliverLaunchRequest(request: LaunchRequestEnvelopeV1): Promise<boolean>
+    ready: Promise<void>
+}
+
+let applicationStarted = false
+
+export async function startMainApplication(context: ApplicationStartupContext = {}): Promise<ApplicationStartupHandle> {
+    if (applicationStarted) {
+        throw new Error('Application main has already started')
+    }
+    applicationStarted = true
+    setIsFirstInstance(true)
+    if (context.bootstrapRuntime) {
+        configureUpdaterBootstrapRuntime(context.bootstrapRuntime)
+    }
+
     try {
         await enableSystemProxySupport()
         HandleErrorsElectron.processStoredCrashes()
         await initializeMusicPath()
 
-        updated = checkCLIArguments(isAppDev)
-        await checkForSingleInstance()
-        if (!isFirstInstance) {
-            return
+        setUpdated(checkCLIArguments(isAppDev))
+        await prestartCheck()
+        if (isAppDev && (isWindows() || isMac())) {
+            const openAtLogin = app.getLoginItemSettings().openAtLogin
+            if (openAtLogin) {
+                app.setLoginItemSettings({
+                    openAtLogin: false,
+                    path: app.getPath('exe'),
+                })
+            }
         }
-        await createWindow()
+        const windowStartup = await createWindow({ bootstrapWindow: context.bootstrapWindow })
         handleEvents(mainWindow)
+        const handleLaunchRequest = await createApplicationLaunchRequestHandler()
+        const legacyCompletedLaunchRequestIds = State.get('app.completedLaunchRequestIds')
+        let persistedCompletedLaunchRequestIds: string[] = []
+        try {
+            persistedCompletedLaunchRequestIds = migrateCompletedLaunchRequestIds(legacyCompletedLaunchRequestIds)
+            if (legacyCompletedLaunchRequestIds !== undefined) State.delete('app.completedLaunchRequestIds')
+        } catch (error) {
+            logger.main.warn('Failed to load completed launch requests:', error)
+            persistedCompletedLaunchRequestIds = Array.isArray(legacyCompletedLaunchRequestIds)
+                ? legacyCompletedLaunchRequestIds.filter((value: unknown): value is string => typeof value === 'string').slice(-256)
+                : []
+        }
+        const completedIds = new Set<string>(persistedCompletedLaunchRequestIds)
+        const deliverLaunchRequest = async (request: LaunchRequestEnvelopeV1): Promise<boolean> => {
+            if (completedIds.has(request.id)) return true
+            await windowStartup.ready
+            await handleLaunchRequest(request)
+            completedIds.add(request.id)
+            try {
+                const retainedIds = writeCompletedLaunchRequestIds(completedIds)
+                completedIds.clear()
+                retainedIds.forEach(id => completedIds.add(id))
+            } catch (error) {
+                logger.main.warn('Failed to persist completed launch request:', error)
+            }
+            return true
+        }
         const pendingBrowserAuth = consumePendingBrowserAuthFromDeepLink()
         if (pendingBrowserAuth) {
             void processBrowserAuth(pendingBrowserAuth, { window: mainWindow }).catch(err => {
@@ -146,28 +182,19 @@ app.on('ready', async () => {
         modManager(mainWindow)
         createTray()
         void sendAppStartupTelemetry()
+        app.on('window-all-closed', () => {
+            if (process.platform !== 'darwin') app.quit()
+        })
+        app.on('activate', () => {
+            if (BrowserWindow.getAllWindows().length === 0) void createWindow()
+        })
+        return { ready: windowStartup.ready, deliverLaunchRequest }
     } catch (e) {
         HandleErrorsElectron.handleError('prestartCheck', 'checkYandexMusicApp', 'app_startup', e)
         logger.main.error(t('main.index.appStartupError'), e)
+        applicationStarted = false
+        throw e
     }
-})
-
-app.on('window-all-closed', () => {
-    if (process.platform !== 'darwin') {
-        app.quit()
-    }
-})
-
-app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-        createWindow()
-    }
-})
-
-function initializeAddon() {
-    selectedAddon = State.get('addons.theme') || 'Default'
-    logger.main.log('Addons: theme changed to:', selectedAddon)
-    setAddon(selectedAddon)
 }
 
 const ensureDir = async (p: string) => fsp.mkdir(path.dirname(p), { recursive: true })
@@ -177,6 +204,55 @@ const safeJson = (obj: any) => {
     } catch {
         return String(obj ?? '')
     }
+}
+
+function sanitizeAddonFilename(name: string) {
+    return String(name || 'addon')
+        .replace(/[/\\?%*:|"<>]/g, '_')
+        .replace(/\s+/g, '_')
+        .trim()
+}
+
+const resolveAddonFilePath = (targetPath: string, options: { mustExist?: boolean } = {}): string | null => {
+    const addonsRoot = getAddonsRoot()
+    const resolvedPath = options.mustExist
+        ? resolveExistingPathInsideBase(addonsRoot, resolveInputPath(String(targetPath || '')))
+        : resolvePathInsideBase(addonsRoot, resolveInputPath(String(targetPath || '')))
+
+    return resolvedPath
+}
+
+const resolveWritableAddonFilePath = (targetPath: string): string | null => {
+    const addonsRoot = getAddonsRoot()
+    const resolvedPath = resolvePathInsideBase(addonsRoot, resolveInputPath(String(targetPath || '')))
+    if (!resolvedPath) return null
+
+    if (fs.existsSync(resolvedPath)) {
+        return resolveExistingPathInsideBase(addonsRoot, resolvedPath)
+    }
+
+    let existingParent = path.dirname(resolvedPath)
+    while (existingParent && !fs.existsSync(existingParent)) {
+        const nextParent = path.dirname(existingParent)
+        if (nextParent === existingParent) break
+        existingParent = nextParent
+    }
+
+    return resolveExistingDirectoryInsideBase(addonsRoot, existingParent) ? resolvedPath : null
+}
+
+const resolveAddonDirectoryPath = (targetPath: string): string | null => {
+    const addonsRoot = getAddonsRoot()
+    return resolveExistingDirectoryInsideBase(addonsRoot, resolveInputPath(String(targetPath || '')))
+}
+
+const toAddonRelativePath = (addonDirectoryPath: string, filePath: string): string | null => {
+    const relativePath = path.relative(addonDirectoryPath, filePath)
+    if (!relativePath || relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
+        return null
+    }
+
+    return relativePath.replace(/\\/g, '/')
 }
 const getInputPathCandidates = (p0: string): string[] => {
     if (!p0) return []
@@ -216,47 +292,6 @@ const resolveInputPath = (p0: string): string => {
     }
     return variants[0] || ''
 }
-export const readBufResilient = async (p0: string): Promise<Buffer> => {
-    if (!p0) throw new Error('empty path')
-    const candidates: string[] = []
-    if (p0.startsWith('file://')) {
-        try {
-            const u = new URL(p0)
-            candidates.push(path.normalize(decodeURI(u.pathname)))
-        } catch {}
-    }
-    const norm = path.normalize(p0)
-    candidates.push(norm)
-    if (process.platform === 'win32') {
-        candidates.push(norm.replace(/\//g, '\\'))
-        candidates.push(norm.replace(/\\/g, '/'))
-        if (!norm.startsWith('\\\\?\\')) candidates.push('\\\\?\\' + norm)
-    }
-    try {
-        candidates.push(norm.normalize('NFC'))
-    } catch {}
-    try {
-        candidates.push(norm.normalize('NFD'))
-    } catch {}
-    candidates.push(norm.replace(/^["']|["']$/g, ''))
-    let lastErr: any = null
-    for (const p of candidates) {
-        try {
-            return await fsp.readFile(p)
-        } catch (e1) {
-            lastErr = e1
-            try {
-                const buf = await new Promise<Buffer>((resolve, reject) => {
-                    fs.readFile(p, (err, data) => (err ? reject(err) : resolve(data as unknown as Buffer)))
-                })
-                return buf
-            } catch (e2) {
-                lastErr = e2
-            }
-        }
-    }
-    throw lastErr ?? new Error('Unable to read file')
-}
 const mimeFromExt = (p: string) => {
     const ext = path.extname(p).toLowerCase()
     return (mimeByExt as any)?.[ext] || 'application/octet-stream'
@@ -278,7 +313,7 @@ const readStoredAddonScripts = (): string[] => {
 }
 
 const syncAddonClients = async (): Promise<void> => {
-    selectedAddon = State.get('addons.theme') || 'Default'
+    setSelectedAddon(State.get('addons.theme') || 'Default')
     setAddon(selectedAddon)
     await sendExtensions()
     sendAllAddonSettings({ force: true })
@@ -458,6 +493,166 @@ ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath, data) 
     }
 })
 
+ipcMain.handle(MainEvents.ADDON_FILE_EXISTS, async (_event, targetPath: string) => {
+    return Boolean(resolveAddonFilePath(targetPath, { mustExist: true }))
+})
+
+ipcMain.handle(MainEvents.ADDON_FILE_READ_TEXT, async (_event, targetPath: string, encoding?: BufferEncoding) => {
+    const filePath = resolveAddonFilePath(targetPath, { mustExist: true })
+    if (!filePath) return null
+
+    try {
+        return await fsp.readFile(filePath, encoding || 'utf8')
+    } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+            logger?.main?.error?.('[addon-file:read-text]', error)
+        }
+        return null
+    }
+})
+
+ipcMain.handle(MainEvents.ADDON_FILE_WRITE_TEXT, async (_event, targetPath: string, content: string) => {
+    const filePath = resolveWritableAddonFilePath(targetPath)
+    if (!filePath) return { success: false, error: 'INVALID_ADDON_PATH' }
+
+    try {
+        await ensureDir(filePath)
+        await fsp.writeFile(filePath, String(content ?? ''), 'utf8')
+        emitAddonSettingsWriteIfNeeded(filePath)
+        return { success: true }
+    } catch (error: any) {
+        logger?.main?.error?.('[addon-file:write-text]', error)
+        return { success: false, error: error?.message || String(error) }
+    }
+})
+
+ipcMain.handle(MainEvents.ADDON_FILE_READ_BASE64, async (_event, targetPath: string) => {
+    const filePath = resolveAddonFilePath(targetPath, { mustExist: true })
+    if (!filePath) return null
+
+    try {
+        const buffer = await readBufResilient(filePath)
+        return buffer.toString('base64')
+    } catch (error: any) {
+        if (error?.code !== 'ENOENT') {
+            logger?.main?.error?.('[addon-file:read-base64]', error)
+        }
+        return null
+    }
+})
+
+ipcMain.handle(MainEvents.ADDON_FILE_WRITE_BASE64, async (_event, targetPath: string, base64: string) => {
+    const filePath = resolveWritableAddonFilePath(targetPath)
+    if (!filePath || !base64) return false
+
+    try {
+        await ensureDir(filePath)
+        await fsp.writeFile(filePath, Buffer.from(base64, 'base64'))
+        emitAddonSettingsWriteIfNeeded(filePath)
+        return true
+    } catch (error: any) {
+        logger?.main?.error?.('[addon-file:write-base64]', error)
+        return false
+    }
+})
+
+ipcMain.handle(MainEvents.ADDON_FILE_AS_DATA_URL, async (_event, targetPath: string) => {
+    const filePath = resolveAddonFilePath(targetPath, { mustExist: true })
+    if (!filePath) return null
+
+    try {
+        const buffer = await readBufResilient(filePath)
+        return `data:${mimeFromExt(filePath)};base64,${buffer.toString('base64')}`
+    } catch (error: any) {
+        logger?.main?.error?.('[addon-file:as-data-url]', error)
+        return null
+    }
+})
+
+ipcMain.handle(
+    MainEvents.ADDON_FILE_COPY_INTO,
+    async (
+        _event,
+        request: {
+            addonPath?: string
+            existingRelativePath?: string
+            preferredName?: string
+            sourcePath?: string
+        },
+    ) => {
+        const addonDirectoryPath = resolveAddonDirectoryPath(String(request?.addonPath || ''))
+        const sourcePath = resolveInputPath(String(request?.sourcePath || ''))
+
+        if (!addonDirectoryPath || !sourcePath || !fs.existsSync(sourcePath) || !fs.statSync(sourcePath).isFile()) {
+            return { success: false, error: 'INVALID_ADDON_FILE_COPY' }
+        }
+
+        try {
+            let destinationPath: string | null = null
+
+            if (request?.existingRelativePath) {
+                if (path.isAbsolute(request.existingRelativePath)) {
+                    return { success: false, error: 'INVALID_ADDON_RELATIVE_PATH' }
+                }
+                destinationPath = resolveWritableAddonFilePath(path.join(addonDirectoryPath, request.existingRelativePath))
+            } else {
+                const baseName = sanitizeAddonFilename(request?.preferredName || path.basename(sourcePath))
+                const ext = path.extname(baseName)
+                const stem = baseName.slice(0, baseName.length - ext.length)
+                destinationPath = path.join(addonDirectoryPath, baseName)
+
+                let index = 1
+                while (index <= 500 && fs.existsSync(destinationPath)) {
+                    destinationPath = path.join(addonDirectoryPath, `${stem}_${index++}${ext}`)
+                }
+                if (index > 500) {
+                    destinationPath = path.join(addonDirectoryPath, `${stem}_${Date.now()}${ext}`)
+                }
+            }
+
+            if (!destinationPath || !resolvePathInsideBase(addonDirectoryPath, destinationPath)) {
+                return { success: false, error: 'INVALID_ADDON_DESTINATION' }
+            }
+
+            await ensureDir(destinationPath)
+            try {
+                const buffer = await readBufResilient(sourcePath)
+                await fsp.writeFile(destinationPath, buffer)
+            } catch {
+                await fsp.copyFile(sourcePath, destinationPath)
+            }
+            emitAddonSettingsWriteIfNeeded(destinationPath)
+
+            const relativePath = toAddonRelativePath(addonDirectoryPath, destinationPath)
+            return relativePath ? { success: true, relativePath } : { success: false, error: 'INVALID_ADDON_DESTINATION' }
+        } catch (error: any) {
+            logger?.main?.error?.('[addon-file:copy-into]', error)
+            return { success: false, error: error?.message || String(error) }
+        }
+    },
+)
+
+ipcMain.handle(
+    MainEvents.ADDON_FILE_OPEN_DIALOG,
+    async (_event, request?: { defaultPath?: string; filters?: Electron.FileFilter[]; metadata?: boolean }) => {
+        const addonsRoot = getAddonsRoot()
+        const defaultPath = request?.defaultPath ? (resolvePathInsideBase(addonsRoot, resolveInputPath(request.defaultPath)) ?? undefined) : undefined
+        const { canceled, filePaths } = await dialog.showOpenDialog({
+            properties: ['openFile'],
+            filters: request?.filters,
+            defaultPath,
+        })
+        if (canceled || !filePaths.length) return null
+
+        const selectedPath = path.normalize(filePaths[0])
+        if (!request?.metadata) {
+            return selectedPath
+        }
+
+        return resolvePathInsideBase(addonsRoot, selectedPath) ? path.basename(selectedPath) : selectedPath
+    },
+)
+
 ipcMain.handle(MainEvents.DELETE_ADDON_DIRECTORY, async (_event, themeDirectoryPath: string) => {
     try {
         const addonsRoot = getAddonsRoot()
@@ -564,49 +759,15 @@ ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
             logger.main.warn(
                 `Addons: Received theme change for addon ${validated.directoryName} with type '${validated.type}'. Reverting to Default theme.`,
             )
-            selectedAddon = 'Default'
+            setSelectedAddon('Default')
         } else {
-            selectedAddon = validated.directoryName
+            setSelectedAddon(validated.directoryName)
         }
         logger.main.info(`Addons: theme changed to: ${selectedAddon}`)
         setAddon(selectedAddon)
     } catch (error: any) {
         logger.main.error(`Addons: Error processing theme change: ${error.message}`)
-        selectedAddon = 'Default'
+        setSelectedAddon('Default')
         setAddon(selectedAddon)
     }
 })
-
-export async function prestartCheck() {
-    const musicDir = app.getPath('music')
-    const pulseSyncMusicPath = path.join(musicDir, 'PulseSyncMusic')
-
-    if (!fs.existsSync(pulseSyncMusicPath)) {
-        try {
-            fs.mkdirSync(pulseSyncMusicPath, { recursive: true })
-        } catch (err) {
-            logger.main.error('Ошибка при создании директории PulseSyncMusic:', err)
-        }
-    }
-
-    if (isLinux() && State.get('settings.modFilename')) {
-        const modFilename = State.get('settings.modFilename')
-        asarFilename = `${modFilename}.backup.asar`
-        asarBackup = path.join(musicPath, asarFilename)
-    }
-
-    if (typeof State.get('settings.closeAppInTray') !== 'boolean') {
-        State.set('settings.closeAppInTray', false)
-    }
-    checkAsar()
-    initializeAddon()
-
-    const themesPath = getAddonsRoot()
-    createDefaultAddonIfNotExists(themesPath)
-    await migrateLegacyAddonSettings(themesPath)
-    try {
-        startThemeWatcher(themesPath)
-    } catch (e) {
-        logger.main.error('Error setting up file watcher for themes:', e)
-    }
-}

@@ -1,9 +1,11 @@
+import { app } from 'electron'
+
 import fs from 'original-fs'
 import path from 'path'
-import logger from '../logger'
-import { app } from 'electron'
+
 import { t } from '../../i18n'
 import { captureMainException } from '../errorTracking'
+import logger from '../logger'
 
 const CRASH_FILE = path.join(app.getPath('appData'), 'PulseSync', 'logs', 'crash_app.log')
 

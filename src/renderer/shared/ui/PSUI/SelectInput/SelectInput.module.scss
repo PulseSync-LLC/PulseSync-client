@@ -3,19 +3,38 @@
 }
 
 .inputContainer {
-    cursor: pointer;
     position: relative;
+
     display: flex;
+
     flex-direction: column;
+
     gap: 6px;
-    padding: 10px 16px;
+
     width: -webkit-fill-available;
-    background: #3b4052;
+
+    padding: 10px 16px;
+
+    cursor: pointer;
+    outline: none;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
     border-radius: 8px;
-    outline: transparent solid 2px;
-    transition: var(--transition);
+
+    transition:
+        background-color var(--transition),
+        border-color var(--transition),
+        box-shadow var(--transition);
+
     &:hover {
-        outline: #8d9dd6 solid 2px;
+        background: var(--surface-tertiary);
+        border-color: var(--border-hover);
+    }
+
+    &:focus-visible {
+        border-color: var(--accent-muted);
+        box-shadow: 0 0 0 2px var(--focus-ring);
     }
 }
 
@@ -24,47 +43,63 @@
 }
 
 .label {
-    font-weight: 400;
-    font-size: 12px;
-    line-height: 140%;
-    color: #ffffff;
     display: flex;
+
     gap: 5px;
+
     align-items: center;
+
+    font-size: 12px;
+    font-weight: 400;
+
+    line-height: 140%;
+
+    color: var(--text-primary);
 }
 
 .value {
-    font-weight: 500;
     font-size: 18px;
-    color: #c7cfee;
+    font-weight: 500;
+
+    color: var(--text-primary);
+
     transition: var(--transition);
 }
+
 .placeholder {
-    color: #b5bdd8;
+    color: var(--text-secondary);
 }
 
 .arrow {
+    color: var(--text-secondary);
+
     transition:
         transform var(--transition),
         color var(--transition);
-    color: #c7cfee;
 }
+
 .open .arrow {
+    color: var(--text-primary);
+
     transform: rotate(180deg);
-    color: #e4e9ff;
 }
 
 .panel {
     position: fixed;
     z-index: 10000;
+
     display: flex;
+
     flex-direction: column;
-    background: #2b3042;
-    border: 1px solid #3e465f;
-    border-radius: 12px;
-    box-shadow: 0 10px 28px rgba(0, 0, 0, 0.45);
+
     padding: 6px;
+
     overflow: hidden;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 12px;
+    box-shadow: 0 10px 28px rgb(0, 0, 0, 0.45);
 }
 
 .panel.up {
@@ -78,70 +113,90 @@
 .searchInput {
     width: 100%;
     height: 38px;
-    border: 1px solid #4a526d;
-    border-radius: 10px;
-    background: #242a39;
-    color: #e7ecf3;
+
     padding: 0 12px;
+
     font: inherit;
+
+    color: var(--text-primary);
+
     outline: none;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
 }
 
 .searchInput::placeholder {
-    color: #8f9bb3;
+    color: var(--text-secondary);
 }
+
 .list {
     display: grid;
+
     flex: 1 1 auto;
-    min-height: 0;
+
     gap: 4px;
+
+    min-height: 0;
     max-height: 280px;
+
     overflow: auto;
 }
 
 .option {
     display: grid;
+
     grid-template-columns: 1fr auto;
-    align-items: center;
+
     gap: 8px;
+
+    align-items: center;
+
     padding: 8px 10px;
-    background: transparent;
-    border: 1px solid transparent;
-    border-radius: 8px;
-    cursor: pointer;
-    color: #e7ecf3;
+
+    color: var(--text-primary);
+
     text-align: left;
-    transition:
-        background-color var(--transition),
-        border-color var(--transition);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 8px;
+
+    transition: background-color var(--transition);
 
     &:hover,
     &.hover {
-        background: #3a4057;
-        border-color: #4a5473;
+        background: var(--surface-tertiary);
     }
 }
+
 .optionLabel {
     pointer-events: none;
 }
+
 .check {
-    color: #c7cfee;
+    color: var(--text-secondary);
 }
 
 .active {
-    background: #3a4057;
-    border-color: #8d9dd6;
-    box-shadow: inset 0 0 0 2px rgba(141, 157, 214, 0.15);
+    background: var(--surface-tertiary);
 }
 
 .valueLine {
     display: grid;
+
     grid-template-columns: 1fr auto;
+
     align-items: center;
+
     pointer-events: none;
 }
 
 .arrowOpen {
+    color: var(--text-primary);
+
     transform: rotate(180deg);
-    color: #e4e9ff;
 }

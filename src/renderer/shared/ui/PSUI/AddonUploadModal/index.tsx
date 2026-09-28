@@ -1,9 +1,12 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+
 import cn from 'clsx'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import * as st from '@shared/ui/PSUI/AddonUploadModal/AddonUploadModal.module.scss'
-import ButtonV2 from '@shared/ui/buttonV2'
 import { useTranslation } from 'react-i18next'
+
+import ButtonV2 from '@shared/ui/buttonV2'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+
+import * as st from '@shared/ui/PSUI/AddonUploadModal/AddonUploadModal.module.scss'
 
 export type StepApi = {
     report: (progress: number, note?: string) => void

@@ -1,20 +1,25 @@
-import { app, BrowserWindow } from 'electron'
-import * as path from 'path'
 import * as fs from 'original-fs'
 import os from 'os'
-import RendererEvents, { RendererEvent } from '../../../common/types/rendererEvents'
-import { getState } from '../state'
-import logger from '../logger'
-import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
-import { Paths } from './mod-files'
-import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
-import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
-import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
+import * as path from 'path'
+
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+
+import RendererEvents from '../../../common/types/rendererEvents'
 import { CACHE_DIR } from '../../constants/paths'
 import { t } from '../../i18n'
-import type { RemoteModInfo } from './network/modCatalog'
-import { hashArtifactInWorker } from './network/artifactWorkerClient'
+import { closeYandexMusic, getInstalledYmMetadata, isYandexMusicRunning, launchYandexMusic } from '../../utils/appUtils'
 import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
+import logger from '../logger'
+import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
+import { getState } from '../state'
+import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
+import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
+import { hashArtifactInWorker } from './network/artifactWorkerClient'
+
+import type { RendererEvent } from '../../../common/types/rendererEvents'
+import type { Paths } from './mod-files'
+import type { RemoteModInfo } from './network/modCatalog'
+import type { BrowserWindow } from 'electron'
 
 const State = getState()
 const MUSIC_CLOSE_TIMEOUT_MS = 5000
@@ -24,7 +29,7 @@ export const fileExists = (filePath: string) => nativeFileExists(filePath) || fs
 
 export function clearCacheOnVersionChange(): void {
     try {
-        const currentVersion = app.getVersion()
+        const currentVersion = DESKTOP_CORE_VERSION
         const savedVersion = State.get('app.version')
         if (savedVersion !== currentVersion) {
             try {

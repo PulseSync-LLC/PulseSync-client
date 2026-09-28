@@ -1,5 +1,7 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import * as style from '@entities/user/ui/LevelProgress/levelProgress.module.scss'
 
 interface LevelProgressProps {

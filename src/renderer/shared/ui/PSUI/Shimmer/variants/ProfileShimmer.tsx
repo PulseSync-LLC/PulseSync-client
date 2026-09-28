@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/ProfileShimmer.module.scss'
 
 export default function ProfileShimmer() {
@@ -61,6 +62,10 @@ export default function ProfileShimmer() {
                             <div className={styles.achievementContent}>
                                 <div className={styles.achievementTitle} />
                                 <div className={styles.achievementSubtitle} />
+                                <div className={styles.achievementFooter}>
+                                    <div className={styles.achievementPill} />
+                                    <div className={styles.achievementPillShort} />
+                                </div>
                             </div>
                             <div className={styles.achievementMeta} />
                         </div>

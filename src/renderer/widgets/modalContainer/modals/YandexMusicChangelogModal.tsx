@@ -1,13 +1,15 @@
-import React, { useContext, useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useMemo, useState } from 'react'
+
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 
 import { useModalContext } from '@app/providers/modal'
 import { compareVersions } from '@shared/lib/utils'
-import Modal from '@shared/ui/PSUI/Modal'
 import Loader from '@shared/ui/PSUI/Loader'
-import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
+import Modal from '@shared/ui/PSUI/Modal'
+
 import * as styles from './YandexMusicChangelogModal.module.scss'
-import cn from 'clsx'
+import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 
 const RELEASE_NOTES_URL = 'https://desktop.app.music.yandex.net/stable/release-notes/ru.json'
 const RELEASE_NOTES_DEFAULT_KEY = 'desktop-release-notes.default'
@@ -198,7 +200,7 @@ const YandexMusicChangelogModal: React.FC = () => {
     return (
         <Modal title={t('pages.home.musicReleaseNotesTitle')} isOpen={isOpen} reqClose={() => closeModal(Modals.YANDEX_MUSIC_CHANGELOG)}>
             <div className={cn(modalStyles.updateModal, (isLoading || error) && modalStyles.updateModalMaxedHeight)}>
-                {isLoading && <Loader variant="panel" />}
+                {isLoading && <Loader variant="modChangelog" />}
                 {!isLoading && error && <p>{t('header.errorWithMessage', { message: error })}</p>}
                 {!isLoading &&
                     !error &&

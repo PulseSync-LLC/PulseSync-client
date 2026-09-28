@@ -6,34 +6,63 @@
 }
 
 .item {
+    position: relative;
+
     display: flex;
-    align-items: flex-start;
-    gap: 28px;
-    padding: 24px;
+
+    flex-direction: column;
+
     outline: 1px solid var(--modal-border);
 
+    &:first-child {
+        margin-top: 12px;
+    }
+
     &:nth-child(odd) {
-        background: linear-gradient(90deg, #577eff24 0%, rgba(87, 126, 255, 0) 100%);
+        background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 14%, transparent) 0%, transparent 100%);
     }
 
     &:nth-child(even) {
-        background: linear-gradient(90deg, #577eff10 0%, rgba(87, 126, 255, 0) 100%);
+        background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 6%, transparent) 0%, transparent 100%);
     }
 }
 
 .versionInfo {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    z-index: 1;
+
+    box-sizing: border-box;
     display: flex;
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 8px;
-    width: 120px;
-    flex-shrink: 0;
+
+    gap: 10px;
+
+    align-items: center;
+
+    width: max-content;
+    max-width: calc(100% - 48px);
+
+    padding: 5px 10px;
+
+    background: var(--background);
+    border-radius: 999px;
+
+    transform: translate(-50%, -50%);
 }
 
 .versionBadge {
-    @include shimmer.text-surface(#3468f2);
+    @include shimmer.text-surface;
     width: 58px;
-    height: 20px;
+    height: 12px;
+}
+
+.separator {
+    @include shimmer.text-surface;
+    flex: 0 0 auto;
+
+    width: 4px;
+    height: 4px;
 }
 
 .date {
@@ -43,17 +72,24 @@
 }
 
 .content {
-    flex: 1;
+    box-sizing: border-box;
     display: flex;
+
     flex-direction: column;
+
     gap: 20px;
+
+    width: 100%;
     min-width: 0;
-    padding-top: 2px;
+
+    padding: 30px 24px 24px;
 }
 
 .section {
     display: flex;
+
     flex-direction: column;
+
     gap: 16px;
 }
 
@@ -65,21 +101,26 @@
 
 .bullets {
     display: flex;
+
     flex-direction: column;
+
     gap: 14px;
 }
 
 .bulletRow {
     display: flex;
-    align-items: center;
+
     gap: 18px;
+
+    align-items: center;
 }
 
 .bulletDot {
     @include shimmer.text-surface;
+    flex-shrink: 0;
+
     width: 6px;
     height: 6px;
-    flex-shrink: 0;
 }
 
 .bulletLine {
@@ -93,17 +134,8 @@
     width: 64%;
 }
 
-@media (max-width: 640px) {
-    .item {
-        flex-direction: column;
-        gap: 20px;
-    }
-
-    .versionInfo {
-        width: auto;
-    }
-
+@media (width <= 640px) {
     .content {
-        width: 100%;
+        padding-inline: 18px;
     }
 }

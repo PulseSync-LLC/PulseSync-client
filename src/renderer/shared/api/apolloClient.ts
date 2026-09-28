@@ -1,8 +1,11 @@
-import { ApolloClient, InMemoryCache, ApolloLink, HttpLink } from '@apollo/client'
-import { getMainDefinition } from '@apollo/client/utilities'
+import { ApolloClient, ApolloLink, HttpLink, InMemoryCache } from '@apollo/client'
+import { setContext } from '@apollo/client/link/context'
 import { GraphQLWsLink } from '@apollo/client/link/subscriptions'
+import { getMainDefinition } from '@apollo/client/utilities'
 import { createClient } from 'graphql-ws'
-import config from '@common/appConfig'
+
+import config, { branch } from '@common/appConfig'
+import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 
 const httpUrl = config.SERVER_URL + '/graphql'
 const wsUrl = config.SERVER_URL.replace(/^http/, 'ws') + '/graphql'
@@ -20,14 +23,15 @@ const wsLink =
           )
         : null
 
-const authMiddleware = new ApolloLink((operation, forward) => {
-    const token = window.electron.store.get('tokens.token')
-    operation.setContext({
+const authMiddleware = setContext(async (_, { headers }) => {
+    const token = await getUserTokenAsync()
+    return {
         headers: {
+            ...headers,
+            'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta',
             Authorization: token ? `Bearer ${token}` : null,
         },
-    })
-    return forward(operation)
+    }
 })
 
 const splitLink = wsLink

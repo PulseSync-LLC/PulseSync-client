@@ -1,21 +1,30 @@
+import { createHash } from 'node:crypto'
+
 import * as fs from 'original-fs'
 import * as path from 'path'
-import { createHash } from 'node:crypto'
+
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { sanitizeScript } from '../../utils/addonUtils'
-import { Server as IOServer, Socket } from 'socket.io'
+import { getAddonsRoot, resolveExistingFileInsideBase } from '../../utils/addonPaths'
+import { resolveAddonDirectory, resolveAddonDisplayName, resolveAddonId } from '../../utils/addonRegistry'
+import { sanitizeLegacyScript } from '../../utils/legacyScriptSanitizer'
+import { validateWebHostAddonRuntime } from '../../utils/webHostAddonRuntime'
+import { createModuleManifest, type ModuleManifest } from '../addonModules'
+import { readLocalModules } from '../addonModules/local'
+import { type Descriptor, sha256, throwModuleError } from '../addonModules/protocol'
 import { readAddonSettings } from './addonSettings'
-import { resolveAddonDirectory, resolveAddonDisplayName } from '../../utils/addonRegistry'
-import { getAddonsRoot } from '../../utils/addonPaths'
+
+import type { Server as IOServer, Socket } from 'socket.io'
 
 interface StateLike {
     get: (key: string) => any
+    set: (key: string, value: any) => void
 }
 
 interface LoggerLike {
     http: {
         log: (...args: any[]) => void
+        warn: (...args: any[]) => void
     }
 }
 
@@ -31,6 +40,7 @@ interface DataToMusicOptions {
     targetSocket?: Socket
     currentAddonStateHashVersion?: number
     currentAddonStateHash?: string
+    webHostAddonProtocolVersion?: number
 }
 
 type ThemePayload = {
@@ -46,6 +56,34 @@ type RefreshedAddonPayload = {
     id?: string
     css: string | null
     script: string | null
+}
+
+type WebHostAssetBase = {
+    id: string
+    name: string
+    directoryName: string
+    version?: string
+    css: string
+}
+
+type WebHostAddonPayload = WebHostAssetBase & {
+    type: 'web-addon'
+    code: string
+    securityManifest?: ModuleManifest
+    catalogAddonId?: string
+    localModules?: Record<string, Descriptor>
+}
+
+type WebHostThemePayload = WebHostAssetBase & {
+    type: 'theme'
+}
+
+type WebHostAssetPayload = WebHostAddonPayload | WebHostThemePayload
+
+type WebHostAddonsSnapshot = {
+    hash: string
+    addons: WebHostAssetPayload[]
+    allowedUrls: string[]
 }
 
 type AddonStateSnapshot = {
@@ -83,7 +121,25 @@ const hashAddonState = (snapshot: AddonStateSnapshot): string =>
         .update(JSON.stringify(canonicalizeAddonState(snapshot)))
         .digest('hex')
 
+const WEB_HOST_ADDON_PROTOCOL_VERSION = 1
+const WEB_HOST_THEME_PROTOCOL_VERSION = 2
+
+const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[]): string =>
+    createHash('sha256')
+        .update(
+            JSON.stringify({
+                addons: [...addons].sort((left, right) => {
+                    const leftKey = JSON.stringify(left)
+                    const rightKey = JSON.stringify(right)
+                    return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
+                }),
+                allowedUrls: [...allowedUrls].sort(),
+            }),
+        )
+        .digest('hex')
+
 export const createAddonService = ({ state, logger, getIo, getAuthorized, getSelectedAddon }: CreateAddonServiceOptions) => {
+    const developmentAddons = new Set<string>()
     const lastAddonSettings = new Map<string, string>()
     const pendingDataSyncTimers = new Map<string, ReturnType<typeof setTimeout>>()
 
@@ -205,7 +261,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             const scriptPath = metadata.script ? path.join(themePath, metadata.script) : null
             const css = metadata.css && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile() ? fs.readFileSync(cssPath, 'utf8') : ''
             const script =
-                scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile() ? sanitizeScript(fs.readFileSync(scriptPath, 'utf8')) : ''
+                scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()
+                    ? sanitizeLegacyScript(fs.readFileSync(scriptPath, 'utf8'))
+                    : ''
 
             return {
                 name: useDefault ? 'Default' : metadata.name || themeFolder,
@@ -249,7 +307,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                     let script: string | null = null
                     if (meta.script) {
                         const scriptFile = path.join(addonsFolder, folderName, meta.script)
-                        if (fs.existsSync(scriptFile)) script = sanitizeScript(fs.readFileSync(scriptFile, 'utf8'))
+                        if (fs.existsSync(scriptFile)) script = sanitizeLegacyScript(fs.readFileSync(scriptFile, 'utf8'))
                     }
 
                     return {
@@ -267,16 +325,155 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             .filter((addon): addon is RefreshedAddonPayload => addon !== null)
     }
 
+    const readWebHostAddonPayloads = (): WebHostAddonPayload[] => {
+        const scripts = getSelectedScriptDirectories()
+        const addonsFolder = getAddonsRoot()
+        let dirs: string[] = []
+        try {
+            dirs = fs.readdirSync(addonsFolder)
+        } catch {
+            return []
+        }
+
+        return dirs
+            .map<WebHostAddonPayload | null>(folderName => {
+                const metadataPath = path.join(addonsFolder, folderName, 'metadata.json')
+                if (!fs.existsSync(metadataPath)) return null
+
+                try {
+                    const meta = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+                    if (meta.type !== 'web-addon') return null
+
+                    const metaName = typeof meta.name === 'string' ? meta.name.trim() : ''
+                    const addonName = metaName || folderName
+                    if (!scripts.includes(folderName) && !(metaName.length > 0 && scripts.includes(metaName))) return null
+
+                    const id = typeof meta.id === 'string' && meta.id.trim() ? meta.id.trim() : folderName
+                    const addonRoot = path.join(addonsFolder, folderName)
+                    const cssFile = typeof meta.css === 'string' ? resolveExistingFileInsideBase(addonRoot, meta.css) : null
+                    const scriptFile = typeof meta.script === 'string' ? resolveExistingFileInsideBase(addonRoot, meta.script) : null
+                    const css = cssFile && fs.existsSync(cssFile) && fs.statSync(cssFile).isFile() ? fs.readFileSync(cssFile, 'utf8') : ''
+                    const rawCode =
+                        scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile() ? fs.readFileSync(scriptFile, 'utf8') : ''
+                    const validation = validateWebHostAddonRuntime(rawCode)
+                    if (!validation.ok) {
+                        logger.http.warn(`[PulseSync Addons] Blocked isolated addon ${id}: ${validation.category}: ${validation.reason}`)
+                        return null
+                    }
+
+                    const local =
+                        developmentAddons.has(folderName) && meta.installSource !== 'store'
+                            ? readLocalModules(addonRoot, meta.allowedUrls)
+                            : undefined
+
+                    return {
+                        type: 'web-addon',
+                        id,
+                        name: addonName,
+                        directoryName: folderName,
+                        version: typeof meta.version === 'string' ? meta.version : undefined,
+                        css,
+                        code: validation.code,
+                        ...(local
+                            ? { securityManifest: local.securityManifest, localModules: local.localModules, catalogAddonId: id }
+                            : meta.modules
+                              ? {
+                                    securityManifest: createModuleManifest(meta.modules, meta.allowedUrls),
+                                    catalogAddonId: typeof meta.storeAddonId === 'string' ? meta.storeAddonId : id,
+                                }
+                              : {}),
+                    }
+                } catch (error) {
+                    logger.http.warn(
+                        `[PulseSync Addons] Failed to read isolated addon ${folderName}: ${error instanceof Error ? error.message : String(error)}`,
+                    )
+                    return null
+                }
+            })
+            .filter((addon): addon is WebHostAddonPayload => addon !== null)
+    }
+
+    const readWebHostThemePayload = (): WebHostThemePayload | null => {
+        const directoryName = getSelectedThemeDirectory()
+        if (directoryName.toLowerCase() === 'default') return null
+
+        const themeRoot = path.join(getAddonsRoot(), directoryName)
+        const metadataPath = path.join(themeRoot, 'metadata.json')
+        if (!fs.existsSync(metadataPath)) return null
+
+        try {
+            const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
+            if (metadata.type !== 'theme') return null
+
+            const cssFile = typeof metadata.css === 'string' ? resolveExistingFileInsideBase(themeRoot, metadata.css) : null
+            if (!cssFile || !fs.existsSync(cssFile) || !fs.statSync(cssFile).isFile()) return null
+
+            const css = fs.readFileSync(cssFile, 'utf8')
+            if (!css.trim() || css.trim() === '{}') return null
+
+            const declaredScript = typeof metadata.script === 'string' && metadata.script.trim() ? metadata.script : null
+            const scriptFile = declaredScript ? resolveExistingFileInsideBase(themeRoot, declaredScript) : null
+            if (declaredScript && (!scriptFile || !fs.existsSync(scriptFile) || !fs.statSync(scriptFile).isFile())) return null
+            const script = scriptFile && fs.existsSync(scriptFile) && fs.statSync(scriptFile).isFile() ? fs.readFileSync(scriptFile, 'utf8') : ''
+            if (script.trim()) return null
+
+            const id = typeof metadata.id === 'string' && metadata.id.trim() ? metadata.id.trim() : directoryName
+            const name = typeof metadata.name === 'string' && metadata.name.trim() ? metadata.name.trim() : directoryName
+            return {
+                type: 'theme',
+                id,
+                name,
+                directoryName,
+                version: typeof metadata.version === 'string' ? metadata.version : undefined,
+                css,
+            }
+        } catch (error) {
+            logger.http.warn(
+                `[PulseSync Addons] Failed to read CSS-only theme ${directoryName}: ${error instanceof Error ? error.message : String(error)}`,
+            )
+            return null
+        }
+    }
+
+    const readWebHostAddonsSnapshot = (protocolVersion: number): { snapshot: WebHostAddonsSnapshot; handlesTheme: boolean } => {
+        const addons: WebHostAssetPayload[] = readWebHostAddonPayloads()
+        const allowedUrls = getAllAllowedUrls()
+        let handlesTheme = false
+
+        if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
+            const selectedThemeDirectory = getSelectedThemeDirectory()
+            const theme = readWebHostThemePayload()
+            handlesTheme = selectedThemeDirectory.toLowerCase() === 'default' || theme !== null
+            if (theme) addons.unshift(theme)
+        }
+
+        return {
+            snapshot: { hash: hashWebHostAddons(addons, allowedUrls), addons, allowedUrls },
+            handlesTheme,
+        }
+    }
+
     const readAddonStateSnapshot = (): AddonStateSnapshot => ({
         theme: readThemePayload() || readThemePayload(true),
         extensions: readExtensionPayloads(),
     })
 
-    const emitAddonStateSnapshot = (socket: Socket, snapshot: AddonStateSnapshot): void => {
-        if (snapshot.theme) socket.emit('THEME', { theme: snapshot.theme })
+    const emitAddonStateSnapshot = (socket: Socket, snapshot: AddonStateSnapshot, includeTheme = true): void => {
+        const legacyTheme = includeTheme ? snapshot.theme : readThemePayload(true)
+        if (legacyTheme) socket.emit('THEME', { theme: legacyTheme })
         socket.emit(MainEvents.REFRESH_EXTENSIONS, { addons: snapshot.extensions })
         socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
     }
+
+    const emitWebHostAddonsSnapshot = (socket: Socket, snapshot: WebHostAddonsSnapshot): void => {
+        socket.emit(MainEvents.WEBHOST_ADDONS_SNAPSHOT, snapshot)
+    }
+
+    const getWebHostAddonProtocolVersion = (socket: Socket, protocolVersion?: number): number =>
+        Number(protocolVersion ?? (socket as any).webHostAddonProtocolVersion) || 0
+
+    const supportsWebHostAddons = (socket: Socket, protocolVersion?: number): boolean =>
+        getWebHostAddonProtocolVersion(socket, protocolVersion) >= WEB_HOST_ADDON_PROTOCOL_VERSION
 
     const setAddon = (_theme: string) => {
         const io = getIo()
@@ -293,7 +490,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const jsPath = metadata.script ? path.join(themePath, metadata.script) : null
         const css = fs.existsSync(cssPath) ? fs.readFileSync(cssPath, 'utf8') : ''
         let js = jsPath && fs.existsSync(jsPath) ? fs.readFileSync(jsPath, 'utf8') : ''
-        js = sanitizeScript(js)
+        js = sanitizeLegacyScript(js)
 
         const themeData = { name: metadata.name || selected, css: css || '{}', script: js || '' }
         if ((!metadata.type || (metadata.type !== 'theme' && metadata.type !== 'script')) && metadata.name !== 'Default') {
@@ -313,10 +510,16 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             io.sockets.sockets.forEach(sock => {
                 const s = sock as any
                 if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
-                    sock.emit('THEME', {
-                        theme: themeData,
-                        allowedUrls: getAllAllowedUrls(),
-                    })
+                    const protocolVersion = getWebHostAddonProtocolVersion(sock)
+                    const webHost = readWebHostAddonsSnapshot(protocolVersion)
+                    if (webHost.handlesTheme) {
+                        const defaultTheme = readThemePayload(true)
+                        if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
+                        emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                    } else {
+                        sock.emit('THEME', { theme: themeData, allowedUrls: getAllAllowedUrls() })
+                        if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                    }
                     sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
                 }
             })
@@ -332,30 +535,87 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
-                if (withJs) {
+                const protocolVersion = getWebHostAddonProtocolVersion(sock)
+                const webHost = readWebHostAddonsSnapshot(protocolVersion)
+                if (!themeDef && webHost.handlesTheme) {
+                    const defaultTheme = readThemePayload(true)
+                    if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
+                    emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                } else if (withJs) {
                     sock.emit('THEME', { theme: themeData })
                 } else {
                     sock.emit('UPDATE_CSS', {
                         theme: { css: themeData.css, name: themeData.name },
                     })
                 }
+                if (!webHost.handlesTheme && protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
+                    emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+                }
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
         })
     }
 
-    const sendExtensions = async (): Promise<void> => {
+    const sendExtensions = async (): Promise<number> => {
         const io = getIo()
-        if (!io) return
+        if (!io) return 0
         const found = readExtensionPayloads()
+        let recipients = 0
 
         io.sockets.sockets.forEach(sock => {
             const s = sock as any
             if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
                 sock.emit(MainEvents.REFRESH_EXTENSIONS, { addons: found })
+                if (supportsWebHostAddons(sock)) {
+                    recipients += 1
+                    emitWebHostAddonsSnapshot(sock, readWebHostAddonsSnapshot(getWebHostAddonProtocolVersion(sock)).snapshot)
+                }
                 sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
             }
         })
+
+        return recipients
+    }
+
+    const reloadDevelopmentAddon = async (directoryName: string): Promise<{ enabled: true; recipients: number }> => {
+        if (!directoryName || directoryName === '.' || directoryName === '..' || path.basename(directoryName) !== directoryName) {
+            throw new Error('Development addon directory is invalid')
+        }
+
+        const addonDirectory = resolveAddonDirectory(directoryName)
+        if (!addonDirectory || addonDirectory !== directoryName) throw new Error('Development addon directory was not found')
+
+        const metadataPath = path.join(getAddonsRoot(), addonDirectory, 'metadata.json')
+        if (!fs.existsSync(metadataPath)) throw new Error('Development addon metadata was not found')
+
+        const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as {
+            id?: unknown
+            installSource?: unknown
+            script?: unknown
+            type?: unknown
+            allowedUrls?: unknown
+        }
+        if (metadata.type !== 'web-addon') throw new Error('Development reload only supports web-addon packages')
+        if (metadata.installSource === 'store') throw new Error('Development reload refuses store-managed addons')
+        const scriptPath = typeof metadata.script === 'string' ? resolveExistingFileInsideBase(path.dirname(metadataPath), metadata.script) : null
+        if (!scriptPath) {
+            throw new Error('Development addon script is missing or invalid')
+        }
+        const addonId = typeof metadata.id === 'string' && metadata.id.trim() ? metadata.id.trim() : addonDirectory
+        const validation = validateWebHostAddonRuntime(fs.readFileSync(scriptPath, 'utf8'))
+        if (!validation.ok) {
+            throw new Error(`Blocked isolated addon ${addonId}: ${validation.category}: ${validation.reason}`)
+        }
+
+        const storedScripts = readStoredAddonScripts()
+        readLocalModules(path.dirname(metadataPath), metadata.allowedUrls)
+        developmentAddons.add(addonDirectory)
+        const alreadyEnabled = storedScripts.some(script => resolveAddonDirectory(script) === addonDirectory)
+        if (!alreadyEnabled) {
+            state.set('addons.scripts', [...storedScripts, addonDirectory])
+        }
+
+        return { enabled: true, recipients: await sendExtensions() }
     }
 
     const sendAddonSettings = ({ addonName, targetSocket, force = false }: { addonName: string; targetSocket?: Socket; force?: boolean }): void => {
@@ -369,16 +629,20 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         const settings = readAddonSettings(addonDirectory)
         const serialized = JSON.stringify(settings)
         const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
-        if (!force && lastAddonSettings.get(addonDisplayName) === serialized) {
+        const addonId = resolveAddonId(addonDirectory) || addonDirectory
+        const addonKeys = Array.from(new Set([addonDisplayName, addonId]))
+        if (!force && addonKeys.every(addonKey => lastAddonSettings.get(addonKey) === serialized)) {
             return
         }
 
-        lastAddonSettings.set(addonDisplayName, serialized)
+        addonKeys.forEach(addonKey => lastAddonSettings.set(addonKey, serialized))
 
         for (const sock of getMusicRecipients(targetSocket)) {
-            sock.emit('ADDON_SETTINGS_UPDATE', {
-                addon: addonDisplayName,
-                settings,
+            addonKeys.forEach(addonKey => {
+                sock.emit('ADDON_SETTINGS_UPDATE', {
+                    addon: addonKey,
+                    settings,
+                })
             })
         }
     }
@@ -395,7 +659,10 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                 const addonDirectory = resolveAddonDirectory(addonName)
                 if (!addonDirectory) return acc
                 const addonDisplayName = resolveAddonDisplayName(addonDirectory) || addonDirectory
-                acc[addonDisplayName] = readAddonSettings(addonDirectory)
+                const addonId = resolveAddonId(addonDirectory) || addonDirectory
+                const settings = readAddonSettings(addonDirectory)
+                acc[addonDisplayName] = settings
+                acc[addonId] = settings
                 return acc
             },
             {} as Record<string, ReturnType<typeof readAddonSettings>>,
@@ -414,9 +681,17 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
     }
 
-    const sendDataToMusic = ({ targetSocket, currentAddonStateHashVersion, currentAddonStateHash }: DataToMusicOptions = {}) => {
+    const sendDataToMusic = ({
+        targetSocket,
+        currentAddonStateHashVersion,
+        currentAddonStateHash,
+        webHostAddonProtocolVersion,
+    }: DataToMusicOptions = {}) => {
         const io = getIo()
         if (!io) return
+        const recipients = getMusicRecipients(targetSocket)
+        if (!recipients.length) return
+
         const syncKey = targetSocket?.id || '__all__'
         const snapshot = readAddonStateSnapshot()
         const desiredAddonStateHash = hashAddonState(snapshot)
@@ -426,24 +701,26 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             currentAddonStateHash.length > 0 &&
             currentAddonStateHash === desiredAddonStateHash
 
-        for (const socket of getMusicRecipients(targetSocket)) {
-            if (!stateMatches) emitAddonStateSnapshot(socket, snapshot)
+        for (const socket of recipients) {
+            const protocolVersion = getWebHostAddonProtocolVersion(socket, webHostAddonProtocolVersion)
+            const webHost = readWebHostAddonsSnapshot(protocolVersion)
+            if (!stateMatches) emitAddonStateSnapshot(socket, snapshot, !webHost.handlesTheme)
             else socket.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
+            if (supportsWebHostAddons(socket, protocolVersion)) emitWebHostAddonsSnapshot(socket, webHost.snapshot)
         }
-        logger.http.log(stateMatches ? 'Addon state unchanged after READY' : 'Current addon state sent after READY')
+        logger.http.log(
+            stateMatches
+                ? `Addon state unchanged for ${recipients.length} music client(s)`
+                : `Current addon state sent to ${recipients.length} music client(s)`,
+        )
 
         const existingTimer = pendingDataSyncTimers.get(syncKey)
         if (existingTimer) {
             clearTimeout(existingTimer)
         }
 
-        const timer = setTimeout(async () => {
+        const timer = setTimeout(() => {
             pendingDataSyncTimers.delete(syncKey)
-            if (!stateMatches) {
-                for (const socket of getMusicRecipients(targetSocket)) {
-                    emitAddonStateSnapshot(socket, snapshot)
-                }
-            }
             sendAllAddonSettings({ targetSocket, force: true })
         }, 1000)
         pendingDataSyncTimers.set(syncKey, timer)
@@ -451,14 +728,17 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     const getCurrentTrack = () => {
         const io = getIo()
-        if (!io) return
+        if (!io) return 0
 
+        let recipients = 0
         io.sockets.sockets.forEach(sock => {
             const socket = sock as any
             if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong) {
                 sock.emit(MainEvents.GET_TRACK_INFO)
+                recipients += 1
             }
         })
+        return recipients
     }
 
     const sendPremiumUserToClients = (args: any) => {
@@ -467,7 +747,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
         io.sockets.sockets.forEach(client => {
             const socket = client as any
-            if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong) {
+            if (socket.clientType === 'yaMusic' && getAuthorized() && socket.hasPong && socket.userValidationProtocolVersion !== 1) {
                 logger.http.log('Emitting PREMIUM_CHECK_TOKEN')
                 client.emit(RendererEvents.PREMIUM_CHECK_TOKEN, {
                     ok: true,
@@ -480,9 +760,34 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
     return {
         getAllAllowedUrls,
+        readModuleAddon: (id: string) => {
+            const matches = readWebHostAddonPayloads().filter(addon => addon.id === id)
+            const addon = matches.length === 1 ? matches[0] : undefined
+            return addon?.securityManifest && addon.catalogAddonId
+                ? {
+                      id: addon.id,
+                      code: addon.code,
+                      catalogAddonId: addon.catalogAddonId,
+                      securityManifest: addon.securityManifest,
+                      localModules: addon.localModules,
+                  }
+                : undefined
+        },
+        readLocalModuleBytes: (id: string, alias: string, expectedHash: string) => {
+            const matches = readWebHostAddonPayloads().filter(addon => addon.id === id)
+            const addon = matches.length === 1 ? matches[0] : undefined
+            if (!addon?.localModules?.[alias] || addon.localModules[alias].sha256 !== expectedHash) return throwModuleError('aborted')
+            const local = readLocalModules(path.join(getAddonsRoot(), addon.directoryName), addon.securityManifest?.allowedUrls)
+            const file = local?.files[alias]
+            if (!file || local.localModules[alias].sha256 !== expectedHash) return throwModuleError('aborted')
+            const bytes = fs.readFileSync(file)
+            if (sha256(bytes) !== expectedHash) return throwModuleError('aborted')
+            return bytes.toString('base64')
+        },
         setAddon,
         sendAddon,
         sendExtensions,
+        reloadDevelopmentAddon,
         sendAddonSettings,
         sendAllAddonSettings,
         sendDataToMusic,

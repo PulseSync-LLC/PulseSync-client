@@ -1,9 +1,14 @@
 import React, { createContext, useContext } from 'react'
+
 import type { NotificationsContextValue, NotificationsProviderProps } from '@app/providers/notifications/types'
 
 const noop = async (): Promise<void> => undefined
 
 const defaultNotificationsContextValue: NotificationsContextValue = {
+    hasMore: false,
+    loadingMore: false,
+    loadMoreError: false,
+    loadMore: noop,
     loading: false,
     notifications: [],
     unreadCount: 0,

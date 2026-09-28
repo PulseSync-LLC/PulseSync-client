@@ -1,24 +1,37 @@
-import SettingsInterface from '@entities/settings/model/settings.interface'
 import React from 'react'
+
 import settingsInitials from '@entities/settings/model/settings.initials'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
-export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<void> => {
-    const config: SettingsInterface = { ...settingsInitials }
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
-    const iterateKeys = (obj: any, path: string[] = []): void => {
-        Object.keys(obj).forEach(key => {
-            const fullPath = [...path, key].join('.')
-            const value = window.electron.store.get(fullPath)
-            if (value !== undefined) {
-                if (typeof obj[key] === 'object' && !Array.isArray(obj[key])) {
-                    iterateKeys(obj[key], [...path, key])
-                } else {
-                    obj[key] = value
-                }
-            }
-        })
+export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<SettingsInterface> => {
+    const [snapshot, token, runtimeInfo] = await Promise.all([
+        desktopApi.settings.getSnapshot(),
+        desktopApi.auth.getToken(),
+        desktopApi.getRuntimeInfo(),
+    ])
+    const config: SettingsInterface = {
+        ...settingsInitials,
+        settings: {
+            ...settingsInitials.settings,
+            ...snapshot.settings,
+        },
+        mod: {
+            ...settingsInitials.mod,
+            ...snapshot.mod,
+        },
+        tokens: {
+            ...settingsInitials.tokens,
+            token,
+        },
+        info: {
+            ...settingsInitials.info,
+            version: runtimeInfo.coreVersion,
+            branch: runtimeInfo.buildIdentity.commit,
+            devmark: runtimeInfo.isDev || runtimeInfo.buildChannel === 'dev',
+        },
     }
-
-    iterateKeys(config)
     setApp(config)
+    return config
 }

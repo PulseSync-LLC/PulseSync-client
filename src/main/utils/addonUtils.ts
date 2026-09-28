@@ -1,14 +1,18 @@
-import path from 'path'
 import * as fs from 'original-fs'
-import { getFolderSize, formatSizeUnits } from './appUtils'
-import logger from '../modules/logger'
-import Addon from '@entities/addon/model/addon.interface'
+import path from 'path'
+
 import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
+import logger from '../modules/logger'
 import { getState } from '../modules/state'
-import * as acorn from 'acorn'
-import { simple as walkSimple } from 'acorn-walk'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
-import { getAddonsRoot } from './addonPaths'
+import { getAddonsRoot, resolveExistingFileInsideBase } from './addonPaths'
+import { formatSizeUnits, getFolderSize } from './appUtils'
+import { validateWebHostAddonRuntime } from './webHostAddonRuntime'
+
+export { sanitizeLegacyScript, sanitizeScript } from './legacyScriptSanitizer'
+
+import type Addon from '@entities/addon/model/addon.interface'
 
 const State = getState()
 const defaultAddon: Partial<Addon> = {
@@ -21,7 +25,6 @@ const defaultAddon: Partial<Addon> = {
     version: '1.0.0',
     type: 'theme',
     css: 'style.css',
-    script: 'script.js',
     dependencies: [],
     conflictsWith: [],
     allowedUrls: [],
@@ -29,7 +32,6 @@ const defaultAddon: Partial<Addon> = {
 }
 
 const defaultCssContent = `{}`
-const defaultScriptContent = ``
 let loadAddonsInFlight: Promise<Addon[]> | null = null
 
 const normalizeRelationValues = (value: unknown): string[] => {
@@ -61,6 +63,15 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
                     metadata.id = defaultAddon.id
                     fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
                 }
+                if (typeof metadata.script === 'string') {
+                    const scriptPath = resolveExistingFileInsideBase(defaultAddonPath, metadata.script)
+                    const script =
+                        scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile() ? fs.readFileSync(scriptPath, 'utf-8') : ''
+                    if (!script.trim()) {
+                        delete metadata.script
+                        fs.writeFileSync(metadataPath, JSON.stringify(metadata, null, 4), 'utf-8')
+                    }
+                }
             }
             return
         }
@@ -69,11 +80,8 @@ export function createDefaultAddonIfNotExists(themesFolderPath: string) {
         fs.mkdirSync(path.join(defaultAddonPath, 'Assets'), { recursive: true })
 
         const cssPath = path.join(defaultAddonPath, defaultAddon.css!)
-        const scriptPath = path.join(defaultAddonPath, defaultAddon.script!)
-
         fs.writeFileSync(metadataPath, JSON.stringify(defaultAddon, null, 4), 'utf-8')
         fs.writeFileSync(cssPath, defaultCssContent, 'utf-8')
-        fs.writeFileSync(scriptPath, defaultScriptContent, 'utf-8')
 
         logger.main.info(`Addons: default theme created at ${defaultAddonPath}.`)
     } catch (err) {
@@ -170,7 +178,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 const resolvedId =
                     metadata.name === 'Default'
                         ? 'default'
-                        : resolvedInstallSource === 'store'
+                        : resolvedInstallSource === 'store' && metadata.type !== 'web-addon'
                           ? resolveAddonCanonicalId(metadata, metadata.id)
                           : resolveAddonStableId(metadata, metadata.id)
                 if (metadata.id !== resolvedId) {
@@ -220,6 +228,17 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                     metadata.version = versionMatch[0]
                 }
 
+                if (metadata.type === 'theme' && typeof metadata.script === 'string' && metadata.script.trim()) {
+                    const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
+                    if (scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()) {
+                        const script = await fs.promises.readFile(scriptPath, 'utf8')
+                        if (!script.trim()) {
+                            delete metadata.script
+                            metadataChanged = true
+                        }
+                    }
+                }
+
                 if (metadataChanged) {
                     await fs.promises.writeFile(metadataFilePath, JSON.stringify(metadata, null, 4), 'utf-8').catch(err => {
                         logger.main.error(`Addons: error writing metadata.json in theme ${currentFolder}:`, err)
@@ -235,6 +254,35 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.conflictsWith = normalizeRelationValues(metadata.conflictsWith)
                 metadata.allowedUrls = normalizeRelationValues(metadata.allowedUrls)
                 metadata.supportedVersions = normalizeRelationValues(metadata.supportedVersions)
+                metadata.runtime = 'legacy'
+                if (metadata.type === 'theme' && typeof metadata.css === 'string') {
+                    const cssPath = resolveExistingFileInsideBase(addonFolderPath, metadata.css)
+                    const css = cssPath && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile() ? await fs.promises.readFile(cssPath, 'utf8') : ''
+                    const declaredScript = typeof metadata.script === 'string' && metadata.script.trim() ? metadata.script : null
+                    const scriptPath = declaredScript ? resolveExistingFileInsideBase(addonFolderPath, declaredScript) : null
+                    const scriptIsReadable = !declaredScript || Boolean(scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile())
+                    const script =
+                        scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()
+                            ? await fs.promises.readFile(scriptPath, 'utf8')
+                            : ''
+                    if (css.trim() && css.trim() !== '{}' && scriptIsReadable && !script.trim()) metadata.runtime = 'style'
+                } else if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
+                    const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
+                    if (scriptPath) {
+                        try {
+                            const scriptContent = await fs.promises.readFile(scriptPath, 'utf8')
+                            const validation = validateWebHostAddonRuntime(scriptContent)
+                            if (validation.ok) metadata.runtime = 'isolated'
+                            else {
+                                logger.main.warn(
+                                    `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || currentFolder)}: ${validation.category}: ${validation.reason}`,
+                                )
+                            }
+                        } catch (err) {
+                            logger.main.warn(`Addons: failed to validate WebHost runtime in ${currentFolder}: ${String(err)}`)
+                        }
+                    }
+                }
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
                     metadata.rootFiles = rootEntries
@@ -380,7 +428,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
     }
 
     selectedScripts = finalAddons
-        .filter(addon => addon.type === 'script' && selectedScripts.includes(addon.directoryName!))
+        .filter(addon => addon.type !== 'theme' && selectedScripts.includes(addon.directoryName!))
         .map(addon => addon.directoryName!)
 
     const addonByDirectory = new Map(finalAddons.map(addon => [addon.directoryName, addon]))
@@ -520,7 +568,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
 
         if (addon.type === 'theme' && addon.directoryName === selectedTheme) {
             addon.enabled = true
-        } else if (addon.type === 'script' && enabledScriptsSet.has(addon.directoryName!)) {
+        } else if (addon.type !== 'theme' && enabledScriptsSet.has(addon.directoryName!)) {
             addon.enabled = true
         }
     })
@@ -542,219 +590,4 @@ export async function loadAddons(): Promise<Addon[]> {
     })()
 
     return loadAddonsInFlight
-}
-
-export function sanitizeScript(js: string): string {
-    let found = false
-    try {
-        const ast = acorn.parse(js, { ecmaVersion: 'latest', sourceType: 'script' }) as acorn.Node
-        const oauthVars = new Set<string>()
-        const evalAliases = new Set<string>()
-        const fnCtorAliases = new Set<string>()
-
-        function evalStaticString(node: any): string | undefined {
-            if (node.type === 'Literal' && typeof node.value === 'string') {
-                return node.value
-            }
-            if (node.type === 'BinaryExpression' && node.operator === '+') {
-                const left = evalStaticString(node.left)
-                const right = evalStaticString(node.right)
-                if (typeof left === 'string' && typeof right === 'string') {
-                    return left + right
-                }
-            }
-            if (node.type === 'TemplateLiteral' && node.expressions.length === 0) {
-                return node.quasis.map((q: any) => q.value.cooked).join('')
-            }
-            return undefined
-        }
-
-        function getMemberPath(node: any): string[] {
-            const path: string[] = []
-            let current: any = node
-            while (current && current.type === 'MemberExpression') {
-                if (current.property.type === 'Identifier') {
-                    path.unshift(current.property.name)
-                } else if (current.property.type === 'Literal') {
-                    path.unshift(String(current.property.value))
-                }
-                current = current.object
-            }
-            if (current && current.type === 'Identifier') {
-                path.unshift(current.name)
-            } else if (current && current.type === 'ThisExpression') {
-                path.unshift('this')
-            }
-            return path
-        }
-
-        function resolveCallee(node: any): any {
-            if (!node) return node
-            if (node.type === 'ChainExpression') return node.expression
-            if (node.type === 'SequenceExpression') {
-                const arr = node.expressions
-                return arr && arr.length ? arr[arr.length - 1] : node
-            }
-            return node
-        }
-
-        function isIdentifierNamed(node: any, name: string): boolean {
-            return node && node.type === 'Identifier' && node.name === name
-        }
-
-        function isEvalRef(node: any): boolean {
-            const n = resolveCallee(node)
-            if (isIdentifierNamed(n, 'eval')) return true
-            if (n && n.type === 'MemberExpression') {
-                const p = getMemberPath(n)
-                return p[p.length - 1] === 'eval'
-            }
-            return false
-        }
-
-        function isFunctionCtorRef(node: any): boolean {
-            const n = resolveCallee(node)
-            if (isIdentifierNamed(n, 'Function')) return true
-            if (n && n.type === 'MemberExpression') {
-                const p = getMemberPath(n)
-                if (p[p.length - 1] === 'Function') return true
-                if (p.length >= 2 && p[p.length - 1] === 'constructor' && p[p.length - 2] === 'constructor') return true
-            }
-            return false
-        }
-
-        function isStringyArg(node: any): boolean {
-            return typeof evalStaticString(node) === 'string'
-        }
-
-        function inspectCall(node: any): void {
-            const callee = resolveCallee(node.callee)
-
-            if (isIdentifierNamed(callee, 'eval') || (callee && callee.type === 'MemberExpression' && getMemberPath(callee).includes('eval'))) {
-                found = true
-                return
-            }
-
-            if (callee && callee.type === 'MemberExpression') {
-                const obj = resolveCallee(callee.object)
-                if (isEvalRef(obj)) {
-                    found = true
-                    return
-                }
-            }
-
-            if (isFunctionCtorRef(callee)) {
-                found = true
-                return
-            }
-
-            if (callee && callee.type === 'MemberExpression') {
-                const p = getMemberPath(callee)
-                if (p.length >= 2 && p[p.length - 1] === 'constructor' && p[p.length - 2] === 'constructor') {
-                    if (node.arguments.some((a: any) => isStringyArg(a))) {
-                        found = true
-                        return
-                    }
-                }
-            }
-
-            if (isIdentifierNamed(callee, 'setTimeout') || isIdentifierNamed(callee, 'setInterval')) {
-                const first = node.arguments[0]
-                if (first && isStringyArg(first)) {
-                    found = true
-                    return
-                }
-            }
-            if (callee && callee.type === 'MemberExpression') {
-                const p = getMemberPath(callee)
-                if (p[p.length - 1] === 'setTimeout' || p[p.length - 1] === 'setInterval') {
-                    const first = node.arguments[0]
-                    if (first && isStringyArg(first)) {
-                        found = true
-                        return
-                    }
-                }
-            }
-
-            if (callee && callee.type === 'Identifier') {
-                if (evalAliases.has(callee.name) || fnCtorAliases.has(callee.name)) {
-                    found = true
-                    return
-                }
-            }
-        }
-
-        function inspectNew(node: any): void {
-            const callee = resolveCallee(node.callee)
-            if (isFunctionCtorRef(callee)) {
-                found = true
-                return
-            }
-            if (callee && callee.type === 'Identifier' && fnCtorAliases.has(callee.name)) {
-                found = true
-                return
-            }
-        }
-
-        function inspectMember(node: any): void {
-            const path = getMemberPath(node)
-            const len = path.length
-            if (len >= 2 && path[len - 2] === 'localStorage' && path[len - 1] === 'oauth') {
-                found = true
-            }
-        }
-
-        walkSimple(ast, {
-            VariableDeclarator(node: any) {
-                const name = node.id && node.id.type === 'Identifier' ? node.id.name : undefined
-                if (!name) return
-                const init = node.init
-                const val = init ? evalStaticString(init) : undefined
-                if (val === 'oauth') {
-                    oauthVars.add(name)
-                }
-                if (init && isEvalRef(init)) {
-                    evalAliases.add(name)
-                }
-                if (init && isFunctionCtorRef(init)) {
-                    fnCtorAliases.add(name)
-                }
-            },
-            CallExpression(node: any) {
-                inspectCall(node)
-                if (found) return
-                const callee = resolveCallee(node.callee)
-                if (callee && callee.type === 'Identifier') {
-                    if (
-                        oauthVars.has(callee.name) &&
-                        node.arguments.length > 0 &&
-                        isStringyArg(node.arguments[0]) &&
-                        evalStaticString(node.arguments[0]) === 'oauth'
-                    ) {
-                        found = true
-                    }
-                }
-            },
-            NewExpression(node: any) {
-                inspectNew(node)
-            },
-            ChainExpression(node: any) {
-                const expr = (node as any).expression
-                if (expr.type === 'CallExpression') {
-                    inspectCall(expr)
-                } else if (expr.type === 'MemberExpression') {
-                    inspectMember(expr)
-                }
-            },
-            MemberExpression(node: any) {
-                inspectMember(node)
-            },
-        })
-    } catch {}
-
-    if (found) {
-        logger.http.warn('SUS script detected.')
-        return ''
-    }
-    return js
 }

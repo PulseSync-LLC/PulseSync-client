@@ -1,7 +1,10 @@
 import React from 'react'
+
 import { NavLink } from 'react-router'
-import * as styles from '@shared/ui/PSUI/NavButton/nav_button_pulse.module.scss'
+
 import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@shared/ui/PSUI/NavButton/nav_button_pulse.module.scss'
 
 interface NavButtonPulseProps {
     to?: string
@@ -19,9 +22,17 @@ const NavButtonPulse: React.FC<NavButtonPulseProps> = ({ to, text, children, dis
             onClick={onClick}
             end={end}
             to={disabled ? '#' : (to ?? '#')}
-            className={({ isActive, isPending }) => (disabled ? 'disabled' : isPending ? 'pending' : isActive ? 'active' : '')}
+            className={({ isActive, isPending }) => (disabled ? 'disabled' : !to ? '' : isPending ? 'pending' : isActive ? 'active' : '')}
         >
-            <TooltipButton tooltipText={text} as={'button'} className={styles.button} disabled={disabled} tipEnabled={tipEnabled}>
+            <TooltipButton
+                tooltipText={text}
+                side="right"
+                sideOffset={10}
+                as="button"
+                className={styles.button}
+                disabled={disabled}
+                tipEnabled={tipEnabled}
+            >
                 {children}
             </TooltipButton>
         </NavLink>

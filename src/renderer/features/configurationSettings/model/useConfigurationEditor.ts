@@ -1,16 +1,17 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-import {
+import { normalizeAddonConfig } from '@features/configurationSettings/types'
+
+import type {
     AddonConfig,
-    Item,
     ButtonItem,
-    SliderItem,
     ColorItem,
     FileItem,
-    SelectorItem,
-    TextItem,
+    Item,
     Section,
-    normalizeAddonConfig,
+    SelectorItem,
+    SliderItem,
+    TextItem,
 } from '@features/configurationSettings/types'
 
 export function produce<S>(state: S, mut: (draft: S) => void): S {
@@ -404,11 +405,11 @@ export function useConfigurationEditor({ addMenuClassName, configData, onChange,
             }),
         )
 
-    const updateTextButton = (si: number, ii: number, bi: number, patch: Record<string, any>) => undefined
+    const updateTextButton = (_si: number, _ii: number, _bi: number, _patch: Record<string, any>) => undefined
 
-    const addTextButton = (si: number, ii: number) => undefined
+    const addTextButton = (_si: number, _ii: number) => undefined
 
-    const removeTextButton = (si: number, ii: number, bi: number) => undefined
+    const removeTextButton = (_si: number, _ii: number, _bi: number) => undefined
 
     const addSelectorOption = (si: number, ii: number) =>
         setConfig(

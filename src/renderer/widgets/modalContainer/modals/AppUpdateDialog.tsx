@@ -1,8 +1,10 @@
 import React, { useContext, useEffect, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
-import MainEvents from '@common/types/mainEvents'
-import UserContext from '@entities/user/model/context'
+
 import { useModalContext } from '@app/providers/modal'
+import UserContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const AppUpdateDialog: React.FC = () => {
@@ -33,7 +35,7 @@ const AppUpdateDialog: React.FC = () => {
     const handleInstall = () => {
         setUpdate(false)
         closeModal(Modals.APP_UPDATE_DIALOG)
-        window.desktopEvents?.send(MainEvents.UPDATE_INSTALL)
+        desktopApi.updates.install()
     }
 
     return (

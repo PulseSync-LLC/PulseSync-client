@@ -1,5 +1,5 @@
-import { Track } from '@entities/track/model/track.interface'
-import SubscriptionInterface from '@entities/user/model/subscription.interface'
+import type { Track } from '@entities/track/model/track.interface'
+import type SubscriptionInterface from '@entities/user/model/subscription.interface'
 
 export type LevelInfo = {
     totalPoints: number

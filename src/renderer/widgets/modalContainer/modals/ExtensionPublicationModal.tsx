@@ -1,12 +1,23 @@
-import React, { useEffect, useState } from 'react'
+import React, { useContext, useEffect, useState } from 'react'
+
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdClose } from 'react-icons/md'
+
 import { useModalContext } from '@app/providers/modal'
+import userContext from '@entities/user/model/context'
+import { staticAsset } from '@shared/lib/staticAssets'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import FileInput from '@shared/ui/PSUI/FileInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
+
 import * as styles from '@widgets/modalContainer/modals/ExtensionPublicationModal.module.scss'
+
+import type { StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 const REPUBLISH_COOLDOWN_MS = 3 * 24 * 60 * 60 * 1000
 const ADDON_PUBLISHING_RULES_URL = 'https://pulsesync.dev/wiki/main/app/addons/publishing'
+const INTERNAL_MODERATION_NOTES = new Set(['AUTO_APPROVED_TRUSTED_AUTHOR'])
 
 function isGithubUrl(value: string): boolean {
     const trimmed = value.trim()
@@ -38,6 +49,8 @@ function PublicationCheckbox({ checked, onChange, children }: PublicationCheckbo
 
 const ExtensionPublicationModal: React.FC = () => {
     const { t, i18n } = useTranslation()
+    const { user } = useContext(userContext)
+    const isDeveloper = user?.perms === 'developer'
     const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
     const {
         addon,
@@ -50,19 +63,42 @@ const ExtensionPublicationModal: React.FC = () => {
         onChangeGithubUrl,
         onPublish,
         onUpdate,
+        onPromote,
     } = getModalState(Modals.EXTENSION_PUBLICATION_MODAL)
     const isPublicationModalOpen = isModalOpen(Modals.EXTENSION_PUBLICATION_MODAL)
     const publicationRelease = publication?.currentRelease
     const [rulesAccepted, setRulesAccepted] = useState(false)
     const [usedAiDuringDevelopment, setUsedAiDuringDevelopment] = useState(false)
+    const [previewPath, setPreviewPath] = useState('')
+    const [releaseChannel, setReleaseChannel] = useState<'stable' | 'dev'>('stable')
+    const [visibility, setVisibility] = useState<StoreAddonVisibility>('public')
     const isUpdateMode = Boolean(onUpdate)
     const isEditingMode = Boolean(onUpdate || onPublish)
     const requiresRulesAgreement = Boolean(onPublish && !onUpdate)
+    const moderationNote = publicationRelease?.moderationNote
+    const shouldShowModerationNote = Boolean(moderationNote && !INTERNAL_MODERATION_NOTES.has(moderationNote))
 
     useEffect(() => {
+        setReleaseChannel(
+            publicationRelease?.releaseChannels?.includes('dev') && !publicationRelease.releaseChannels.includes('stable') ? 'dev' : 'stable',
+        )
         setRulesAccepted(false)
+        setVisibility(publicationRelease?.visibility ?? 'public')
         setUsedAiDuringDevelopment(Boolean(publicationRelease?.usedAiDuringDevelopment))
-    }, [addon?.path, isPublicationModalOpen, publication?.id, publicationRelease?.id, publicationRelease?.usedAiDuringDevelopment])
+        setPreviewPath(addon?.preview || '')
+    }, [
+        addon?.path,
+        addon?.preview,
+        isPublicationModalOpen,
+        publication?.id,
+        publicationRelease?.id,
+        publicationRelease?.usedAiDuringDevelopment,
+        publicationRelease?.visibility,
+        publicationRelease?.releaseChannels,
+    ])
+
+    const fallbackPreview = staticAsset('assets/images/no_themeBackground.png')
+    const publishedPreview = publicationRelease?.previewUrl || publicationRelease?.bannerUrl || fallbackPreview
 
     const handleClose = () => {
         closeModal(Modals.EXTENSION_PUBLICATION_MODAL)
@@ -134,13 +170,18 @@ const ExtensionPublicationModal: React.FC = () => {
     const hasValidGithubUrl = hasEnteredGithubUrl ? isGithubUrl(githubUrlText) : false
     const hasGithubForSubmit = isUpdateMode ? hasExistingGithubUrl || hasValidGithubUrl : hasValidGithubUrl
     const shouldShowGithubField = !isEditingMode || !isUpdateMode || !hasExistingGithubUrl
-    const canSubmit = normalizedChangelog.length > 0 && hasGithubForSubmit && (!requiresRulesAgreement || rulesAccepted) && !publicationBusy
+    const canSubmit =
+        normalizedChangelog.length > 0 &&
+        hasGithubForSubmit &&
+        (!requiresRulesAgreement || rulesAccepted) &&
+        !publicationBusy &&
+        (visibility !== 'developer' || isDeveloper)
 
     const primaryButton = onUpdate
         ? {
               text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.update'),
               onClick: () => {
-                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment)
+                  onUpdate(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
               },
               disabled: !canSubmit,
           }
@@ -148,135 +189,237 @@ const ExtensionPublicationModal: React.FC = () => {
           ? {
                 text: publicationBusy ? t('extensions.publication.uploading') : t('extensions.publication.publish'),
                 onClick: () => {
-                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment)
+                    onPublish(changelogText, githubUrlText, usedAiDuringDevelopment, previewPath, visibility, releaseChannel)
                 },
                 disabled: !canSubmit,
             }
           : null
 
+    const promotionButtons =
+        onPromote &&
+        publicationRelease?.status === 'accepted' &&
+        publicationRelease.releaseChannels?.includes('dev') &&
+        !publicationRelease.releaseChannels.includes('stable')
+            ? [{ text: t('extensions.publication.promote'), onClick: onPromote, disabled: publicationBusy }]
+            : []
+
     return (
         <CustomModalPS
-            className={styles.publicationModal}
+            className={cn(styles.publicationModal, !isEditingMode && styles.publicationModalReadonly)}
             isOpen={isPublicationModalOpen}
             onClose={handleClose}
-            buttons={[
-                {
-                    text: t('common.cancel'),
-                    onClick: handleClose,
-                    variant: 'secondary',
-                    disabled: publicationBusy,
-                },
-                ...(primaryButton ? [primaryButton] : []),
-            ]}
+            buttons={
+                isEditingMode
+                    ? [
+                          {
+                              text: t('common.cancel'),
+                              onClick: handleClose,
+                              variant: 'secondary',
+                              disabled: publicationBusy,
+                          },
+                          ...promotionButtons,
+                          ...(primaryButton ? [primaryButton] : []),
+                      ]
+                    : promotionButtons
+            }
         >
-            <div className={styles.body}>
-                <div className={styles.header}>
-                    <span className={styles.eyebrow}>{t('extensions.publication.modalTitle')}</span>
-                    <div className={styles.headlineRow}>
-                        <div className={styles.identity}>
-                            <h2 className={styles.addonName}>{addon?.name || t('store.unknownAddon')}</h2>
-                            <p className={styles.authors}>
-                                <span className={styles.authorsLabel}>{t('extensions.meta.authors')}</span>
-                                <span>{authorsDisplay || t('common.emDash')}</span>
-                            </p>
+            {!isEditingMode ? (
+                <button type="button" className={styles.closeButton} onClick={handleClose} aria-label={t('common.done')}>
+                    <MdClose aria-hidden="true" />
+                </button>
+            ) : null}
+            <div className={cn(styles.body, !isEditingMode && styles.bodyReadonly)}>
+                <div className={styles.summaryPane}>
+                    <div className={styles.header}>
+                        <div className={styles.headerTop}>
+                            <div className={styles.statusLine}>
+                                <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
+                            </div>
                         </div>
-
-                        <span className={cn(styles.statusBadge, statusClassName)}>{statusLabel}</span>
+                        <div className={styles.headlineRow}>
+                            <div className={styles.identity}>
+                                <h2 className={styles.addonName}>{addon?.name || t('store.unknownAddon')}</h2>
+                                <p className={styles.authors}>
+                                    <span className={styles.authorsLabel}>{t('extensions.meta.authors')}</span>
+                                    <span>{authorsDisplay || t('common.emDash')}</span>
+                                </p>
+                                <div className={styles.addonMeta}>
+                                    <span>
+                                        {t('extensions.meta.version')}:{' '}
+                                        <strong>{addon?.version || publicationRelease?.version || t('common.emDash')}</strong>
+                                    </span>
+                                    {publicationDate ? (
+                                        <span>
+                                            {t('extensions.meta.updated')}: <strong>{publicationDate}</strong>
+                                        </span>
+                                    ) : null}
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                </div>
 
-                <div className={styles.infoGrid}>
-                    <div className={styles.infoCard}>
-                        <span className={styles.label}>{t('extensions.meta.version')}</span>
-                        <span className={styles.value}>{addon?.version || publicationRelease?.version || t('common.emDash')}</span>
+                    <div className={styles.previewSection}>
+                        {isEditingMode ? (
+                            <FileInput
+                                className={styles.previewInput}
+                                label={t('extensions.publication.previewLabel')}
+                                description={t('extensions.publication.previewHint')}
+                                value={previewPath}
+                                onChange={setPreviewPath}
+                                placeholder={t('extensions.publication.previewPlaceholder')}
+                                disabled={publicationBusy || !addon?.path}
+                                metadata
+                                addonPath={addon?.path}
+                                preferredBaseName="preview"
+                                accept=".png,.jpg,.jpeg,.webp,.gif"
+                            />
+                        ) : (
+                            <div className={styles.publishedPreview}>
+                                <img
+                                    src={publishedPreview}
+                                    alt={t('extensions.publication.previewAlt', { name: addon?.name || publication?.name || '' })}
+                                    onError={event => {
+                                        event.currentTarget.onerror = null
+                                        event.currentTarget.src = fallbackPreview
+                                    }}
+                                />
+                                <span>{t('extensions.publication.previewPublishedHint')}</span>
+                            </div>
+                        )}
                     </div>
-                    {publicationDate ? (
-                        <div className={styles.infoCard}>
-                            <span className={styles.label}>{t('extensions.meta.updated')}</span>
-                            <span className={styles.value}>{publicationDate}</span>
+
+                    {shouldShowModerationNote ? (
+                        <div className={styles.noteCard}>
+                            <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
+                            <span className={styles.subValue}>{moderationNote}</span>
+                        </div>
+                    ) : null}
+
+                    {republishAvailableAt ? (
+                        <div className={styles.cooldownCard}>
+                            <span className={styles.label}>{t('extensions.publication.cooldownLabel')}</span>
+                            <span className={styles.subValue}>{t('extensions.publication.cooldownMessage', { date: republishAvailableAt })}</span>
                         </div>
                     ) : null}
                 </div>
 
-                {publicationRelease?.moderationNote ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>{t('extensions.publication.noteLabel')}</span>
-                        <span className={styles.subValue}>{publicationRelease.moderationNote}</span>
+                <div className={styles.formPane}>
+                    <div className={styles.formHeader}>
+                        <h3>{t('extensions.publication.detailsTitle')}</h3>
                     </div>
-                ) : publicationDate ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>{t('extensions.meta.updated')}</span>
-                        <span className={styles.subValue}>{t('extensions.publication.statusDate', { date: publicationDate })}</span>
-                    </div>
-                ) : null}
 
-                {republishAvailableAt ? (
-                    <div className={styles.cooldownCard}>
-                        <span className={styles.label}>{t('extensions.publication.cooldownLabel')}</span>
-                        <span className={styles.subValue}>{t('extensions.publication.cooldownMessage', { date: republishAvailableAt })}</span>
-                    </div>
-                ) : null}
-
-                {shouldShowGithubField ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>
-                            {t('extensions.publication.githubUrlLabel')} {!isUpdateMode ? <span className={styles.requiredMark}>*</span> : null}
-                        </span>
-                        {primaryButton ? (
-                            <input
-                                className={styles.githubInput}
-                                type="url"
-                                value={githubUrlText}
-                                onChange={event => handleGithubUrlChange(event.target.value)}
-                                placeholder={t('extensions.publication.githubUrlPlaceholder')}
+                    <div className={styles.fieldGroup}>
+                        {isEditingMode ? (
+                            <SelectInput
+                                label={t('extensions.publication.visibilityLabel')}
+                                value={visibility}
+                                options={[
+                                    { value: 'public', label: t('extensions.publication.visibilityPublic') },
+                                    { value: 'dev', label: t('extensions.publication.visibilityDev') },
+                                    ...(isDeveloper || visibility === 'developer'
+                                        ? [{ value: 'developer', label: t('extensions.publication.visibilityDeveloper') }]
+                                        : []),
+                                ]}
+                                disabled={publicationBusy || (!isDeveloper && visibility === 'developer')}
+                                onChange={value => setVisibility(value === 'dev' || (isDeveloper && value === 'developer') ? value : 'public')}
                             />
-                        ) : publicationRelease?.githubUrl ? (
-                            <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
-                                {publicationRelease.githubUrl}
-                            </a>
                         ) : (
-                            <span className={styles.subValue}>{t('common.emDash')}</span>
-                        )}
-                    </div>
-                ) : null}
-
-                {primaryButton ? (
-                    <div className={styles.noteCard}>
-                        <span className={styles.label}>
-                            {t('extensions.publication.changelogLabel')} <span className={styles.requiredMark}>*</span>
-                        </span>
-                        <textarea
-                            className={styles.changelogInput}
-                            value={changelogText}
-                            onChange={event => handleChangelogChange(event.target.value)}
-                            placeholder={t('extensions.publication.changelogPlaceholder')}
-                            rows={5}
-                        />
-                    </div>
-                ) : null}
-
-                {primaryButton && requiresRulesAgreement ? (
-                    <>
-                        <PublicationCheckbox checked={rulesAccepted} onChange={setRulesAccepted}>
                             <>
-                                {t('extensions.publication.rulesAgreementPrefix')}{' '}
-                                <a
-                                    className={styles.rulesLink}
-                                    href={ADDON_PUBLISHING_RULES_URL}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    onClick={event => event.stopPropagation()}
-                                >
-                                    {t('extensions.publication.rulesAgreementLink')}
-                                </a>
+                                <span className={styles.label}>{t('extensions.publication.visibilityLabel')}</span>
+                                <span className={styles.subValue}>
+                                    {t(
+                                        publicationRelease?.visibility === 'dev'
+                                            ? 'extensions.publication.visibilityDev'
+                                            : publicationRelease?.visibility === 'developer'
+                                              ? 'extensions.publication.visibilityDeveloper'
+                                              : 'extensions.publication.visibilityPublic',
+                                    )}
+                                </span>
                             </>
-                        </PublicationCheckbox>
+                        )}
+                        {isEditingMode ? (
+                            <SelectInput
+                                label={t('extensions.publication.channelLabel')}
+                                value={releaseChannel}
+                                options={[
+                                    { value: 'stable', label: t('extensions.publication.channelStable') },
+                                    { value: 'dev', label: t('extensions.publication.channelDev') },
+                                ]}
+                                onChange={value => setReleaseChannel(value === 'dev' ? 'dev' : 'stable')}
+                                disabled={publicationBusy}
+                            />
+                        ) : (
+                            <span className={styles.subValue}>
+                                {t('extensions.publication.channelLabel')}: {(publicationRelease?.releaseChannels ?? ['stable']).join(', ')}
+                            </span>
+                        )}
+                        {isEditingMode && visibility === 'dev' ? (
+                            <span className={styles.subValue}>{t('extensions.publication.visibilityHint')}</span>
+                        ) : null}
+                    </div>
 
-                        <PublicationCheckbox checked={usedAiDuringDevelopment} onChange={setUsedAiDuringDevelopment}>
-                            {t('extensions.publication.aiUsageLabel')}
-                        </PublicationCheckbox>
-                    </>
-                ) : null}
+                    {shouldShowGithubField ? (
+                        <div className={styles.fieldGroup}>
+                            <span className={styles.label}>
+                                {t('extensions.publication.githubUrlLabel')}{' '}
+                                {primaryButton && !isUpdateMode ? <span className={styles.requiredMark}>*</span> : null}
+                            </span>
+                            {primaryButton ? (
+                                <input
+                                    className={styles.githubInput}
+                                    type="url"
+                                    value={githubUrlText}
+                                    onChange={event => handleGithubUrlChange(event.target.value)}
+                                    placeholder={t('extensions.publication.githubUrlPlaceholder')}
+                                />
+                            ) : publicationRelease?.githubUrl ? (
+                                <a className={styles.subValue} href={publicationRelease.githubUrl} target="_blank" rel="noreferrer">
+                                    {publicationRelease.githubUrl}
+                                </a>
+                            ) : (
+                                <span className={styles.subValue}>{t('common.emDash')}</span>
+                            )}
+                        </div>
+                    ) : null}
+
+                    {primaryButton ? (
+                        <div className={styles.fieldGroup}>
+                            <span className={styles.label}>
+                                {t('extensions.publication.changelogLabel')} <span className={styles.requiredMark}>*</span>
+                            </span>
+                            <textarea
+                                className={styles.changelogInput}
+                                value={changelogText}
+                                onChange={event => handleChangelogChange(event.target.value)}
+                                placeholder={t('extensions.publication.changelogPlaceholder')}
+                                rows={6}
+                            />
+                        </div>
+                    ) : null}
+
+                    {primaryButton && requiresRulesAgreement ? (
+                        <div className={styles.agreements}>
+                            <PublicationCheckbox checked={rulesAccepted} onChange={setRulesAccepted}>
+                                <>
+                                    {t('extensions.publication.rulesAgreementPrefix')}{' '}
+                                    <a
+                                        className={styles.rulesLink}
+                                        href={ADDON_PUBLISHING_RULES_URL}
+                                        target="_blank"
+                                        rel="noreferrer"
+                                        onClick={event => event.stopPropagation()}
+                                    >
+                                        {t('extensions.publication.rulesAgreementLink')}
+                                    </a>
+                                </>
+                            </PublicationCheckbox>
+
+                            <PublicationCheckbox checked={usedAiDuringDevelopment} onChange={setUsedAiDuringDevelopment}>
+                                {t('extensions.publication.aiUsageLabel')}
+                            </PublicationCheckbox>
+                        </div>
+                    ) : null}
+                </div>
             </div>
         </CustomModalPS>
     )

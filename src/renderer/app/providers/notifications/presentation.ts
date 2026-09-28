@@ -1,4 +1,5 @@
 import { t } from '@app/i18n'
+
 import type { NotificationItem } from '@app/providers/notifications/types'
 
 export type NotificationTone = 'success' | 'error' | 'warning'
@@ -54,6 +55,37 @@ export function getNotificationPresentation(notification: NotificationItem): Not
                     t('header.notifications.items.addonRejectedBody', {
                         name: String(notification.payload?.['name'] || t('store.unknownAddon')),
                     }),
+            }
+        }
+
+        case 'module.review.pending':
+            return {
+                tone: 'warning',
+                title: t('header.notifications.items.modulePendingTitle'),
+                body: t('header.notifications.items.modulePendingBody', {
+                    name: String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName')),
+                }),
+            }
+
+        case 'module.review.accepted':
+            return {
+                tone: 'success',
+                title: t('header.notifications.items.moduleAcceptedTitle'),
+                body: t('header.notifications.items.moduleAcceptedBody', {
+                    name: String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName')),
+                }),
+            }
+
+        case 'module.review.rejected': {
+            const name = String(notification.payload?.['name'] || t('header.notifications.items.unknownModuleName'))
+            const noteValue = notification.payload?.['reviewNote']
+            const note = typeof noteValue === 'string' ? noteValue.trim() : ''
+            return {
+                tone: 'error',
+                title: t('header.notifications.items.moduleRejectedTitle'),
+                body: note
+                    ? t('header.notifications.items.moduleRejectedWithNoteBody', { name, note })
+                    : t('header.notifications.items.moduleRejectedBody', { name }),
             }
         }
 

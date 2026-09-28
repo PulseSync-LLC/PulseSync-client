@@ -1,74 +1,202 @@
+:root {
+    color-scheme: dark;
+}
+
+html,
 body {
+    box-sizing: border-box;
+
+    width: 250px;
+    height: 271px;
+
+    overflow: hidden;
+
+    color: #fff;
+
+    background: var(--Main);
+    -webkit-app-region: drag;
+}
+
+.bootstrap {
+    box-sizing: border-box;
     display: flex;
+
     flex-direction: column;
+
     align-items: center;
     justify-content: center;
-    margin: 0;
-    height: 100vh;
-    border-radius: 20px;
-    background: var(--Main);
+
+    width: 100%;
+    height: 100%;
+
+    padding: 18px 16px 14px;
 }
 
-.container {
+.preloader {
     display: flex;
+
     flex-direction: column;
-    grid-gap: 3em;
+
     align-items: center;
 }
 
-.load {
-    animation: spin 6s ease-in-out infinite;
-    box-shadow: inset var(--Main) 0px 0px 0px 30px;
-    border-radius: 200px;
+.preloader__logo {
+    flex: none;
+
+    color: #fff;
 }
 
-.load > path {
-    animation: path 3s ease-in-out infinite;
-    box-shadow: #1b1f21 1px 1px;
+.status {
+    display: grid;
+
+    place-items: center;
+
+    width: 100%;
+    min-height: 32px;
+
+    margin-top: 28px;
+
+    text-align: center;
 }
 
-@keyframes path {
-    0% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.99026 26.5169 0.593517C23.867 -0.0423745 21.1108 -0.170884 18.3958 0.225281C14.6613 0.77019 11.136 2.28852 8.17428 4.62768C5.21257 6.96683 2.91877 10.0444 1.52343 13.551C0.128088 17.0576 -0.319628 20.8698 0.225281 24.6042C0.77019 28.3387 2.28852 31.864 4.62768 34.8257C6.96683 37.7874 10.0444 40.0812 13.551 41.4766C17.0576 42.8719 20.8698 43.3196 24.6042 42.7747C27.3193 42.3786 29.9238 41.4679 32.2816 40.1013C33.7526 39.2487 33.9714 37.2907 32.9176 35.9564V35.9564C31.8638 34.622 29.9364 34.4274 28.4188 35.1942C26.9474 35.9376 25.3598 36.442 23.7152 36.682C21.0502 37.0709 18.3298 36.7514 15.8275 35.7556C13.3251 34.7599 11.1289 33.123 9.45962 31.0095C7.79036 28.8959 6.70685 26.3802 6.31799 23.7152C5.92914 21.0502 6.24863 18.3298 7.24437 15.8275C8.24011 13.3251 9.87701 11.1289 11.9905 9.45962C14.1041 7.79036 16.6198 6.70685 19.2848 6.31799C20.9293 6.07804 22.5949 6.10782 24.2174 6.39978C25.8908 6.70091 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
-    25% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.990264 26.5169 0.593519C23.9265 -0.0280803 21.2342 -0.164975 18.5773 0.199577C14.8999 0.70416 11.4158 2.15222 8.46405 4.40281C5.5123 6.6534 3.19351 9.62985 1.73336 13.0425C0.678429 15.508 0.0976559 18.1405 0.0112935 20.803C-0.0438285 22.5024 1.50166 23.7243 3.19152 23.5364V23.5364C4.88137 23.3484 6.06654 21.8161 6.21917 20.1227C6.36325 18.5242 6.75783 16.9518 7.39418 15.4646C8.43617 13.0293 10.0909 10.9052 12.1973 9.29915C14.3037 7.69309 16.7901 6.65973 19.4143 6.29965C21.017 6.07975 22.6378 6.11553 24.2174 6.39978C25.8908 6.70092 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
-    50% {
-        d: path(
-            'M28.4728 3.97679C29.0119 2.62184 28.3527 1.06922 26.9419 0.700111V0.700111C25.5311 0.331001 24.196 1.36184 24.0025 2.80722L23.7859 4.42529C23.6478 5.45674 24.3767 6.39344 25.3835 6.65684V6.65684C26.3902 6.92024 27.4844 6.46053 27.8692 5.49362L28.4728 3.97679Z'
-        );
-    }
-    75% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.990264 26.5169 0.593519C23.9265 -0.0280803 21.2342 -0.164975 18.5773 0.199577C14.8999 0.70416 11.4158 2.15222 8.46405 4.40281C5.5123 6.6534 3.19351 9.62985 1.73336 13.0425C0.678429 15.508 0.0976559 18.1405 0.0112935 20.803C-0.0438285 22.5024 1.50166 23.7243 3.19152 23.5364V23.5364C4.88137 23.3484 6.06654 21.8161 6.21917 20.1227C6.36325 18.5242 6.75783 16.9518 7.39418 15.4646C8.43617 13.0293 10.0909 10.9052 12.1973 9.29915C14.3037 7.69309 16.7901 6.65973 19.4143 6.29965C21.017 6.07975 22.6378 6.11553 24.2174 6.39978C25.8908 6.70092 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
-    100% {
-        d: path(
-            'M28.3108 4.3839C28.9394 2.80411 28.1702 0.99026 26.5169 0.593517C23.867 -0.0423745 21.1108 -0.170884 18.3958 0.225281C14.6613 0.77019 11.136 2.28852 8.17428 4.62768C5.21257 6.96683 2.91877 10.0444 1.52343 13.551C0.128088 17.0576 -0.319628 20.8698 0.225281 24.6042C0.77019 28.3387 2.28852 31.864 4.62768 34.8257C6.96683 37.7874 10.0444 40.0812 13.551 41.4766C17.0576 42.8719 20.8698 43.3196 24.6042 42.7747C27.3193 42.3786 29.9238 41.4679 32.2816 40.1013C33.7526 39.2487 33.9714 37.2907 32.9176 35.9564V35.9564C31.8638 34.622 29.9364 34.4274 28.4188 35.1942C26.9474 35.9376 25.3598 36.442 23.7152 36.682C21.0502 37.0709 18.3298 36.7514 15.8275 35.7556C13.3251 34.7599 11.1289 33.123 9.45962 31.0095C7.79036 28.8959 6.70685 26.3802 6.31799 23.7152C5.92914 21.0502 6.24863 18.3298 7.24437 15.8275C8.24011 13.3251 9.87701 11.1289 11.9905 9.45962C14.1041 7.79036 16.6198 6.70685 19.2848 6.31799C20.9293 6.07804 22.5949 6.10782 24.2174 6.39978C25.8908 6.70091 27.6821 5.9637 28.3108 4.3839V4.3839Z'
-        );
-    }
+.status p {
+    margin: 0;
+
+    font-size: 13px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    line-height: 16px;
+
+    color: #fff;
 }
 
-@keyframes spin {
-    0% {
-        transform: rotate(360deg);
-    }
-    25% {
-        transform: rotate(2160deg);
-    }
-    50% {
-        transform: rotate(4320deg);
-    }
-    75% {
-        transform: rotate(2160deg);
-    }
-    100% {
-        transform: rotate(4320deg);
-    }
+.progress {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 3px;
+
+    align-items: center;
+
+    width: 186px;
+    min-height: 21px;
+
+    margin-top: 4px;
+}
+
+.progress progress {
+    display: none;
+
+    width: 186px;
+    height: 5px;
+
+    overflow: hidden;
+
+    appearance: none;
+
+    background: rgb(210 229 241 / 18%);
+    border: 0;
+    border-radius: 3px;
+}
+
+.bootstrap[data-progress='bytes'] .progress progress {
+    display: block;
+}
+
+.progress progress::-webkit-progress-bar {
+    background: rgb(210 229 241 / 18%);
+    border-radius: 3px;
+}
+
+.progress progress::-webkit-progress-value {
+    background: #d2e5f1;
+    border-radius: 3px;
+
+    transition: width 160ms ease-out;
+}
+
+.progress__text {
+    box-sizing: border-box;
+    display: flex;
+
+    justify-content: space-between;
+
+    width: 100%;
+    min-height: 14px;
+
+    font-size: 10px;
+    font-variant-numeric: tabular-nums;
+
+    line-height: 14px;
+
+    color: #8f94a8;
+}
+
+.bootstrap[data-progress='indeterminate'] .progress__text {
+    justify-content: center;
+}
+
+.bootstrap[data-progress='indeterminate'] #bootstrap-progress-percent {
+    font-weight: 500;
+
+    color: #8f94a8;
+}
+
+#bootstrap-progress-percent {
+    font-weight: 600;
+
+    color: #d2e5f1;
+}
+
+.actions {
+    display: flex;
+
+    gap: 8px;
+
+    min-height: 30px;
+
+    margin-top: 5px;
+    -webkit-app-region: no-drag;
+}
+
+.actions button {
+    min-width: 88px;
+    height: 30px;
+
+    padding: 0 11px;
+
+    font: inherit;
+    font-size: 11px;
+    font-weight: 600;
+
+    color: #fff;
+
+    cursor: pointer;
+
+    background: var(--MainBG);
+    border: 1px solid var(--BorderColor);
+    border-radius: 6px;
+}
+
+.actions button:hover:not(:disabled) {
+    background: #2d3140;
+}
+
+.actions button:disabled {
+    cursor: default;
+
+    opacity: 0.55;
+}
+
+.actions .actions__primary {
+    color: var(--Main);
+
+    background: #d2e5f1;
+    border-color: #d2e5f1;
+}
+
+.actions .actions__primary:hover:not(:disabled) {
+    background: #e4f2fa;
 }

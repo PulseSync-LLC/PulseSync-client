@@ -1,0 +1,602 @@
+@use '@shared/ui/PSUI/Shimmer/styles/skeleton' as shimmer;
+
+.panel {
+    display: grid;
+
+    gap: 18px;
+
+    width: 100%;
+    min-width: 0;
+
+    container-type: inline-size;
+}
+
+.panelHeader {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) auto;
+
+    gap: 16px;
+
+    align-items: flex-start;
+}
+
+.panelTitle {
+    margin: 0;
+
+    font-size: 22px;
+    font-weight: 800;
+
+    line-height: 1.2;
+
+    color: var(--text-primary);
+}
+
+.panelDescription {
+    max-width: 560px;
+
+    margin: 7px 0 0;
+
+    font-size: 13px;
+
+    line-height: 1.5;
+
+    color: var(--text-secondary);
+}
+
+.clearAllButton,
+.secondaryButton,
+.primaryButton {
+    display: inline-flex;
+
+    align-items: center;
+    justify-content: center;
+
+    min-height: 36px;
+
+    padding: 0 14px;
+
+    font-size: 13px;
+    font-weight: 700;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    transition:
+        background 0.15s ease,
+        border-color 0.15s ease,
+        opacity 0.15s ease;
+}
+
+.clearAllButton {
+    align-self: start;
+}
+
+.clearAllButton,
+.secondaryButton {
+    color: var(--text-primary);
+
+    background: var(--surface-secondary);
+}
+
+.clearAllButton:hover:not(:disabled),
+.secondaryButton:hover:not(:disabled) {
+    background: var(--surface-elevated);
+    border-color: var(--border-hover);
+}
+
+.primaryButton {
+    color: var(--accent-foreground, #040404);
+
+    background: var(--accent);
+    border-color: var(--accent);
+}
+
+.clearAllButton:disabled,
+.secondaryButton:disabled,
+.primaryButton:disabled {
+    cursor: default;
+
+    opacity: 0.45;
+}
+
+.clearAllButton:focus-visible,
+.secondaryButton:focus-visible,
+.primaryButton:focus-visible {
+    outline: 2px solid var(--focus-ring);
+    outline-offset: 2px;
+}
+
+.warningCard {
+    padding: 16px;
+
+    color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--danger) 9%, var(--surface-secondary));
+    border: 1px solid color-mix(in srgb, var(--danger) 72%, var(--border));
+    border-radius: 10px;
+
+    strong {
+        display: block;
+
+        margin-bottom: 10px;
+
+        font-size: 15px;
+        font-weight: 800;
+    }
+
+    p {
+        margin: 0;
+
+        font-size: 13px;
+
+        line-height: 1.5;
+
+        color: var(--text-secondary);
+    }
+
+    p + p {
+        margin-top: 7px;
+    }
+}
+
+.searchField {
+    box-sizing: border-box;
+    display: grid;
+
+    grid-template-columns: auto minmax(0, 1fr);
+
+    gap: 9px;
+
+    align-items: center;
+
+    min-height: 42px;
+
+    padding: 0 12px;
+
+    color: var(--text-muted);
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    &:focus-within {
+        border-color: var(--border-hover);
+        box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+
+    input {
+        width: 100%;
+        min-width: 0;
+
+        padding: 0;
+
+        font: inherit;
+
+        color: var(--text-primary);
+
+        outline: 0;
+
+        background: transparent;
+        border: 0;
+    }
+
+    input::placeholder {
+        color: var(--text-muted);
+    }
+}
+
+.experimentList {
+    display: grid;
+}
+
+.experimentItem {
+    min-width: 0;
+
+    padding: 18px 0;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.experimentItem:first-child {
+    padding-top: 4px;
+}
+
+.experimentItem:last-child {
+    border-bottom: 0;
+}
+
+.experimentHeader {
+    display: flex;
+
+    gap: 16px;
+
+    align-items: flex-start;
+    justify-content: space-between;
+}
+
+.experimentHeading {
+    min-width: 0;
+}
+
+.experimentTitle {
+    font-size: 15px;
+    font-weight: 800;
+
+    line-height: 1.35;
+
+    color: var(--text-primary);
+
+    overflow-wrap: anywhere;
+}
+
+.experimentDescription {
+    margin-top: 3px;
+
+    font-size: 12px;
+
+    line-height: 1.4;
+
+    color: var(--text-muted);
+
+    overflow-wrap: anywhere;
+}
+
+.experimentScope {
+    flex: 0 0 auto;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: var(--text-muted);
+}
+
+.variantSection {
+    display: grid;
+
+    gap: 8px;
+
+    margin-top: 14px;
+}
+
+.assignmentValue,
+.effectiveValue {
+    font-size: 11px;
+
+    line-height: 1.35;
+
+    color: var(--text-muted);
+}
+
+.assignmentValue {
+    color: var(--text-secondary);
+}
+
+.detailsToggle {
+    padding: 0;
+    margin-top: 12px;
+
+    font-size: 13px;
+    font-weight: 800;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+
+    &:hover {
+        color: var(--text-secondary);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 3px;
+    }
+}
+
+.details {
+    display: grid;
+
+    gap: 14px;
+
+    padding: 14px;
+    margin-top: 14px;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.detailsHeader {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    align-items: center;
+    justify-content: space-between;
+}
+
+.stateRow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 8px 14px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: var(--text-secondary);
+}
+
+.copyButton {
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+
+    min-height: 32px;
+
+    padding: 0 10px;
+
+    font-size: 12px;
+    font-weight: 700;
+
+    color: var(--text-primary);
+
+    cursor: pointer;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    &:hover {
+        background: var(--surface-elevated);
+        border-color: var(--border-hover);
+    }
+}
+
+.groupsGrid {
+    display: grid;
+
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+
+    gap: 8px;
+}
+
+.groupButton {
+    position: relative;
+
+    display: grid;
+
+    gap: 5px;
+
+    min-width: 0;
+
+    padding: 10px 12px;
+
+    color: var(--text-primary);
+
+    text-align: left;
+
+    cursor: pointer;
+
+    background: var(--surface-tertiary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+
+    span {
+        padding-right: 42px;
+
+        font-size: 13px;
+        font-weight: 800;
+
+        overflow-wrap: anywhere;
+    }
+
+    small {
+        font-size: 11px;
+
+        line-height: 1.4;
+
+        color: var(--text-secondary);
+    }
+
+    em {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+
+        font-size: 10px;
+        font-style: normal;
+        font-weight: 700;
+
+        color: var(--text-muted);
+    }
+
+    &:hover {
+        background: var(--surface-elevated);
+        border-color: var(--border-hover);
+    }
+}
+
+.groupButtonActive {
+    border-color: var(--accent);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 18%, transparent);
+}
+
+.advancedEditor {
+    display: grid;
+
+    grid-template-columns: minmax(140px, 0.4fr) minmax(0, 1fr);
+
+    gap: 10px;
+}
+
+.field {
+    display: grid;
+
+    gap: 7px;
+
+    align-content: start;
+
+    min-width: 0;
+
+    > span {
+        font-size: 11px;
+        font-weight: 800;
+
+        color: var(--text-primary);
+
+        text-transform: uppercase;
+        letter-spacing: 0.04em;
+    }
+
+    input,
+    textarea {
+        box-sizing: border-box;
+
+        width: 100%;
+        min-width: 0;
+
+        font: inherit;
+
+        color: var(--text-primary);
+
+        outline: 0;
+
+        background: var(--surface-tertiary);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+    }
+
+    input {
+        height: 40px;
+
+        padding: 0 11px;
+    }
+
+    textarea {
+        min-height: 98px;
+
+        padding: 10px 11px;
+
+        font-family: ui-monospace, SFMono-Regular, Consolas, monospace;
+        font-size: 12px;
+
+        line-height: 1.5;
+
+        resize: vertical;
+    }
+
+    input:focus,
+    textarea:focus {
+        border-color: var(--accent);
+        box-shadow: 0 0 0 2px var(--focus-ring);
+    }
+}
+
+.detailsActions {
+    display: flex;
+
+    gap: 10px;
+
+    justify-content: flex-end;
+}
+
+.empty {
+    box-sizing: border-box;
+    display: grid;
+
+    place-items: center;
+
+    min-height: 180px;
+
+    padding: 28px;
+
+    font-size: 13px;
+
+    color: var(--text-secondary);
+
+    text-align: center;
+
+    border: 1px solid var(--border);
+    border-radius: 10px;
+}
+
+.shimmerList {
+    display: grid;
+}
+
+.shimmerExperiment {
+    display: grid;
+
+    gap: 10px;
+
+    padding: 18px 0;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.shimmerTitle,
+.shimmerDescription,
+.shimmerSelect {
+    @include shimmer.text-surface;
+    display: block;
+}
+
+.shimmerTitle {
+    width: 48%;
+    height: 16px;
+}
+
+.shimmerDescription {
+    width: 68%;
+    height: 11px;
+}
+
+.shimmerSelect {
+    width: 100%;
+    height: 42px;
+
+    border-radius: 8px;
+}
+
+@container (max-width: 460px) {
+    .panelHeader {
+        grid-template-columns: 1fr;
+    }
+
+    .clearAllButton {
+        justify-self: start;
+    }
+
+    .panelTitle {
+        font-size: 20px;
+    }
+
+    .warningCard,
+    .details {
+        padding: 12px;
+    }
+
+    .groupsGrid,
+    .advancedEditor {
+        grid-template-columns: 1fr;
+    }
+
+    .detailsActions {
+        display: grid;
+
+        grid-template-columns: 1fr;
+    }
+}

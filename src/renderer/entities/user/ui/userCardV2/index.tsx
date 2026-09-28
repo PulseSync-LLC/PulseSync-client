@@ -1,17 +1,21 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
+
 import cn from 'clsx'
-import * as styles from '@entities/user/ui/userCardV2/userCard.module.scss'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { getStatusColor } from '@shared/lib/userStatus'
-import UserInterface from '@entities/user/model/user.interface'
-import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
-import LevelBadge from '@entities/user/ui/LevelBadge'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
 import { useTranslation } from 'react-i18next'
-import { Avatar, Banner } from '@shared/ui/PSUI/Image'
-import { getProfileSlug } from '@shared/lib/profileSlug'
+import { MdNightsStay, MdPower, MdPowerOff } from 'react-icons/md'
+
 import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+import LevelBadge from '@entities/user/ui/LevelBadge'
+import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+import { getProfileSlug } from '@shared/lib/profileSlug'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { getStatusColor } from '@shared/lib/userStatus'
+import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as styles from '@entities/user/ui/userCardV2/userCard.module.scss'
+
+import type UserInterface from '@entities/user/model/user.interface'
 
 interface UserCardProps {
     user: Partial<UserInterface>
@@ -174,7 +178,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                         <div
                             className={styles.statusText}
                             style={{
-                                color: isInactive(Number(user.lastOnline)) ? '#9885A9' : 'var(--statusColorProfile)',
+                                color: isInactive(Number(user.lastOnline)) ? 'var(--text-muted)' : 'var(--statusColorProfile)',
                             }}
                         >
                             {isInactive(Number(user.lastOnline))
@@ -184,7 +188,7 @@ const UserCardV2: React.FC<UserCardProps> = ({ user, onClick, animationsEnabledR
                                   : t('userStatus.offline')}
                         </div>
                         {isInactive(Number(user.lastOnline)) ? (
-                            <MdNightsStay className={styles.statusIcon} style={{ color: '#9885A9' }} />
+                            <MdNightsStay className={styles.statusIcon} style={{ color: 'var(--text-muted)' }} />
                         ) : typedUser.status === 'online' ? (
                             <MdPower className={styles.statusIcon} />
                         ) : (

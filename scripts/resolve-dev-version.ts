@@ -1,6 +1,7 @@
 import 'dotenv/config'
-import path from 'path'
+
 import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
+import path from 'path'
 import semver from 'semver'
 
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
@@ -41,7 +42,8 @@ function createS3Client(): S3Client {
         },
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: true,
-        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 3,
+        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 5,
+        retryMode: 'standard',
     })
 }
 
@@ -81,6 +83,7 @@ async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: R
 
     let continuationToken: string | undefined
     let maxSequence = 0
+    let foundPublishedSequence = false
     const seenVersions = new Set<string>()
 
     do {
@@ -106,12 +109,17 @@ async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: R
 
             const sequence = extractPrereleaseSequence(artifactVersion, baseVersion, channel)
             if (sequence !== null) {
+                foundPublishedSequence = true
                 maxSequence = Math.max(maxSequence, sequence)
             }
         }
 
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
     } while (continuationToken)
+
+    if (!foundPublishedSequence && baseVersion === '3.0.0' && branch === 'dev' && channel === 'dev') {
+        maxSequence = 5
+    }
 
     return `${baseVersion}-${channel}.${maxSequence + 1}`
 }

@@ -1,6 +1,7 @@
 import { useEffect } from 'react'
-import MainEvents from '@common/types/mainEvents'
+
 import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 
 const PEXT_EXT = '.pext'
 
@@ -23,7 +24,7 @@ const getFileNames = (event: DragEvent): string[] => {
 
 const isUnsupportedPayload = (event: DragEvent): boolean => {
     const names = getFileNames(event)
-    return names.length > 0 && names.some(name => !isPext(name))
+    return names.some(name => !isPext(name))
 }
 
 const getUriValues = (event: DragEvent): string[] => {
@@ -53,7 +54,7 @@ export function usePextDnDImport(): void {
     const { Modals, openModal, closeModal, setModalState } = useModalContext()
 
     useEffect(() => {
-        if (typeof window === 'undefined' || !window.desktopEvents) return
+        if (typeof window === 'undefined') return
 
         const onDrag = (event: DragEvent): void => {
             if (!hasFilePayload(event)) return
@@ -79,7 +80,7 @@ export function usePextDnDImport(): void {
             setDropEffect(event, 'copy')
 
             try {
-                await window.desktopEvents.invoke(MainEvents.IMPORT_PEXT_FILE, pextPath)
+                await desktopApi.addons.importPext(pextPath)
             } catch (error) {
                 console.error('Failed to import dropped .pext file:', error)
             }

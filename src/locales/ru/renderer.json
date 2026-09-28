@@ -1,4 +1,8 @@
 {
+    "browserDownload": {
+        "description": "PulseSync доступен только в приложении. Скачай клиент, чтобы продолжить.",
+        "action": "Скачать PulseSync"
+    },
     "common": {
         "ok": "Ясно",
         "all": "Все",
@@ -77,18 +81,13 @@
         "hardwareIdentityWarning": "Не удалось подтвердить HWID клиента. Некоторые функции могут быть ограничены.",
         "discordAuth": "Авторизация",
         "failedToFetchUser": "Не удалось получить данные пользователя. Пожалуйста, войдите снова.",
-        "images": {
-            "flatCylinder": "Плоский цилиндр",
-            "icosahedron": "Икосаэдр",
-            "pyramid": "Пирамида",
-            "thorusKnot": "Тороидальный узел"
-        },
         "pendingAuth": "Ожидание авторизации",
         "pleaseLoginAgain": "Пожалуйста, войдите снова.",
         "readTermsError": "Ошибка чтения файла:",
         "sessionExpired": "Ваша сессия истекла. Пожалуйста, войдите снова.",
         "sessionExpiredTitle": "Ошибка",
         "termsLink": "Соглашением об использовании программы",
+        "title": "Авторизация",
         "unknownAuthError": "Неизвестная ошибка авторизации."
     },
     "addons": {
@@ -146,6 +145,40 @@
         "removeRow": "Удалить строку",
         "resetToDefault": "Сбросить к эталону"
     },
+    "settingsModal": {
+        "application": "Приложение",
+        "actions": {
+            "changelog": "Список изменений",
+            "title": "Действия"
+        },
+        "category": "Разделы",
+        "emptyDescription": "Новые разделы настроек появятся здесь позже.",
+        "emptyTitle": "Настройки пока недоступны",
+        "movedHint": "Настройки теперь открываются кнопкой в левом нижнем углу.",
+        "searchEmpty": "Настройки не найдены",
+        "searchPlaceholder": "Найти настройку...",
+        "sections": {
+            "general": "Основные",
+            "integrations": "Компоненты"
+        },
+        "status": {
+            "installed": "Установлено",
+            "notInstalled": "Не установлено"
+        },
+        "subscription": "Подписка",
+        "title": "Настройки",
+        "updateSource": "Источник обновлений",
+        "developer": {
+            "category": "Для разработчиков",
+            "componentsTitle": "Тестирование UI",
+            "interfaceTitle": "Интерфейс",
+            "runtimeTitle": "Среда разработки",
+            "showDevFrameDescription": "Показывает жёлтую рамку, нижний отступ и отметку dev-сборки.",
+            "settingsTab": "Параметры",
+            "title": "Параметры разработчика",
+            "websocketDescription": "Управляет локальным websocket для отладки. Доступно только при локальном запуске."
+        }
+    },
     "contextMenu": {
         "boostyUrl": "Страница на Boosty",
         "appDirectory": "Директория приложения",
@@ -165,6 +198,8 @@
             "checkUpdates": "Проверить обновления",
             "collectLogs": "Собрать логи в архив",
             "logsReady": "Скоро открою папку",
+            "settings": "Настройки",
+            "showDevFrame": "Показывать рамку разработки",
             "title": "Система",
             "version": "Версия: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Статус вебсокета"
@@ -172,12 +207,21 @@
         "mod": {
             "checkUpdates": "Проверить обновления мода",
             "clearCache": "Очистить кеш мода",
+            "experimentalBuild": "Экспериментальная сборка · v{{version}} · {{commit}}",
+            "branchUnavailable": "Сборка ветки больше недоступна в GitHub Releases",
             "resetAsarPath": "Сбросить пользовательскую папку",
             "resetAsarPathSuccess": "Пользовательская папка сброшена",
             "defaultName": "Eclipse",
             "notInstalled": "Не установлен",
             "remove": "Удалить мод",
             "showChangelog": "Показывать список изменений после установки",
+            "sourceChangeError": "Не удалось переключить версию мода.",
+            "sourceLoadError": "Не удалось загрузить тестовые версии мода с GitHub.",
+            "stable": "Основная",
+            "stableDescription": "Стабильная сборка",
+            "devBranch": "Тестовая (dev)",
+            "testVersions": "Тестовые версии",
+            "version": "Версия мода",
             "title": "Мод"
         },
         "updates": {
@@ -234,7 +278,7 @@
         "title": "Управление"
     },
     "dev": {
-        "addonPlaceholder": "НАЗВАНИЕ",
+        "addonPlaceholder": "Пример аддона",
         "badge": "DEV",
         "cards": {
             "form": {
@@ -294,6 +338,7 @@
             "auth": "Авторизация",
             "extension": "Расширения",
             "joint": "Joint",
+            "store": "Каталог",
             "trackInfo": "TrackInfo",
             "users": "Пользователи"
         },
@@ -333,19 +378,45 @@
     "extensions": {
         "actions": {
             "store": "Каталог",
-            "github": "GitHub"
+            "github": "GitHub",
+            "openStore": "Открыть страницу в каталоге",
+            "openGithub": "Открыть страницу GitHub"
         },
         "addonCreateFailed": "Не удалось скачать шаблон аддона",
         "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
         "addonCreatedTitle": "Шаблон аддона скачан",
         "createHandleEvents": "Создайте handleEvents.json",
         "defaultThemeSet": "Тема по умолчанию установлена",
+        "disableAction": "Выключить",
         "editModeEnter": "Режим редактирования включен",
         "editModeExit": "Режим редактирования выключен",
         "handleEventsMissing": "Файл handleEvents.json не найден",
         "initError": "Ошибка инициализации",
         "loadError": "Ошибка загрузки темы",
         "loadFailed": "Ошибка загрузки",
+        "linksTitle": "Ссылки",
+        "groups": {
+            "favorites": "Избранное",
+            "category": "Категория"
+        },
+        "organization": {
+            "addFavorite": "Добавить в избранное",
+            "addedToFavorites": "«{{name}}» добавлен в избранное",
+            "categoryInvalid": "Введите уникальное название категории",
+            "categoryNameLabel": "Название категории",
+            "categoryNamePlaceholder": "Например, Оформление",
+            "createAction": "Создать",
+            "createCategory": "Создать категорию",
+            "deleteCategory": "Удалить категорию",
+            "deleteCategoryConfirm": "Удалить категорию «{{name}}»? Аддоны останутся установленными и перейдут в раздел без категории.",
+            "deleteCategoryTitle": "Удаление категории",
+            "moveToCategory": "Переместить в категорию",
+            "movedToCategory": "«{{name}}» перемещён в «{{category}}»",
+            "organizeAddon": "Организовать аддон {{name}}",
+            "removeFavorite": "Убрать из избранного",
+            "saveFailed": "Не удалось сохранить организацию аддонов",
+            "uncategorized": "Без категории"
+        },
         "meta": {
             "author": "Автор",
             "authors": "Авторы:",
@@ -354,6 +425,7 @@
             "relations": "Связи",
             "source": "Источник",
             "size": "Размер",
+            "tags": "Теги",
             "updated": "Обновлено",
             "version": "Версия"
         },
@@ -382,11 +454,30 @@
             "store": "Каталог"
         },
         "publication": {
+            "promote": "Опубликовать в Stable",
+            "promoted": "Релиз добавлен в Stable. Видимость не изменена.",
+            "promoteFailed": "Не удалось добавить релиз в Stable.",
+            "channelLabel": "Канал аддона",
+            "channelStable": "Основной",
+            "channelDev": "Тестовый",
+            "channelUnavailable": "В этом канале пока нет доступного релиза.",
+            "switchChannel": "Сменить канал",
+            "visibilityLabel": "Видимость версии",
+            "visibilityPublic": "Для всех",
+            "visibilityDev": "Только dev",
+            "visibilityDeveloper": "Только DEVELOPER",
+            "visibilityHint": "Версия появится только в каталоге dev-клиента. Остальные пользователи продолжат получать последнюю общедоступную версию.",
             "statusLabel": "Публикация",
             "modalTitle": "Публикация аддона",
             "noteLabel": "Заметка модератора",
             "githubUrlLabel": "Ссылка на GitHub",
             "githubUrlPlaceholder": "https://github.com/owner/repository",
+            "previewLabel": "Превью в каталоге",
+            "previewHint": "Используется как изображение карточки аддона в каталоге. Рекомендуемый формат: 16:9.",
+            "previewPlaceholder": "Выбрать изображение",
+            "previewPublishedHint": "Текущее превью",
+            "previewAlt": "Превью аддона {{name}}",
+            "detailsTitle": "Данные публикации",
             "changelogLabel": "Список изменений",
             "changelogPlaceholder": "- Исправил баг с плеером\n- Обновил стили карточек\n- Добавил новую настройку",
             "changelogRequired": "Добавь список изменений перед публикацией.",
@@ -423,13 +514,24 @@
                 "ADDON_DESCRIPTION_REQUIRED": "Укажи описание аддона перед отправкой.",
                 "ADDON_GITHUB_URL_REQUIRED": "Укажи ссылку на GitHub перед отправкой.",
                 "ADDON_GITHUB_URL_INVALID": "Укажи корректную ссылку на GitHub.",
+                "ADDON_VERSION_INVALID": "Версия аддона должна быть в формате SemVer, например 1.0.0.",
                 "ADDON_AUTHORS_REQUIRED": "Укажи хотя бы одного автора аддона.",
                 "ADDON_NOT_FOUND": "Публикация аддона не найдена.",
                 "AUTHENTICATED_USER_ID_REQUIRED": "Не удалось определить текущего пользователя для публикации.",
                 "CDN_BUCKET_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
                 "CDN_DOMAIN_URL_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
                 "S3_UPLOAD_FAILED": "Не удалось отправить файлы аддона. Попробуй позже.",
-                "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию."
+                "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию.",
+                "THEME_SCRIPT_NOT_ALLOWED": "Тема может содержать только CSS. Удалите поле script или смените type на web-addon.",
+                "WEB_ADDON_RUNTIME_INVALID": "Архив помечен как WebHost-аддон, но не содержит корректную регистрацию runtime. Соберите аддон через официальный шаблон.",
+                "ADDON_RELEASE_CHANNEL_INVALID": "Выберите канал Stable или Dev.",
+                "ADDON_VISIBILITY_INVALID": "Выберите, кому доступна эта версия аддона.",
+                "ADDON_VERSION_ALREADY_PUBLISHED": "Эта версия уже опубликована. Для обновления укажите новый номер версии.",
+                "WEB_ADDON_ROOT_METADATA_REQUIRED": "Не удалось прочитать аддон. Файл metadata.json должен находиться в корне архива.",
+                "WEB_ADDON_ARCHIVE_PATH_INVALID": "Архив WebHost-аддона содержит недопустимые или повторяющиеся пути файлов. Соберите архив заново через официальный шаблон.",
+                "WEB_ADDON_API_VERSION_UNSUPPORTED": "Версия API аддона не поддерживается. Для публикации требуется WebHost API версии 1.",
+                "WEB_ADDON_CAPABILITY_BLOCKED": "Скрипт создаёт исполняемые элементы или обработчики DOM, запрещённые в WebHost. Используйте API аддонов.",
+                "LEGACY_ADDON_PUBLICATION_DISABLED": "Сервер запретил публикацию legacy-аддона. Переведите его на WebHost runtime."
             },
             "publishError": "Не удалось опубликовать аддон.",
             "updateError": "Не удалось отправить обновление аддона."
@@ -440,8 +542,19 @@
             "caption": "Включайте его только если доверяете источнику и понимаете возможные риски.",
             "confirm": "Включить всё равно"
         },
+        "legacyAddon": {
+            "warningTitle": "Legacy-аддон",
+            "warningDescription": "Для публикации новых версий требуется переход на WebHost.",
+            "warningAction": "Публикация и legacy-обновления отключены. Нажмите, чтобы открыть инструкцию по переходу на WebHost.",
+            "migrationModalTitle": "Требуется переход на WebHost",
+            "migrationModalDescription": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost, чтобы продолжить публикацию.",
+            "openNews": "Открыть новость",
+            "publicationBlocked": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost runtime.",
+            "storeUpdateBlocked": "Этот legacy-аддон нельзя обновить, пока его автор не переведёт аддон на WebHost runtime. Открываем подробности."
+        },
         "tabs": {
             "changelog": "Патчноуты",
+            "description": "Описание",
             "license": "Лицензия",
             "metadata": "Метадата",
             "relations": "Совместимость",
@@ -451,6 +564,7 @@
         "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
         "storeUpdateComplete": "Аддон {{name}} обновлён.",
         "storeUpdateFailed": "Не удалось обновить аддон {{name}}.",
+        "storeUpdateUnavailable": "Это обновление пока недоступно.",
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
@@ -468,8 +582,8 @@
         "enableAnyway": "Всё равно включить",
         "filtersLabel": "Фильтры",
         "notFound": {
-            "discordLink": "Перейдите в официальный Discord сервер для скачивания аддонов",
-            "emptyDescription": "Похоже, у вас ещё нет установленных аддонов.",
+            "catalogLink": "Открыть каталог",
+            "emptyDescription": "У вас пока нет установленных аддонов. Найдите подходящий в каталоге.",
             "filteredDescription": "Возможно, расширение было удалено, отфильтровано или ещё не установлено.",
             "titleEmpty": "Аддоны не найдены",
             "titleFiltered": "Расширение не найдено"
@@ -504,6 +618,7 @@
             "all": "Все",
             "scripts": "Скрипты",
             "themes": "Темы",
+            "webAddons": "WebHost",
             "title": "ТИП"
         }
     },
@@ -538,6 +653,8 @@
             "unreadCount": "Непрочитанных: {{count}}",
             "markAllRead": "Прочитать все",
             "loading": "Загружаю уведомления...",
+            "loadMoreError": "Не удалось загрузить более ранние уведомления.",
+            "retry": "Повторить",
             "empty": "Пока нет важных уведомлений",
             "read": "Прочитано",
             "openItem": "Открыть",
@@ -556,6 +673,14 @@
                 "addonAcceptedBody": "{{name}} теперь доступен в каталоге.",
                 "addonRejectedTitle": "Аддон отклонён",
                 "addonRejectedBody": "{{name}} не прошёл модерацию.",
+                "unknownModuleName": "Модуль",
+                "modulePendingTitle": "Модуль отправлен на проверку",
+                "modulePendingBody": "Модуль «{{name}}» ожидает модерацию.",
+                "moduleAcceptedTitle": "Модуль одобрен",
+                "moduleAcceptedBody": "Модуль «{{name}}» прошёл проверку. Теперь его можно опубликовать в канале.",
+                "moduleRejectedTitle": "Модуль отклонён",
+                "moduleRejectedBody": "Модуль «{{name}}» не прошёл модерацию.",
+                "moduleRejectedWithNoteBody": "Модуль «{{name}}»: {{note}}",
                 "achievementCompletedTitle": "Достижение выполнено",
                 "achievementCompletedBody": "Получено достижение «{{title}}» (+{{points}} очков).",
                 "localizationApprovedTitle": "Предложение по локализации принято",
@@ -633,8 +758,20 @@
         "devOverrides": {
             "open": "Локальные overrides experiments",
             "title": "Experiments",
+            "description": "Локальные overrides применяются поверх серверной группы только на этом устройстве.",
+            "warningTitle": "Осторожно",
+            "warningBody": "Это экспериментальные функции. Они могут работать нестабильно и вызывать ошибки.",
+            "warningHint": "Меняй настройки только если понимаешь, за что они отвечают. Изменения сохраняются только на этом устройстве.",
             "loading": "Загружаю experiments...",
             "empty": "Пока нет доступных experiments.",
+            "searchPlaceholder": "Поиск experiments",
+            "searchEmpty": "По запросу ничего не найдено.",
+            "userScope": "Пользователь",
+            "variantOverride": "Переопределение варианта",
+            "currentlyAssigned": "Сейчас назначена группа {{group}}",
+            "serverDefault": "Серверное значение ({{group}})",
+            "moreDetails": "Подробнее »",
+            "hideDetails": "Скрыть детали »",
             "selectExperiment": "Выбери experiment слева.",
             "overrideBadge": "override",
             "overrideActive": "Override активен",
@@ -652,8 +789,14 @@
             "copyNameError": "Не удалось скопировать ключ",
             "apply": "Применить",
             "clear": "Очистить override",
+            "clearAll": "Сбросить все ({{count}})",
             "applied": "Override применён",
             "cleared": "Override очищен",
+            "clearedAll": "Все overrides очищены",
+            "serverValue": "Сервер",
+            "overrideValue": "Override",
+            "effectiveValue": "Итог",
+            "notSet": "Не задано",
             "invalidJson": "В поле meta должен быть валидный JSON",
             "metaObjectError": "Meta должен быть JSON-объектом"
         },
@@ -670,14 +813,14 @@
             "optionDev": "dev",
             "apply": "Применить",
             "saving": "Сохраняю...",
-              "saved": "Переключено на {{channel}}.",
-              "loadError": "Не удалось загрузить настройки канала обновлений.",
-              "saveError": "Не удалось сохранить канал обновлений.",
-              "busy": "Переключение канала недоступно, пока обновление проверяется или скачивается.",
-              "downloadedHint": "Скачанное обновление будет сброшено, затем начнется проверка выбранного канала.",
-              "hint": "При возврате с dev на beta может понадобиться более старая сборка.",
-              "nextChannel": "После применения: {{channel}}"
-          },
+            "saved": "Переключено на {{channel}}.",
+            "loadError": "Не удалось загрузить настройки канала обновлений.",
+            "saveError": "Не удалось сохранить канал обновлений.",
+            "busy": "Переключение канала недоступно, пока обновление проверяется или скачивается.",
+            "downloadedHint": "Скачанное обновление будет сброшено, затем начнется проверка выбранного канала.",
+            "switchDisabled": "Переход с dev на beta сейчас недоступен.",
+            "nextChannel": "После применения: {{channel}}"
+        },
         "settings": "Настройки",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Так-так",
@@ -686,11 +829,11 @@
     },
     "modals": {
         "appUpdate": {
-            "title": "Обновление готово к установке",
-            "description": "Новая версия уже загружена. Установить обновление сейчас?",
+            "title": "Доступно обновление",
+            "description": "Применить обновление сейчас?",
             "buttons": {
-                "later": "Установить позже",
-                "install": "Установить обновление"
+                "later": "Позже",
+                "install": "Применить обновление"
             }
         },
         "linuxAsarPath": {
@@ -729,18 +872,6 @@
             "buttons": {
                 "cancel": "Отмена",
                 "openSettings": "Открыть настройки"
-            }
-        },
-        "macUpdate": {
-            "title": "Завершите установку обновления",
-            "description": {
-                "dmg": "Откройте смонтированный диск и перетащите PulseSync в Applications, чтобы заменить старую версию.",
-                "zip": "Откройте распакованную папку и перетащите PulseSync в Applications, чтобы заменить старую версию."
-            },
-            "buttons": {
-                "openFinder": "Открыть в Finder",
-                "openApplications": "Открыть Applications",
-                "done": "Готово"
             }
         },
         "premiumPromo": {
@@ -783,7 +914,7 @@
     },
     "layout": {
         "downloadProgress": "Прогресс загрузки: {{progress}}%",
-        "downloadProgressLabel": "Установка мода",
+        "downloadProgressLabel": "Загрузка файлов мода",
         "downloading": "Загружаю {{name}}...",
         "errorOccurred": "Произошла ошибка",
         "errorWithMessage": "Ошибка: {{message}}",
@@ -791,8 +922,9 @@
         "forceUpdateAction": "Все равно обновить",
         "infoTitle": "Информация.",
         "installAction": "Установить",
+        "installPreparedUpdateAction": "Установить",
         "installErrorTitle": "Ошибка установки",
-        "installUpdateTooltip": "Установить обновление",
+        "installUpdateTooltip": "Применить обновление",
         "authRequired": {
             "description": "Этот раздел доступен только после входа в учётную запись. Сначала войди, потом открой его снова.",
             "title": "Нужен вход в аккаунт"
@@ -813,6 +945,9 @@
         "modUpdateAlreadyRunning": "Обновление уже запущено",
         "modUpdateFailed": "Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.",
         "modUpdateLoadError": "Ошибка загрузки обновления",
+        "modUpdateInstalling": "Установка обновления мода...",
+        "modUpdateReadyDescription": "Версия {{version}} загружена и готова к установке.",
+        "modUpdateReadyTitle": "Обновление мода готово",
         "modUpdateStart": "Начало загрузки обновления...",
         "modUpdateSuccess": "Обновление прошло успешно!",
         "modUpdateTitle": "Обновление мода",
@@ -976,14 +1111,18 @@
             "newsEmptyDescription": "Как только команда PulseSync опубликует новый материал, он появится здесь.",
             "newsError": "Не удалось загрузить новости",
             "whatsNew": "Что нового?",
+            "checkUpdatesAction": "Проверить",
+            "branchPickerLoading": "Загружаем ветки…",
+            "selectModBranch": "Выбрать ветку PulseSync Mod",
+            "selectClientBranch": "Выбрать канал PulseSync Client",
             "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
             "musicReleaseNotesFallbackVersion": "По умолчанию",
             "installed": "Установлено",
             "notInstalled": "Не установлено",
             "onDemandInstallHint": "Этот компонент устанавливается автоматически из самой Яндекс Музыки при необходимости.",
             "musicName": "Яндекс Музыка",
-            "modName": "PulseSync Мод",
-            "clientName": "PulseSync Клиент"
+            "modName": "PulseSync Mod",
+            "clientName": "PulseSync Client"
         },
         "joint": {
             "comingSoon": "Скоро",
@@ -1004,7 +1143,7 @@
             },
             "headerSubtitle": "Обновляйте интерфейс, открывайте новые возможности",
             "headerTitle": "Каталог аддонов",
-            "title": "Store"
+            "title": "Каталог аддонов"
         }
     },
     "profile": {
@@ -1024,7 +1163,7 @@
             "subtitle": "Достигайте самого высокого уровня.",
             "title": "Достижения",
             "unknown": "Неизвестно",
-            "warningDescription": "Мы перерабатываем систему достижений, чтобы сделать её лучше! Сейчас достижения не засчитываются при прослушивании, но мы скоро всё исправим. Спасибо за ваше терпение! 😊",
+            "warningDescription": "Мы в данный момент решаем дальнейшую судьбу системы достижений. До этого момента она будет недоступна",
             "warningTitle": "Внимание! Система достижений временно не работает"
         },
         "errors": {
@@ -1156,7 +1295,43 @@
         "websocketStatusChanged": "Статус вебсокета изменен"
     },
     "store": {
+        "catalog": {
+            "main": "Главная",
+            "myAddons": "Мои аддоны",
+            "moderation": "На модерации",
+            "search": "Поиск",
+            "channel": {
+                "stable": "Основной",
+                "dev": "Тестовый"
+            },
+            "results": "Результаты",
+            "openFilters": "Открыть фильтры",
+            "searchSort": {
+                "latestRelease": "по дате обновления",
+                "name": "по названию",
+                "downloads": "по скачиваниям"
+            },
+            "authors": "Авторы",
+            "tags": "Теги",
+            "links": "Ссылки",
+            "openGithub": "Открыть страницу GitHub",
+            "newAddons": "Новые аддоны",
+            "recentlyUpdated": "Недавно обновлённые",
+            "otherAddons": "Другие аддоны",
+            "previous": "Предыдущие аддоны",
+            "next": "Следующие аддоны"
+        },
+        "rating": {
+            "title": "Оценка",
+            "average": "Средняя",
+            "votes": "Оценок: {{count}}",
+            "votesShort": "{{count}} голосов",
+            "hint": "Оцените аддон",
+            "set": "Поставить {{rating}} из 5",
+            "failed": "Не удалось сохранить оценку"
+        },
         "download": "Скачать",
+        "openAuthorProfile": "Открыть профиль автора {{author}}",
         "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",
@@ -1168,7 +1343,13 @@
             "downloads": "Скачивания",
             "order": "Порядок сортировки",
             "orderAsc": "По возрастанию",
-            "orderDesc": "По убыванию"
+            "orderDesc": "По убыванию",
+            "types": {
+                "all": "Все типы",
+                "theme": "Темы",
+                "script": "Скрипты",
+                "web-addon": "Web-аддоны"
+            }
         },
         "pendingSectionTitle": "Аддоны на модерации",
         "pendingSectionSubtitle": "Аддоны проходящие модерацию",
@@ -1184,6 +1365,9 @@
         "installFailed": "Не удалось установить аддон {{title}}.",
         "installUnavailable": "Для аддона {{title}} пока недоступен файл установки.",
         "openLocal": "Открыть локальный",
+        "share": "Поделиться",
+        "shareCopied": "Ссылка на аддон скопирована.",
+        "shareFailed": "Не удалось скопировать ссылку.",
         "remove": "Удалить",
         "removeConfirm": "Вы уверены, что хотите удалить аддон \"{{title}}\"?",
         "removeComplete": "Аддон {{title}} удалён.",
@@ -1204,7 +1388,8 @@
         },
         "kind": {
             "theme": "Тема",
-            "script": "Скрипт"
+            "script": "Скрипт",
+            "web-addon": "WebHost"
         },
         "badges": {
             "officialTemplate": "Официальный шаблон",
@@ -1239,6 +1424,8 @@
         "downloaded": "Обновление загружено",
         "downloadingLabel": "Загрузка",
         "downloadingTitle": "Скачивание обновления",
+        "preparingLabel": "Применяем патчи и подготавливаем файлы",
+        "preparingTitle": "Подготовка обновления",
         "notFoundMessage": "У вас актуальная версия приложения",
         "notFoundTitle": "Обновлений не найдено",
         "mod": {

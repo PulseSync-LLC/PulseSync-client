@@ -1,5 +1,8 @@
+import isAppDev from '../utils/isAppDev'
 import logger from './logger'
-import { getStore, StoreType } from './storage'
+import { getStore } from './storage'
+
+import type { StoreType } from './storage'
 
 class State {
     private store: StoreType
@@ -10,7 +13,14 @@ class State {
         this.state = {
             ...this.store.getAll(),
         }
-        logger.main.info('State initialized with:', this.state)
+        if (isAppDev) {
+            logger.main.debug('State initialized with:', {
+                ...this.state,
+                tokens: this.state.tokens ? { ...this.state.tokens, token: '[redacted]' } : undefined,
+            })
+        } else {
+            logger.main.info('State initialized')
+        }
     }
 
     public get(key: string): any {
@@ -55,12 +65,10 @@ class State {
     }
 }
 
-export const getState = (() => {
-    let stateInstance: State | null = null
-    return (): State => {
-        if (!stateInstance) {
-            stateInstance = new State()
-        }
-        return stateInstance
-    }
-})()
+const STATE_KEY = Symbol.for('pulsesync.main.state')
+const stateRuntime = globalThis as typeof globalThis & { [STATE_KEY]?: State }
+
+export const getState = (): State => {
+    stateRuntime[STATE_KEY] ??= new State()
+    return stateRuntime[STATE_KEY]
+}

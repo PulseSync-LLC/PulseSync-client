@@ -1,0 +1,44 @@
+use crate::domain::artifacts::StagedFileOperation;
+use serde::{Deserialize, Serialize};
+use serde_json::Value;
+use std::{path::PathBuf, time::SystemTime};
+
+#[derive(Clone, Debug)]
+pub struct TransactionCandidate {
+    pub modified: SystemTime,
+    pub path: PathBuf,
+    pub state: String,
+}
+
+#[derive(Clone, Debug)]
+pub struct TransactionRecord {
+    pub candidate: TransactionCandidate,
+    pub value: Value,
+}
+
+#[derive(Debug, Deserialize, Serialize)]
+pub struct TransactionArtifact {
+    pub action: String,
+    #[serde(rename = "backupPath")]
+    pub backup_path: PathBuf,
+    pub key: String,
+    pub required: bool,
+    #[serde(rename = "fileOperations")]
+    pub file_operations: Vec<StagedFileOperation>,
+    #[serde(rename = "preparedKind")]
+    pub prepared_kind: String,
+    #[serde(rename = "preparedPath")]
+    pub prepared_path: PathBuf,
+    pub sha256: String,
+    pub size: u64,
+    #[serde(rename = "sourcePath")]
+    pub source_path: PathBuf,
+    #[serde(rename = "targetPath")]
+    pub target_path: PathBuf,
+    #[serde(
+        default,
+        rename = "targetExisted",
+        skip_serializing_if = "Option::is_none"
+    )]
+    pub target_existed: Option<bool>,
+}

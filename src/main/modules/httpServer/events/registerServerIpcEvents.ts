@@ -1,5 +1,6 @@
-import MainEvents from '../../../../common/types/mainEvents'
 import { ipcMain } from 'electron'
+
+import MainEvents from '../../../../common/types/mainEvents'
 
 interface StateLike {
     get: (key: string) => any
@@ -18,9 +19,9 @@ interface RegisterServerIpcEventsOptions {
     startSocketServer: () => Promise<void>
     stopSocketServer: () => Promise<void>
     sendDataToMusic: () => void
-    sendExtensions: () => Promise<void>
+    sendExtensions: () => Promise<number>
     sendPremiumUserToClients: (args: any) => void
-    getCurrentTrack: () => void
+    getCurrentTrack: () => number
 }
 
 export const registerServerIpcEvents = ({
@@ -67,7 +68,9 @@ export const registerServerIpcEvents = ({
     })
 
     ipcMain.on(MainEvents.GET_TRACK_INFO, () => {
-        logger.http.log('GET_TRACK_INFO: returning current track...')
-        getCurrentTrack()
+        const recipients = getCurrentTrack()
+        if (recipients > 0) {
+            logger.http.log(`GET_TRACK_INFO: requested current track from ${recipients} music client(s)`)
+        }
     })
 }

@@ -1,14 +1,18 @@
-import React, { CSSProperties } from 'react'
-import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import React from 'react'
 
-import UserInterface from '@entities/user/model/user.interface'
+import { motion } from 'framer-motion'
+
+import { useModalContext } from '@app/providers/modal'
+import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+import { getProfileSlug } from '@shared/lib/profileSlug'
+import { staticAsset } from '@shared/lib/staticAssets'
 import { Avatar, Banner } from '@shared/ui/PSUI/Image'
 import TooltipButton from '@shared/ui/tooltip_button'
-import { staticAsset } from '@shared/lib/staticAssets'
-import { getProfileSlug } from '@shared/lib/profileSlug'
-import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+
 import * as styles from '@widgets/layout/header.module.scss'
+
+import type UserInterface from '@entities/user/model/user.interface'
+import type { CSSProperties } from 'react'
 
 type Props = {
     avatarInputRef: React.RefObject<HTMLInputElement | null>
@@ -23,7 +27,7 @@ type Props = {
 }
 
 export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInputRef, bannerProgress, isOpen, logout, onClose, t, user }: Props) {
-    const nav = useNavigate()
+    const { Modals, openModal } = useModalContext()
     const profileSlug = getProfileSlug(user)
     const visibleBadges = getUserBadgesWithSubscription(user)
 
@@ -37,7 +41,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
         >
             <div className={styles.user_info}>
                 <div className={styles.user_banner}>
-                    <Banner className={styles.banner_image} hash={user.bannerHash} ext={user.bannerType} sizes="390px" alt="" allowAnimate={isOpen} />
+                    <Banner className={styles.banner_image} hash={user.bannerHash} ext={user.bannerType} sizes="280px" alt="" allowAnimate={isOpen} />
                     <div className={styles.banner_gradient} />
                     <motion.div
                         className={styles.banner_overlay}
@@ -68,7 +72,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                         className={styles.avatar}
                         hash={user.avatarHash}
                         ext={user.avatarType}
-                        sizes="85px"
+                        sizes="72px"
                         alt="card_avatar"
                         allowAnimate={isOpen}
                     />
@@ -91,13 +95,13 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                     <div className={styles.user_info}>
                         <div
                             onClick={() => {
-                                nav(`/profile/${encodeURIComponent(profileSlug)}`)
+                                openModal(Modals.USER_PROFILE, { profileName: profileSlug })
                                 onClose()
                             }}
                             key={user.username}
                             className={styles.username}
                         >
-                            {user.nickname}
+                            {user.nickname || user.username}
                         </div>
                         <div className={styles.usertag}>@{user.username}</div>
                     </div>
@@ -106,7 +110,7 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
             <div className={styles.user_menu_buttons}>
                 <button
                     onClick={() => {
-                        nav(`/profile/${encodeURIComponent(profileSlug)}`)
+                        openModal(Modals.USER_PROFILE, { profileName: profileSlug })
                         onClose()
                     }}
                     key={user.id}
@@ -120,7 +124,13 @@ export default function UserMenuCard({ avatarInputRef, avatarProgress, bannerInp
                 <button className={styles.menu_button} disabled>
                     {t('header.settings')}
                 </button>
-                <button className={styles.menu_button} onClick={logout}>
+                <button
+                    className={styles.menu_button}
+                    onClick={() => {
+                        logout()
+                        onClose()
+                    }}
+                >
                     {t('header.logout')}
                 </button>
             </div>

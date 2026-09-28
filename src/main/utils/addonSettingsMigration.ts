@@ -1,6 +1,8 @@
-import path from 'path'
 import * as fs from 'original-fs'
+import path from 'path'
+
 import { collectAddonSettingsValuesFromConfig, HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
 import logger from '../modules/logger'
 
 const isNonEmptyObject = (value: Record<string, unknown>): boolean => Object.keys(value).length > 0
@@ -26,7 +28,13 @@ export const migrateLegacyAddonSettings = async (addonsRoot: string): Promise<vo
         }
 
         try {
-            const parsed = JSON.parse(await fs.promises.readFile(schemaPath, 'utf8')) as {
+            const schema = await fs.promises.readFile(schemaPath, 'utf8')
+            if (!schema.trim()) {
+                logger.main.debug(`Addons: skipped empty legacy settings schema for ${entry.name}.`)
+                continue
+            }
+
+            const parsed = JSON.parse(schema) as {
                 sections?: Array<{ items?: Array<Record<string, unknown>> }>
             }
             const values = collectAddonSettingsValuesFromConfig(parsed)

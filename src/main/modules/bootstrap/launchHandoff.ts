@@ -1,0 +1,109 @@
+import { app } from 'electron'
+
+import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
+import { claimActiveApp } from '../bootstrapper/runtimeCommands'
+import { flushErrorTracking } from '../errorTracking'
+import logger from '../logger'
+import { recordUpdateHandoff } from '../updater/updateTelemetry'
+
+import type { ActiveAppLeaseV1 } from '../bootstrapper/contracts'
+import type { BootstrapperRuntimePaths } from '../bootstrapper/paths'
+import type { LaunchInbox } from './launchInbox'
+import type { LaunchQueue } from './launchQueue'
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
+
+export type LaunchHandoffRuntime = {
+    inbox: LaunchInbox
+    lease: ActiveAppLeaseV1
+    publishState?: (state: BootstrapUiStateV1) => void
+    queue: LaunchQueue
+    runtimePaths: BootstrapperRuntimePaths
+}
+
+let activeRuntime: LaunchHandoffRuntime | null = null
+let activeHandoff: Promise<boolean> | null = null
+
+export function setLaunchHandoffRuntime(runtime: LaunchHandoffRuntime): void {
+    activeRuntime = runtime
+}
+
+export function getActiveAppLease(): ActiveAppLeaseV1 | null {
+    return activeRuntime?.lease ?? null
+}
+
+export function handoffPreparedUpdate(): Promise<boolean> {
+    if (activeHandoff) return activeHandoff
+    if (!activeRuntime) return Promise.resolve(false)
+    const operation = performHandoff(activeRuntime).finally(() => {
+        if (activeHandoff === operation) activeHandoff = null
+    })
+    activeHandoff = operation
+    return operation
+}
+
+async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
+    const startedAt = Date.now()
+    const launcher = runtime.runtimePaths.launcher
+    if (!launcher) {
+        recordUpdateHandoff('launcher-missing', Math.max(0, Date.now() - startedAt))
+        return false
+    }
+
+    runtime.inbox.freeze()
+    await runtime.queue.flush()
+    try {
+        const armed = await relaunchThroughBootstrapper({
+            activeLeaseId: runtime.lease.leaseId,
+            appExecutable: runtime.runtimePaths.appExecutable,
+            appExecutableName: runtime.runtimePaths.appExecutableName,
+            stateRoot: runtime.runtimePaths.stateRoot,
+            hostBundle: runtime.runtimePaths.hostBundle,
+            launcher,
+            passthrough: process.argv.slice(1),
+            waitForPid: process.pid,
+            onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
+        })
+        logger.updater.info('Bootstrapper handoff armed', { handoffId: armed.handoffId, rustPid: armed.rustPid })
+        recordUpdateHandoff('armed', Math.max(0, Date.now() - startedAt))
+        await flushErrorTracking(500)
+        scheduleHandoffRecovery(runtime)
+        app.quit()
+        return true
+    } catch (error) {
+        recordUpdateHandoff('failed', Math.max(0, Date.now() - startedAt))
+        logger.updater.error('Bootstrapper handoff failed before arming', error)
+        await runtime.inbox.unfreeze().catch(recoveryError => logger.updater.error('Failed to resume launch inbox', recoveryError))
+        return false
+    }
+}
+
+function scheduleHandoffRecovery(runtime: LaunchHandoffRuntime): void {
+    const timer = setTimeout(() => {
+        void recoverTimedOutHandoff(runtime)
+    }, 65_000)
+    timer.unref()
+}
+
+async function recoverTimedOutHandoff(runtime: LaunchHandoffRuntime): Promise<void> {
+    if (!app.isReady()) return
+    const launcher = runtime.runtimePaths.launcher
+    if (!launcher) return
+    try {
+        const result = await claimActiveApp({
+            stateRoot: runtime.runtimePaths.stateRoot,
+            hostBundle: runtime.runtimePaths.hostBundle,
+            appExecutable: runtime.runtimePaths.appExecutable,
+            launcher,
+            expectedLeaseId: runtime.lease.leaseId,
+        })
+        if (result.state !== 'claimed' || result.lease.leaseId !== runtime.lease.leaseId) {
+            logger.updater.error('Bootstrapper handoff recovery was not confirmed', result)
+            return
+        }
+        runtime.lease = result.lease
+        await runtime.inbox.unfreeze()
+        logger.updater.warn('Bootstrapper handoff timed out; current application lease was restored')
+    } catch (error) {
+        logger.updater.error('Bootstrapper handoff timeout recovery failed', error)
+    }
+}

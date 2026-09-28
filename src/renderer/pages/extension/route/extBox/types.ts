@@ -1,8 +1,10 @@
 import type AddonInterface from '@entities/addon/model/addon.interface'
-import type { StoreAddon, StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
+import type { StoreAddon, StoreAddonRelease, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 export const PUBLICATION_CHANGELOG_TAB = 'Changes'
 export const RELATIONS_TAB = 'Relations'
+export const DESCRIPTION_TAB = 'Description'
+export const LICENSE_TAB = 'License'
 
 export interface DocTab {
     title: string
@@ -23,6 +25,9 @@ export interface ExtensionViewProps {
     onToggleEnabled: (enabled: boolean) => void
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
+    storeChannelLoading?: boolean
+    availableStoreChannels?: ('stable' | 'dev')[]
+    onStoreChannelChange?: (channel: 'stable' | 'dev') => void
     onStoreUpdate?: () => void
     publication?: StoreAddon | null
     publicationReleases?: StoreAddonRelease[]
@@ -32,8 +37,22 @@ export interface ExtensionViewProps {
     publicationBusy?: boolean
     onPublicationChangelogChange?: (value: string) => void
     onPublicationGithubUrlChange?: (value: string) => void
-    onPublishAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
-    onUpdateAddon?: (changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void
+    onPublishAddon?: (
+        changelogText: string,
+        githubUrl: string,
+        usedAiDuringDevelopment: boolean,
+        previewPath: string,
+        visibility?: StoreAddonVisibility,
+        releaseChannel?: 'stable' | 'dev',
+    ) => void
+    onUpdateAddon?: (
+        changelogText: string,
+        githubUrl: string,
+        usedAiDuringDevelopment: boolean,
+        previewPath: string,
+        visibility?: StoreAddonVisibility,
+        releaseChannel?: 'stable' | 'dev',
+    ) => void
 
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void

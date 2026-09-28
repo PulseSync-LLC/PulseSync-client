@@ -1,5 +1,7 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
@@ -14,7 +16,7 @@ const BasicConfirmationModal: React.FC = () => {
 
     const handleConfirm = () => {
         onConfirm?.()
-        closeModal(Modals.BASIC_CONFIRMATION)
+        handleClose()
     }
 
     return (

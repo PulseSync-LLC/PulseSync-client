@@ -1,9 +1,12 @@
 export type StoreAddonStatus = 'pending' | 'rejected' | 'accepted'
-export type StoreAddonKind = 'theme' | 'script'
+export type StoreAddonKind = 'theme' | 'script' | 'web-addon'
+export type StoreAddonVisibility = 'public' | 'dev' | 'developer'
 
 export interface StoreAddonRelease {
     id: string
     version: string
+    releaseChannels?: ('stable' | 'dev')[]
+    visibility?: StoreAddonVisibility
     description: string
     githubUrl?: string | null
     authors: string[]
@@ -13,8 +16,12 @@ export interface StoreAddonRelease {
     usesOfficialTemplate: boolean
     avatarUrl?: string | null
     bannerUrl?: string | null
+    previewUrl?: string | null
+    bannerLeftColor?: string | null
+    bannerRightColor?: string | null
     downloadUrl?: string | null
     approvedAt?: string | null
+    assetsPurgedAt?: string | null
     status: StoreAddonStatus
     moderationNote?: string | null
     createdAt: string
@@ -26,6 +33,9 @@ export interface StoreAddon {
     name: string
     type: StoreAddonKind
     downloadCount: number
+    ratingAverage: number
+    ratingCount: number
+    myRating?: number | null
     currentRelease?: StoreAddonRelease | null
     releases?: StoreAddonRelease[] | null
     submittedById?: string | null

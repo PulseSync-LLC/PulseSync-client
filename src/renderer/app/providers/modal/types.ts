@@ -1,7 +1,8 @@
-import type { ReactNode } from 'react'
-import { Modals } from '@app/providers/modal/modals'
-import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { Modals } from '@app/providers/modal/modals'
+import type { SettingsDeepLinkSection } from '@common/settingsDeepLink'
 import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
+import type { ReactNode } from 'react'
 
 export type ModalName = (typeof Modals)[keyof typeof Modals]
 
@@ -19,14 +20,36 @@ export type ModalAdditionalStateMap = {
         publicationBusy: boolean
         changelogText: string
         githubUrlText: string
+        onPromote?: (() => void) | null
         onChangeChangelog?: ((value: string) => void) | null
         onChangeGithubUrl?: ((value: string) => void) | null
-        onPublish?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
-        onUpdate?: ((changelogText: string, githubUrl: string, usedAiDuringDevelopment: boolean) => void) | null
+        onPublish?:
+            | ((
+                  changelogText: string,
+                  githubUrl: string,
+                  usedAiDuringDevelopment: boolean,
+                  previewPath: string,
+                  visibility?: StoreAddonVisibility,
+                  releaseChannel?: 'stable' | 'dev',
+              ) => void)
+            | null
+        onUpdate?:
+            | ((
+                  changelogText: string,
+                  githubUrl: string,
+                  usedAiDuringDevelopment: boolean,
+                  previewPath: string,
+                  visibility?: StoreAddonVisibility,
+                  releaseChannel?: 'stable' | 'dev',
+              ) => void)
+            | null
     }
     [Modals.UNTRUSTED_LOCAL_ADDON_MODAL]: {
         addonName: string
         onConfirm?: (() => void) | null
+    }
+    [Modals.SETTINGS]: {
+        activeSection?: SettingsDeepLinkSection
     }
     [Modals.BASIC_CONFIRMATION]: {
         title: string
@@ -34,6 +57,9 @@ export type ModalAdditionalStateMap = {
         confirmLabel?: string | null
         confirmVariant?: 'primary' | 'danger'
         onConfirm?: (() => void) | null
+    }
+    [Modals.USER_PROFILE]: {
+        profileName: string
     }
 }
 

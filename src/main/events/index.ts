@@ -1,19 +1,53 @@
-import { app, BrowserWindow, dialog, ipcMain, Notification, shell, session, session as electronSession } from 'electron'
-import logger from '../modules/logger'
-import path from 'path'
-import fs from 'original-fs'
-import * as fsp from 'fs/promises'
-import * as si from 'systeminformation'
 import os from 'node:os'
-import { v4 } from 'uuid'
-import { musicPath, readBufResilient, updated } from '../../index'
-import { getUpdater } from '../modules/updater/updater'
-import { UpdateStatus } from '../modules/updater/constants/updateStatus'
+
+import { app, clipboard, dialog, ipcMain, Notification, session as electronSession, session, shell } from 'electron'
+
 import AdmZip from 'adm-zip'
-import isAppDev from '../utils/isAppDev'
-import { execFile } from 'child_process'
 import axios from 'axios'
+import { execFile } from 'child_process'
+import { installExtension, updateExtensions } from 'electron-chrome-web-store'
+import * as fsp from 'fs/promises'
+import fs from 'original-fs'
+import path from 'path'
+import * as si from 'systeminformation'
+import { v4 } from 'uuid'
+
+import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+import { branch, isDevmark } from '@common/appConfig'
+import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
+import { STABLE_MOD_SOURCE } from '@common/types/modSource'
+
+import MainEvents from '../../common/types/mainEvents'
+import RendererEvents from '../../common/types/rendererEvents'
+import mainHttpClient from '../http/client'
+import { t } from '../i18n'
+import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
+import { inSleepMode, mainWindow } from '../modules/createWindow'
+import { setMainErrorTrackingUser } from '../modules/errorTracking'
 import { HandleErrorsElectron } from '../modules/handlers/handleErrorsElectron'
+import { get_current_track, sendAuthorizationStatus } from '../modules/httpServer'
+import logger from '../modules/logger'
+import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelection } from '../modules/mod/modSource'
+import { getModBranchBuildSummaries, getModReleaseForSelection } from '../modules/mod/network/releaseCatalog'
+import { nativeGetHardwareIdentity } from '../modules/nativeModules'
+import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
+import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
+import { checkRendererUpdate, installRendererUpdate } from '../modules/rendererUpdate'
+import { getState } from '../modules/state'
+import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
+import { isUiReady, markUiReady } from '../modules/uiReady'
+import { UpdateStatus } from '../modules/updater/constants/updateStatus'
+import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../modules/updater/githubReleaseResolver'
+import {
+    getBuildUpdateChannel,
+    getEffectiveUpdateChannel,
+    getUpdateChannelOverride,
+    setUpdateChannelOverride,
+} from '../modules/updater/updateChannel'
+import { getUpdater } from '../modules/updater/updater'
+import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
+import { musicPath, updated } from '../startup/runtimeState'
+import { loadAddons } from '../utils/addonUtils'
 import {
     checkMusic,
     findAppByName,
@@ -21,47 +55,17 @@ import {
     getLinuxInstallerUrl,
     getYandexMusicAppDataPath,
     getYandexMusicLogsPath,
-    isYandexMusicRunning,
     isLinux,
     isMac,
+    isYandexMusicRunning,
     uninstallApp,
 } from '../utils/appUtils'
-import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import { inSleepMode, mainWindow } from '../modules/createWindow'
-import { loadAddons } from '../utils/addonUtils'
-import config, { isDevmark } from '@common/appConfig'
-import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { getState } from '../modules/state'
-import { get_current_track } from '../modules/httpServer'
-import { getMacUpdater } from '../modules/updater/macOsUpdater'
-import { isUiReady, markUiReady } from '../modules/uiReady'
-import MainEvents from '../../common/types/mainEvents'
-import RendererEvents from '../../common/types/rendererEvents'
+import isAppDev from '../utils/isAppDev'
+import { readBufResilient } from '../utils/readBufResilient'
+
+import type { DesktopInstallStoreAddonRequest, DesktopSetUpdateChannelOverrideRequest } from '../../common/desktopApi/contract'
 import type { SubcomponentsMeta } from '../../common/types/subcomponentsMeta'
-import { nativeGetHardwareIdentity } from '../modules/nativeModules'
-import { obsWidgetManager } from '../modules/obsWidget/obsWidgetManager'
-import { YM_SETUP_DOWNLOAD_URLS } from '../constants/urls'
-import { t } from '../i18n'
-import { importAddonArchive, importPextFile, isPextFilePath } from '../modules/pextImporter'
-import {
-    getBuildUpdateChannel,
-    getEffectiveUpdateChannel,
-    getMacManifestUrl,
-    getUpdateChannelOverride,
-    setUpdateChannelOverride,
-    shouldAllowDowngradeForCurrentChannel,
-} from '../modules/updater/updateChannel'
-import { getUpdateSource, setUpdateSource } from '../modules/updater/updateSource'
-import { getModReleasesForSource } from '../modules/mod/network/releaseCatalog'
-import { setMainErrorTrackingUser } from '../modules/errorTracking'
-import {
-    CLIENT_REPO,
-    listStableGitHubReleases,
-    normalizeGitHubTagVersion,
-    resolveClientGitHubMacManifest,
-} from '../modules/updater/githubReleaseResolver'
-import { getFfmpegMeta, getYtDlpMeta } from '../modules/submodulesChecker'
-import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../modules/auth/browserAuth'
+import type { BrowserWindow } from 'electron'
 
 const updater = getUpdater()
 const State = getState()
@@ -76,6 +80,15 @@ const MOD_REPO = {
     owner: 'PulseSync-LLC',
     repo: 'PulseSync-mod',
 } as const
+const REMOTE_RENDERER_CACHE_MISS_EXTENSIONS = new Set(['.woff', '.woff2', '.ttf', '.otf'])
+
+const fallbackUnavailableModBranch = (branch: string) => {
+    const currentSelection = getModSourceSelection()
+    if (currentSelection.type !== 'branch' || currentSelection.branch !== branch) return currentSelection
+
+    logger.modManager.warn(`Selected mod branch "${branch}" is unavailable, falling back to stable`)
+    return setModSourceSelection(STABLE_MOD_SOURCE)
+}
 
 const toUnixSeconds = (dateValue: string | null | undefined): number => {
     if (!dateValue) {
@@ -86,60 +99,13 @@ const toUnixSeconds = (dateValue: string | null | undefined): number => {
     return Number.isFinite(timestamp) ? Math.floor(timestamp / 1000) : 0
 }
 
-const macUpdater = isMac()
-    ? getMacUpdater({
-          manifestUrl: getMacManifestUrl(getEffectiveUpdateChannel()),
-          appName: 'PulseSync',
-          attemptAutoInstall: false,
-          onProgress: p => {
-              try {
-                  if (mainWindow) {
-                      mainWindow.setProgressBar(p / 100)
-                      mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, p)
-                  }
-              } catch {}
-          },
-          onStatus: s => {
-              if (s === UpdateStatus.DOWNLOADING) {
-                  mainWindow?.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true })
-                  updateAvailable = true
-              } else if (s === UpdateStatus.DOWNLOADED) {
-                  mainWindow?.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                  updateAvailable = true
-                  try {
-                      if (mainWindow) mainWindow.setProgressBar(-1)
-                  } catch {}
-              }
-          },
-          onLog: m => logger.updater.info(m),
-      })
-    : null
-
-const syncMacUpdaterFeed = () => {
-    if (!macUpdater) {
-        return
-    }
-
-    macUpdater.setManifestUrl(getMacManifestUrl(getEffectiveUpdateChannel()))
-    macUpdater.setAllowDowngrade(shouldAllowDowngradeForCurrentChannel())
-}
-
-const getCurrentUpdateStatus = () => (isMac() ? (macUpdater?.getStatus() ?? UpdateStatus.IDLE) : updater.getStatus())
+const getCurrentUpdateStatus = () => updater.getStatus()
 
 const ensureUpdateSourceSwitchAllowed = () => {
     const status = getCurrentUpdateStatus()
     if (status === UpdateStatus.CHECKING || status === UpdateStatus.DOWNLOADING) {
         throw new Error('UPDATE_SOURCE_BUSY')
     }
-}
-
-const resolveMacUpdateManifest = async (source = getUpdateSource()) => {
-    if (source === 'github') {
-        return resolveClientGitHubMacManifest(getEffectiveUpdateChannel())
-    }
-
-    syncMacUpdaterFeed()
-    return null
 }
 
 export const getPath = (args: string) => {
@@ -158,9 +124,31 @@ function launchExtensionBackgroundWorkers(session = electronSession.defaultSessi
     )
 }
 
+function isRemoteRendererCacheMiss(details: Electron.OnErrorOccurredListenerDetails): boolean {
+    if (details.error !== 'net::ERR_CACHE_MISS') {
+        return false
+    }
+
+    try {
+        const url = new URL(details.url)
+        if (url.hostname !== 'pulsesync.dev' || !/^\/app\/[^/]+\/versions\//u.test(url.pathname)) {
+            return false
+        }
+
+        return REMOTE_RENDERER_CACHE_MISS_EXTENSIONS.has(path.extname(url.pathname).toLowerCase())
+    } catch {
+        return false
+    }
+}
+
 async function registerAppReadyEvents(): Promise<void> {
     const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'] }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
+        if (isRemoteRendererCacheMiss(details)) {
+            logger.http.debug(`HTTP CACHE MISS: ${details.method} ${details.url} (from ${details.webContentsId})`)
+            return
+        }
+
         logger.http.error(`HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`)
     })
     if (isAppDev) {
@@ -357,7 +345,11 @@ const registerWindowEvents = (): void => {
         app.quit()
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_MAXIMIZE, () => {
-        mainWindow.isMaximized() ? mainWindow.unmaximize() : mainWindow.maximize()
+        if (mainWindow.isMaximized()) {
+            mainWindow.unmaximize()
+        } else {
+            mainWindow.maximize()
+        }
     })
     ipcMain.on(MainEvents.ELECTRON_WINDOW_CLOSE, (_event, val: boolean) => {
         if (val) {
@@ -370,14 +362,24 @@ const registerWindowEvents = (): void => {
 }
 
 const registerSystemEvents = (window: BrowserWindow): void => {
+    ipcMain.handle(MainEvents.WRITE_CLIPBOARD_TEXT, (event, text: unknown) => {
+        if (event.sender.id !== window.webContents.id) {
+            throw new Error('Blocked clipboard write from an untrusted renderer')
+        }
+        if (typeof text !== 'string') {
+            throw new TypeError('Clipboard text must be a string')
+        }
+
+        clipboard.writeText(text)
+    })
     ipcMain.on(MainEvents.ELECTRON_ISDEV, event => {
         event.returnValue = isAppDev || isDevmark
     })
-    ipcMain.on(MainEvents.ELECTRON_ISMAC, async (event, args) => {
+    ipcMain.on(MainEvents.ELECTRON_ISMAC, async event => {
         event.returnValue = isMac()
     })
-    ipcMain.handle(MainEvents.GET_VERSION, async () => app.getVersion())
-    ipcMain.on(MainEvents.ELECTRON_ISLINUX, async (event, args) => {
+    ipcMain.handle(MainEvents.GET_VERSION, async () => DESKTOP_CORE_VERSION)
+    ipcMain.on(MainEvents.ELECTRON_ISLINUX, async event => {
         event.returnValue = isLinux()
     })
     ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
@@ -391,7 +393,37 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.handle(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE, async () => getUpdateChannelOverride())
     ipcMain.handle(MainEvents.GET_UPDATE_SOURCE, async () => getUpdateSource())
     ipcMain.handle(MainEvents.GET_UPDATE_STATUS, async () => getCurrentUpdateStatus())
-    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => getModReleasesForSource(getUpdateSource()))
+    ipcMain.handle(MainEvents.GET_MOD_RELEASES, async () => {
+        const stableSource = getUpdateSource()
+        const selection = getModSourceSelection()
+        let release = await getModReleaseForSelection(selection, stableSource)
+        if (!release && selection.type === 'branch') {
+            release = await getModReleaseForSelection(fallbackUnavailableModBranch(selection.branch), stableSource)
+        }
+        return release ? [release] : []
+    })
+    ipcMain.handle(MainEvents.GET_MOD_SOURCES, async () => {
+        const branches = await getModBranchBuildSummaries()
+        const selection = getModSourceSelection()
+        const selected =
+            selection.type === 'branch' && !branches.some(build => build.branch === selection.branch)
+                ? fallbackUnavailableModBranch(selection.branch)
+                : selection
+
+        return { branches, selected }
+    })
+    ipcMain.handle(MainEvents.SET_MOD_SOURCE, async (_event, value) => {
+        const selection = normalizeModSourceSelection(value)
+        if (!selection) throw new Error('INVALID_MOD_SOURCE')
+
+        const release = await getModReleaseForSelection(selection, getUpdateSource())
+        if (!release) throw new Error('MOD_SOURCE_UNAVAILABLE')
+
+        return {
+            release,
+            selection: setModSourceSelection(selection),
+        }
+    })
     ipcMain.handle(MainEvents.GET_CLIENT_CHANGELOG, async () => {
         const releases = await listStableGitHubReleases(CLIENT_REPO)
 
@@ -412,21 +444,20 @@ const registerSystemEvents = (window: BrowserWindow): void => {
             createdAt: toUnixSeconds(release.published_at),
         }))
     })
-    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, channel: string | null) => {
+    ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, request: DesktopSetUpdateChannelOverrideRequest | string | null) => {
+        const isLegacyRequest = typeof request === 'string' || request === null
+        const channel = isLegacyRequest ? request : request.channel
+        const allowDevToBetaSwitch = !isLegacyRequest && request.allowDevToBetaSwitch === true
         const previousEffectiveChannel = getEffectiveUpdateChannel()
-        const nextOverride = setUpdateChannelOverride(channel)
+        const nextOverride = setUpdateChannelOverride(channel, allowDevToBetaSwitch)
         const nextEffectiveChannel = getEffectiveUpdateChannel()
 
         if (previousEffectiveChannel !== nextEffectiveChannel) {
             await updater.clearPendingUpdate(`channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`)
-            macUpdater?.resetPendingUpdate()
             updateAvailable = false
         }
 
         updater.reloadFeed()
-        if (getUpdateSource() === 'backend') {
-            syncMacUpdaterFeed()
-        }
 
         return {
             buildChannel: getBuildUpdateChannel(),
@@ -442,13 +473,12 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
         if (previousSource !== nextSource) {
             await updater.clearPendingUpdate(`source-switch:${previousSource}->${nextSource}`)
-            macUpdater?.resetPendingUpdate()
             updateAvailable = false
         }
 
         updater.reloadFeed()
-        if (nextSource === 'backend') {
-            syncMacUpdaterFeed()
+        if (previousSource !== nextSource) {
+            await checkRendererUpdate()
         }
 
         return {
@@ -464,8 +494,12 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (event, key) => {
         State.delete(key)
     })
+    ipcMain.handle(MainEvents.SET_STORE_RELEASE_CHANNEL, (_event, channel: unknown) => {
+        if (channel !== 'stable' && channel !== 'dev') throw new Error('Invalid store release channel')
+        State.set('settings.storeReleaseChannel', channel)
+    })
     ipcMain.handle(MainEvents.GET_SYSTEM_INFO, async () => ({
-        appVersion: app.getVersion(),
+        appVersion: DESKTOP_CORE_VERSION,
         osType: os.type(),
         osRelease: os.release(),
         cpu: os.cpus(),
@@ -480,7 +514,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerFileOperations = (window: BrowserWindow): void => {
+const registerFileOperations = (): void => {
     ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
         try {
             if (!isSafeExternalUrl(url)) {
@@ -629,7 +663,7 @@ const registerFileOperations = (window: BrowserWindow): void => {
     })
 }
 
-const registerMediaEvents = (window: BrowserWindow): void => {
+const registerMediaEvents = (): void => {
     ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
         const unlinkDownload = (downloadPath: string) => {
             try {
@@ -729,7 +763,7 @@ const registerMediaEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerDeviceEvents = (window: BrowserWindow): void => {
+const registerDeviceEvents = (): void => {
     ipcMain.on(MainEvents.GET_MUSIC_DEVICE, event => {
         si.system().then(data => {
             event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4(
@@ -763,49 +797,26 @@ const registerDeviceEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerUpdateEvents = (window: BrowserWindow): void => {
+const registerUpdateEvents = (): void => {
     ipcMain.on(MainEvents.UPDATE_INSTALL, async () => {
-        if (isMac()) {
-            try {
-                const installInfo = await macUpdater?.installUpdate()
-                if (installInfo && mainWindow) {
-                    mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                }
-            } catch (e: any) {
-                logger.updater.error(`macOS install error: ${e?.message || e}`)
-            }
+        if (updater.getStatus() === UpdateStatus.DOWNLOADED) {
+            await updater.install()
             return
         }
-        updater.install()
+        await installRendererUpdate()
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {
-        if (!isMac()) {
-            updater.reloadFeed()
-        }
+        updater.reloadFeed()
         await checkOrFindUpdate(args?.hard, args?.manual)
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
-        if (isMac()) {
-            try {
-                const githubManifest = await resolveMacUpdateManifest()
-                const m = githubManifest ? macUpdater?.checkManifest(githubManifest) : await macUpdater?.checkForUpdates()
-                if (m) {
-                    mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, m.version)
-                    mainWindow.flashFrame(true)
-                    updateAvailable = true
-                }
-            } catch (e: any) {
-                logger.updater.error(`macOS updater-start error: ${e?.message || e}`)
-            }
-            return
-        }
         updater.start()
         if (!updaterStartListenerBound) {
             updaterStartListenerBound = true
             updater.onUpdate(version => {
-                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, version)
+                mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version })
                 mainWindow.flashFrame(true)
                 updateAvailable = true
             })
@@ -813,7 +824,7 @@ const registerUpdateEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerLoggingEvents = (window: BrowserWindow): void => {
+const registerLoggingEvents = (): void => {
     const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
         const text = payload?.text ?? payload?.message ?? ''
         const details: string[] = []
@@ -828,6 +839,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
         setMainErrorTrackingUser(data.status ? data.user : null)
+        sendAuthorizationStatus(authorized)
         tryOpenPendingAddon()
     })
     ipcMain.handle(MainEvents.START_BROWSER_AUTH, async () => {
@@ -838,6 +850,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
         cancelBrowserAuthFlow()
         State.delete('tokens.token')
         authorized = false
+        sendAuthorizationStatus(false)
         return { success: true }
     })
 
@@ -860,7 +873,7 @@ const registerLoggingEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerNotificationEvents = (window: BrowserWindow): void => {
+const registerNotificationEvents = (): void => {
     ipcMain.on(MainEvents.SHOW_NOTIFICATION, (_event, data: any) => {
         new Notification({ title: data.title, body: data.body }).show()
     })
@@ -873,7 +886,7 @@ const registerNotificationEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerLogArchiveEvent = (window: BrowserWindow): void => {
+const registerLogArchiveEvent = (): void => {
     ipcMain.on(MainEvents.GET_LOG_ARCHIVE, async () => {
         try {
             const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
@@ -887,7 +900,7 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
             const gpuData = await si.graphics()
 
             const systemInfo = {
-                appVersion: app.getVersion(),
+                appVersion: DESKTOP_CORE_VERSION,
                 osType: os.type(),
                 osRelease: os.release(),
                 cpu: os.cpus(),
@@ -920,11 +933,11 @@ const registerLogArchiveEvent = (window: BrowserWindow): void => {
     })
 }
 
-const registerSleepModeEvent = (window: BrowserWindow): void => {
+const registerSleepModeEvent = (): void => {
     ipcMain.handle(MainEvents.CHECK_SLEEP_MODE, async () => inSleepMode)
 }
 
-const registerExtensionEvents = (window: BrowserWindow): void => {
+const registerExtensionEvents = (): void => {
     ipcMain.handle(MainEvents.GET_ADDONS, async () => {
         try {
             return await loadAddons()
@@ -1024,14 +1037,47 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: { id?: string; downloadUrl?: string; title?: string }) => {
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: DesktopInstallStoreAddonRequest) => {
         let tempArchivePath = ''
 
         try {
-            const downloadUrl = payload?.downloadUrl?.trim()
-            if (!downloadUrl) {
-                return { success: false, reason: 'DOWNLOAD_URL_MISSING' }
+            const addonId = payload?.id?.trim().toLowerCase()
+            if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
+            const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
+            const authToken = State.get('tokens.token')
+            if (!authorized || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
+
+            let downloadUrl: string | null | undefined
+            const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
+            if (reviewReleaseId) {
+                const descriptor = await mainHttpClient.get<{
+                    ok?: boolean
+                    release?: { id: string; addonId: string; downloadUrl?: string | null }
+                }>(`/extensions/${encodeURIComponent(addonId)}/releases/${encodeURIComponent(reviewReleaseId)}/review-download`, {
+                    authToken,
+                    timeoutMs: 15000,
+                })
+                const release = descriptor.data?.release
+                if (descriptor.ok && descriptor.data?.ok === true && release?.addonId === addonId && release.id === reviewReleaseId) {
+                    downloadUrl = release.downloadUrl
+                }
+            } else {
+                const descriptor = await mainHttpClient.post<{
+                    ok?: boolean
+                    addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
+                }>('/extensions/updates', {
+                    authToken,
+                    headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
+                    body: { ids: [addonId], releaseChannel },
+                    timeoutMs: 15000,
+                })
+                const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
+                if (descriptor.ok && descriptor.data?.ok !== false && addon?.currentRelease?.status === 'accepted') {
+                    downloadUrl = addon.currentRelease.downloadUrl
+                }
             }
+            if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
+            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
 
             const parsedUrl = new URL(downloadUrl)
             if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
@@ -1044,12 +1090,14 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
             const response = await axios.get<ArrayBuffer>(downloadUrl, {
                 responseType: 'arraybuffer',
             })
+            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
 
             await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
 
             const addonName = await importAddonArchive(tempArchivePath, {
                 installSource: 'store',
-                storeAddonId: payload?.id || null,
+                storeAddonId: addonId,
+                releaseChannel,
             })
             if (!addonName) {
                 return { success: false, reason: 'IMPORT_FAILED' }
@@ -1073,7 +1121,7 @@ const registerExtensionEvents = (window: BrowserWindow): void => {
 }
 
 const registerYandexMusicEvents = (window: BrowserWindow): void => {
-    ipcMain.on('DELETE_YANDEX_MUSIC_APP', async _event => {
+    ipcMain.on(MainEvents.DELETE_YANDEX_MUSIC_APP, async _event => {
         try {
             logger.main.info(t('main.events.yandexUninstallStart'))
 
@@ -1082,7 +1130,7 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
 
             if (!pkg) {
                 logger.main.warn(t('main.events.yandexNotFound'))
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: false,
                     message: t('main.events.yandexNotFoundMessage'),
                 })
@@ -1094,20 +1142,20 @@ const registerYandexMusicEvents = (window: BrowserWindow): void => {
                 await uninstallApp(pkg.PackageFullName)
 
                 logger.main.info(t('main.events.yandexUninstallSuccess'))
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: true,
                     message: t('main.events.yandexUninstallSuccessMessage'),
                 })
             } catch (uninstallErr) {
                 logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
-                window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                     success: false,
                     message: t('main.events.yandexUninstallFailedWithReason', { message: (uninstallErr as Error).message }),
                 })
             }
         } catch (error: any) {
             logger.main.error(`Uninstall exception: ${error.message}`)
-            window.webContents.send('DELETE_YANDEX_MUSIC_RESULT', {
+            window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
                 success: false,
                 message: t('main.events.yandexUninstallError'),
             })
@@ -1127,81 +1175,32 @@ export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)
-    registerFileOperations(window)
-    registerMediaEvents(window)
-    registerDeviceEvents(window)
-    registerUpdateEvents(window)
-    registerLoggingEvents(window)
-    registerNotificationEvents(window)
-    registerLogArchiveEvent(window)
-    registerSleepModeEvent(window)
-    registerExtensionEvents(window)
+    registerFileOperations()
+    registerMediaEvents()
+    registerDeviceEvents()
+    registerUpdateEvents()
+    registerLoggingEvents()
+    registerNotificationEvents()
+    registerLogArchiveEvent()
+    registerSleepModeEvent()
+    registerExtensionEvents()
     registerYandexMusicEvents(window)
     obsWidgetManager(window, app)
 }
 
 export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
-    if (isMac()) {
-        try {
-            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { checking: true, manual })
-            const updateSource = getUpdateSource()
-            const githubManifest = await resolveMacUpdateManifest(updateSource)
-            const macUpdaterInstance = githubManifest ? macUpdater?.checkManifest(githubManifest) : await macUpdater?.checkForUpdates()
-            if (macUpdaterInstance) {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
-                updateAvailable = true
-                try {
-                    await macUpdater?.downloadUpdate(macUpdaterInstance)
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                    if (hard) {
-                        const installInfo = await macUpdater?.installUpdate(macUpdaterInstance)
-                        if (installInfo && mainWindow) {
-                            mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                        }
-                    }
-                } catch (e: any) {
-                    logger.updater.error(`macOS download/install error: ${e?.message || e}`)
-                    if (updateSource === 'backend') {
-                        try {
-                            const fallbackManifest = await resolveMacUpdateManifest('github')
-                            const fallbackUpdate = fallbackManifest ? macUpdater?.checkManifest(fallbackManifest) : null
-                            if (fallbackUpdate) {
-                                logger.updater.warn('Primary backend macOS download failed, trying GitHub fallback')
-                                await macUpdater?.downloadUpdate(fallbackUpdate)
-                                mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-                                if (hard) {
-                                    const installInfo = await macUpdater?.installUpdate(fallbackUpdate)
-                                    if (installInfo && mainWindow) {
-                                        mainWindow.webContents.send(RendererEvents.MAC_UPDATE_READY, installInfo)
-                                    }
-                                }
-                                return
-                            }
-                        } catch (fallbackError: any) {
-                            logger.updater.error(`macOS GitHub fallback error: ${fallbackError?.message || fallbackError}`)
-                        }
-                    }
-                    mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FAILED)
-                    try {
-                        if (mainWindow) mainWindow.setProgressBar(-1)
-                    } catch {}
-                }
-            } else {
-                mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
-            }
-        } catch (e: any) {
-            logger.updater.error(`macOS check error: ${e?.message || e}`)
-        }
-        return
-    }
-    const status = await updater.check(manual)
+    const status = await updater.check(manual, { suppressUpToDateEvent: true })
     if (status === UpdateStatus.DOWNLOADED) {
-        if (hard) updater.install()
+        if (hard) await updater.install()
         updateAvailable = true
     } else if (status === UpdateStatus.DOWNLOADING) {
         updateAvailable = true
     } else if (status === UpdateStatus.IDLE || status === null) {
         updateAvailable = false
+        const rendererUpdateAvailable = await checkRendererUpdate()
+        if (!rendererUpdateAvailable && status === null) {
+            mainWindow.webContents.send(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
+        }
     }
 }

@@ -1,5 +1,7 @@
 import React from 'react'
+
 import AchievementItem from '@widgets/userProfileModal/tabs/ProfileTab/AchievementItem'
+
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface AchievementListProps {

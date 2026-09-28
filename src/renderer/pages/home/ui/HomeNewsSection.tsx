@@ -1,9 +1,10 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useCallback, useState } from 'react'
+
 import { useTranslation } from 'react-i18next'
 
 import config from '@common/appConfig'
-import MainEvents from '@common/types/mainEvents'
 import { useNews } from '@app/providers/news'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import ButtonV2 from '@shared/ui/buttonV2'
 
 import * as styles from './home.module.scss'
@@ -39,11 +40,9 @@ type NewsCardProps = {
     }
     onOpen: (slug: string) => void
     formatDate: (value: number) => string
-    readTimeLabel: string
-    metaSeparator?: string
 }
 
-function NewsCard({ className, descriptionClassName, item, onOpen, formatDate, readTimeLabel, metaSeparator }: NewsCardProps) {
+function NewsCard({ className, descriptionClassName, item, onOpen, formatDate }: NewsCardProps) {
     return (
         <article
             className={className}
@@ -65,10 +64,8 @@ function NewsCard({ className, descriptionClassName, item, onOpen, formatDate, r
             <div className={styles.newsFeaturedContent}>
                 <div className={styles.newsMetaRow}>
                     <span className={styles.newsMetaAuthor}>{item.author}</span>
-                    {metaSeparator && <span className={styles.newsMetaDot}>{metaSeparator}</span>}
+                    <span className={styles.newsMetaDot}>•</span>
                     <span className={styles.newsMetaDate}>{formatDate(item.date)}</span>
-                    {metaSeparator && <span className={styles.newsMetaDot}>{metaSeparator}</span>}
-                    <span className={styles.newsMetaReadTime}>{readTimeLabel}</span>
                 </div>
 
                 <h3 className={styles.newsFeaturedTitle}>{item.title}</h3>
@@ -82,11 +79,6 @@ export default function HomeNewsSection() {
     const { t, i18n } = useTranslation()
     const { news, loading, error, refresh } = useNews()
 
-    const [featuredNews, secondaryNews] = useMemo(() => {
-        const [featured, ...rest] = news
-        return [featured ?? null, rest]
-    }, [news])
-
     const formatDate = useCallback(
         (value: number) => {
             const date = new Date(Number(value))
@@ -95,7 +87,7 @@ export default function HomeNewsSection() {
             }
 
             return new Intl.DateTimeFormat(i18n.language, {
-                day: '2-digit',
+                day: 'numeric',
                 month: 'long',
                 year: 'numeric',
             }).format(date)
@@ -103,36 +95,22 @@ export default function HomeNewsSection() {
         [i18n.language],
     )
 
-    const formatCompactDate = useCallback((value: number) => {
-        const date = new Date(Number(value))
-        if (Number.isNaN(date.getTime())) {
-            return String(value)
-        }
-
-        const day = String(date.getDate()).padStart(2, '0')
-        const month = String(date.getMonth() + 1).padStart(2, '0')
-        const year = String(date.getFullYear()).slice(-2)
-        return `${day}.${month}.${year}`
-    }, [])
-
-    const formatCompactReadTime = useCallback((value: number) => `${value} ${i18n.language === 'ru' ? 'мин' : 'min'}`, [i18n.language])
-
     const openArticle = useCallback((slug: string) => {
         if (!slug) {
             return
         }
 
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/news/${slug}`)
+        desktopApi.system.openExternal(`${config.WEBSITE_URL}/news/${slug}`)
     }, [])
 
     const openNewsList = useCallback(() => {
-        window.desktopEvents?.send(MainEvents.OPEN_EXTERNAL, `${config.WEBSITE_URL}/news`)
+        desktopApi.system.openExternal(`${config.WEBSITE_URL}/news`)
     }, [])
 
     const renderState = () => {
         if (loading) {
             return (
-                <div className={styles.newsState} aria-hidden="true" style={{ justifyContent: 'start' }}>
+                <div className={styles.newsSkeletonState} aria-hidden="true">
                     <div className={styles.newsSkeletonFeatured}>
                         <div className={styles.newsSkeletonImage} />
                         <div className={styles.newsSkeletonContent}>
@@ -149,6 +127,7 @@ export default function HomeNewsSection() {
                                 <div className={styles.newsSkeletonItemContent}>
                                     <div className={styles.newsSkeletonMeta} />
                                     <div className={styles.newsSkeletonItemTitle} />
+                                    <div className={styles.newsSkeletonDescription} />
                                     <div className={styles.newsSkeletonDescriptionShort} />
                                 </div>
                             </div>
@@ -182,48 +161,27 @@ export default function HomeNewsSection() {
     }
 
     return (
-        <section className={`${styles.panel} ${styles.newsPanel}`}>
+        <section className={styles.newsPanel}>
             <div className={styles.newsHeader}>
-                <div>
-                    <h2 className={styles.panelTitle}>{t('pages.home.news')}</h2>
-                    <p className={styles.newsSubtitle}>{t('pages.home.newsSubtitle')}</p>
-                </div>
-                <ButtonV2 type="button" className={styles.newsHeaderAction} onClick={openNewsList}>
-                    {t('pages.home.newsOpenAll')}
-                </ButtonV2>
+                <h2 className={styles.panelTitle}>{t('pages.home.news')}</h2>
             </div>
 
             <div className={styles.newsBody}>
-                {!featuredNews ? (
+                {!news.length ? (
                     renderState()
                 ) : (
                     <div className={styles.newsScroller}>
                         <div className={styles.newsScrollerInner}>
-                            <NewsCard
-                                className={styles.newsFeaturedCard}
-                                descriptionClassName={styles.newsFeaturedDescription}
-                                item={featuredNews}
-                                onOpen={openArticle}
-                                formatDate={formatDate}
-                                readTimeLabel={t('pages.home.newsReadTime', { count: featuredNews.readTime })}
-                                metaSeparator={t('common.emDash')}
-                            />
-
-                            {secondaryNews.length > 0 && (
-                                <div className={styles.newsList}>
-                                    {secondaryNews.map(item => (
-                                        <NewsCard
-                                            key={item.id}
-                                            className={styles.newsListItem}
-                                            descriptionClassName={styles.newsListItemDescription}
-                                            item={item}
-                                            onOpen={openArticle}
-                                            formatDate={formatCompactDate}
-                                            readTimeLabel={formatCompactReadTime(item.readTime)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                            {news.map((item, index) => (
+                                <NewsCard
+                                    key={item.id}
+                                    className={index === 0 ? styles.newsFeaturedCard : styles.newsListItem}
+                                    descriptionClassName={index === 0 ? styles.newsFeaturedDescription : styles.newsListItemDescription}
+                                    item={item}
+                                    onOpen={openArticle}
+                                    formatDate={formatDate}
+                                />
+                            ))}
                         </div>
                     </div>
                 )}

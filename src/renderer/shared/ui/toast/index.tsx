@@ -1,13 +1,24 @@
-import React, { useEffect, useState, useRef, useLayoutEffect, useCallback, JSX } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+
 import cn from 'clsx'
-import toast, { Renderable, ToastOptions } from 'react-hot-toast'
+import toast from 'react-hot-toast'
+import { MdCheckCircle, MdClose, MdDownload, MdError, MdImportExport, MdInfo, MdLoop, MdWarning } from 'react-icons/md'
 import { CSSTransition, TransitionGroup } from 'react-transition-group'
+
 import * as styles from '@shared/ui/toast/toast.module.scss'
-import { MdCheckCircle, MdError, MdInfo, MdWarning, MdDownload, MdLoop, MdImportExport, MdClose } from 'react-icons/md'
+
+import type { JSX } from 'react'
+import type { Renderable, ToastOptions } from 'react-hot-toast'
 
 type Kind = 'success' | 'error' | 'warning' | 'info' | 'download' | 'loading' | 'export' | 'import' | 'default'
 
+type ToastAction = {
+    label: string
+    onClick: () => void
+}
+
 interface ToastData {
+    action?: ToastAction
     id: string
     kind: Kind
     title: string
@@ -48,20 +59,12 @@ let stackShown = false
 function ensureStack(opts?: ToastOptions) {
     if (stackShown) return
     toast.custom(() => <ToastStack />, {
+        ...opts,
         id: 'android-stack',
         duration: Infinity,
         position: 'top-center',
-        ...opts,
     })
     stackShown = true
-}
-
-function clearAll() {
-    if (!queue.length) return
-    queue = []
-    emit()
-    toast.dismiss('android-stack')
-    stackShown = false
 }
 
 const closeAllSubs = new Set<() => void>()
@@ -82,7 +85,7 @@ export const iToast = {
         if (optionId) {
             const existing = queue.find(t => t.id === optionId)
             if (existing) {
-                Object.assign(existing, { kind, title, msg, value, duration, sticky, ts: now })
+                Object.assign(existing, { action: undefined, kind, title, msg, value, duration, sticky, ts: now })
                 sortQueue()
                 emit()
                 ensureStack(options)
@@ -271,7 +274,7 @@ interface CardProps {
 }
 
 const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSize, offset, closingAll, onDismiss }, ref) => {
-    const { kind, title, msg, value, sticky, duration } = data
+    const { action, kind, title, msg, value, sticky, duration } = data
     const [show, setShow] = useState(false)
 
     const memoizedOnDismiss = useCallback(onDismiss, [data.id])
@@ -335,12 +338,25 @@ const Card = React.forwardRef<HTMLDivElement, CardProps>(({ data, index, stackSi
             }}
             onClick={hideToast}
         >
-            <div className={styles.icon}>{sticky ? <Progress val={value} /> : icons[kind]}</div>
+            <div className={styles.icon}>{sticky && typeof value === 'number' ? <Progress val={value} /> : icons[kind]}</div>
             <div className={styles.text}>
                 <div className={styles.title}>{title}</div>
                 <div className={styles.msg}>{msg ?? ''}</div>
             </div>
+            {action && (
+                <button
+                    type="button"
+                    className={styles.action}
+                    onClick={event => {
+                        event.stopPropagation()
+                        action.onClick()
+                    }}
+                >
+                    {action.label}
+                </button>
+            )}
             <button
+                type="button"
                 className={styles.hide}
                 onClick={e => {
                     e.stopPropagation()

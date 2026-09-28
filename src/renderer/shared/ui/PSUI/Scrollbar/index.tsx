@@ -1,5 +1,7 @@
-import React, { useEffect, useRef, useState, forwardRef, useImperativeHandle } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+
 import cn from 'clsx'
+
 import * as styles from '@shared/ui/PSUI/Scrollbar/Scrollbar.module.scss'
 
 interface ScrollbarProps {
@@ -20,7 +22,7 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     const dragStartY = useRef(0)
     const scrollStartTop = useRef(0)
 
-    useImperativeHandle(ref, () => containerRef.current!)
+    useImperativeHandle(ref, () => containerRef.current!, [])
 
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
@@ -185,7 +187,7 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
                 ref={containerRef}
                 onScroll={e => {
                     updateThumbPosition()
-                    onScroll && onScroll(e)
+                    onScroll?.(e)
                 }}
             >
                 {children}

@@ -1,4 +1,8 @@
 {
+    "browserDownload": {
+        "description": "PulseSync is only available in the desktop app. Download the client to continue.",
+        "action": "Download PulseSync"
+    },
     "common": {
         "ok": "Ok",
         "all": "All",
@@ -77,18 +81,13 @@
         "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
         "failedToFetchUser": "Failed to fetch user data. Please log in again.",
-        "images": {
-            "flatCylinder": "Flat Cylinder",
-            "icosahedron": "Icosahedron",
-            "pyramid": "Pyramid",
-            "thorusKnot": "Torus Knot"
-        },
         "pendingAuth": "Waiting for authorization",
         "pleaseLoginAgain": "Please log in again.",
         "readTermsError": "Failed to read file:",
         "sessionExpired": "Your session has expired. Please log in again.",
         "sessionExpiredTitle": "Error",
         "termsLink": "the Terms of Use",
+        "title": "Authorization",
         "unknownAuthError": "Unknown authorization error."
     },
     "addons": {
@@ -146,6 +145,40 @@
         "removeRow": "Remove row",
         "resetToDefault": "Reset to default"
     },
+    "settingsModal": {
+        "application": "Application",
+        "actions": {
+            "changelog": "Changelog",
+            "title": "Actions"
+        },
+        "category": "Sections",
+        "emptyDescription": "New settings sections will appear here later.",
+        "emptyTitle": "No settings available yet",
+        "movedHint": "Settings now open from the button in the bottom-left corner.",
+        "searchEmpty": "No settings found",
+        "searchPlaceholder": "Find a setting...",
+        "sections": {
+            "general": "General",
+            "integrations": "Components"
+        },
+        "status": {
+            "installed": "Installed",
+            "notInstalled": "Not installed"
+        },
+        "subscription": "Subscription",
+        "title": "Settings",
+        "updateSource": "Update source",
+        "developer": {
+            "category": "Developer tools",
+            "componentsTitle": "UI testing",
+            "interfaceTitle": "Interface",
+            "runtimeTitle": "Development runtime",
+            "showDevFrameDescription": "Shows the yellow frame, bottom spacing, and development build label.",
+            "settingsTab": "Preferences",
+            "title": "Developer preferences",
+            "websocketDescription": "Controls the local debugging websocket. Available only during local development."
+        }
+    },
     "contextMenu": {
         "boostyUrl": "Page on Boosty",
         "appDirectory": "App directory",
@@ -165,6 +198,8 @@
             "checkUpdates": "Check for updates",
             "collectLogs": "Collect logs archive",
             "logsReady": "Opening the folder soon",
+            "settings": "Settings",
+            "showDevFrame": "Show development frame",
             "title": "System",
             "version": "Version: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Websocket status"
@@ -172,12 +207,21 @@
         "mod": {
             "checkUpdates": "Check mod updates",
             "clearCache": "Clear mod cache",
+            "experimentalBuild": "Experimental build · v{{version}} · {{commit}}",
+            "branchUnavailable": "This branch build is no longer available in GitHub Releases",
             "resetAsarPath": "Reset custom folder",
             "resetAsarPathSuccess": "Custom folder reset",
             "defaultName": "Eclipse",
             "notInstalled": "Not installed",
             "remove": "Remove mod",
             "showChangelog": "Show changelog after install",
+            "sourceChangeError": "Failed to switch the mod version.",
+            "sourceLoadError": "Failed to load test mod versions from GitHub.",
+            "stable": "Stable",
+            "stableDescription": "Stable build",
+            "devBranch": "Dev",
+            "testVersions": "Test versions",
+            "version": "Mod version",
             "title": "Mod"
         },
         "updates": {
@@ -234,7 +278,7 @@
         "title": "Manage"
     },
     "dev": {
-        "addonPlaceholder": "NAME",
+        "addonPlaceholder": "Example Addon",
         "badge": "DEV",
         "cards": {
             "form": {
@@ -294,6 +338,7 @@
             "auth": "Auth",
             "extension": "Extensions",
             "joint": "Joint",
+            "store": "Catalog",
             "trackInfo": "TrackInfo",
             "users": "Users"
         },
@@ -333,19 +378,45 @@
     "extensions": {
         "actions": {
             "store": "Catalog",
-            "github": "GitHub"
+            "github": "GitHub",
+            "openStore": "Open page in store",
+            "openGithub": "Open GitHub page"
         },
         "addonCreateFailed": "Failed to download the addon template",
         "addonCreatedMessage": "The {{name}} template was saved successfully",
         "addonCreatedTitle": "Addon template downloaded",
         "createHandleEvents": "Create handleEvents.json",
         "defaultThemeSet": "Default theme set",
+        "disableAction": "Disable",
         "editModeEnter": "Edit mode enabled",
         "editModeExit": "Edit mode disabled",
         "handleEventsMissing": "handleEvents.json not found",
         "initError": "Initialization error",
         "loadError": "Theme load error",
         "loadFailed": "Load failed",
+        "linksTitle": "Links",
+        "groups": {
+            "favorites": "Favorites",
+            "category": "Category"
+        },
+        "organization": {
+            "addFavorite": "Add to favorites",
+            "addedToFavorites": "“{{name}}” added to favorites",
+            "categoryInvalid": "Enter a unique category name",
+            "categoryNameLabel": "Category name",
+            "categoryNamePlaceholder": "For example, Appearance",
+            "createAction": "Create",
+            "createCategory": "Create category",
+            "deleteCategory": "Delete category",
+            "deleteCategoryConfirm": "Delete the “{{name}}” category? Its addons will remain installed and move to Uncategorized.",
+            "deleteCategoryTitle": "Delete category",
+            "moveToCategory": "Move to category",
+            "movedToCategory": "“{{name}}” moved to “{{category}}”",
+            "organizeAddon": "Organize {{name}}",
+            "removeFavorite": "Remove from favorites",
+            "saveFailed": "Failed to save addon organization",
+            "uncategorized": "Uncategorized"
+        },
         "meta": {
             "author": "Author",
             "authors": "Authors:",
@@ -354,6 +425,7 @@
             "relations": "Relations",
             "source": "Source",
             "size": "Size",
+            "tags": "Tags",
             "updated": "Updated",
             "version": "Version"
         },
@@ -382,11 +454,30 @@
             "store": "Catalog"
         },
         "publication": {
+            "promote": "Publish to Stable",
+            "promoted": "Release added to Stable. Visibility is unchanged.",
+            "promoteFailed": "Could not add the release to Stable.",
+            "channelLabel": "Addon channel",
+            "channelStable": "Stable",
+            "channelDev": "Dev",
+            "channelUnavailable": "No release is available in this channel yet.",
+            "switchChannel": "Switch channel",
+            "visibilityLabel": "Release visibility",
+            "visibilityPublic": "Everyone",
+            "visibilityDev": "Dev only",
+            "visibilityDeveloper": "DEVELOPER role only",
+            "visibilityHint": "This release will only appear in the dev client catalog. Other users will keep receiving the latest public release.",
             "statusLabel": "Publication",
             "modalTitle": "Add-on publication",
             "noteLabel": "Moderator note",
             "githubUrlLabel": "GitHub link",
             "githubUrlPlaceholder": "https://github.com/owner/repository",
+            "previewLabel": "Catalog preview",
+            "previewHint": "Used as the add-on card image in the catalog. The recommended aspect ratio is 16:9.",
+            "previewPlaceholder": "Choose image",
+            "previewPublishedHint": "Current preview",
+            "previewAlt": "Preview for {{name}}",
+            "detailsTitle": "Publication details",
             "changelogLabel": "Changelog",
             "changelogPlaceholder": "- Fixed the player bug\n- Updated card styles\n- Added a new setting",
             "changelogRequired": "Add a changelog before publishing.",
@@ -423,13 +514,24 @@
                 "ADDON_DESCRIPTION_REQUIRED": "Set an add-on description before submitting.",
                 "ADDON_GITHUB_URL_REQUIRED": "Add a GitHub link before submitting.",
                 "ADDON_GITHUB_URL_INVALID": "Enter a valid GitHub link.",
+                "ADDON_VERSION_INVALID": "The add-on version must use SemVer, for example 1.0.0.",
                 "ADDON_AUTHORS_REQUIRED": "Specify at least one add-on author.",
                 "ADDON_NOT_FOUND": "The add-on publication was not found.",
                 "AUTHENTICATED_USER_ID_REQUIRED": "Failed to determine the current user for publication.",
                 "CDN_BUCKET_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
                 "CDN_DOMAIN_URL_NOT_CONFIGURED": "The publication service is temporarily unavailable. Please try again later.",
                 "S3_UPLOAD_FAILED": "Failed to send the add-on files. Please try again later.",
-                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation."
+                "ADDON_UPLOAD_FAILED": "Failed to submit the add-on for moderation.",
+                "THEME_SCRIPT_NOT_ALLOWED": "A theme can contain only CSS. Remove the script field or change type to web-addon.",
+                "WEB_ADDON_RUNTIME_INVALID": "The archive is marked as a WebHost add-on but does not contain a valid runtime registration. Build it with the official template.",
+                "ADDON_RELEASE_CHANNEL_INVALID": "Select the Stable or Dev channel.",
+                "ADDON_VISIBILITY_INVALID": "Choose who can access this release.",
+                "ADDON_VERSION_ALREADY_PUBLISHED": "This version has already been published. Use a new version number for an update.",
+                "WEB_ADDON_ROOT_METADATA_REQUIRED": "Unable to read the add-on. The metadata.json file must be at the root of the archive.",
+                "WEB_ADDON_ARCHIVE_PATH_INVALID": "The WebHost add-on archive contains invalid or duplicate file paths. Rebuild the archive using the official template.",
+                "WEB_ADDON_API_VERSION_UNSUPPORTED": "The add-on API version is not supported. Publication requires WebHost API version 1.",
+                "WEB_ADDON_CAPABILITY_BLOCKED": "The script creates executable DOM elements or handlers that WebHost does not allow. Use the add-on API.",
+                "LEGACY_ADDON_PUBLICATION_DISABLED": "The server rejected this legacy add-on. Migrate it to the WebHost runtime before publishing."
             },
             "publishError": "Failed to publish the add-on.",
             "updateError": "Failed to send the add-on update."
@@ -440,8 +542,19 @@
             "caption": "Enable it only if you trust the source and understand the risks.",
             "confirm": "Enable anyway"
         },
+        "legacyAddon": {
+            "warningTitle": "Legacy add-on",
+            "warningDescription": "Migration to WebHost is required to publish new versions.",
+            "warningAction": "Publishing and legacy updates are disabled. Click to open the WebHost migration guide.",
+            "migrationModalTitle": "Migration to WebHost required",
+            "migrationModalDescription": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to WebHost to continue publishing.",
+            "openNews": "Open announcement",
+            "publicationBlocked": "Publishing and updating legacy add-ons is disabled. Migrate the add-on to the WebHost runtime.",
+            "storeUpdateBlocked": "This legacy add-on cannot be updated until its author migrates it to the WebHost runtime. Opening more information."
+        },
         "tabs": {
             "changelog": "Changelog",
+            "description": "Description",
             "license": "License",
             "metadata": "Metadata",
             "relations": "Compatibility",
@@ -451,6 +564,7 @@
         "storeUpdateAvailableMessage": "Version {{version}} is available for {{name}}.",
         "storeUpdateComplete": "Add-on {{name}} was updated.",
         "storeUpdateFailed": "Failed to update add-on {{name}}.",
+        "storeUpdateUnavailable": "This update is currently unavailable.",
         "reloadFailed": "Reload failed",
         "reloadSuccess": "Reloaded successfully",
         "reopenTheme": "Reopen theme",
@@ -468,8 +582,8 @@
         "enableAnyway": "Enable anyway",
         "filtersLabel": "Filters",
         "notFound": {
-            "discordLink": "Visit the official Discord server to download add-ons",
-            "emptyDescription": "Looks like you don't have any add-ons installed yet.",
+            "catalogLink": "Open catalog",
+            "emptyDescription": "You don't have any add-ons installed yet. Find one in the catalog.",
             "filteredDescription": "The extension may have been removed, filtered out, or not installed yet.",
             "titleEmpty": "No add-ons found",
             "titleFiltered": "Extension not found"
@@ -504,6 +618,7 @@
             "all": "All",
             "scripts": "Scripts",
             "themes": "Themes",
+            "webAddons": "WebHost",
             "title": "TYPE"
         }
     },
@@ -538,6 +653,8 @@
             "unreadCount": "Unread: {{count}}",
             "markAllRead": "Mark all read",
             "loading": "Loading notifications...",
+            "loadMoreError": "Could not load older notifications.",
+            "retry": "Retry",
             "empty": "There are no important notifications yet",
             "read": "Read",
             "openItem": "Open",
@@ -556,6 +673,14 @@
                 "addonAcceptedBody": "{{name}} is now available in the store.",
                 "addonRejectedTitle": "Add-on rejected",
                 "addonRejectedBody": "{{name}} was rejected during moderation.",
+                "unknownModuleName": "Module",
+                "modulePendingTitle": "Module sent for review",
+                "modulePendingBody": "Module “{{name}}” is awaiting review.",
+                "moduleAcceptedTitle": "Module approved",
+                "moduleAcceptedBody": "Module “{{name}}” passed review. You can now publish it to a channel.",
+                "moduleRejectedTitle": "Module rejected",
+                "moduleRejectedBody": "Module “{{name}}” did not pass review.",
+                "moduleRejectedWithNoteBody": "Module “{{name}}”: {{note}}",
                 "achievementCompletedTitle": "Achievement completed",
                 "achievementCompletedBody": "Achievement unlocked: \"{{title}}\" (+{{points}} points).",
                 "localizationApprovedTitle": "Localization suggestion approved",
@@ -633,8 +758,20 @@
         "devOverrides": {
             "open": "Open local experiment overrides",
             "title": "Experiments",
+            "description": "Local overrides are applied over the server group on this device only.",
+            "warningTitle": "Hold on",
+            "warningBody": "These features are still experimental and may be unstable or cause errors.",
+            "warningHint": "Change these settings only if you know what they do. Changes are saved on this device only.",
             "loading": "Loading experiments...",
             "empty": "No experiments are available yet.",
+            "searchPlaceholder": "Search experiments",
+            "searchEmpty": "No experiments match the search.",
+            "userScope": "User",
+            "variantOverride": "Variant override",
+            "currentlyAssigned": "Currently assigned to {{group}}",
+            "serverDefault": "Server default ({{group}})",
+            "moreDetails": "More details »",
+            "hideDetails": "Hide details »",
             "selectExperiment": "Select an experiment on the left.",
             "overrideBadge": "override",
             "overrideActive": "Override active",
@@ -652,8 +789,14 @@
             "copyNameError": "Failed to copy experiment key",
             "apply": "Apply",
             "clear": "Clear override",
+            "clearAll": "Clear all ({{count}})",
             "applied": "Override applied",
             "cleared": "Override cleared",
+            "clearedAll": "All overrides cleared",
+            "serverValue": "Server",
+            "overrideValue": "Override",
+            "effectiveValue": "Effective",
+            "notSet": "Not set",
             "invalidJson": "The meta field must contain valid JSON",
             "metaObjectError": "Meta must be a JSON object"
         },
@@ -670,14 +813,14 @@
             "optionDev": "dev",
             "apply": "Apply",
             "saving": "Saving...",
-              "saved": "Switched to {{channel}}.",
-              "loadError": "Failed to load update channel settings.",
-              "saveError": "Failed to save the update channel.",
-              "busy": "Channel switching is unavailable while an update is being checked or downloaded.",
-              "downloadedHint": "The downloaded update will be cleared, then the selected channel will be checked again.",
-              "hint": "Switching back from dev to beta may require an older build.",
-              "nextChannel": "After apply: {{channel}}"
-          },
+            "saved": "Switched to {{channel}}.",
+            "loadError": "Failed to load update channel settings.",
+            "saveError": "Failed to save the update channel.",
+            "busy": "Channel switching is unavailable while an update is being checked or downloaded.",
+            "downloadedHint": "The downloaded update will be cleared, then the selected channel will be checked again.",
+            "switchDisabled": "Switching from dev to beta is currently unavailable.",
+            "nextChannel": "After apply: {{channel}}"
+        },
         "settings": "Settings",
         "unknownBranch": "unknown",
         "uploadAttentionTitle": "Heads up",
@@ -686,11 +829,11 @@
     },
     "modals": {
         "appUpdate": {
-            "title": "Update ready to install",
-            "description": "A new version has been downloaded. Install the update now?",
+            "title": "Update available",
+            "description": "Apply the update now?",
             "buttons": {
-                "later": "Install later",
-                "install": "Install update"
+                "later": "Later",
+                "install": "Apply update"
             }
         },
         "linuxAsarPath": {
@@ -729,18 +872,6 @@
             "buttons": {
                 "cancel": "Cancel",
                 "openSettings": "Open settings"
-            }
-        },
-        "macUpdate": {
-            "title": "Finish installing the update",
-            "description": {
-                "dmg": "Open the mounted disk and drag PulseSync to Applications to replace the old version.",
-                "zip": "Open the extracted folder and drag PulseSync to Applications to replace the old version."
-            },
-            "buttons": {
-                "openFinder": "Open in Finder",
-                "openApplications": "Open Applications",
-                "done": "Done"
             }
         },
         "premiumPromo": {
@@ -783,7 +914,7 @@
     },
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
-        "downloadProgressLabel": "Download progress",
+        "downloadProgressLabel": "Downloading mod files",
         "downloading": "Downloading {{name}}...",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
@@ -791,8 +922,9 @@
         "forceUpdateAction": "Update anyway",
         "infoTitle": "Info.",
         "installAction": "Install",
+        "installPreparedUpdateAction": "Install",
         "installErrorTitle": "Install error",
-        "installUpdateTooltip": "Install update",
+        "installUpdateTooltip": "Apply update",
         "authRequired": {
             "description": "This section is available only after you sign in. Sign in first, then open it again.",
             "title": "Sign in required"
@@ -813,6 +945,9 @@
         "modUpdateAlreadyRunning": "Update already started",
         "modUpdateFailed": "Failed to update the mod. Please try again or check your connection.",
         "modUpdateLoadError": "Update download error",
+        "modUpdateInstalling": "Installing the mod update...",
+        "modUpdateReadyDescription": "Version {{version}} is downloaded and ready to install.",
+        "modUpdateReadyTitle": "Mod update is ready",
         "modUpdateStart": "Starting update download...",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",
@@ -976,6 +1111,10 @@
             "newsEmptyDescription": "New PulseSync posts will appear here as soon as the team publishes them.",
             "newsError": "Failed to load news",
             "whatsNew": "What's new?",
+            "checkUpdatesAction": "Check",
+            "branchPickerLoading": "Loading branches…",
+            "selectModBranch": "Select PulseSync Mod branch",
+            "selectClientBranch": "Select PulseSync Client channel",
             "musicReleaseNotesTitle": "Latest Yandex Music updates",
             "musicReleaseNotesFallbackVersion": "Default",
             "installed": "Installed",
@@ -1004,7 +1143,7 @@
             },
             "headerSubtitle": "Refresh the interface and unlock new features",
             "headerTitle": "Add-on catalog",
-            "title": "Catalog"
+            "title": "Add-on catalog"
         }
     },
     "profile": {
@@ -1024,7 +1163,7 @@
             "subtitle": "Reach the highest level.",
             "title": "Achievements",
             "unknown": "Unknown",
-            "warningDescription": "We're improving the achievement system to make it better! Achievements aren't counted during listening right now, but we'll fix it soon. Thanks for your patience! 😊",
+            "warningDescription": "At the moment, we are deciding the future fate of the achievement system. Until then, it will be unavailable",
             "warningTitle": "Attention! The achievement system is temporarily unavailable"
         },
         "errors": {
@@ -1156,7 +1295,43 @@
         "websocketStatusChanged": "Websocket status changed"
     },
     "store": {
+        "catalog": {
+            "main": "Home",
+            "myAddons": "My add-ons",
+            "moderation": "In moderation",
+            "search": "Search",
+            "channel": {
+                "stable": "Stable",
+                "dev": "Dev"
+            },
+            "results": "Results",
+            "openFilters": "Open filters",
+            "searchSort": {
+                "latestRelease": "by update date",
+                "name": "by name",
+                "downloads": "by downloads"
+            },
+            "authors": "Authors",
+            "tags": "Tags",
+            "links": "Links",
+            "openGithub": "Open GitHub page",
+            "newAddons": "New add-ons",
+            "recentlyUpdated": "Recently updated",
+            "otherAddons": "Other add-ons",
+            "previous": "Previous add-ons",
+            "next": "Next add-ons"
+        },
+        "rating": {
+            "title": "Rating",
+            "average": "Average",
+            "votes": "Ratings: {{count}}",
+            "votesShort": "{{count}} votes",
+            "hint": "Rate this add-on",
+            "set": "Rate {{rating}} out of 5",
+            "failed": "Failed to save rating"
+        },
         "download": "Download",
+        "openAuthorProfile": "Open {{author}}'s profile",
         "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",
         "noResults": "Nothing was found.",
@@ -1168,7 +1343,13 @@
             "downloads": "Downloads",
             "order": "Sort order",
             "orderAsc": "Ascending",
-            "orderDesc": "Descending"
+            "orderDesc": "Descending",
+            "types": {
+                "all": "All types",
+                "theme": "Themes",
+                "script": "Scripts",
+                "web-addon": "Web add-ons"
+            }
         },
         "pendingSectionTitle": "Add-ons under moderation",
         "pendingSectionSubtitle": "Add-ons undergoing moderation",
@@ -1184,6 +1365,9 @@
         "installFailed": "Failed to install add-on {{title}}.",
         "installUnavailable": "There is no installation file available for {{title}} yet.",
         "openLocal": "Open local",
+        "share": "Share",
+        "shareCopied": "Add-on link copied.",
+        "shareFailed": "Failed to copy the link.",
         "remove": "Remove",
         "removeConfirm": "Are you sure you want to delete the addon \"{{title}}\"?",
         "removeComplete": "Add-on {{title}} was removed.",
@@ -1204,7 +1388,8 @@
         },
         "kind": {
             "theme": "Theme",
-            "script": "Script"
+            "script": "Script",
+            "web-addon": "WebHost"
         },
         "badges": {
             "officialTemplate": "Official template",
@@ -1239,6 +1424,8 @@
         "downloaded": "Update downloaded",
         "downloadingLabel": "Downloading",
         "downloadingTitle": "Downloading update",
+        "preparingLabel": "Applying patches and preparing files",
+        "preparingTitle": "Preparing update",
         "notFoundMessage": "App is up to date",
         "notFoundTitle": "No updates",
         "mod": {

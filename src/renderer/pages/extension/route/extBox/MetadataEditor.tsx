@@ -1,28 +1,30 @@
 import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+
 import path from 'path'
+import { useTranslation } from 'react-i18next'
 import { MdAdd, MdClose } from 'react-icons/md'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 import semver from 'semver'
 
-import TextInput from '@shared/ui/PSUI/TextInput'
-import SelectInput from '@shared/ui/PSUI/SelectInput'
-import FileInput from '@shared/ui/PSUI/FileInput'
-import ChangesBar from '@shared/ui/PSUI/ChangesBar'
-import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
-import ButtonV2 from '@shared/ui/buttonV2'
-import UserContext from '@entities/user/model/context'
-import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
-import apolloClient from '@shared/api/apolloClient'
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import FindUserByNameQuery from '@entities/user/api/findUserByName.query'
 import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
-import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import UserContext from '@entities/user/model/context'
+import apolloClient from '@shared/api/apolloClient'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import { getProfileSlug } from '@shared/lib/profileSlug'
+import ButtonV2 from '@shared/ui/buttonV2'
+import ChangesBar from '@shared/ui/PSUI/ChangesBar'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+import FileInput from '@shared/ui/PSUI/FileInput'
+import SelectInput from '@shared/ui/PSUI/SelectInput'
+import TextInput from '@shared/ui/PSUI/TextInput'
 import toast from '@shared/ui/toast'
 
 import * as css from '@pages/extension/route/extBox/MetadataEditor.module.scss'
-import { useTranslation } from 'react-i18next'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { StoreAddon, StoreAddonsPayload } from '@entities/addon/model/storeAddon.interface'
 
 type Metadata = {
     id?: string
@@ -36,7 +38,7 @@ type Metadata = {
     version: string
     css: string
     script: string
-    type: 'theme' | 'script' | 'library' | string
+    type: Addon['type']
     tags: string[]
     dependencies: string[]
     conflictsWith: string[]
@@ -81,7 +83,7 @@ type PulseAuthorOption = {
     nickname: string
 }
 
-const SEMVER = /^\d+\.\d+\.\d+$/
+const ADDON_TYPES: Metadata['type'][] = ['theme', 'script', 'web-addon']
 
 const DEFAULT_META: Metadata = {
     name: '',
@@ -120,32 +122,15 @@ async function ensureCopyIntoAddon(addonPath: string, absSourcePath: string, pre
     const ext = path.extname(baseName)
     const stem = baseName.slice(0, baseName.length - ext.length)
 
-    const safeExists = async (filePath: string) => {
-        try {
-            const res = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'exists', filePath)
-            return !!res
-        } catch {
-            return false
-        }
+    const result = await desktopApi.addons.files.copyInto({
+        addonPath,
+        preferredName: `${stem}${ext}`,
+        sourcePath: src,
+    })
+    if (!result.success || !result.relativePath) {
+        throw new Error(result.error || 'ADDON_FILE_COPY_FAILED')
     }
-
-    const MAX_TRIES = 500
-    let dest = path.join(addonPath, baseName)
-    let i = 1
-    while (i <= MAX_TRIES && (await safeExists(dest))) {
-        dest = path.join(addonPath, `${stem}_${i++}${ext}`)
-    }
-    if (i > MAX_TRIES) {
-        dest = path.join(addonPath, `${stem}_${Date.now()}${ext}`)
-    }
-
-    try {
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'copy-file', src, dest)
-    } catch {
-        const data: string = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'read-file-base64', src)
-        await window.desktopEvents.invoke(MainEvents.FILE_EVENT, 'write-file-base64', dest, data)
-    }
-    return path.basename(dest)
+    return result.relativePath
 }
 
 function deepEqual(a: any, b: any): boolean {
@@ -289,10 +274,11 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
     const valid = useMemo(() => {
+        const version = draft.version.trim()
         if (!draft.name.trim()) return false
         if (splitAuthorEntries(draft.author).length === 0) return false
-        if (!SEMVER.test(draft.version.trim())) return false
-        if (!['theme', 'script', 'library'].includes(draft.type)) return false
+        if (semver.valid(version) !== version.split('+', 1)[0]) return false
+        if (!ADDON_TYPES.includes(draft.type)) return false
         if (draft.supportedVersions.length > 0 && !draft.supportedVersions.every(version => semver.validRange(version))) return false
         return true
     }, [draft])
@@ -305,7 +291,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             setLoading(true)
             try {
                 const file = path.join(addonPath, 'metadata.json')
-                const raw = await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.READ_FILE, file)
+                const raw = await desktopApi.addons.files.readText(file)
                 const parsed = JSON.parse(raw ?? '{}')
                 const meta: Metadata = {
                     ...DEFAULT_META,
@@ -716,16 +702,16 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             }
 
             const file = path.join(addonPath, 'metadata.json')
-            await window.desktopEvents.invoke(MainEvents.FILE_EVENT, RendererEvents.WRITE_FILE, file, JSON.stringify(metadataToSave, null, 2))
+            await desktopApi.addons.files.writeText(file, JSON.stringify(metadataToSave, null, 2))
 
             baseRef.current = next
             setDraft(next)
 
             try {
-                window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
-                window.desktopEvents?.send(MainEvents.REFRESH_EXTENSIONS)
+                desktopApi.music.refreshModInfo()
+                desktopApi.addons.refreshClients()
 
-                const nextAddons = await window.desktopEvents?.invoke(MainEvents.GET_ADDONS, { force: true })
+                const nextAddons = await desktopApi.addons.list()
                 if (Array.isArray(nextAddons)) {
                     setAddons(nextAddons.filter(addon => addon.name !== 'Default'))
                 }
@@ -821,6 +807,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                 <div className={`${css.metaWide} ${css.metaSplit}`}>
                     <div className={css.metaMainColumn}>
                         <TextInput
+                            className={css.metadataField}
                             name="meta-name"
                             label={t('metadata.labels.name')}
                             value={draft.name}
@@ -831,7 +818,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             label={t('metadata.labels.description')}
                             value={draft.description}
                             onChange={value => setField('description', value)}
-                            className={css.metaDescription}
+                            className={`${css.metadataField} ${css.metaDescription}`}
                         />
                     </div>
 
@@ -923,22 +910,24 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                         <div className={css.metaSideRow}>
                             <SelectInput
+                                className={css.metadataField}
                                 label={t('metadata.labels.type')}
                                 value={draft.type}
-                                options={[
-                                    { value: 'theme', label: 'theme' },
-                                    { value: 'script', label: 'script' },
-                                    { value: 'library', label: 'library' },
-                                ]}
+                                options={ADDON_TYPES.map(type => ({ value: type, label: type }))}
                                 onChange={value => setField('type', value as Metadata['type'])}
                             />
 
                             <TextInput
+                                className={css.metadataField}
                                 name="meta-version"
                                 label={t('metadata.labels.version')}
                                 value={draft.version}
                                 onChange={value => setField('version', value)}
-                                description={!SEMVER.test(draft.version) ? t('metadata.versionFormat') : undefined}
+                                description={
+                                    semver.valid(draft.version.trim()) !== draft.version.trim().split('+', 1)[0]
+                                        ? t('metadata.versionFormat')
+                                        : undefined
+                                }
                             />
                         </div>
                     </div>
@@ -949,13 +938,14 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     label={t('metadata.labels.tags')}
                     value={tagsAsString}
                     onChange={setTagsFromString}
-                    className={css.metaWide}
+                    className={`${css.metadataField} ${css.metaWide}`}
                     description={t('metadata.examples.tags')}
                 />
 
                 <div className={`${css.metaWide} ${css.assetGrid}`}>
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.image')}
                             value={draft.image}
                             onChange={value => setField('image', value)}
@@ -969,6 +959,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.banner')}
                             value={draft.banner}
                             onChange={value => setField('banner', value)}
@@ -982,6 +973,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
 
                     <div className={css.fileCol}>
                         <FileInput
+                            className={css.metadataField}
                             label={t('metadata.labels.libraryLogo')}
                             value={draft.libraryLogo ?? ''}
                             onChange={value => setField('libraryLogo', value)}
@@ -994,6 +986,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     </div>
 
                     <FileInput
+                        className={css.metadataField}
                         label={t('metadata.labels.css')}
                         value={draft.css}
                         onChange={value => setField('css', value)}
@@ -1005,7 +998,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     />
 
                     <FileInput
-                        className={css.assetWide}
+                        className={`${css.metadataField} ${css.assetWide}`}
                         label={t('metadata.labels.script')}
                         value={draft.script}
                         onChange={value => setField('script', value)}
@@ -1205,6 +1198,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                         text: t('common.cancel'),
                         onClick: closeCompatibilityEditor,
                         variant: 'secondary',
+                        className: css.listEditorCancelButton,
                     },
                     {
                         text: t('common.done'),

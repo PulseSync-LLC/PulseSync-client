@@ -1,14 +1,18 @@
 import React from 'react'
-import Modal from '@shared/ui/PSUI/Modal'
-import ReactMarkdown from 'react-markdown'
-import type { Components } from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
-import Loader from '@shared/ui/PSUI/Loader'
+
 import { useTranslation } from 'react-i18next'
-import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import ReactMarkdown from 'react-markdown'
+import remarkBreaks from 'remark-breaks'
+import remarkGfm from 'remark-gfm'
+
 import { compareVersions } from '@shared/lib/utils'
+import Loader from '@shared/ui/PSUI/Loader'
+import Modal from '@shared/ui/PSUI/Modal'
+
+import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
+
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { Components } from 'react-markdown'
 
 export type ModChangelogEntry = {
     id: string

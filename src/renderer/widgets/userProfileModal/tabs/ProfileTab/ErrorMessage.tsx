@@ -1,4 +1,5 @@
 import React from 'react'
+
 import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface ErrorMessageProps {

@@ -1,21 +1,23 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
-import TooltipButton from '@shared/ui/tooltip_button'
-import LevelBadge from '@entities/user/ui/LevelBadge'
-import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
-import { staticAsset } from '@shared/lib/staticAssets'
+
 import { useTranslation } from 'react-i18next'
-import { Avatar, Banner } from '@shared/ui/PSUI/Image'
-import * as scrollbarStyles from '@shared/ui/PSUI/Scrollbar/Scrollbar.module.scss'
-import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+
 import { getUserBadgesWithSubscription } from '@entities/user/lib/userBadges'
+import LevelBadge from '@entities/user/ui/LevelBadge'
+import { getEffectiveLevelInfo } from '@shared/lib/levelInfo'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { Avatar, Banner } from '@shared/ui/PSUI/Image'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as scrollbarStyles from '@shared/ui/PSUI/Scrollbar/Scrollbar.module.scss'
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
 
 interface ProfileHeaderProps {
     userProfile: any
-    user: any
     children?: React.ReactNode
 }
 
-const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, user, children }) => {
+const ProfileHeader: React.FC<ProfileHeaderProps> = ({ userProfile, children }) => {
     const { t, i18n } = useTranslation()
     const headerRef = useRef<HTMLDivElement>(null)
     const [allowAnimate, setAllowAnimate] = useState(true)

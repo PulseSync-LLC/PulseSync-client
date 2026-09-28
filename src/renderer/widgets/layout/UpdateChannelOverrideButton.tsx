@@ -1,10 +1,12 @@
 import React, { useCallback, useEffect, useState } from 'react'
-import { MdAltRoute } from 'react-icons/md'
+
 import { useTranslation } from 'react-i18next'
+
 import { useModalContext } from '@app/providers/modal'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { staticAsset } from '@shared/lib/staticAssets'
 import TooltipButton from '@shared/ui/tooltip_button'
+
 import * as styles from '@widgets/layout/header.module.scss'
 
 type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
@@ -18,7 +20,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
 
     const refreshStatus = useCallback(async () => {
         try {
-            const nextStatus = (await window.desktopEvents.invoke(MainEvents.GET_UPDATE_STATUS)) as UpdateStatus
+            const nextStatus = (await desktopApi.updates.getStatus()) as UpdateStatus
             setUpdateStatus(nextStatus ?? 'IDLE')
         } catch {
             setUpdateStatus('IDLE')
@@ -28,7 +30,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
     useEffect(() => {
         void refreshStatus()
 
-        const handleCheckUpdate = (_event: unknown, data?: { checking?: boolean; updateAvailable?: boolean }) => {
+        const handleCheckUpdate = (data?: { checking?: boolean; updateAvailable?: boolean }) => {
             if (data?.checking) {
                 setUpdateStatus('CHECKING')
                 return
@@ -43,11 +45,11 @@ const UpdateChannelOverrideButton: React.FC = () => {
         const handleDownloadFailed = () => setUpdateStatus('IDLE')
 
         const unsubscribers = [
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
-        ].filter(Boolean) as Array<() => void>
+            desktopApi.updates.onCheck(payload => handleCheckUpdate(payload as { checking?: boolean; updateAvailable?: boolean })),
+            desktopApi.updates.onDownloadProgress(handleDownloadProgress),
+            desktopApi.updates.onDownloadFinished(handleDownloadFinished),
+            desktopApi.updates.onDownloadFailed(handleDownloadFailed),
+        ]
 
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
@@ -63,7 +65,7 @@ const UpdateChannelOverrideButton: React.FC = () => {
                 aria-label={label}
                 onClick={() => openModal(Modals.UPDATE_CHANNEL_OVERRIDE)}
             >
-                <MdAltRoute size={18} />
+                <img src={staticAsset('assets/icons/ui/header-routing.svg')} alt="" aria-hidden="true" />
             </button>
         </TooltipButton>
     )

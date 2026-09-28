@@ -4,14 +4,22 @@ on:
   pull_request:
   merge_group:
 
+permissions:
+  contents: read
+
 jobs:
+  tests:
+    name: Test Desktop
+    uses: ./.github/workflows/desktop-tests.yml
+
   build:
+    needs: tests
     if: ${{ github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository }}
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-latest, macos-26, macos-26-intel]
+        os: [ubuntu-latest, windows-2025, macos-26]
 
     steps:
       - uses: actions/checkout@v6
@@ -19,6 +27,7 @@ jobs:
       - uses: actions/setup-node@v6
         with:
           node-version: 22
+          check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
@@ -27,16 +36,9 @@ jobs:
         run: |
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
+          if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: actions/cache@v5
-        with:
-          path: |
-            nativeModules/**/node_modules
-            nativeModules/**/build
-            nativeModules/**/target
-            ~/.cargo/registry
-            ~/.cargo/git
-          key: native-modules-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/*.rs') }}
+      - uses: ./.github/actions/cache-build-deps
 
       - name: Create .env
         if: ${{ github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository }}
@@ -52,7 +54,10 @@ jobs:
         run: yarn install --frozen-lockfile
 
       - name: Build (package)
-        run: yarn build:package --nativeModules ${{ startsWith(matrix.os, 'macos-') && runner.arch == 'X64' && '--mac-x64' || '' }}
+        run: yarn build:package --nativeModules
+
+      - name: Verify bootstrapper layout
+        run: yarn bootstrapper:verify-build-layout
 
       - name: Show release contents (debug)
         shell: bash
@@ -62,4 +67,38 @@ jobs:
             find release -maxdepth 2 -type f | sort
           else
             echo "release/ not found"; exit 1
+          fi
+
+  renderer:
+    name: Build Remote Renderer
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: 22
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Build remote renderer
+        run: yarn renderer:build --channel dev --build-number "${{ github.run_id }}" --out-dir out/remote-renderer-pr
+
+      - name: Verify remote renderer contract
+        shell: bash
+        env:
+          EXPECTED_BUILD_NUMBER: ${{ github.run_id }}
+        run: |
+          set -euo pipefail
+          actual_build_number="$(node -p "require('./out/remote-renderer-pr/desktop/manifest.json').buildNumber")"
+          test "$actual_build_number" = "$EXPECTED_BUILD_NUMBER"
+          test -f "out/remote-renderer-pr/versions/$EXPECTED_BUILD_NUMBER/index.html"
+          if find out/remote-renderer-pr -type f -name '*.map' -print -quit | grep -q .; then
+            echo "Production remote renderer contains source maps"
+            exit 1
           fi

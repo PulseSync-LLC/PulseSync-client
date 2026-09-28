@@ -1,12 +1,15 @@
 import React, { useCallback, useEffect, useMemo, useState } from 'react'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
+
+import { useTranslation } from 'react-i18next'
+import { IoCloseSharp } from 'react-icons/io5'
+
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useModalContext } from '@app/providers/modal'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import SelectInput from '@shared/ui/PSUI/SelectInput'
 import toast from '@shared/ui/toast'
-import { useModalContext } from '@app/providers/modal'
-import { useTranslation } from 'react-i18next'
-import { IoCloseSharp } from 'react-icons/io5'
+
 import * as styles from '@widgets/modalContainer/modals/UpdateChannelOverrideModal.module.scss'
 
 type UpdateChannel = 'beta' | 'dev'
@@ -28,6 +31,7 @@ const EMPTY_STATE: ChannelStateResponse = {
 const UpdateChannelOverrideModal: React.FC = () => {
     const { t } = useTranslation()
     const { Modals, isModalOpen, closeModal } = useModalContext()
+    const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const [channelState, setChannelState] = useState<ChannelStateResponse>(EMPTY_STATE)
     const [selection, setSelection] = useState<ChannelSelection>('default')
     const [loading, setLoading] = useState(false)
@@ -36,27 +40,28 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
     const isOpen = isModalOpen(Modals.UPDATE_CHANNEL_OVERRIDE)
     const isSwitchBlocked = updateStatus === 'CHECKING' || updateStatus === 'DOWNLOADING'
+    const allowDevToBetaSwitch = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientDevToBetaSwitch, false)
 
     const loadState = useCallback(async () => {
         setLoading(true)
 
         try {
             const [buildChannel, effectiveChannel, overrideChannel, currentUpdateStatus] = await Promise.all([
-                window.desktopEvents.invoke(MainEvents.GET_BUILD_CHANNEL),
-                window.desktopEvents.invoke(MainEvents.GET_EFFECTIVE_UPDATE_CHANNEL),
-                window.desktopEvents.invoke(MainEvents.GET_UPDATE_CHANNEL_OVERRIDE),
-                window.desktopEvents.invoke(MainEvents.GET_UPDATE_STATUS),
+                desktopApi.updates.getBuildChannel(),
+                desktopApi.updates.getEffectiveChannel(),
+                desktopApi.updates.getChannelOverride(),
+                desktopApi.updates.getStatus(),
             ])
 
             const nextState: ChannelStateResponse = {
-                buildChannel,
-                effectiveChannel,
-                overrideChannel,
+                buildChannel: buildChannel as UpdateChannel,
+                effectiveChannel: effectiveChannel as UpdateChannel,
+                overrideChannel: overrideChannel as UpdateChannel | null,
             }
 
             setChannelState(nextState)
-            setSelection(overrideChannel ?? 'default')
-            setUpdateStatus(currentUpdateStatus ?? 'IDLE')
+            setSelection((overrideChannel as ChannelSelection | null) ?? 'default')
+            setUpdateStatus((currentUpdateStatus as UpdateStatus | null) ?? 'IDLE')
         } catch (error) {
             console.error(error)
             toast.custom('error', t('common.errorTitleShort'), t('header.updateChannel.loadError'))
@@ -78,7 +83,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
             return
         }
 
-        const handleCheckUpdate = (_event: unknown, data?: { checking?: boolean; updateAvailable?: boolean }) => {
+        const handleCheckUpdate = (data?: { checking?: boolean; updateAvailable?: boolean }) => {
             if (data?.checking) {
                 setUpdateStatus('CHECKING')
                 return
@@ -93,11 +98,11 @@ const UpdateChannelOverrideModal: React.FC = () => {
         const handleDownloadFailed = () => setUpdateStatus('IDLE')
 
         const unsubscribers = [
-            window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, handleDownloadProgress),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, handleDownloadFinished),
-            window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, handleDownloadFailed),
-        ].filter(Boolean) as Array<() => void>
+            desktopApi.updates.onCheck(payload => handleCheckUpdate(payload as { checking?: boolean; updateAvailable?: boolean })),
+            desktopApi.updates.onDownloadProgress(handleDownloadProgress),
+            desktopApi.updates.onDownloadFinished(handleDownloadFinished),
+            desktopApi.updates.onDownloadFailed(handleDownloadFailed),
+        ]
 
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
@@ -131,12 +136,15 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
         try {
             const overrideChannel = selection === 'default' || selection === channelState.buildChannel ? null : selection
-            const nextState = (await window.desktopEvents.invoke(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, overrideChannel)) as ChannelStateResponse
+            const nextState = (await desktopApi.updates.setChannelOverride({
+                channel: overrideChannel,
+                allowDevToBetaSwitch,
+            })) as ChannelStateResponse
 
             setChannelState(nextState)
             setSelection(nextState.overrideChannel ?? 'default')
 
-            window.desktopEvents.send(MainEvents.CHECK_UPDATE, { manual: true })
+            desktopApi.updates.check({ manual: true })
 
             toast.custom('success', t('common.successTitleShort'), t('header.updateChannel.saved', { channel: nextState.effectiveChannel }))
 
@@ -147,11 +155,12 @@ const UpdateChannelOverrideModal: React.FC = () => {
         } finally {
             setSaving(false)
         }
-    }, [channelState.buildChannel, handleClose, selection, t])
+    }, [allowDevToBetaSwitch, channelState.buildChannel, handleClose, selection, t])
 
     const overrideLabel = channelState.overrideChannel ?? t('header.updateChannel.noOverride')
     const hasOverride = channelState.overrideChannel !== null
     const nextChannel = selection === 'default' ? channelState.buildChannel : selection
+    const isSwitchForbidden = !allowDevToBetaSwitch && channelState.effectiveChannel === 'dev' && nextChannel === 'beta'
     const isUnchangedSelection =
         (selection === 'default' && channelState.overrideChannel === null) || (selection !== 'default' && selection === channelState.overrideChannel)
     const summaryParts = [
@@ -187,7 +196,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
                         void handleSave()
                     },
                     variant: 'primary',
-                    disabled: loading || saving || isSwitchBlocked || isUnchangedSelection,
+                    disabled: loading || saving || isSwitchBlocked || isSwitchForbidden || isUnchangedSelection,
                 },
             ]}
         >
@@ -196,6 +205,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
 
                 {isSwitchBlocked && <div className={styles.hint}>{t('header.updateChannel.busy')}</div>}
                 {updateStatus === 'DOWNLOADED' && <div className={styles.hint}>{t('header.updateChannel.downloadedHint')}</div>}
+                {isSwitchForbidden && <div className={styles.hint}>{t('header.updateChannel.switchDisabled')}</div>}
 
                 <div className={styles.fieldWrap}>
                     <SelectInput
@@ -208,10 +218,7 @@ const UpdateChannelOverrideModal: React.FC = () => {
                 </div>
 
                 {!isSwitchBlocked && selection !== 'default' && (
-                    <div className={styles.hint}>
-                        {t('header.updateChannel.nextChannel', { channel: nextChannel })}
-                        {selection === 'beta' && channelState.effectiveChannel === 'dev' ? ` ${t('header.updateChannel.hint')}` : ''}
-                    </div>
+                    <div className={styles.hint}>{t('header.updateChannel.nextChannel', { channel: nextChannel })}</div>
                 )}
             </div>
         </CustomModalPS>

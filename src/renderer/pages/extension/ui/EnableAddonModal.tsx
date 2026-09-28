@@ -1,7 +1,8 @@
 import { useTranslation } from 'react-i18next'
 
-import Addon from '@entities/addon/model/addon.interface'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
+
+import type Addon from '@entities/addon/model/addon.interface'
 
 type Props = {
     addon: Addon | null

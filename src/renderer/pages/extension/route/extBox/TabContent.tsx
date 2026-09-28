@@ -1,27 +1,25 @@
-import React, { useMemo, useState, useEffect } from 'react'
-import ReactMarkdown from 'react-markdown'
-import remarkGfm from 'remark-gfm'
-import remarkBreaks from 'remark-breaks'
-import rehypeRaw from 'rehype-raw'
+import React, { useEffect, useMemo, useState } from 'react'
+
 import path from 'path'
+import { useTranslation } from 'react-i18next'
+
 import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
-
-import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
+import appConfig from '@common/appConfig'
 import AddonRelationsPanel from '@pages/extension/route/extBox/AddonRelationsPanel'
-
+import MetadataEditor from '@pages/extension/route/extBox/MetadataEditor'
+import { DESCRIPTION_TAB, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
 import ConfigurationSettings from '@features/configurationSettings/ConfigurationSettings'
 import ConfigurationSettingsEdit from '@features/configurationSettings/ConfigurationSettingsEdit'
-import { AddonConfig } from '@features/configurationSettings/types'
-
-import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
-import * as styles from '@pages/extension/route/extensionview.module.scss'
-import appConfig from '@common/appConfig'
-import Addon from '@entities/addon/model/addon.interface'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import MarkdownContent from '@shared/ui/PSUI/MarkdownContent'
+
+import * as styles from '@pages/extension/route/extensionview.module.scss'
+
+import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
-import { useTranslation } from 'react-i18next'
+import type { AddonConfig } from '@features/configurationSettings/types'
+import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
 
 interface Props {
     active: ActiveTab
@@ -41,25 +39,6 @@ interface Props {
     canEditMetadata?: boolean
     publicationReleases?: StoreAddonRelease[]
 }
-
-const slug = (t: string) =>
-    t
-        .toLowerCase()
-        .trim()
-        .replace(/\s+/g, '-')
-        .replace(/[^\wа-яё0-9-]/gi, '')
-
-const Heading =
-    (lvl: number) =>
-    ({ children, ...rest }: React.HTMLAttributes<HTMLHeadingElement>) => {
-        const id = slug(React.Children.toArray(children).join(''))
-        const Tag = `h${lvl}` as React.ElementType
-        return (
-            <Tag id={id} {...rest}>
-                {children}
-            </Tag>
-        )
-    }
 
 const createDefaultTemplate = (): AddonConfig => ({
     sections: [
@@ -275,13 +254,15 @@ const TabContent: React.FC<Props> = ({
         if (!/^(https?:|data:)/i.test(src)) resolved = asset(src)
         else if (src.includes('github.com') && src.includes('/blob/'))
             resolved = src.replace('github.com/', 'raw.githubusercontent.com/').replace('/blob/', '/')
-        return <img className={styles.markdownImage} src={resolved} alt={alt} {...rest} />
+        return <img src={resolved} alt={alt} {...rest} />
     }
 
     const activeConfig = editMode ? (editConfig ?? config) : config
     const isConfigEmpty = !activeConfig || !Array.isArray(activeConfig.sections) || activeConfig.sections.length === 0
 
     if (active === 'Settings') {
+        if (addon.type === 'web-addon' && isConfigEmpty) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
+
         if (isConfigEmpty && !creating)
             return (
                 <div className={styles.alertContent}>
@@ -291,12 +272,7 @@ const TabContent: React.FC<Props> = ({
                         onClick={async () => {
                             setCreating(true)
                             const fp = path.join(addon.path, HANDLE_EVENTS_FILENAME)
-                            await window.desktopEvents?.invoke(
-                                MainEvents.FILE_EVENT,
-                                RendererEvents.WRITE_FILE,
-                                fp,
-                                JSON.stringify(createDefaultTemplate(), null, 4),
-                            )
+                            await desktopApi.addons.files.writeText(fp, JSON.stringify(createDefaultTemplate(), null, 4))
                             await configApi?.reload?.()
                             setSettingsKey(k => k + 1)
                         }}
@@ -364,11 +340,7 @@ const TabContent: React.FC<Props> = ({
                                             </span>
                                         </div>
                                         {changelogMarkdown ? (
-                                            <div className={styles.markdownText}>
-                                                <ReactMarkdown skipHtml={false} remarkPlugins={[remarkGfm, remarkBreaks]} rehypePlugins={[rehypeRaw]}>
-                                                    {changelogMarkdown}
-                                                </ReactMarkdown>
-                                            </div>
+                                            <MarkdownContent>{changelogMarkdown}</MarkdownContent>
                                         ) : (
                                             <div className={styles.alertContent}>{t('extensions.publication.changelogEmpty')}</div>
                                         )}
@@ -384,41 +356,38 @@ const TabContent: React.FC<Props> = ({
         )
     }
 
-    const doc = docs.find(d => (d.value || d.title) === active)
-    if (!doc) return <div className={styles.alertContent}>{t('common.fileNotFound')}</div>
+    const doc =
+        active === DESCRIPTION_TAB
+            ? docs.find(d => (d.value || d.title).toLowerCase() === 'readme') || {
+                  title: t('extensions.tabs.description'),
+                  value: DESCRIPTION_TAB,
+                  content: addon.description || '',
+                  isMarkdown: true,
+              }
+            : active === LICENSE_TAB
+              ? docs.find(d => /license|licence|mit/i.test(d.value || d.title))
+              : docs.find(d => (d.value || d.title) === active)
+    if (!doc) return null
 
     return (
         <div className={styles.galleryContainer}>
-            <div className={styles.markdownContent}>
-                <div className={styles.markdownText}>
-                    <ReactMarkdown
-                        skipHtml={false}
-                        remarkPlugins={[remarkGfm, remarkBreaks]}
-                        rehypePlugins={[rehypeRaw]}
-                        components={{
-                            img: MDImg,
-                            a: ({ ...p }) => (
-                                <a
-                                    href={p.href?.startsWith('#') ? p.href : `${encodeURIComponent(addon.directoryName)}/${p.href}`}
-                                    target="_blank"
-                                    rel="noreferrer"
-                                    {...p}
-                                >
-                                    {p.children}
-                                </a>
-                            ),
-                            h1: Heading(1),
-                            h2: Heading(2),
-                            h3: Heading(3),
-                            h4: Heading(4),
-                            h5: Heading(5),
-                            h6: Heading(6),
-                        }}
-                    >
-                        {doc.content || addon.description}
-                    </ReactMarkdown>
-                </div>
-            </div>
+            <MarkdownContent
+                components={{
+                    img: MDImg,
+                    a: ({ ...p }) => (
+                        <a
+                            href={p.href?.startsWith('#') ? p.href : `${encodeURIComponent(addon.directoryName)}/${p.href}`}
+                            target="_blank"
+                            rel="noreferrer"
+                            {...p}
+                        >
+                            {p.children}
+                        </a>
+                    ),
+                }}
+            >
+                {doc.content || addon.description}
+            </MarkdownContent>
         </div>
     )
 }

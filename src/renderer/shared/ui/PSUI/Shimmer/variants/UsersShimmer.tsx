@@ -1,5 +1,7 @@
 import React from 'react'
+
 import Line from '@shared/ui/PSUI/Shimmer/ui/Line'
+
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/UsersShimmer.module.scss'
 
 type UsersShimmerProps = {

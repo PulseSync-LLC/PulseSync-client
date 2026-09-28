@@ -1,6 +1,10 @@
+import * as fs from 'node:fs'
 import * as path from 'node:path'
 import { Worker } from 'node:worker_threads'
+
 import isAppDev from '../../../utils/isAppDev'
+import { getActiveComponentPath } from '../../bootstrap/activeComponents'
+
 import type {
     ArtifactWorkerRequest,
     ArtifactWorkerRequestMessage,
@@ -40,9 +44,17 @@ export class ArtifactWorkerError extends Error {
 }
 
 function resolveArtifactWorkerPath(): string {
-    return isAppDev
-        ? path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
-        : path.join(path.dirname(process.resourcesPath), 'modules', 'artifactWorker.cjs')
+    if (isAppDev) {
+        return path.resolve(__dirname, '..', 'worker', 'artifactWorker.cjs')
+    }
+
+    const activeComponentPath = getActiveComponentPath('artifactWorker')
+    if (activeComponentPath) return path.join(activeComponentPath, 'artifactWorker.cjs')
+
+    const modulesDir = path.join(path.dirname(process.resourcesPath), 'modules')
+    const container = fs.readdirSync(modulesDir).find(name => name.startsWith('pulsesync_artifact_worker-'))
+    if (!container) throw new Error(`Packaged artifact worker is missing from ${modulesDir}`)
+    return path.join(modulesDir, container, 'pulsesync_artifact_worker', 'artifactWorker.cjs')
 }
 
 class ArtifactWorkerSession {

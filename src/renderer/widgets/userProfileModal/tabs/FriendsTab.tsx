@@ -1,8 +1,12 @@
 import React from 'react'
+
 import { useTranslation } from 'react-i18next'
-import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
-import { ExtendedUser } from '@entities/user/model/extendUser.interface'
+
 import Loader from '@shared/ui/PSUI/Loader'
+
+import * as styles from '@widgets/userProfileModal/userProfileModal.module.scss'
+
+import type { ExtendedUser } from '@entities/user/model/extendUser.interface'
 
 interface FriendsTabProps {
     userProfile: ExtendedUser

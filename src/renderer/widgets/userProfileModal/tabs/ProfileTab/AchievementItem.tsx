@@ -1,10 +1,13 @@
 import React from 'react'
+
 import cn from 'clsx'
-import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
-import TooltipButton from '@shared/ui/tooltip_button'
-import * as achv from '@widgets/userProfileModal/achievements.module.scss'
-import { staticAsset } from '@shared/lib/staticAssets'
 import { useTranslation } from 'react-i18next'
+import { MdCheckCircle, MdHistoryEdu, MdKeyboardArrowDown, MdStar } from 'react-icons/md'
+
+import { staticAsset } from '@shared/lib/staticAssets'
+import TooltipButton from '@shared/ui/tooltip_button'
+
+import * as achv from '@widgets/userProfileModal/achievements.module.scss'
 
 const fallbackAchievement = staticAsset('assets/images/O^O.png')
 

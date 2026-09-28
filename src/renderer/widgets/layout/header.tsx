@@ -1,71 +1,68 @@
 import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
-import cn from 'clsx'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
 
-import Minus from '@shared/assets/icons/minus.svg'
-import Minimize from '@shared/assets/icons/minimize.svg'
-import Maximize from '@shared/assets/icons/maximize.svg'
-import Close from '@shared/assets/icons/close.svg'
-import ArrowDown from '@shared/assets/icons/arrowDown.svg'
-
-import userContext from '@entities/user/model/context'
-import ContextMenu from '@features/context_menu'
-import * as styles from '@widgets/layout/header.module.scss'
-import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
-import rendererHttpClient from '@shared/api/http/client'
-import toast from '@shared/ui/toast'
-import { isDevmark } from '@common/appConfig'
-import userInitials from '@entities/user/model/user.initials'
-import { useCharCount } from '@shared/lib/useCharCount'
-import { AnimatePresence, motion } from 'framer-motion'
-import TooltipButton from '@shared/ui/tooltip_button'
-import { useLocation, useNavigate } from 'react-router-dom'
-import client from '@shared/api/apolloClient'
-import { staticAsset } from '@shared/lib/staticAssets'
-import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
-import { useModalContext } from '@app/providers/modal'
-import playerContext from '@entities/track/model/player.context'
-import { MdSettings } from 'react-icons/md'
+import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
-import ExperimentOverridesDevButton from '@widgets/layout/ExperimentOverridesDevButton'
-import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
+import { useLocation, useNavigate } from 'react-router'
+
+import { useModalContext } from '@app/providers/modal'
+import { applyPlayStatusColor, getPlayStatus } from '@widgets/layout/model/playStatus'
+import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
 import SubscriptionGiveawaysButton from '@widgets/layout/SubscriptionGiveawaysButton'
-import { Avatar } from '@shared/ui/PSUI/Image'
-import { applyPlayStatusColor, getPlayStatus, PlayStatus } from '@widgets/layout/model/playStatus'
-import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
-import HeaderModals, { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
+import HeaderModals from '@widgets/layout/ui/HeaderModals'
 import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-import ButtonV2 from '@shared/ui/buttonV2'
+import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
+import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
+import playerContext from '@entities/track/model/player.context'
+import userContext from '@entities/user/model/context'
+import userInitials from '@entities/user/model/user.initials'
+import client from '@shared/api/apolloClient'
+import rendererHttpClient from '@shared/api/http/client'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
+import { staticAsset } from '@shared/lib/staticAssets'
+import { useCharCount } from '@shared/lib/useCharCount'
 import { compareVersions } from '@shared/lib/utils'
+import ButtonV2 from '@shared/ui/buttonV2'
+import { Avatar } from '@shared/ui/PSUI/Image'
+import toast from '@shared/ui/toast'
+
+import Close from '@shared/assets/icons/close.svg'
+import Maximize from '@shared/assets/icons/maximize.svg'
+import Minimize from '@shared/assets/icons/minimize.svg'
+import Minus from '@shared/assets/icons/minus.svg'
+
+import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
+import * as styles from '@widgets/layout/header.module.scss'
+
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { PlayStatus } from '@widgets/layout/model/playStatus'
+import type { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 
 interface p {
     goBack?: boolean
+    title?: string
+    titleDetail?: {
+        label: string
+        icon?: string
+    }
 }
 
 type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
 }
 
-const Header: React.FC<p> = () => {
-    const settingsAvailable = false
+const Header: React.FC<p> = ({ title, titleDetail }) => {
     const avatarInputRef = useRef<HTMLInputElement | null>(null)
     const bannerInputRef = useRef<HTMLInputElement | null>(null)
     const [avatarProgress, setAvatarProgress] = useState(-1)
     const [bannerProgress, setBannerProgress] = useState(-1)
     const [isCompactAvatarHovered, setIsCompactAvatarHovered] = useState(false)
-    const [isMenuOpen, setIsMenuOpen] = useState(false)
     const [isUserCardOpen, setIsUserCardOpen] = useState(false)
     const { user, app, setUser, isAutonomousMode } = useContext(userContext)
+    const isDevmark = app.info.devmark && app.settings.showDevFrame
     const { currentTrack } = useContext(playerContext)
     const { t } = useTranslation()
-    const updateModalRef = useRef<{
-        openUpdateModal: () => void
-        closeUpdateModal: () => void
-    }>(null)
-
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const isAppChangelogModalOpen = isModalOpen(Modals.APP_CHANGELOG)
     const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
@@ -84,42 +81,22 @@ const Header: React.FC<p> = () => {
     const openModModal = useCallback(() => openModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, openModal])
     const closeModModal = useCallback(() => closeModal(Modals.MOD_CHANGELOG), [Modals.MOD_CHANGELOG, closeModal])
 
-    updateModalRef.current = { openUpdateModal: openAppChangelogModal, closeUpdateModal: closeAppChangelogModal }
-    const toggleMenu = useCallback(() => {
-        setIsUserCardOpen(false)
-        setIsMenuOpen(current => !current)
-    }, [])
-
     const toggleUserContainer = useCallback(() => {
-        setIsMenuOpen(false)
         setIsUserCardOpen(current => !current)
     }, [])
+    const openSettings = useCallback(() => openModal(Modals.SETTINGS), [Modals.SETTINGS, openModal])
     const openLogin = useCallback(() => {
         void nav('/auth')
     }, [nav])
     const cancelLoginFlow = useCallback(async () => {
-        await window.desktopEvents?.invoke(MainEvents.CANCEL_BROWSER_AUTH)
-        window.electron.store.delete('tokens.token')
+        await desktopApi.auth.cancelBrowserAuth()
+        await desktopApi.auth.deleteToken()
+        clearCachedUserToken()
         setUser(userInitials)
         await client.clearStore()
         await nav('/home', { replace: true })
     }, [nav, setUser])
     const isAuthFlowRoute = location.pathname === '/auth' || location.pathname === '/auth/callback'
-
-    useEffect(() => {
-        const handlePointerDown = (event: PointerEvent) => {
-            const target = event.target as Node
-
-            if (isMenuOpen && containerRef.current && !containerRef.current.contains(target)) {
-                setIsMenuOpen(false)
-            }
-        }
-
-        document.addEventListener('pointerdown', handlePointerDown)
-        return () => {
-            document.removeEventListener('pointerdown', handlePointerDown)
-        }
-    }, [isMenuOpen])
 
     useEffect(() => {
         if (!isUserCardOpen) return
@@ -154,18 +131,15 @@ const Header: React.FC<p> = () => {
     }, [playStatus])
 
     useEffect(() => {
-        if (typeof window !== 'undefined' && window.desktopEvents) {
-            window.desktopEvents?.invoke(MainEvents.NEED_MODAL_UPDATE).then(value => {
-                if (value) {
-                    openAppChangelogModal()
-                }
+        if (typeof window !== 'undefined') {
+            desktopApi.updates.needModalUpdate().then(value => {
+                if (value) openAppChangelogModal()
             })
-            window.desktopEvents?.on(RendererEvents.SHOW_MOD_MODAL, () => {
+            const unsubscribeShowMod = desktopApi.system.onShowModModal(() => {
                 openModModal()
             })
             return () => {
-                window.desktopEvents?.removeAllListeners(RendererEvents.SHOW_MOD_MODAL)
-                window.desktopEvents?.removeAllListeners(MainEvents.NEED_MODAL_UPDATE)
+                unsubscribeShowMod()
             }
         }
     }, [openAppChangelogModal, openModModal, user.id])
@@ -178,7 +152,8 @@ const Header: React.FC<p> = () => {
             .then(async ({ data: res }) => {
                 if (res.ok) {
                     toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
-                    window.electron.store.delete('tokens.token')
+                    await desktopApi.auth.deleteToken()
+                    clearCachedUserToken()
                     setUser(userInitials)
                     await client.clearStore()
                 }
@@ -237,7 +212,7 @@ const Header: React.FC<p> = () => {
     const [loadingModChanges, setLoadingModChanges] = useState(false)
     const [modError, setModError] = useState<string | null>(null)
     const [isMaximized, setIsMaximized] = useState(false)
-    const [isMac, setIsMac] = useState(window.electron.isMac())
+    const [isMac, setIsMac] = useState(() => navigator.platform.toLowerCase().includes('mac'))
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
     const modChangesLoadedKeyRef = useRef<string | null>(null)
@@ -264,7 +239,7 @@ const Header: React.FC<p> = () => {
 
             try {
                 const nextAppUpdates = isAutonomousMode
-                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_CLIENT_CHANGELOG)) as AppInfoInterface[] | undefined) ?? [])
+                    ? (((await desktopApi.updates.getClientChangelog()) as AppInfoInterface[] | undefined) ?? [])
                     : await (async () => {
                           const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
                           const data = response.data
@@ -322,7 +297,7 @@ const Header: React.FC<p> = () => {
 
             try {
                 const nextModChanges = isAutonomousMode
-                    ? (((await window.desktopEvents?.invoke(MainEvents.GET_MOD_CHANGELOG)) as ModChangelogEntry[] | undefined) ?? []).filter(
+                    ? (((await desktopApi.updates.getModChangelog()) as ModChangelogEntry[] | undefined) ?? []).filter(
                           entry => compareVersions(entry.version, app.mod.version || '') <= 0,
                       )
                     : await (async () => {
@@ -364,12 +339,13 @@ const Header: React.FC<p> = () => {
     }, [app.mod.version, isAutonomousMode, isModModalOpen, shouldFetchModChanges])
 
     useEffect(() => {
-        window.electron.window.isMaximized().then(value => setIsMaximized(value))
+        desktopApi.window.isMaximized().then(value => setIsMaximized(value))
+        desktopApi.getRuntimeInfo().then(runtimeInfo => setIsMac(runtimeInfo.isMac))
 
-        const unsub1 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_MAXIMIZED, () => {
+        const unsub1 = desktopApi.window.onMaximized(() => {
             setIsMaximized(true)
         })
-        const unsub2 = window.desktopEvents.on(MainEvents.ELECTRON_WINDOW_UNMAXIMIZED, () => {
+        const unsub2 = desktopApi.window.onUnmaximized(() => {
             setIsMaximized(false)
         })
 
@@ -395,34 +371,36 @@ const Header: React.FC<p> = () => {
                 modChangesInfo={modChangesInfo}
                 modError={modError}
             />
-            <header ref={containerRef} className={styles.nav_bar}>
+            <header ref={containerRef} className={`${styles.nav_bar} ${isMac ? styles.mac : ''}`}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
+                        <div className={styles.railLogoSlot} aria-hidden="true">
+                            <img className={styles.railLogo} src={staticAsset('assets/icons/ui/rail-logo.svg')} alt="" />
+                        </div>
                         {/*<TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>*/}
                         {/*    <button className={styles.settingsButton} disabled={!settingsAvailable}>*/}
                         {/*        <MdSettings size={22} />*/}
                         {/*    </button>*/}
                         {/*</TooltipButton>*/}
-                        <button className={cn(styles.logoplace, isMenuOpen && styles.active)} onClick={toggleMenu}>
-                            <img className={styles.logoapp} src={staticAsset('assets/logo/logoapp.svg')} alt="" />
-                            <span>PulseSync</span>
-                            <div className={isMenuOpen ? styles.true : styles.false}>
-                                <ArrowDown />
-                            </div>
+                        <button type="button" className={styles.logoplace} onClick={openSettings}>
+                            <span>{title ?? 'PulseSync'}</span>
+                            {titleDetail ? (
+                                <>
+                                    <span className={styles.breadcrumbSeparator}>/</span>
+                                    {titleDetail.icon ? <img className={styles.breadcrumbIcon} src={titleDetail.icon} alt="" /> : null}
+                                    <span>{titleDetail.label}</span>
+                                </>
+                            ) : null}
                         </button>
-                        <AnimatePresence>{isMenuOpen && <ContextMenu modalRef={updateModalRef} />}</AnimatePresence>
                     </div>
                     <div className={styles.event_container}>
                         {isDevmark && (
-                            <div className={styles.dev}>
-                                {t('header.developmentBuild', { branch: window.appInfo.getBranch() ?? t('header.unknownBranch') })}
-                            </div>
+                            <div className={styles.dev}>{t('header.developmentBuild', { branch: app.info.branch || t('header.unknownBranch') })}</div>
                         )}
                         <div className={styles.menu} ref={userCardRef}>
                             {!isAutonomousMode ? (
                                 <>
                                     <UpdateChannelOverrideButton />
-                                    {user.perms === 'developer' && <ExperimentOverridesDevButton />}
                                     <SubscriptionGiveawaysButton />
                                     <NotificationsBell />
                                     <div
@@ -486,16 +464,16 @@ const Header: React.FC<p> = () => {
                         </div>
                         {!isMac && (
                             <div className={styles.button_container}>
-                                <button id="hide" className={styles.button_title} onClick={() => window.electron.window.minimize()}>
+                                <button id="hide" className={styles.button_title} onClick={() => desktopApi.window.minimize()}>
                                     <Minus />
                                 </button>
-                                <button id="minimize" className={styles.button_title} onClick={() => window.electron.window.maximize()}>
+                                <button id="minimize" className={styles.button_title} onClick={() => desktopApi.window.maximize()}>
                                     {isMaximized ? <Minimize /> : <Maximize />}
                                 </button>
                                 <button
                                     id="close"
                                     className={styles.button_title}
-                                    onClick={() => window.electron.window.close(app.settings.closeAppInTray)}
+                                    onClick={() => desktopApi.window.close(app.settings.closeAppInTray)}
                                 >
                                     <Close />
                                 </button>

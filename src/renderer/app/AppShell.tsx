@@ -1,33 +1,42 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
-import UserInterface from '@entities/user/model/user.interface'
-import userInitials from '@entities/user/model/user.initials'
+
+import { useTranslation } from 'react-i18next'
+
+import { STABLE_MOD_SOURCE } from '@common/types/modSource'
+import { normalizeSupportedLanguage, rememberLanguage } from '@app/i18n'
+import { useAppAuthorization } from '@app/model/useAppAuthorization'
+import { useAppDesktopBindings } from '@app/model/useAppDesktopBindings'
+import { useAppInitialization } from '@app/model/useAppInitialization'
+import { useRendererErrorLogging } from '@app/model/useRendererErrorLogging'
+import AppProviders from '@app/providers/AppProviders'
 import { useNotificationsController } from '@app/providers/notifications/useNotificationsController'
 import { SocketProvider } from '@app/providers/socket'
-import toast from '@shared/ui/toast'
-import 'react-loading-skeleton/dist/skeleton.css'
+import { createAppRouter } from '@app/router'
+import { fetchInstalledStoreAddonUpdates } from '@entities/addon/api/storeAddons'
+import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
+import AddonInitials from '@entities/addon/model/addon.initials'
+import { prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
+import { getModReleaseIdentity, isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
+import modInitials from '@entities/mod/model/mod.initials'
+import settingsInitials from '@entities/settings/model/settings.initials'
+import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
+import userInitials from '@entities/user/model/user.initials'
 import apolloClient from '@shared/api/apolloClient'
 import client from '@shared/api/apolloClient'
-import SettingsInterface from '@entities/settings/model/settings.interface'
-import settingsInitials from '@entities/settings/model/settings.initials'
-import { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
-
-import { compareVersions } from '@shared/lib/utils'
+import { desktopApi } from '@shared/desktop/desktopApi'
 import { usePextDnDImport } from '@shared/lib/usePextDnDImport'
-import Addon from '@entities/addon/model/addon.interface'
-import AddonInitials from '@entities/addon/model/addon.initials'
-import { fetchStoreAddonUpdates } from '@entities/addon/api/storeAddons'
-import { ModInterface } from '@entities/mod/model/modInterface'
-import modInitials from '@entities/mod/model/mod.initials'
-import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
-import { useTranslation } from 'react-i18next'
-import { createAppRouter } from '@app/router'
-import AppProviders from '@app/providers/AppProviders'
-import { useRendererErrorLogging } from '@app/model/useRendererErrorLogging'
-import { useAppAuthorization } from '@app/model/useAppAuthorization'
-import { useAppInitialization } from '@app/model/useAppInitialization'
-import { useAppDesktopBindings } from '@app/model/useAppDesktopBindings'
+import { compareVersions } from '@shared/lib/utils'
+import toast from '@shared/ui/toast'
+
+import 'react-loading-skeleton/dist/skeleton.css'
+
+import type { LegacyAddonRestrictionsState } from '@app/AppShell.types'
+import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
+import type { ModInterface } from '@entities/mod/model/modInterface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type UserInterface from '@entities/user/model/user.interface'
 
 type AchievementCatalogItem = {
     id: string
@@ -55,14 +64,16 @@ type GetAchievementsVars = {
 }
 
 const STORE_ADDON_UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000
+const MOD_UPDATE_TOAST_ID = 'mod-update-check'
 
 function App() {
-    const { t } = useTranslation()
+    const { i18n, t } = useTranslation()
     const tRef = useRef(t)
     const [updateAvailable, setUpdate] = useState(false)
     const [user, setUser] = useState<UserInterface>(userInitials)
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
+    const [preparedModUpdate, setPreparedModUpdate] = useState<DesktopInstallModRequest | null>(null)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
     const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
@@ -73,12 +84,13 @@ function App() {
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
     const [isAppDeprecated, setIsAppDeprecated] = useState(false)
+    const [legacyAddonRestrictions, setLegacyAddonRestrictions] = useState<LegacyAddonRestrictionsState>({ enabled: false, loading: true })
     const toastReference = useRef<string | null>(null)
     const lastNotInstalledToastKeyRef = useRef<string | null>(null)
     const storeAddonUpdateCheckInFlightRef = useRef(false)
     const autoUpdatingStoreAddonIdsRef = useRef<Set<string>>(new Set())
 
-    const [appInfo, setAppInfo] = useState<AppInfoInterface[]>([])
+    const [appInfo] = useState<AppInfoInterface[]>([])
     const appRef = useRef(app)
     const isAutonomousMode = user.id === '-1'
 
@@ -92,10 +104,18 @@ function App() {
         appRef.current = app
     }, [app])
 
+    useEffect(() => {
+        const language = normalizeSupportedLanguage(app.settings.language)
+        rememberLanguage(language)
+        if (i18n.language !== language) {
+            void i18n.changeLanguage(language)
+        }
+    }, [app.settings.language, i18n])
+
     const { notificationsValue, handleNotificationCreated, handleNotificationRead, handleNotificationsReadAll } = useNotificationsController(user.id)
 
     const router = useMemo(() => createAppRouter(), [])
-    const { authorize, meLoading, setHasToken, setTokenReady } = useAppAuthorization({
+    const { authorize, setHasToken, setTokenReady } = useAppAuthorization({
         router,
         setIsAppDeprecated,
         setLoading,
@@ -107,26 +127,57 @@ function App() {
     const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
         const isManualCheck = !!options?.manual
         const silentNotInstalled = !!options?.silentNotInstalled
+        const manualToastId = isManualCheck
+            ? toast.custom('loading', tRef.current('updates.checkingTitle'), tRef.current('common.pleaseWait'), {
+                  id: MOD_UPDATE_TOAST_ID,
+                  duration: Infinity,
+              })
+            : null
+        const updateManualToast = (kind: 'error' | 'info', title: string, msg: string) => {
+            if (!manualToastId) return
+            toast.update(manualToastId, { kind, title, msg, sticky: false, duration: 5000 })
+        }
+
         try {
-            const mods = (await window.desktopEvents?.invoke(MainEvents.GET_MOD_RELEASES)) as ModInterface[] | undefined
+            const mods = (await desktopApi.mods.getReleases()) as ModInterface[] | undefined
             if (!mods) {
                 console.error('Invalid response format for mod releases:', mods)
+                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
                 return
             }
 
             if (mods.length === 0) {
-                if (isManualCheck) {
-                    toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
-                }
+                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
                 return
             }
 
             setMod(mods)
 
             const latest = mods[0]
+            if (app.settings.modSource.type === 'branch' && latest.channel === 'stable') {
+                setApp(previous => {
+                    const currentSource = previous.settings.modSource
+                    if (currentSource.type !== 'branch' || currentSource.branch !== app.settings.modSource.branch) return previous
+
+                    return {
+                        ...previous,
+                        settings: {
+                            ...previous.settings,
+                            modSource: STABLE_MOD_SOURCE,
+                        },
+                    }
+                })
+            }
             if (!app.mod.installed || !app.mod.version) {
                 const toastKey = `not-installed:${latest.modVersion}`
-                if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
+                if (isManualCheck) {
+                    lastNotInstalledToastKeyRef.current = toastKey
+                    updateManualToast(
+                        'info',
+                        tRef.current('mod.notInstalledTitle'),
+                        tRef.current('mod.availableVersion', { version: latest.modVersion }),
+                    )
+                } else if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
                     lastNotInstalledToastKeyRef.current = toastKey
                     toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
                 }
@@ -134,25 +185,42 @@ function App() {
             }
 
             lastNotInstalledToastKeyRef.current = null
-            if (compareVersions(latest.modVersion, app.mod.version) > 0) {
+            if (isModReleaseUpdateAvailable(latest, app.mod)) {
+                prepareModReleaseUpdate(latest)
+                updateManualToast(
+                    'info',
+                    tRef.current('mod.updateAvailableTitle'),
+                    tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
+                )
+                const releaseIdentity = getModReleaseIdentity(latest)
                 const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
-                if (lastNotifiedModVersion !== latest.modVersion) {
-                    window.desktopEvents?.send(MainEvents.SHOW_NOTIFICATION, {
+                if (lastNotifiedModVersion !== releaseIdentity) {
+                    desktopApi.system.showNotification({
                         title: tRef.current('mod.updateAvailableTitle'),
                         body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
                     })
-                    localStorage.setItem('lastNotifiedModVersion', latest.modVersion)
+                    localStorage.setItem('lastNotifiedModVersion', releaseIdentity)
                 }
-            } else if (isManualCheck) {
-                toast.custom('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
+            } else {
+                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
             }
         } catch (modFetchError) {
             console.error('Failed to fetch mod info:', modFetchError)
-            toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            if (isManualCheck) {
+                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            } else {
+                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+            }
         } finally {
             setModInfoFetched(true)
         }
     }, [])
+
+    const refreshAddons = useCallback(async () => {
+        const nextAddons = await desktopApi.addons.list()
+        setAddons(Array.isArray(nextAddons) ? nextAddons : [])
+        await router.navigate('/extensions', { replace: true })
+    }, [router])
 
     const fetchAchievements = useCallback(async () => {
         try {
@@ -202,24 +270,27 @@ function App() {
 
     const syncStoreAddonUpdates = useCallback(
         async (installedAddons: Addon[]) => {
-            if (isAutonomousMode) {
+            if (isAutonomousMode || legacyAddonRestrictions.loading) {
                 return
             }
 
             const storeInstalledAddons = installedAddons.filter(addon => addon.installSource === 'store' && addon.storeAddonId)
-            if (!storeInstalledAddons.length || !window.desktopEvents || storeAddonUpdateCheckInFlightRef.current) {
+            if (!storeInstalledAddons.length || storeAddonUpdateCheckInFlightRef.current) {
                 return
             }
 
             storeAddonUpdateCheckInFlightRef.current = true
 
             try {
-                const updates = await fetchStoreAddonUpdates(storeInstalledAddons.map(addon => addon.storeAddonId || ''))
+                const updates = await fetchInstalledStoreAddonUpdates(storeInstalledAddons)
                 const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
                 const outdatedAddons = updates.filter(publishedAddon => {
                     const installedAddon = installedByStoreId.get(publishedAddon.id)
+                    const legacyUpdateBlocked =
+                        isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type === 'script'
                     return (
                         !!installedAddon &&
+                        !legacyUpdateBlocked &&
                         !!publishedAddon.currentRelease?.downloadUrl &&
                         compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
                     )
@@ -230,7 +301,7 @@ function App() {
                 }
 
                 const canAutoUpdate = appRef.current.settings.autoUpdateStoreAddons !== false
-                const musicRunning = canAutoUpdate ? Boolean(await window.desktopEvents.invoke(MainEvents.GET_MUSIC_RUNNING_STATUS)) : true
+                const musicRunning = canAutoUpdate ? Boolean(await desktopApi.music.getRunningStatus()) : true
 
                 let hasInstalledUpdates = false
 
@@ -250,11 +321,12 @@ function App() {
 
                         autoUpdatingStoreAddonIdsRef.current.add(publishedAddon.id)
                         try {
-                            const result = await window.desktopEvents.invoke(MainEvents.INSTALL_STORE_ADDON, {
+                            const result = (await desktopApi.addons.installStore({
                                 id: publishedAddon.id,
                                 downloadUrl: release.downloadUrl,
+                                releaseChannel: installedAddon.storeReleaseChannel ?? 'stable',
                                 title: publishedAddon.name,
-                            })
+                            })) as { reason?: string; success?: boolean } | null | undefined
 
                             if (!result?.success) {
                                 throw new Error(result?.reason || 'STORE_ADDON_AUTO_UPDATE_FAILED')
@@ -262,7 +334,7 @@ function App() {
 
                             const title = tRef.current('common.doneTitle')
                             const body = tRef.current('extensions.storeUpdateComplete', { name: publishedAddon.name })
-                            window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                            desktopApi.system.showNotification({ title, body })
                             toast.custom('success', title, body)
                             localStorage.setItem(notificationKey, release.version)
                             hasInstalledUpdates = true
@@ -285,13 +357,13 @@ function App() {
                         version: release.version,
                     })
 
-                    window.desktopEvents.send(MainEvents.SHOW_NOTIFICATION, { title, body })
+                    desktopApi.system.showNotification({ title, body })
                     toast.custom('info', title, body)
                     localStorage.setItem(notificationKey, release.version)
                 }
 
                 if (hasInstalledUpdates) {
-                    const nextInstalledAddons = await window.desktopEvents.invoke(MainEvents.GET_ADDONS)
+                    const nextInstalledAddons = await desktopApi.addons.list()
                     setAddons(Array.isArray(nextInstalledAddons) ? nextInstalledAddons : [])
                 }
             } catch (error) {
@@ -300,7 +372,7 @@ function App() {
                 storeAddonUpdateCheckInFlightRef.current = false
             }
         },
-        [isAutonomousMode, setAddons],
+        [isAutonomousMode, legacyAddonRestrictions.enabled, legacyAddonRestrictions.loading, setAddons],
     )
 
     const handleSocketAchievementsUpdate = useCallback(
@@ -372,6 +444,7 @@ function App() {
         router,
         setAddons,
         setAllAchievements,
+        setApp,
         setModInfoFetched,
         setMusicInstalled,
         setMusicVersion,
@@ -392,10 +465,10 @@ function App() {
         fetchModInfo,
         router,
         setAddons,
-        setApp,
         setHasToken,
         setNavigateState,
         setNavigateTo,
+        setPreparedModUpdate,
         setTokenReady,
         setUpdate,
         t,
@@ -446,10 +519,14 @@ function App() {
                 setMod={setMod}
                 modInfo={modInfo}
                 modInfoFetched={modInfoFetched}
+                preparedModUpdate={preparedModUpdate}
                 allAchievements={allAchievements}
                 setAllAchievements={setAllAchievements}
+                checkModUpdates={fetchModInfo}
+                refreshAddons={refreshAddons}
                 notificationsValue={notificationsValue}
                 router={router}
+                onLegacyAddonRestrictionsChange={setLegacyAddonRestrictions}
             />
         </SocketProvider>
     )

@@ -1,5 +1,7 @@
 import React from 'react'
+
 import * as Tooltip from '@radix-ui/react-tooltip'
+
 import * as styles from '@shared/ui/tooltip_button/tooltip.module.scss'
 
 type Side = 'top' | 'right' | 'bottom' | 'left'
@@ -9,6 +11,7 @@ interface TooltipButtonProps {
     children: React.ReactNode
     onClick?: () => void
     side?: Side
+    sideOffset?: number
     dataSide?: Side | undefined
     as?: 'button' | 'div' | 'span'
     disabled?: boolean
@@ -28,6 +31,7 @@ const dataSideDefault = {
 const TooltipButton: React.FC<TooltipButtonProps> = ({
     tooltipText,
     side = 'left',
+    sideOffset = 5,
     dataSide = undefined,
     children,
     onClick,
@@ -59,7 +63,7 @@ const TooltipButton: React.FC<TooltipButtonProps> = ({
                         className={styles.TooltipContent}
                         data-side={dataSide ?? dataSideDefault[side]}
                         side={side}
-                        sideOffset={5}
+                        sideOffset={sideOffset}
                         style={styleComponent}
                     >
                         {tooltipText}

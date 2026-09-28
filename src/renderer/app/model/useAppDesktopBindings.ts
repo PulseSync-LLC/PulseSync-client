@@ -1,13 +1,13 @@
-import { useCallback, useEffect } from 'react'
-import { useRef } from 'react'
+import { useCallback, useEffect, useRef } from 'react'
 
-import MainEvents from '@common/types/mainEvents'
-import RendererEvents from '@common/types/rendererEvents'
-import type SettingsInterface from '@entities/settings/model/settings.interface'
-import type Addon from '@entities/addon/model/addon.interface'
 import rendererHttpClient from '@shared/api/http/client'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
 import toast from '@shared/ui/toast'
-import { fetchSettings } from '@entities/settings/api/settings'
+
+import type { DesktopInstallModRequest, DesktopUpdateAvailablePayload } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
+import type SettingsInterface from '@entities/settings/model/settings.interface'
 
 const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
 
@@ -17,10 +17,10 @@ type Params = {
     fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
     setAddons: React.Dispatch<React.SetStateAction<Addon[]>>
-    setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
     setHasToken: React.Dispatch<React.SetStateAction<boolean>>
     setNavigateState: React.Dispatch<React.SetStateAction<Addon | null>>
     setNavigateTo: React.Dispatch<React.SetStateAction<string | null>>
+    setPreparedModUpdate: React.Dispatch<React.SetStateAction<DesktopInstallModRequest | null>>
     setTokenReady: React.Dispatch<React.SetStateAction<boolean>>
     setUpdate: React.Dispatch<React.SetStateAction<boolean>>
     t: (key: string, options?: any) => string
@@ -33,38 +33,45 @@ export function useAppDesktopBindings({
     fetchModInfo,
     router,
     setAddons,
-    setApp,
     setHasToken,
     setNavigateState,
     setNavigateTo,
+    setPreparedModUpdate,
     setTokenReady,
     setUpdate,
     t,
     toastReference,
 }: Params) {
     const manualUpdateCheckPendingRef = useRef(false)
-
-    const invokeFileEvent = useCallback(async (eventType: string, filePath: string, data?: any) => {
-        return await window.desktopEvents?.invoke(MainEvents.FILE_EVENT, eventType, filePath, data)
-    }, [])
+    const rendererUpdateAvailableRef = useRef(false)
 
     const handleOpenAddon = useCallback(
-        (_event: any, data: string) => {
-            window.desktopEvents
-                ?.invoke(MainEvents.GET_ADDONS)
-                .then((fetchedAddons: Addon[]) => {
-                    const requested = String(data || '').toLowerCase()
+        (data: unknown) => {
+            if (data && typeof data === 'object' && 'storeAddonId' in data) {
+                const storeAddonId = String((data as { storeAddonId?: unknown }).storeAddonId || '').trim()
+                if (storeAddonId) {
+                    void router.navigate('/store', { state: { openAddonId: storeAddonId } })
+                }
+                return
+            }
+
+            const addonName = String(data || '')
+            desktopApi.addons
+                .list()
+                .then(result => {
+                    const fetchedAddons = result as Addon[]
+                    const requested = addonName.toLowerCase()
                     const foundAddon = fetchedAddons.find(
                         addon =>
-                            addon.name === data ||
-                            addon.directoryName === data ||
+                            addon.name === addonName ||
+                            addon.directoryName === addonName ||
                             addon.name.toLowerCase() === requested ||
                             addon.directoryName.toLowerCase() === requested,
                     )
 
                     if (!foundAddon) return
 
-                    if (!foundAddon.type || (foundAddon.type !== 'theme' && foundAddon.type !== 'script')) {
+                    if (!['theme', 'script', 'web-addon'].includes(foundAddon.type)) {
                         toast.custom('error', t('common.errorTitleShort'), t('addons.invalidType'), undefined, undefined, 15000)
                         return
                     }
@@ -75,38 +82,32 @@ export function useAppDesktopBindings({
                 })
                 .catch(error => console.error('Error getting themes:', error))
         },
-        [setAddons, setNavigateState, setNavigateTo, t],
+        [router, setAddons, setNavigateState, setNavigateTo, t],
     )
 
     useEffect(() => {
-        window.desktopEvents?.on(RendererEvents.OPEN_ADDON, handleOpenAddon)
-        window.desktopEvents?.on(RendererEvents.CHECK_FILE_EXISTS, (_event, filePath) => invokeFileEvent(RendererEvents.CHECK_FILE_EXISTS, filePath))
-        window.desktopEvents?.on(RendererEvents.READ_FILE, (_event, filePath) => invokeFileEvent(RendererEvents.READ_FILE, filePath))
-        window.desktopEvents?.on(RendererEvents.CREATE_CONFIG_FILE, (_event, filePath, defaultContent) =>
-            invokeFileEvent(RendererEvents.CREATE_CONFIG_FILE, filePath, defaultContent),
-        )
-        window.desktopEvents?.on(RendererEvents.WRITE_FILE, (_event, filePath, data) => invokeFileEvent(RendererEvents.WRITE_FILE, filePath, data))
+        const unsubscribeOpenAddon = desktopApi.addons.onOpenRequested(handleOpenAddon)
 
         return () => {
-            window.desktopEvents?.removeAllListeners(RendererEvents.CREATE_CONFIG_FILE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.OPEN_ADDON)
-            window.desktopEvents?.removeAllListeners(RendererEvents.CHECK_FILE_EXISTS)
-            window.desktopEvents?.removeAllListeners(RendererEvents.READ_FILE)
-            window.desktopEvents?.removeAllListeners(RendererEvents.WRITE_FILE)
+            unsubscribeOpenAddon()
         }
-    }, [handleOpenAddon, invokeFileEvent])
+    }, [handleOpenAddon])
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
-        if (!window.desktopEvents) return
 
-        const handleModUpdateCheck = async (_event: any, data?: { manual?: boolean }) => {
+        const handleModUpdateCheck = async (data?: { manual?: boolean }) => {
             await fetchModInfo(appRef.current, { manual: !!data?.manual })
         }
 
+        const handleModUpdateReady = (payload: unknown) => {
+            const release = payload && typeof payload === 'object' ? (payload as { release?: DesktopInstallModRequest }).release : undefined
+            if (release) setPreparedModUpdate(release)
+        }
+
         const handleClientReady = () => {
-            window.desktopEvents?.send(MainEvents.REFRESH_MOD_INFO)
-            window.desktopEvents?.send(MainEvents.GET_TRACK_INFO)
+            desktopApi.music.refreshModInfo()
+            desktopApi.music.requestTrackInfo()
         }
 
         const premiumUserCheck = async () => {
@@ -119,7 +120,7 @@ export function useAppDesktopBindings({
             })
             const data = response.data
             if (data.ok) {
-                window.desktopEvents?.send(MainEvents.SEND_PREMIUM_USER, {
+                desktopApi.auth.sendPremiumToken({
                     ok: true,
                     token: data.token,
                     expiresAt: data.expiresAt,
@@ -127,15 +128,12 @@ export function useAppDesktopBindings({
             }
         }
 
-        const handleCheckUpdate = (_event: any, data: any) => {
+        const handleCheckUpdate = (data: any) => {
             const isManualCheck = !!data?.manual
             const isChecking = !!data?.checking
 
             if (isManualCheck && isChecking) {
                 manualUpdateCheckPendingRef.current = true
-            }
-
-            if (isManualCheck && isChecking && !toastReference.current) {
                 toastReference.current = toast.custom('loading', t('updates.checkingTitle'), t('common.pleaseWait'), {
                     id: CLIENT_UPDATE_TOAST_ID,
                     duration: Infinity,
@@ -143,9 +141,10 @@ export function useAppDesktopBindings({
             }
 
             if (data?.updateAvailable === false) {
-                setUpdate(false)
+                setUpdate(rendererUpdateAvailableRef.current)
 
                 if (isManualCheck && !isChecking) {
+                    manualUpdateCheckPendingRef.current = false
                     if (toastReference.current) {
                         toast.update(toastReference.current, {
                             kind: 'info',
@@ -165,23 +164,31 @@ export function useAppDesktopBindings({
             }
         }
 
-        const onDownloadProgress = (_event: any, value: number) => {
+        const onDownloadProgress = (value: unknown) => {
+            manualUpdateCheckPendingRef.current = false
+            const preparing = value !== null && typeof value === 'object' && 'phase' in value && (value as { phase?: unknown }).phase === 'preparing'
             if (!toastReference.current) {
-                toastReference.current = toast.custom('loading', t('updates.downloadingTitle'), t('common.pleaseWait'), {
-                    id: CLIENT_UPDATE_TOAST_ID,
-                    duration: Infinity,
-                })
+                toastReference.current = toast.custom(
+                    'loading',
+                    preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
+                    preparing ? t('updates.preparingLabel') : t('common.pleaseWait'),
+                    {
+                        id: CLIENT_UPDATE_TOAST_ID,
+                        duration: Infinity,
+                    },
+                )
             }
             toast.update(toastReference.current, {
                 kind: 'loading',
-                title: t('updates.downloadingTitle'),
-                msg: t('updates.downloadingLabel'),
-                value,
+                title: preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
+                msg: preparing ? t('updates.preparingLabel') : t('updates.downloadingLabel'),
+                value: preparing ? undefined : Number(value) || 0,
             })
         }
 
         const onDownloadFailed = () => {
-            setUpdate(false)
+            manualUpdateCheckPendingRef.current = false
+            setUpdate(rendererUpdateAvailableRef.current)
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'error',
@@ -210,65 +217,60 @@ export function useAppDesktopBindings({
             setUpdate(true)
         }
 
-        const handleUpdateAvailable = async () => {
+        const handleUpdateAvailable = async (payload: DesktopUpdateAvailablePayload) => {
+            const isManualCheck = manualUpdateCheckPendingRef.current
             manualUpdateCheckPendingRef.current = false
-            const nextStatus = await window.desktopEvents?.invoke(MainEvents.GET_UPDATE_STATUS)
+
+            if (isManualCheck && toastReference.current) {
+                toast.update(toastReference.current, {
+                    kind: 'info',
+                    title: t('modals.appUpdate.title'),
+                    msg: t('modals.appUpdate.description'),
+                    sticky: false,
+                    duration: 5000,
+                })
+            }
+
+            if (payload.kind === 'renderer') {
+                rendererUpdateAvailableRef.current = true
+                if (!isManualCheck) toast.dismiss(CLIENT_UPDATE_TOAST_ID)
+                toastReference.current = null
+                setUpdate(true)
+                return
+            }
+            const nextStatus = await desktopApi.updates.getStatus()
             setUpdate(nextStatus === 'DOWNLOADED')
         }
 
-        window.desktopEvents?.on(RendererEvents.CHECK_MOD_UPDATE, handleModUpdateCheck)
-        window.desktopEvents?.on(RendererEvents.CLIENT_READY, handleClientReady)
-        window.desktopEvents?.on(RendererEvents.IS_PREMIUM_USER, premiumUserCheck)
-        window.desktopEvents?.invoke(MainEvents.GET_VERSION).then((version: string) => {
-            setApp(prevSettings => ({
-                ...prevSettings,
-                info: {
-                    ...prevSettings.info,
-                    version,
-                },
-            }))
-        })
-        window.desktopEvents?.on(RendererEvents.CHECK_UPDATE, handleCheckUpdate)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, onDownloadProgress)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FAILED, onDownloadFailed)
-        window.desktopEvents?.on(RendererEvents.DOWNLOAD_UPDATE_FINISHED, onDownloadFinished)
-        window.desktopEvents?.on(RendererEvents.UPDATE_AVAILABLE, handleUpdateAvailable)
-
-        void fetchSettings(setApp)
+        const unsubscribers = [
+            desktopApi.mods.onUpdateCheckRequested(payload => handleModUpdateCheck(payload as { manual?: boolean })),
+            desktopApi.mods.onUpdateDownloadStarted(() => setPreparedModUpdate(null)),
+            desktopApi.mods.onUpdateReady(handleModUpdateReady),
+            desktopApi.mods.onInstallStarted(() => setPreparedModUpdate(null)),
+            desktopApi.mods.onDownloadSuccess(() => setPreparedModUpdate(null)),
+            desktopApi.mods.onDownloadFailure(() => setPreparedModUpdate(null)),
+            desktopApi.music.onClientReady(handleClientReady),
+            desktopApi.auth.onPremiumTokenRequested(premiumUserCheck),
+            desktopApi.updates.onCheck(handleCheckUpdate),
+            desktopApi.updates.onDownloadProgress(onDownloadProgress),
+            desktopApi.updates.onDownloadFailed(onDownloadFailed),
+            desktopApi.updates.onDownloadFinished(onDownloadFinished),
+            desktopApi.updates.onAvailable(handleUpdateAvailable),
+        ]
 
         return () => {
-            const cleanupEvents = [
-                RendererEvents.CHECK_MOD_UPDATE,
-                RendererEvents.CLIENT_READY,
-                RendererEvents.DOWNLOAD_UPDATE_PROGRESS,
-                RendererEvents.DOWNLOAD_UPDATE_FAILED,
-                RendererEvents.DOWNLOAD_UPDATE_FINISHED,
-                RendererEvents.CHECK_UPDATE,
-                RendererEvents.UPDATE_AVAILABLE,
-            ]
-
-            cleanupEvents.forEach(event => {
-                window.desktopEvents?.removeAllListeners(event)
-            })
+            unsubscribers.forEach(unsubscribe => unsubscribe())
         }
-    }, [appRef, fetchModInfo, setApp, setUpdate, t, toastReference])
+    }, [appRef, fetchModInfo, setPreparedModUpdate, setUpdate, t, toastReference])
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return
         ;(window as any).setToken = async (args: any) => {
-            window.electron.store.set('tokens.token', args)
+            await desktopApi.auth.setToken(String(args || ''))
+            setCachedUserToken(String(args || ''))
             setHasToken(true)
             setTokenReady(true)
             await authorize()
         }
-        ;(window as any).refreshAddons = async (_args: any) => {
-            window.desktopEvents.invoke(MainEvents.GET_ADDONS).then((fetchedAddons: Addon[]) => {
-                setAddons(fetchedAddons)
-                router.navigate('/extensions', { replace: true })
-            })
-        }
-        ;(window as any).getModInfo = async (currentApp: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
-            await fetchModInfo(currentApp, options)
-        }
-    }, [authorize, fetchModInfo, router, setAddons, setHasToken, setTokenReady])
+    }, [authorize, setHasToken, setTokenReady])
 }

@@ -1,8 +1,22 @@
-import React from 'react'
-import { MdConstruction, MdFactCheck, MdSettings, MdStickyNote2 } from 'react-icons/md'
-import { ActiveTab, DocTab, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
-import PSUITabNavigation, { TabItem } from '@shared/ui/PSUI/Tabs'
+import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react'
+
+import { Tab, TabList, Tabs } from '@pulsesync/uikit/navigation'
+import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdFactCheck } from 'react-icons/md'
+
+import { DESCRIPTION_TAB, LICENSE_TAB, PUBLICATION_CHANGELOG_TAB, RELATIONS_TAB } from '@pages/extension/route/extBox/types'
+import { staticAsset } from '@shared/lib/staticAssets'
+
+import * as s from './TabNavigation.module.scss'
+
+import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
+
+interface TabItem {
+    title: string
+    value: string
+    icon?: React.ReactNode
+}
 
 interface Props {
     active: ActiveTab
@@ -11,7 +25,6 @@ interface Props {
     hasPublicationChangelog?: boolean
     hasRelations?: boolean
     showMetadataTab?: boolean
-    stickyTop?: number
 }
 
 const TabNavigation: React.FC<Props> = ({
@@ -20,28 +33,92 @@ const TabNavigation: React.FC<Props> = ({
     docs,
     hasPublicationChangelog = false,
     hasRelations = false,
-    showMetadataTab = true,
-    stickyTop,
+    showMetadataTab = false,
 }) => {
     const { t } = useTranslation()
-
-    const docTabs: TabItem[] = docs.map(d => ({
-        title: d.title,
-        value: d.value || d.title,
-        icon: <MdStickyNote2 size={22} />,
-    }))
+    const rootRef = useRef<HTMLDivElement>(null)
+    const resizeAnimationFrameRef = useRef<number | null>(null)
+    const [indicator, setIndicator] = useState({ left: 0, width: 0 })
+    const [indicatorResizing, setIndicatorResizing] = useState(false)
+    const bookIcon = staticAsset('assets/icons/ui/tab-book.svg')
+    const metadataIcon = staticAsset('assets/icons/ui/tab-metadata.svg')
+    const settingsIcon = staticAsset('assets/icons/ui/tab-settings.svg')
+    const licenseDoc = docs.find(doc => /license|licence/i.test(doc.value || doc.title))
+    const licenseHeading = licenseDoc?.content.match(/^\s*#*\s*([^\r\n]*licen[cs]e[^\r\n]*)/im)?.[1]?.trim()
+    const licenseTitle = licenseHeading || licenseDoc?.title || t('extensions.tabs.license')
+    const changelogDoc = docs.find(doc => /changelog|changes|патчноут/i.test(doc.value || doc.title))
 
     const tabs: TabItem[] = [
-        ...docTabs,
-        ...(hasPublicationChangelog
-            ? [{ title: t('extensions.tabs.changelog'), value: PUBLICATION_CHANGELOG_TAB, icon: <MdStickyNote2 size={22} /> }]
-            : []),
-        ...(hasRelations ? [{ title: t('extensions.tabs.relations'), value: RELATIONS_TAB, icon: <MdFactCheck size={22} /> }] : []),
-        { title: t('extensions.tabs.settings'), value: 'Settings', icon: <MdSettings size={22} /> },
-        ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata', icon: <MdConstruction size={22} /> }] : []),
+        { title: t('extensions.tabs.description'), value: DESCRIPTION_TAB, icon: <img src={bookIcon} alt="" /> },
+        { title: t('extensions.tabs.settings'), value: 'Settings', icon: <img src={settingsIcon} alt="" /> },
+        ...(licenseDoc ? [{ title: licenseTitle, value: LICENSE_TAB, icon: <img src={bookIcon} alt="" /> }] : []),
+        ...(changelogDoc
+            ? [{ title: changelogDoc.title, value: changelogDoc.value || changelogDoc.title, icon: <img src={bookIcon} alt="" /> }]
+            : hasPublicationChangelog
+              ? [{ title: t('extensions.tabs.changelog'), value: PUBLICATION_CHANGELOG_TAB, icon: <img src={bookIcon} alt="" /> }]
+              : []),
+        ...(hasRelations ? [{ title: t('extensions.tabs.relations'), value: RELATIONS_TAB, icon: <MdFactCheck size={19} /> }] : []),
+        ...(showMetadataTab ? [{ title: t('extensions.tabs.metadata'), value: 'Metadata', icon: <img src={metadataIcon} alt="" /> }] : []),
     ]
 
-    return <PSUITabNavigation active={active} onChange={onChange} tabs={tabs} stickyPos={stickyTop == null ? undefined : { top: `${stickyTop}px` }} />
+    const updateIndicator = useCallback(() => {
+        const root = rootRef.current
+        const list = root?.querySelector<HTMLElement>('[role="tablist"]')
+        const selectedTab = list?.querySelector<HTMLElement>('[role="tab"][aria-selected="true"]')
+        if (!list || !selectedTab) return
+
+        const listRect = list.getBoundingClientRect()
+        const tabRect = selectedTab.getBoundingClientRect()
+        const next = { left: tabRect.left - listRect.left + list.scrollLeft, width: tabRect.width }
+        setIndicator(current => (current.left === next.left && current.width === next.width ? current : next))
+    }, [])
+
+    useLayoutEffect(updateIndicator, [active, tabs.length, updateIndicator])
+
+    useEffect(() => {
+        const list = rootRef.current?.querySelector<HTMLElement>('[role="tablist"]')
+        if (!list) return
+
+        const observer = new ResizeObserver(() => {
+            setIndicatorResizing(true)
+            updateIndicator()
+
+            if (resizeAnimationFrameRef.current !== null) cancelAnimationFrame(resizeAnimationFrameRef.current)
+            resizeAnimationFrameRef.current = requestAnimationFrame(() => {
+                resizeAnimationFrameRef.current = requestAnimationFrame(() => {
+                    resizeAnimationFrameRef.current = null
+                    setIndicatorResizing(false)
+                })
+            })
+        })
+        observer.observe(list)
+        list.addEventListener('scroll', updateIndicator, { passive: true })
+        return () => {
+            observer.disconnect()
+            list.removeEventListener('scroll', updateIndicator)
+            if (resizeAnimationFrameRef.current !== null) cancelAnimationFrame(resizeAnimationFrameRef.current)
+            resizeAnimationFrameRef.current = null
+        }
+    }, [updateIndicator])
+
+    return (
+        <div ref={rootRef} className={s.root}>
+            <Tabs value={active} onChange={value => onChange(value as ActiveTab)} className={s.tabs}>
+                <TabList className={s.list}>
+                    <span
+                        className={cn(s.indicator, indicatorResizing && s.indicatorResizing)}
+                        style={{ width: indicator.width, transform: `translateX(${indicator.left}px)`, opacity: indicator.width > 0 ? 1 : 0 }}
+                    />
+                    {tabs.map(tab => (
+                        <Tab key={tab.value} value={tab.value} className={s.tab}>
+                            {tab.icon}
+                            <span>{tab.title}</span>
+                        </Tab>
+                    ))}
+                </TabList>
+            </Tabs>
+        </div>
+    )
 }
 
 export default TabNavigation

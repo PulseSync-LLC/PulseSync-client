@@ -3,9 +3,11 @@ export const CLIENT_EXPERIMENTS = {
     ClientAchievements: 'ClientAchievements',
     ClientExtensionStoreAccess: 'ClientExtensionStoreAccess',
     ClientExtensionStorePublishing: 'ClientExtensionStorePublishing',
+    ClientLegacyAddonRestrictions: 'ClientLegacyAddonRestrictions',
     ClientUsersPageAccess: 'ClientUsersPageAccess',
     ClientTrackSending: 'ClientTrackSending',
     ClientMetricsSending: 'ClientMetricsSending',
+    ClientDevToBetaSwitch: 'ClientDevToBetaSwitch',
     WebSubscriptionsPage: 'WebSubscriptionsPage',
 } as const
 

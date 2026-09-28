@@ -1,5 +1,6 @@
 import * as fs from 'original-fs'
 import * as path from 'path'
+
 import { resolveAddonPublicationFingerprint } from './addonIdentity'
 import { getAddonsRoot } from './addonPaths'
 
@@ -77,6 +78,14 @@ export const resolveAddonDisplayName = (ref: unknown): string => {
 
     const metadata = listAddonMetadata().find(item => item.directoryName === directory)
     return readText(metadata?.name) || directory
+}
+
+export const resolveAddonId = (ref: unknown): string => {
+    const directory = resolveAddonDirectory(ref)
+    if (!directory) return ''
+
+    const metadata = listAddonMetadata().find(item => item.directoryName === directory)
+    return readText(metadata?.id) || directory
 }
 
 export const findAddonByStoreAddonId = (storeAddonId: unknown): AddonMetadataRecord | null => {

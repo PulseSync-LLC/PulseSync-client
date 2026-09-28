@@ -1,7 +1,8 @@
-import { app, ipcMain } from 'electron'
-import logger from './logger'
 import ElectronStoreModule from 'electron-store'
+
 import { t } from '../i18n'
+import logger from './logger'
+import { PULSESYNC_STORE_ENCRYPTION_KEY, PULSESYNC_STORE_NAME } from './storageIdentity'
 
 const ElectronStore = ElectronStoreModule
 
@@ -68,6 +69,11 @@ const schema = {
                 description: t('main.storage.settings.devSocket'),
                 default: true,
             },
+            showDevFrame: {
+                type: 'boolean',
+                description: 'Show the development build frame',
+                default: true,
+            },
             askSavePath: {
                 type: 'boolean',
                 description: t('main.storage.settings.askSavePath'),
@@ -83,6 +89,11 @@ const schema = {
                 description: t('main.storage.settings.showModModalAfterInstall'),
                 default: false,
             },
+            storeReleaseChannel: {
+                type: 'string',
+                enum: ['stable', 'dev'],
+                description: t('main.storage.settings.storeReleaseChannel'),
+            },
             language: {
                 type: 'string',
                 description: t('main.storage.settings.language'),
@@ -92,6 +103,26 @@ const schema = {
                 type: 'string',
                 description: t('main.storage.settings.modSavePath'),
                 default: '',
+            },
+            modSource: {
+                type: 'object',
+                properties: {
+                    type: {
+                        type: 'string',
+                        enum: ['stable', 'branch'],
+                        default: 'stable',
+                    },
+                    branch: {
+                        type: 'string',
+                        default: '',
+                    },
+                },
+                required: ['type', 'branch'],
+                additionalProperties: false,
+                default: {
+                    type: 'stable',
+                    branch: '',
+                },
             },
             windowDimensions: {
                 type: 'object',
@@ -135,11 +166,13 @@ const schema = {
             'autoUpdateStoreAddons',
             'closeAppInTray',
             'devSocket',
+            'showDevFrame',
             'askSavePath',
             'saveAsMp3',
             'showModModalAfterInstall',
             'language',
             'modSavePath',
+            'modSource',
             'windowDimensions',
             'windowPosition',
             'lastDisplayId',
@@ -157,11 +190,16 @@ const schema = {
             autoUpdateStoreAddons: true,
             closeAppInTray: false,
             devSocket: true,
+            showDevFrame: true,
             askSavePath: false,
             saveAsMp3: false,
             showModModalAfterInstall: true,
             language: 'ru',
             modSavePath: '',
+            modSource: {
+                type: 'stable',
+                branch: '',
+            },
             windowDimensions: {},
             windowPosition: {},
             lastDisplayId: 0,
@@ -213,8 +251,33 @@ const schema = {
                 description: t('main.storage.mod.unpackedChecksum'),
                 default: '',
             },
+            sourceType: {
+                type: 'string',
+                enum: ['stable', 'branch'],
+                default: 'stable',
+            },
+            branch: {
+                type: 'string',
+                default: '',
+            },
+            commit: {
+                type: 'string',
+                default: '',
+            },
         },
-        required: ['musicVersion', 'name', 'version', 'realMusicVersion', 'installed', 'updated', 'checksum', 'unpackedChecksum'],
+        required: [
+            'musicVersion',
+            'name',
+            'version',
+            'realMusicVersion',
+            'installed',
+            'updated',
+            'checksum',
+            'unpackedChecksum',
+            'sourceType',
+            'branch',
+            'commit',
+        ],
         additionalProperties: false,
         default: {
             musicVersion: '',
@@ -225,6 +288,9 @@ const schema = {
             updated: false,
             checksum: '',
             unpackedChecksum: '',
+            sourceType: 'stable',
+            branch: '',
+            commit: '',
         },
     },
 
@@ -237,21 +303,11 @@ const schema = {
                 description: t('main.storage.app.version'),
                 default: '',
             },
-            updateChannelOverride: {
-                type: 'string',
-                default: '',
-            },
-            updateSource: {
-                type: 'string',
-                default: 'backend',
-            },
         },
-        required: ['version', 'updateChannelOverride', 'updateSource'],
-        additionalProperties: false,
+        required: ['version'],
+        additionalProperties: true,
         default: {
             version: '',
-            updateChannelOverride: '',
-            updateSource: 'backend',
         },
     },
 
@@ -279,19 +335,14 @@ class Store {
     constructor() {
         try {
             this.store = new ElectronStore({
-                name: 'pulsesync_settings',
-                encryptionKey: 'pulsesync',
+                name: PULSESYNC_STORE_NAME,
+                encryptionKey: PULSESYNC_STORE_ENCRYPTION_KEY,
                 schema,
             })
             logger.main.info('Store initialized')
+            this.store.delete('app.rendererSourceMode')
         } catch (error) {
             logger.main.error('Error initializing ElectronStore:', error)
-        }
-
-        // Electron applies this only during startup, before the app becomes ready.
-        const hardwareAccelerationEnabled = this.store?.get('settings.hardwareAcceleration', true) ?? true
-        if (!hardwareAccelerationEnabled) {
-            app.disableHardwareAcceleration()
         }
     }
 

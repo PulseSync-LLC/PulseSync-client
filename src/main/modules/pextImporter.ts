@@ -1,21 +1,26 @@
-import { app } from 'electron'
-import AdmZip from 'adm-zip'
-import path from 'path'
-import fs from 'original-fs'
-import * as fsp from 'fs/promises'
 import { fileURLToPath } from 'node:url'
+
+import { app } from 'electron'
+
+import AdmZip from 'adm-zip'
+import * as fsp from 'fs/promises'
+import fs from 'original-fs'
+import path from 'path'
+
+import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
+import { getAddonsRoot, resolveExistingFileInsideBase } from '../utils/addonPaths'
+import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
+import { validateWebHostAddonRuntime } from '../utils/webHostAddonRuntime'
+import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
+import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
 import logger from './logger'
 import { getState } from './state'
-import { HandleErrorsElectron } from './handlers/handleErrorsElectron'
-import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from '../utils/addonIdentity'
-import { findAddonByPublicationFingerprint } from '../utils/addonRegistry'
-import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
-import { getAddonsRoot } from '../utils/addonPaths'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
 const MAX_ADDON_ARCHIVE_BYTES = 100 * 1024 * 1024
 type ImportAddonArchiveOptions = {
+    releaseChannel?: 'stable' | 'dev'
     installSource?: 'store' | 'local'
     storeAddonId?: string | null
 }
@@ -174,6 +179,11 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         const metadata = JSON.parse(fs.readFileSync(metadataPath, 'utf-8'))
         metadata.fromPext = true
         metadata.installSource = options.installSource === 'store' ? 'store' : 'local'
+        if (metadata.installSource === 'store') {
+            metadata.storeReleaseChannel = options.releaseChannel === 'dev' ? 'dev' : 'stable'
+        } else {
+            delete metadata.storeReleaseChannel
+        }
         if (options.storeAddonId) {
             metadata.storeAddonId = options.storeAddonId
         } else {
@@ -183,6 +193,27 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         if (!addonName) {
             logger.main.error('Theme name missing in metadata.json')
             return null
+        }
+
+        if (metadata.type === 'web-addon') {
+            const scriptPath = typeof metadata.script === 'string' ? resolveExistingFileInsideBase(stagingDir, metadata.script) : null
+            const scriptContent = scriptPath ? await fsp.readFile(scriptPath, 'utf8') : ''
+            const validation = validateWebHostAddonRuntime(scriptContent)
+            if (!validation.ok) {
+                logger.main.error(
+                    `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || addonName)}: ${validation.category}: ${validation.reason}`,
+                )
+                return null
+            }
+        }
+        if (metadata.type === 'theme' && typeof metadata.script === 'string' && metadata.script.trim()) {
+            const scriptPath = resolveExistingFileInsideBase(stagingDir, metadata.script)
+            const scriptContent = scriptPath && fs.existsSync(scriptPath) ? await fsp.readFile(scriptPath, 'utf8') : ''
+            if (scriptContent.trim()) {
+                logger.main.warn(
+                    `[PulseSync Addons] Theme ${String(metadata.id || addonName)} contains JavaScript and will use legacy compatibility mode. Use type web-addon for JS + CSS packages.`,
+                )
+            }
         }
 
         metadata.id = resolveAddonStableId(metadata)

@@ -1,9 +1,9 @@
-import { app, net, session, type Session } from 'electron'
-import axios, { AxiosError, AxiosHeaders, type AxiosAdapter, type InternalAxiosRequestConfig } from 'axios'
-import { PassThrough } from 'stream'
-import logger from '../logger'
+import { app, net, type Session, session } from 'electron'
 
-const ELECTRON_UPDATER_SESSION_PARTITION = 'electron-updater'
+import axios, { type AxiosAdapter, AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
+import { PassThrough } from 'stream'
+
+import logger from '../logger'
 
 let axiosAdapterInstalled = false
 let fetchInstalled = false
@@ -437,14 +437,7 @@ export async function enableSystemProxySupport(): Promise<void> {
     installFetch()
     installSessionHandler()
 
-    await Promise.all([
-        setSystemProxy(session.defaultSession),
-        setSystemProxy(
-            session.fromPartition(ELECTRON_UPDATER_SESSION_PARTITION, {
-                cache: false,
-            }),
-        ),
-    ])
+    await setSystemProxy(session.defaultSession)
 
     logger.main.info('System proxy support enabled')
 }

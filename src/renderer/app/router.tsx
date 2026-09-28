@@ -1,21 +1,27 @@
-import React, { useContext } from 'react'
-import { Navigate, createHashRouter } from 'react-router'
+import React, { lazy, Suspense, useContext } from 'react'
+
+import { createHashRouter, Navigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
-import Dev from '@pages/dev'
-import AuthPage from '@pages/auth'
-import CallbackPage from '@pages/auth/callback'
 import HomePage from '@pages/home'
-import UsersPage from '@pages/users'
-import ExtensionPage from '@pages/extension'
-import JointPage from '@pages/joint'
-import StorePage from '@pages/store'
-import ProfilePage from '@pages/profile/[username]'
-import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
+import Preloader from '@widgets/preloader'
 import UserContext from '@entities/user/model/context'
+import ErrorBoundary from '@shared/ui/errorBoundary/errorBoundary'
+
+const Dev = lazy(() => import('@pages/dev'))
+const AuthPage = lazy(() => import('@pages/auth'))
+const CallbackPage = lazy(() => import('@pages/auth/callback'))
+const UsersPage = lazy(() => import('@pages/users'))
+const ExtensionPage = lazy(() => import('@pages/extension'))
+const JointPage = lazy(() => import('@pages/joint'))
+const StorePage = lazy(() => import('@pages/store'))
 
 function withErrorBoundary(node: React.ReactNode) {
-    return <ErrorBoundary>{node}</ErrorBoundary>
+    return (
+        <ErrorBoundary>
+            <Suspense fallback={<Preloader />}>{node}</Suspense>
+        </ErrorBoundary>
+    )
 }
 
 function RequireAuthorized({ children }: { children: React.ReactNode }) {
@@ -86,13 +92,5 @@ export function createAppRouter() {
         },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
         { path: '/joint', element: withErrorBoundary(<JointPage />) },
-        {
-            path: '/profile/:profileName',
-            element: withErrorBoundary(
-                <RequireAuthorized>
-                    <ProfilePage />
-                </RequireAuthorized>,
-            ),
-        },
     ])
 }

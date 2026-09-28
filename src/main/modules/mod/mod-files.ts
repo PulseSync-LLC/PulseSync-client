@@ -1,10 +1,11 @@
-import * as path from 'path'
 import * as fs from 'original-fs'
+import * as path from 'path'
+
+import { t } from '../../i18n'
+import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, resolveModAsarPath, updateIntegrityHashInExe } from '../../utils/appUtils'
+import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 import logger from '../logger'
 import { getState } from '../state'
-import { AsarPatcher, copyFile, getPathToYandexMusic, isLinux, resolveModAsarPath, updateIntegrityHashInExe } from '../../utils/appUtils'
-import { t } from '../../i18n'
-import { HandleErrorsElectron } from '../handlers/handleErrorsElectron'
 
 const State = getState()
 

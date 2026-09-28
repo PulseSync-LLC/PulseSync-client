@@ -1,9 +1,10 @@
-import toast from '@shared/ui/toast'
 import config from '@common/appConfig'
-import { Track } from '@entities/track/model/track.interface'
-import trackInitials from '@entities/track/model/track.initials'
 import { t } from '@app/i18n'
+import trackInitials from '@entities/track/model/track.initials'
 import rendererHttpClient from '@shared/api/http/client'
+import toast from '@shared/ui/toast'
+
+import type { Track } from '@entities/track/model/track.interface'
 
 export const checkInternetAccess = async (): Promise<boolean> => {
     try {

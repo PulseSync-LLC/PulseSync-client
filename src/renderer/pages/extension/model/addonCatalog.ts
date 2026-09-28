@@ -1,10 +1,12 @@
 import { useEffect, useState } from 'react'
+
 import semver from 'semver'
 import stringSimilarity from 'string-similarity'
 
 import config from '@common/appConfig'
-import Addon from '@entities/addon/model/addon.interface'
-import { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
+
+import type Addon from '@entities/addon/model/addon.interface'
+import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
 
 export const defaultOrder = {
     alphabet: 'asc',
@@ -15,16 +17,7 @@ export const defaultOrder = {
 } as const
 
 export type SortKey = keyof typeof defaultOrder
-export type AddonTypeFilter = 'all' | 'theme' | 'script'
-
-export function safeStoreGet<T>(path: string, fallback: T): T {
-    try {
-        const value = window?.electron?.store?.get?.(path)
-        return (value ?? fallback) as T
-    } catch {
-        return fallback
-    }
-}
+export type AddonTypeFilter = 'all' | Addon['type']
 
 export function useDebouncedValue<T>(value: T, delay: number) {
     const [debounced, setDebounced] = useState(value)

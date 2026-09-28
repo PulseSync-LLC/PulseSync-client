@@ -1,5 +1,7 @@
 import path from 'path'
+
 import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
+
 import { sendAddon, sendAddonSettings, sendAllAddonSettings, sendExtensions } from '../httpServer'
 import logger from '../logger'
 import { loadPulseSyncNative } from './pulsesyncNative'
@@ -12,6 +14,17 @@ if (nativeModule) {
 }
 
 const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
+const ADDON_REFRESH_DEBOUNCE_MS = 250
+let addonRefreshTimer: ReturnType<typeof setTimeout> | null = null
+
+const scheduleAddonRefresh = (): void => {
+    if (addonRefreshTimer) clearTimeout(addonRefreshTimer)
+    addonRefreshTimer = setTimeout(() => {
+        addonRefreshTimer = null
+        sendAddon(true)
+        void sendExtensions()
+    }, ADDON_REFRESH_DEBOUNCE_MS)
+}
 
 const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
     if (!filename) return null
@@ -44,18 +57,15 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
         switch (eventType) {
             case 'add':
                 logger.main.info(`File ${filename} has been added`)
-                sendAddon(true)
-                void sendExtensions()
+                scheduleAddonRefresh()
                 break
             case 'change':
                 logger.main.info(`File ${filename} has been changed`)
-                sendAddon(true)
-                void sendExtensions()
+                scheduleAddonRefresh()
                 break
             case 'unlink':
                 logger.main.info(`File ${filename} has been removed`)
-                sendAddon(true)
-                void sendExtensions()
+                scheduleAddonRefresh()
                 break
             default:
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)
