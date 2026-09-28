@@ -5,13 +5,11 @@ import ReactMarkdown from 'react-markdown'
 import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 
-import { compareVersions } from '@shared/lib/utils'
 import Loader from '@shared/ui/PSUI/Loader'
 import Modal from '@shared/ui/PSUI/Modal'
 
 import * as modalStyles from '@shared/ui/PSUI/Modal/modal.module.scss'
 
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 import type { Components } from 'react-markdown'
 
 export type ModChangelogEntry = {
@@ -21,10 +19,17 @@ export type ModChangelogEntry = {
     description: string | string[]
 }
 
+export type AppPatchNote = {
+    id: string
+    title: string
+    version?: string
+    changelog: string
+    createdAt: number
+}
+
 type Props = {
     appError: string | null
-    appUpdatesInfo: AppInfoInterface[]
-    appVersion: string
+    appUpdatesInfo: AppPatchNote[]
     closeModModal: () => void
     closeAppChangelogModal: () => void
     formatDate: (timestamp: any) => string
@@ -55,7 +60,6 @@ const UpdateLinkRenderer: Components['a'] = ({ href, children }) => {
 export default function HeaderModals({
     appError,
     appUpdatesInfo,
-    appVersion,
     closeModModal,
     closeAppChangelogModal,
     formatDate,
@@ -67,8 +71,6 @@ export default function HeaderModals({
     modError,
 }: Props) {
     const { t } = useTranslation()
-    const visibleAppUpdates = appUpdatesInfo.filter(info => compareVersions(info.version, appVersion) <= 0)
-
     return (
         <>
             <Modal title={t('header.latestUpdatesTitle')} isOpen={isAppChangelogModalOpen} reqClose={closeAppChangelogModal}>
@@ -77,10 +79,10 @@ export default function HeaderModals({
                     {appError && <p>{t('header.errorWithMessage', { message: appError })}</p>}
                     {!loadingAppUpdates &&
                         !appError &&
-                        visibleAppUpdates.map(info => (
+                        appUpdatesInfo.map(info => (
                             <div key={info.id} className={modalStyles.updateItem}>
                                 <div className={modalStyles.version_info}>
-                                    <h3>{info.version}</h3>
+                                    <h3>{info.title}</h3>
                                     <span>{formatDate(info.createdAt)}</span>
                                 </div>
                                 <div className={modalStyles.remerkStyle}>
@@ -90,7 +92,7 @@ export default function HeaderModals({
                                 </div>
                             </div>
                         ))}
-                    {!loadingAppUpdates && !appError && visibleAppUpdates.length === 0 && <p>{t('header.noChangelogFound')}</p>}
+                    {!loadingAppUpdates && !appError && appUpdatesInfo.length === 0 && <p>{t('header.noChangelogFound')}</p>}
                 </div>
             </Modal>
             <Modal title={t('header.latestModUpdatesTitle')} isOpen={isModModalOpen} reqClose={closeModModal}>
