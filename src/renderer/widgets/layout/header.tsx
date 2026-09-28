@@ -35,9 +35,8 @@ import Minus from '@shared/assets/icons/minus.svg'
 import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import * as styles from '@widgets/layout/header.module.scss'
 
-import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
 import type { PlayStatus } from '@widgets/layout/model/playStatus'
-import type { ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
+import type { AppPatchNote, ModChangelogEntry } from '@widgets/layout/ui/HeaderModals'
 
 interface p {
     goBack?: boolean
@@ -132,9 +131,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
 
     useEffect(() => {
         if (typeof window !== 'undefined') {
-            desktopApi.updates.needModalUpdate().then(value => {
-                if (value) openAppChangelogModal()
-            })
             const unsubscribeShowMod = desktopApi.system.onShowModModal(() => {
                 openModModal()
             })
@@ -142,7 +138,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 unsubscribeShowMod()
             }
         }
-    }, [openAppChangelogModal, openModModal, user.id])
+    }, [openModModal, user.id])
 
     const logout = () => {
         rendererHttpClient
@@ -205,7 +201,8 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
         [setUser, t],
     )
 
-    const [appUpdatesInfo, setAppUpdatesInfo] = useState<AppInfoInterface[]>([])
+    const [appUpdatesInfo, setAppUpdatesInfo] = useState<AppPatchNote[]>([])
+    const [appRefreshToken, setAppRefreshToken] = useState(0)
     const [loadingAppUpdates, setLoadingAppUpdates] = useState(false)
     const [appError, setAppError] = useState<string | null>(null)
     const [modChangesInfo, setModChangesInfo] = useState<ModChangelogEntry[]>([])
@@ -215,18 +212,25 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const [isMac, setIsMac] = useState(() => navigator.platform.toLowerCase().includes('mac'))
     const appUpdatesLoadedRef = useRef(false)
     const appUpdatesLoadingRef = useRef(false)
+    const wasAppChangelogModalOpenRef = useRef(isAppChangelogModalOpen)
     const modChangesLoadedKeyRef = useRef<string | null>(null)
     const modChangesLoadingRef = useRef(false)
 
     useEffect(() => {
-        appUpdatesLoadedRef.current = false
+        const wasOpen = wasAppChangelogModalOpenRef.current
+        wasAppChangelogModalOpenRef.current = isAppChangelogModalOpen
+        if (!wasOpen && isAppChangelogModalOpen && !appUpdatesLoadedRef.current && !appUpdatesLoadingRef.current) {
+            setAppRefreshToken(current => current + 1)
+        }
+    }, [isAppChangelogModalOpen])
+
+    useEffect(() => {
         modChangesLoadedKeyRef.current = null
-        setAppUpdatesInfo([])
         setModChangesInfo([])
     }, [isAutonomousMode])
 
     useEffect(() => {
-        if (!isAppChangelogModalOpen || appUpdatesLoadedRef.current || appUpdatesLoadingRef.current) {
+        if (appUpdatesLoadedRef.current || appUpdatesLoadingRef.current) {
             return
         }
 
@@ -238,18 +242,25 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
             setAppError(null)
 
             try {
-                const nextAppUpdates = isAutonomousMode
-                    ? (((await desktopApi.updates.getClientChangelog()) as AppInfoInterface[] | undefined) ?? [])
-                    : await (async () => {
-                          const response = await rendererHttpClient.get<{ appInfo?: AppInfoInterface[]; ok?: boolean }>('/api/v1/app/info')
-                          const data = response.data
-
-                          if (!response.ok || !data?.ok || !Array.isArray(data.appInfo)) {
-                              throw new Error('Failed to fetch app info')
-                          }
-
-                          return data.appInfo
-                      })()
+                const response = await rendererHttpClient.get<{ patchNotes?: AppPatchNote[]; ok?: boolean }>('/api/v1/app/patch-notes')
+                let nextAppUpdates: AppPatchNote[]
+                if (response.status === 404) {
+                    const legacyResponse = await rendererHttpClient.get<{ appInfo?: Array<{ id: number; version: string; changelog: string; createdAt: number }>; ok?: boolean }>('/api/v1/app/info')
+                    if (!legacyResponse.ok || !legacyResponse.data?.ok || !Array.isArray(legacyResponse.data.appInfo)) {
+                        throw new Error('Failed to fetch app patch notes')
+                    }
+                    nextAppUpdates = legacyResponse.data.appInfo.map(entry => ({
+                        id: `legacy-${entry.id}`,
+                        title: entry.version,
+                        version: entry.version,
+                        changelog: Array.isArray(entry.changelog) ? entry.changelog.join('\n') : String(entry.changelog ?? ''),
+                        createdAt: Number(entry.createdAt) || 0,
+                    }))
+                } else if (response.ok && response.data?.ok && Array.isArray(response.data.patchNotes)) {
+                    nextAppUpdates = response.data.patchNotes
+                } else {
+                    throw new Error('Failed to fetch app patch notes')
+                }
 
                 if (!active) {
                     return
@@ -258,6 +269,21 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 const sortedAppInfos = [...nextAppUpdates].sort((a, b) => b.createdAt - a.createdAt)
                 setAppUpdatesInfo(sortedAppInfos)
                 appUpdatesLoadedRef.current = true
+                const storedIds = window.localStorage.getItem('seenAppPatchNotes')
+                let seenIds = new Set<string>()
+                if (storedIds) {
+                    try {
+                        const parsed = JSON.parse(storedIds)
+                        if (Array.isArray(parsed)) seenIds = new Set(parsed.filter((value): value is string => typeof value === 'string'))
+                    } catch {
+                        seenIds = new Set<string>()
+                    }
+                }
+                const hasNewPost = sortedAppInfos.some(info => !seenIds.has(info.id))
+                window.localStorage.setItem('seenAppPatchNotes', JSON.stringify([...new Set([...seenIds, ...sortedAppInfos.map(info => info.id)])]))
+                if (hasNewPost) {
+                    openAppChangelogModal()
+                }
             } catch (error) {
                 if (!active) {
                     return
@@ -278,7 +304,7 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
         return () => {
             active = false
         }
-    }, [isAppChangelogModalOpen, isAutonomousMode])
+    }, [appRefreshToken, openAppChangelogModal])
 
     const shouldFetchModChanges = app.mod.installed && !!app.mod.version
 
@@ -360,7 +386,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
             <HeaderModals
                 appError={appError}
                 appUpdatesInfo={appUpdatesInfo}
-                appVersion={app.info.version}
                 closeModModal={closeModModal}
                 closeAppChangelogModal={closeAppChangelogModal}
                 formatDate={formatDate}
