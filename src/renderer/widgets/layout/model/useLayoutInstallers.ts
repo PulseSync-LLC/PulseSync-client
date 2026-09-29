@@ -31,17 +31,7 @@ type Params = {
     }
 }
 
-export function useLayoutInstallers({
-    app,
-    modInfo,
-    musicInstalled,
-    openModal,
-    setApp,
-    setMusicInstalled,
-    setMusicVersion,
-    t,
-    modals,
-}: Params) {
+export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, setApp, setMusicInstalled, setMusicVersion, t, modals }: Params) {
     const [isUpdating, setIsUpdating] = useState(false)
     const [isModUpdateAvailable, setIsModUpdateAvailable] = useState(false)
     const [modInstallError, setModInstallError] = useState<{ details: string; showProxyHint: boolean; title: string } | null>(null)

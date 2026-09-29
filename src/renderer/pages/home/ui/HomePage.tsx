@@ -495,9 +495,7 @@ export default function HomePage() {
                             branches={primaryComponentBranches}
                             branchPickers={branchPickers}
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
-                            isModUpdateAvailable={Boolean(
-                                app.mod.installed && app.mod.version && isModReleaseUpdateAvailable(modInfo[0], app.mod),
-                            )}
+                            isModUpdateAvailable={Boolean(app.mod.installed && app.mod.version && isModReleaseUpdateAvailable(modInfo[0], app.mod))}
                             isModUpdatePrepared={Boolean(preparedModUpdate)}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}

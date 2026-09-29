@@ -22,12 +22,12 @@ const schema = {
             saveWindowDimensionsOnRestart: {
                 type: 'boolean',
                 description: t('main.storage.settings.saveWindowDimensionsOnRestart'),
-                default: false,
+                default: true,
             },
             saveWindowPositionOnRestart: {
                 type: 'boolean',
                 description: t('main.storage.settings.saveWindowPositionOnRestart'),
-                default: false,
+                default: true,
             },
             autoStartInTray: {
                 type: 'boolean',
@@ -180,8 +180,8 @@ const schema = {
         ],
         additionalProperties: true,
         default: {
-            saveWindowDimensionsOnRestart: false,
-            saveWindowPositionOnRestart: false,
+            saveWindowDimensionsOnRestart: true,
+            saveWindowPositionOnRestart: true,
             autoStartInTray: false,
             autoStartMusic: false,
             autoStartApp: false,

@@ -18,7 +18,14 @@ function positiveNumber(name: string, fallback: number): number {
 function releaseIds(name: string): string[] {
     const raw = argValue(name)
     if (!raw) return []
-    return Array.from(new Set(raw.split(',').map(value => value.trim()).filter(Boolean)))
+    return Array.from(
+        new Set(
+            raw
+                .split(',')
+                .map(value => value.trim())
+                .filter(Boolean),
+        ),
+    )
 }
 
 const branch = argValue('--branch') ?? 'dev'

@@ -173,12 +173,7 @@ export default function HomePrimaryComponentsSection({
                                             <MdArticle aria-hidden="true" />
                                         </ButtonV2>
                                     </TooltipButton>
-                                    <TooltipButton
-                                        side="top"
-                                        tooltipText={updateActionTooltip}
-                                        as="span"
-                                        className={styles.primaryActionTooltip}
-                                    >
+                                    <TooltipButton side="top" tooltipText={updateActionTooltip} as="span" className={styles.primaryActionTooltip}>
                                         <ButtonV2
                                             type="button"
                                             className={cn(styles.actionButton, styles.updateButton)}
