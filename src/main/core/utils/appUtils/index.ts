@@ -1,0 +1,636 @@
+import { app, dialog, shell } from 'electron'
+
+import axios from 'axios'
+import { exec, execFile, execSync, spawn } from 'child_process'
+import fso, { promises as fsp } from 'original-fs'
+import os from 'os'
+import path from 'path'
+import { promisify } from 'util'
+import * as yaml from 'yaml'
+
+import RendererEvents from '../../../../common/types/rendererEvents'
+import { HandleErrorsElectron } from '../../../shared/handlers/handleErrorsElectron'
+import { t } from '../../../shared/i18n'
+import logger from '../../../shared/logger'
+import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
+import { mainWindow } from '../../createWindow'
+import { nativeCopyFile, nativeFileExists, nativePatchMacIntegrity, nativePatchWindowsIntegrity, nativeReadAsarVersion } from '../../nativeModules'
+import { asarBackup, musicPath } from '../../startup/runtimeState'
+import { getState } from '../../state'
+import { isLinuxAccessError } from './elevation'
+import { runPowerShell } from './powershell'
+import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+
+import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
+
+const execAsync = promisify(exec)
+const execFileAsync = promisify(execFile)
+
+const State = getState()
+let yandexMusicInstallPromptOpen = false
+let yandexMusicDownloadInFlight = false
+
+export type { AppxPackage, PatchCallback, ProcessInfo } from './types'
+
+export const normalizeModSaveDir = (customPath?: string): string | null => {
+    if (!customPath) return null
+    const trimmed = customPath.trim()
+    if (!trimmed) return null
+    const ext = path.extname(trimmed).toLowerCase()
+    return ext === '.asar' ? path.dirname(trimmed) : trimmed
+}
+
+export const resolveModAsarPath = (musicPath: string, customPath?: string): string => {
+    const baseDir = normalizeModSaveDir(customPath) || musicPath
+    return path.join(baseDir, 'app.asar')
+}
+
+const terminateProcess = (pid: number): void => {
+    try {
+        process.kill(pid)
+        logger.main.info(`Yandex Music process ${pid} terminated.`)
+    } catch (error) {
+        logger.main.error(`Error terminating ${pid}:`, error)
+    }
+}
+
+export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
+    if (isMac()) {
+        try {
+            const command = `pgrep -f "Яндекс Музыка"`
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
+            return parseMacPgrep(stdout)
+        } catch (error) {
+            logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
+            return []
+        }
+    } else if (isLinux()) {
+        try {
+            const command = `pgrep -fa "yandexmusic"`
+            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
+            return parseLinuxPgrep(stdout)
+        } catch (error) {
+            logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
+            return []
+        }
+    } else {
+        try {
+            const { stdout } = (await execFileAsync('tasklist.exe', ['/FI', 'IMAGENAME eq Яндекс Музыка.exe', '/FO', 'CSV', '/NH'], {
+                encoding: 'utf8' as BufferEncoding,
+                windowsHide: true,
+            })) as { stdout: string }
+            return parseWindowsTasklist(stdout)
+        } catch (error) {
+            logger.main.error('Error retrieving Yandex Music processes:', error)
+            return []
+        }
+    }
+}
+
+export async function isYandexMusicRunning(): Promise<boolean> {
+    return !!(await getYandexMusicProcesses())?.length
+}
+
+export async function closeYandexMusic(): Promise<void> {
+    const procs = await getYandexMusicProcesses()
+    if (!procs.length) {
+        logger.main.info('Yandex Music is not running.')
+        return
+    }
+    for (const { pid } of procs) {
+        terminateProcess(pid)
+    }
+}
+
+export async function launchYandexMusic() {
+    await openExternalDetached('yandexmusic://')
+}
+
+export async function openExternalDetached(url: string) {
+    if (process.platform === 'win32') {
+        await shell.openExternal(url)
+        return
+    }
+
+    let command: string
+    let args: string[]
+
+    if (process.platform === 'darwin') {
+        command = 'open'
+        args = [url]
+    } else {
+        command = 'xdg-open'
+        args = [url]
+    }
+
+    const child = spawn(command, args, { detached: true, stdio: 'ignore' })
+    child.unref()
+}
+
+export async function getPathToYandexMusic(): Promise<string> {
+    const platform = os.platform()
+    const customSavePath = normalizeModSaveDir(State.get('settings.modSavePath') as string | undefined)
+    if (platform === 'darwin') {
+        return path.join('/Applications', 'Яндекс Музыка.app', 'Contents', 'Resources')
+    } else if (platform === 'win32') {
+        return path.join(process.env.LOCALAPPDATA || '', 'Programs', 'YandexMusic', 'resources')
+    } else if (platform === 'linux') {
+        return !customSavePath ? path.join('/opt', 'Яндекс Музыка') : customSavePath
+    }
+    return ''
+}
+
+export function getYandexMusicAppDataPath(): string {
+    const home = os.homedir()
+    switch (os.platform()) {
+        case 'darwin':
+            return path.join(home, 'Library', 'Application Support', 'YandexMusic')
+        case 'win32':
+            return path.join(process.env.APPDATA || '', 'YandexMusic')
+        case 'linux': {
+            const xdg = process.env.XDG_CONFIG_HOME || path.join(home, '.config')
+            return path.join(xdg, 'YandexMusic')
+        }
+        default:
+            return ''
+    }
+}
+export function getYandexMusicLogsPath(): string {
+    const home = os.homedir()
+    switch (os.platform()) {
+        case 'darwin':
+            return path.join(home, 'Library', 'Logs', 'YandexMusic')
+        case 'win32':
+            return path.join(process.env.APPDATA || '', 'YandexMusic', 'logs')
+        case 'linux': {
+            const xdg = process.env.XDG_CONFIG_HOME || path.join(home, '.config')
+            return path.join(xdg, 'YandexMusic', 'logs')
+        }
+        default:
+            return ''
+    }
+}
+export async function copyFile(target: string, dest: string): Promise<void> {
+    try {
+        if (path.resolve(target) === path.resolve(dest)) {
+            const handle = await fsp.open(target, 'r+')
+            try {
+                return
+            } finally {
+                await handle.close()
+            }
+        }
+        if (nativeCopyFile(target, dest)) return
+        await fsp.copyFile(target, dest)
+    } catch (error: any) {
+        if (isLinuxAccessError(error)) {
+            logger.modManager.warn('File copying requires permissions on Linux:', {
+                source: target,
+                destination: dest,
+                code: error?.code,
+                message: error?.message,
+            })
+            throw error
+        } else {
+            logger.modManager.error('File copying failed:', error)
+            throw error
+        }
+    }
+}
+
+export async function createDirIfNotExist(target: string): Promise<void> {
+    if (!fso.existsSync(target)) {
+        try {
+            await fsp.mkdir(target, { recursive: true })
+        } catch (error: any) {
+            if (isLinuxAccessError(error)) {
+                logger.modManager.warn('Directory creation requires permissions on Linux:', {
+                    target,
+                    code: error?.code,
+                    message: error?.message,
+                })
+                throw error
+            } else {
+                logger.modManager.error('Directory creation failed:', error)
+                throw error
+            }
+        }
+    }
+}
+
+export function isMac() {
+    return os.platform() === 'darwin'
+}
+
+export function isWindows() {
+    return os.platform() === 'win32'
+}
+
+export function isLinux() {
+    return os.platform() === 'linux'
+}
+
+function isRecoverableMacInfoPlistReadFailure(error: unknown): boolean {
+    const message = (error instanceof Error ? error.message : String(error)).toLowerCase()
+    return (
+        message.includes('failed to read info.plist') &&
+        (message.includes('unexpectedeof') || message.includes('unexpected eof') || message.includes('failed to fill whole buffer'))
+    )
+}
+
+export const formatSizeUnits = (bytes: number) => {
+    if (bytes >= 1 << 30) return (bytes / (1 << 30)).toFixed(2) + ' GB'
+    if (bytes >= 1 << 20) return (bytes / (1 << 20)).toFixed(2) + ' MB'
+    if (bytes >= 1 << 10) return (bytes / (1 << 10)).toFixed(2) + ' KB'
+    return bytes + ' bytes'
+}
+
+export const getFolderSize = async (folderPath: string): Promise<number> => {
+    let total = 0
+    for (const file of await fso.promises.readdir(folderPath)) {
+        const full = path.join(folderPath, file)
+        const stat = await fso.promises.stat(full)
+        total += stat.isDirectory() ? await getFolderSize(full) : stat.size
+    }
+    return total
+}
+
+export const formatJson = (data: any) => JSON.stringify(data, null, 4)
+
+export const checkAsar = () => {
+    if ((State.get('mod.installed') || State.get('mod.version')) && !fso.existsSync(asarBackup)) {
+        State.delete('mod')
+    } else if (fso.existsSync(asarBackup)) {
+        State.set('mod.installed', true)
+    }
+}
+
+export const checkMusic = () => {
+    if (isLinux() || fso.existsSync(musicPath) || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
+
+    yandexMusicInstallPromptOpen = true
+    dialog
+        .showMessageBox(mainWindow, {
+            type: 'info',
+            title: t('main.appUtils.yandexNotInstalledTitle'),
+            message: t('main.appUtils.yandexNotInstalledMessage'),
+            buttons: [t('main.common.start'), t('main.common.cancel')],
+            cancelId: 1,
+        })
+        .then(async result => {
+            if (result.response === 0) {
+                await downloadYandexMusic()
+                return
+            }
+
+            app.quit()
+        })
+        .catch(error => {
+            logger.main.error('Failed to show Yandex Music install prompt:', error)
+        })
+        .finally(() => {
+            yandexMusicInstallPromptOpen = false
+        })
+}
+
+export const downloadYandexMusic = async (type?: string) => {
+    const sendDownloadFailure = (err: Error | string) => {
+        try {
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
+                success: false,
+                error: typeof err === 'string' ? err : t('main.appUtils.executeFailed', { message: err.message }),
+            })
+        } catch (sendError) {
+            logger.main.error('Failed to send Yandex Music download failure:', sendError)
+        }
+    }
+
+    const unlinkDownload = (downloadPath: string) => {
+        try {
+            fso.unlinkSync(downloadPath)
+        } catch (error: any) {
+            if (error?.code !== 'ENOENT') {
+                logger.main.warn('Failed to remove Yandex Music installer:', error)
+            }
+        }
+    }
+
+    const sendExecutionSuccess = (message: string) => {
+        try {
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
+                success: true,
+                message,
+                type: type || 'update',
+            })
+        } catch (sendError) {
+            logger.main.error('Failed to send Yandex Music install success:', sendError)
+        }
+    }
+
+    if (yandexMusicDownloadInFlight) return
+
+    yandexMusicDownloadInFlight = true
+    let downloadPath = ''
+
+    try {
+        const downloadUrl = await (async () => {
+            if (isLinux()) {
+                return await getLinuxInstallerUrl()
+            }
+            const yml = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
+            const match = yml.data.match(/version:\s*([\d.]+)/)
+            if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
+            const version = match[1]
+            const fileName = isMac() ? `Yandex_Music_universal_${version}.dmg` : `Yandex_Music_x64_${version}.exe`
+            return `https://desktop.app.music.yandex.net/stable/${fileName}`
+        })()
+        const fileName = path.basename(downloadUrl)
+        downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
+
+        await fso.promises.mkdir(path.dirname(downloadPath), { recursive: true })
+        const response = await axios.get(downloadUrl, { responseType: 'stream' })
+        const total = parseInt(<string>response.headers['content-length'] || '0', 10)
+        let received = 0
+        const writer = fso.createWriteStream(downloadPath)
+        response.data.on('data', (chunk: Buffer) => {
+            received += chunk.length
+            if (total <= 0) return
+
+            const p = Math.min(received / total, 1)
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(p * 100) })
+            mainWindow.setProgressBar(p)
+        })
+        await new Promise<void>((res, rej) => {
+            writer.on('finish', res)
+            writer.on('error', rej)
+            response.data.on('error', rej)
+            response.data.pipe(writer)
+        })
+        mainWindow.setProgressBar(-1)
+        fso.chmodSync(downloadPath, 0o755)
+
+        if (isLinux()) {
+            const openError = await shell.openPath(downloadPath)
+            if (openError) {
+                sendDownloadFailure(new Error(openError))
+                return
+            }
+            unlinkDownload(downloadPath)
+            sendExecutionSuccess(t('main.appUtils.fileOpenedSuccessfully'))
+            return
+        }
+
+        if (isMac()) {
+            const mountPoint = `/Volumes/YandexMusic-${Date.now()}`
+            const detach = async () => {
+                try {
+                    await execFileAsync('hdiutil', ['detach', mountPoint])
+                } catch {
+                    await new Promise(r => setTimeout(r, 500))
+                    try {
+                        await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
+                    } catch {}
+                }
+            }
+            try {
+                await execFileAsync('hdiutil', ['attach', '-nobrowse', '-noautoopen', '-mountpoint', mountPoint, downloadPath])
+                const entries = await fso.promises.readdir(mountPoint)
+                const appName = entries.find(e => e.toLowerCase().endsWith('.app'))
+                if (!appName) throw new Error(t('main.appUtils.dmgAppNotFound'))
+                const appBundlePath = path.join(mountPoint, appName)
+
+                let targetDir = '/Applications'
+                let targetAppPath = path.join(targetDir, appName)
+
+                try {
+                    await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+                } catch {
+                    targetDir = path.join(app.getPath('home'), 'Applications')
+                    await fsp.mkdir(targetDir, { recursive: true })
+                    targetAppPath = path.join(targetDir, appName)
+                    await execFileAsync('cp', ['-R', appBundlePath, targetDir])
+                }
+
+                await detach()
+                unlinkDownload(downloadPath)
+
+                try {
+                    await execFileAsync('open', [targetAppPath])
+                } catch (e) {
+                    sendDownloadFailure(e as Error)
+                    return
+                }
+
+                checkAsar()
+                sendExecutionSuccess(t('main.appUtils.appInstalledAndLaunched'))
+            } catch (error) {
+                try {
+                    await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
+                } catch {}
+                sendDownloadFailure(error as Error)
+            }
+            return
+        }
+
+        await new Promise<void>(resolve => {
+            setTimeout(() => {
+                execFile(downloadPath, error => {
+                    if (error) {
+                        sendDownloadFailure(error)
+                        resolve()
+                        return
+                    }
+                    unlinkDownload(downloadPath)
+                    checkAsar()
+                    sendExecutionSuccess(t('main.appUtils.fileExecutedSuccessfully'))
+                    resolve()
+                })
+            }, 100)
+        })
+    } catch (error) {
+        mainWindow.setProgressBar(-1)
+        if (downloadPath) unlinkDownload(downloadPath)
+        sendDownloadFailure(error as Error)
+    } finally {
+        yandexMusicDownloadInFlight = false
+    }
+}
+
+export async function updateIntegrityHashInExe(exePath: string, asarPath: string): Promise<void> {
+    try {
+        nativePatchWindowsIntegrity(exePath, asarPath)
+    } catch (err) {
+        logger.main.error(t('main.appUtils.updateIntegrityError'), err)
+        await downloadYandexMusic('reinstall')
+        throw err
+    }
+}
+
+export class AsarPatcher {
+    private readonly appBundlePath: string
+    private readonly resourcesDir: string
+    private readonly asarRelPath = 'app.asar'
+    private readonly asarPath: string
+    private readonly tmpEntitlements: string
+
+    constructor(appBundlePath: string) {
+        this.appBundlePath = appBundlePath
+        this.resourcesDir = path.join(appBundlePath, 'Contents', 'Resources')
+        this.asarPath = path.join(this.resourcesDir, this.asarRelPath)
+        this.tmpEntitlements = path.join(os.tmpdir(), 'extracted_entitlements.xml')
+    }
+
+    private get isMacPlatform(): boolean {
+        return os.platform() === 'darwin'
+    }
+
+    public async patch(callback?: PatchCallback): Promise<boolean> {
+        if (isLinux()) return true
+        if (isWindows()) {
+            const localAppData = process.env.LOCALAPPDATA
+            if (!localAppData) {
+                callback?.(-1, t('main.appUtils.localAppDataMissing'))
+                return false
+            }
+            const exePath = path.join(localAppData, 'Programs', 'YandexMusic', 'Яндекс Музыка.exe')
+            try {
+                callback?.(0, t('main.appUtils.readingExe'))
+                const asarPathFull = path.join(localAppData, 'Programs', 'YandexMusic', 'resources', 'app.asar')
+                await updateIntegrityHashInExe(exePath, asarPathFull)
+                callback?.(1, t('main.appUtils.windowsPatchSuccess'))
+                return true
+            } catch (err) {
+                HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'windows_integrity', err)
+                callback?.(0, t('main.appUtils.windowsPatchError', { message: (err as Error).message }))
+                return false
+            }
+        }
+
+        if (!this.isMacPlatform) {
+            callback?.(0, t('main.appUtils.patchSupportedPlatforms'))
+            return false
+        }
+
+        try {
+            await fsp.access(this.asarPath, fso.constants.W_OK)
+        } catch (err) {
+            logger.main.error(t('main.appUtils.noWriteAccess'), err)
+            await dialog.showMessageBox(mainWindow, {
+                type: 'warning',
+                title: t('main.appUtils.permissionsRequiredTitle'),
+                message: t('main.appUtils.permissionsRequiredMessage'),
+                buttons: [t('main.common.openSettings'), t('main.common.cancel')],
+                cancelId: 1,
+            })
+            execSync('open "x-apple.systempreferences:com.apple.preference.security?Privacy_AppBundles"')
+            return false
+        }
+
+        const sipEnabled = (() => {
+            try {
+                const status = execSync('csrutil status', { encoding: 'utf8' })
+                return status.includes('Filesystem Protections: enabled')
+            } catch {
+                return true
+            }
+        })()
+
+        if (sipEnabled) {
+            callback?.(0, t('main.appUtils.sipEnabled'))
+            return false
+        }
+
+        try {
+            callback?.(0.2, t('main.appUtils.updatingInfoPlistHash'))
+            nativePatchMacIntegrity(this.appBundlePath, this.asarPath, this.tmpEntitlements)
+            callback?.(1, t('main.appUtils.macPatchSuccess'))
+            return true
+        } catch (err) {
+            try {
+                await fsp.unlink(this.tmpEntitlements)
+            } catch {}
+            const message = err instanceof Error ? err.message : String(err)
+            if (isRecoverableMacInfoPlistReadFailure(err)) {
+                logger.main.warn(t('main.appUtils.macPatchError', { message }), err)
+            } else {
+                logger.main.error(t('main.appUtils.macPatchError', { message }), err)
+                HandleErrorsElectron.handleError('AsarPatcher', 'patch', 'mac_integrity', err)
+            }
+            callback?.(0, t('main.appUtils.macPatchError', { message }))
+            return false
+        }
+    }
+}
+
+export async function clearDirectory(directoryPath: string): Promise<void> {
+    try {
+        await fsp.access(directoryPath)
+    } catch {
+        return
+    }
+    for (const entry of await fsp.readdir(directoryPath)) {
+        const full = path.join(directoryPath, entry)
+        const stat = await fsp.stat(full)
+        if (stat.isDirectory()) {
+            await clearDirectory(full)
+            await fsp.rmdir(full)
+        } else {
+            await fsp.unlink(full)
+        }
+    }
+}
+
+export async function findAppByName(namePart: string): Promise<AppxPackage | null> {
+    const psScript = [
+        '& {',
+        'param([string]$namePart)',
+        '$pkg = Get-AppxPackage 2>$null | Where-Object { $_.Name -like ("*" + $namePart + "*") } | Select-Object -First 1;',
+        'if ($pkg) { $pkg | ConvertTo-Json -Depth 4 -Compress }',
+        '}',
+    ].join(' ')
+
+    const out = (await runPowerShell(psScript, [namePart])).trim()
+    if (!out) return null
+    try {
+        return JSON.parse(out)
+    } catch (error) {
+        throw new Error(`JSON parse error: ${(error as Error).message}`)
+    }
+}
+
+export async function uninstallApp(packageFullName: string): Promise<void> {
+    const psScript = ['& {', 'param([string]$packageFullName)', 'Remove-AppxPackage -Package $packageFullName', '}'].join(' ')
+    await runPowerShell(psScript, [packageFullName])
+}
+
+export async function getYandexMusicMetadata() {
+    return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
+}
+
+export async function getLinuxInstallerUrl(): Promise<string> {
+    const yml = await axios.get(YM_RELEASE_METADATA_URL)
+    const match = String(yml.data).match(/version:\s*([\d.]+)/)
+    if (!match) throw new Error(t('main.appUtils.latestYmlVersionNotFound'))
+    const version = match[1]
+    return `https://desktop.app.music.yandex.net/stable/Yandex_Music_amd64_${version}.deb`
+}
+
+export async function getInstalledYmMetadata() {
+    try {
+        const ymDir = await getPathToYandexMusic()
+        if (!ymDir) {
+            logger.modManager.warn('getPathToYandexMusic returned empty path')
+            return null
+        }
+        const asarPath = path.join(ymDir, 'app.asar')
+        if (!nativeFileExists(asarPath)) {
+            logger.modManager.warn('app.asar not found in Yandex Music directory')
+            return null
+        }
+        const version = nativeReadAsarVersion(asarPath)
+        return { version }
+    } catch (error) {
+        logger.modManager.warn('Error reading Yandex Music version from app.asar:', error)
+        return null
+    }
+}

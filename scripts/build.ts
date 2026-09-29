@@ -272,7 +272,7 @@ async function buildDesktopCoreOnly(): Promise<void> {
             emptyOutDir: true,
             outDir: viteOutputDir,
             lib: {
-                entry: path.resolve(__dirname, '../src/desktopCore.ts'),
+                entry: path.resolve(__dirname, '../src/main/core/desktopCore.ts'),
                 fileName: () => 'desktopCore.cjs',
                 formats: ['cjs'],
             },
@@ -285,7 +285,7 @@ async function buildDesktopCoreOnly(): Promise<void> {
             emptyOutDir: false,
             outDir: viteOutputDir,
             rolldownOptions: {
-                input: path.resolve(__dirname, '../src/main/mainWindowPreload.ts'),
+                input: path.resolve(__dirname, '../src/preload/mainWindowPreload.ts'),
                 output: {
                     codeSplitting: false,
                     entryFileNames: 'mainWindowPreload.cjs',

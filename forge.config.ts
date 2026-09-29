@@ -77,25 +77,25 @@ const forgeConfig: ForgeConfig = {
         new VitePlugin({
             build: [
                 {
-                    entry: 'src/bootstrap.ts',
+                    entry: 'src/main/host/bootstrap.ts',
                     config: 'vite.main.config.ts',
                 },
                 {
-                    entry: 'src/desktopCore.ts',
+                    entry: 'src/main/core/desktopCore.ts',
                     config: 'vite.main.config.ts',
                 },
                 {
-                    entry: 'src/main/mainWindowPreload.ts',
+                    entry: 'src/preload/mainWindowPreload.ts',
                     config: 'vite.preload.config.ts',
                     target: 'preload',
                 },
                 {
-                    entry: 'src/main/bootstrapWindowPreload.ts',
+                    entry: 'src/preload/bootstrapWindowPreload.ts',
                     config: 'vite.preload.config.ts',
                     target: 'preload',
                 },
                 {
-                    entry: 'src/main/modules/mod/network/artifactWorker.ts',
+                    entry: 'src/main/core/mod/network/artifactWorker.ts',
                     config: 'vite.worker.config.ts',
                 },
             ],

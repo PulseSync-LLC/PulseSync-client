@@ -1,0 +1,274 @@
+import * as fs from 'original-fs'
+import * as path from 'path'
+
+import { getAddonsRoot, resolveExistingFileInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../utils/addonPaths'
+import { resolveAddonDirectory } from '../utils/addonRegistry'
+import { buildCorsHeaders } from './cors'
+
+import type { Track } from '@entities/track/model/track.interface'
+import type * as http from 'http'
+
+interface LoggerLike {
+    http: {
+        log: (...args: any[]) => void
+        error: (...args: any[]) => void
+    }
+    socketManager?: {
+        error: (...args: any[]) => void
+    }
+}
+
+interface CreateHttpRequestHandlerOptions {
+    logger: LoggerLike
+    allowedOrigins: string[]
+    getTrackData: () => Track
+    reloadDevelopmentAddon: (directoryName: string) => Promise<{ enabled: true; recipients: number }>
+}
+
+const ASSET_PREFIX = '/assets/'
+const REQUEST_URL_BASE = 'http://127.0.0.1'
+const DEVELOPMENT_RELOAD_HEADER = 'x-pulsesync-addon-dev'
+
+const isLoopbackAddress = (value: string | undefined): boolean =>
+    value === '127.0.0.1' || value === '::1' || value?.startsWith('::ffff:127.') === true
+
+const parseRequestUrl = (value: string | undefined): URL => {
+    try {
+        return new URL(value || '/', REQUEST_URL_BASE)
+    } catch {
+        return new URL('/', REQUEST_URL_BASE)
+    }
+}
+
+const getRequestQuery = (value: string | undefined): Record<string, string> => Object.fromEntries(parseRequestUrl(value).searchParams.entries())
+
+const sendJson = (res: http.ServerResponse, status: number, payload: unknown) => {
+    res.writeHead(status, { 'Content-Type': 'application/json' })
+    res.end(JSON.stringify(payload))
+}
+
+const setCorsHeaders = (req: http.IncomingMessage, res: http.ServerResponse, allowedOrigins: string[]) => {
+    const origin = req.headers.origin as string | undefined
+    const headers = buildCorsHeaders(origin, allowedOrigins)
+
+    for (const [key, value] of Object.entries(headers)) {
+        res.setHeader(key, value)
+    }
+
+    res.setHeader('Access-Control-Allow-Methods', 'GET,HEAD,OPTIONS,POST,PUT')
+    res.setHeader(
+        'Access-Control-Allow-Headers',
+        'Access-Control-Allow-Headers, Origin,Accept, X-Requested-With, Content-Type, Access-Control-Request-Method, Access-Control-Request-Headers, X-PulseSync-Channel',
+    )
+}
+
+const getFilesInDirectory = (dir: string): Record<string, string> =>
+    fs.readdirSync(dir).reduce(
+        (acc, f) => {
+            const fp = path.join(dir, f)
+            if (fs.statSync(fp).isDirectory()) Object.assign(acc, getFilesInDirectory(fp))
+            else acc[f] = fp
+            return acc
+        },
+        {} as Record<string, string>,
+    )
+
+const findFileInDirectory = (filename: string, dir: string): string | null => {
+    for (const f of fs.readdirSync(dir)) {
+        const fp = path.join(dir, f)
+        if (fs.statSync(fp).isDirectory()) {
+            const nested = findFileInDirectory(filename, fp)
+            if (nested) return nested
+            continue
+        }
+        if (path.basename(fp) === filename) {
+            return fp
+        }
+    }
+    return null
+}
+
+const findAssetsDirectory = (basePath: string): string | null => {
+    const candidates = ['Assets', 'assets']
+    for (const folderName of candidates) {
+        const dirPath = path.join(basePath, folderName)
+        if (fs.existsSync(dirPath) && fs.statSync(dirPath).isDirectory()) {
+            return dirPath
+        }
+    }
+    return null
+}
+
+const imageMimes: Record<string, string> = {
+    jpg: 'image/jpeg',
+    png: 'image/png',
+    gif: 'image/gif',
+    svg: 'image/svg+xml',
+    ico: 'image/x-icon',
+}
+
+const resolveAddonDirectoryRef = (query: Record<string, unknown>): string => {
+    const candidates = [query.directory, query.id, query.name]
+
+    for (const candidate of candidates) {
+        const resolved = resolveAddonDirectory(candidate)
+        if (resolved) {
+            return resolved
+        }
+    }
+
+    return ''
+}
+
+export const createHttpRequestHandler = ({ logger, allowedOrigins, getTrackData, reloadDevelopmentAddon }: CreateHttpRequestHandlerOptions) => {
+    const handleGetAssetsRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+        try {
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
+
+            if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
+
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
+            const assetsDir = findAssetsDirectory(addonPath)
+            if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
+
+            return sendJson(res, 200, {
+                ok: true,
+                addonPath,
+                assetsPath: assetsDir,
+                files: getFilesInDirectory(assetsDir),
+            })
+        } catch (err) {
+            logger.http.error('Error reading assets:', err)
+            sendJson(res, 500, { error: 'Error reading assets' })
+        }
+    }
+
+    const handleGetAssetFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+        try {
+            const { pathname } = parseRequestUrl(req.url)
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
+            if (!directory) return sendJson(res, 400, { error: 'Missing query parameter: directory, id or name' })
+
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
+
+            const assetsDir = findAssetsDirectory(addonPath)
+            if (!assetsDir) return sendJson(res, 404, { error: 'Assets folder not found' })
+
+            const fileName = pathname!.substring(ASSET_PREFIX.length)
+            const filePath = findFileInDirectory(fileName, assetsDir)
+            logger.http.log('File Path:', filePath)
+
+            if (!filePath || !resolveExistingPathInsideBase(assetsDir, filePath)) return sendJson(res, 404, { error: 'File not found' })
+
+            const ext = path.extname(filePath).slice(1)
+            res.writeHead(200, { 'Content-Type': imageMimes[ext] || 'application/octet-stream' })
+            fs.createReadStream(filePath).pipe(res)
+        } catch (err) {
+            logger.http.error('Error serving asset file:', err)
+            sendJson(res, 500, { error: 'Error serving asset file' })
+        }
+    }
+
+    const handleGetAddonRootFileRequest = (req: http.IncomingMessage, res: http.ServerResponse) => {
+        try {
+            const query = getRequestQuery(req.url)
+            const directory = resolveAddonDirectoryRef(query)
+            const fileName = query.file
+
+            if (!directory || !fileName) return sendJson(res, 400, { error: 'Missing query parameters: directory/id/name or file' })
+            if (/^https?:\/\//i.test(fileName)) {
+                logger.http.log(`Skipping remote URL for root file: ${fileName}`)
+                return sendJson(res, 400, { ok: false, error: 'Remote URLs are not served by this endpoint.' })
+            }
+
+            const addonPath = resolvePathInsideBase(getAddonsRoot(), path.join(getAddonsRoot(), directory))
+            if (!addonPath) return sendJson(res, 400, { error: 'Invalid addon directory' })
+
+            const targetPath = resolveExistingFileInsideBase(addonPath, fileName)
+            if (!targetPath) {
+                return sendJson(res, 404, { error: 'File not found in addon root' })
+            }
+
+            const ext = path.extname(targetPath).slice(1)
+            res.writeHead(200, {
+                'Content-Type': imageMimes[ext] || 'application/octet-stream',
+                'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
+                Pragma: 'no-cache',
+                Expires: '0',
+                'Surrogate-Control': 'no-store',
+            })
+            fs.createReadStream(targetPath).pipe(res)
+        } catch (err) {
+            if (logger.socketManager) {
+                logger.socketManager.error('Error serving addon root file:', err)
+            } else {
+                logger.http.error('Error serving addon root file:', err)
+            }
+            sendJson(res, 500, { error: 'Error serving addon root file' })
+        }
+    }
+
+    const handleGetTrack = (_req: http.IncomingMessage, res: http.ServerResponse) => {
+        try {
+            sendJson(res, 200, getTrackData())
+        } catch (err) {
+            logger.http.error('Error processing get_track:', err)
+            sendJson(res, 500, { error: 'Internal server error' })
+        }
+    }
+
+    const handleDevelopmentAddonReload = async (req: http.IncomingMessage, res: http.ServerResponse) => {
+        if (!isLoopbackAddress(req.socket.remoteAddress) || req.headers[DEVELOPMENT_RELOAD_HEADER] !== '1') {
+            return sendJson(res, 403, { ok: false, error: 'Development addon reload is only available to the local template' })
+        }
+
+        const directoryName = String(getRequestQuery(req.url).directory || '').trim()
+        if (!directoryName || directoryName === '.' || directoryName === '..' || path.basename(directoryName) !== directoryName) {
+            return sendJson(res, 400, { ok: false, error: 'Invalid addon directory' })
+        }
+
+        try {
+            const result = await reloadDevelopmentAddon(directoryName)
+            logger.http.log(`Development addon reloaded: directory=${directoryName}, recipients=${result.recipients}`)
+            return sendJson(res, 200, { ok: true, protocolVersion: 1, ...result })
+        } catch (error) {
+            logger.http.error('Development addon reload failed:', error)
+            return sendJson(res, 400, { ok: false, error: error instanceof Error ? error.message : 'Development addon reload failed' })
+        }
+    }
+
+    const routes: Record<string, (req: http.IncomingMessage, res: http.ServerResponse) => void> = {
+        '/assets': handleGetAssetsRequest,
+        '/addon_file': handleGetAddonRootFileRequest,
+        '/get_track': handleGetTrack,
+    }
+
+    return (req: http.IncomingMessage, res: http.ServerResponse) => {
+        const { method, url } = req
+        const { pathname } = parseRequestUrl(url)
+
+        setCorsHeaders(req, res, allowedOrigins)
+
+        if (method === 'OPTIONS') {
+            res.writeHead(204)
+            return res.end()
+        }
+        if (pathname?.startsWith('/socket.io/')) {
+            return
+        }
+        if (method === 'GET') {
+            if (pathname && routes[pathname]) return routes[pathname](req, res)
+            if (pathname && pathname.startsWith(ASSET_PREFIX)) return handleGetAssetFileRequest(req, res)
+        }
+        if (method === 'POST' && pathname === '/dev/addons/reload') {
+            void handleDevelopmentAddonReload(req, res)
+            return
+        }
+
+        sendJson(res, 404, { error: 'Not found' })
+    }
+}

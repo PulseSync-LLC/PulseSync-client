@@ -19,9 +19,9 @@ const nodeExternals = [...new Set([...builtinModules, ...builtinModules.map(modu
 export default defineConfig(({ mode, forgeConfigSelf }: any): UserConfig => {
     const isDevMode = mode === 'development'
     const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
-    const entry = forgeConfigSelf?.entry ?? 'src/index.ts'
-    const bundleVersion = entry === 'src/bootstrap.ts' ? packageJson.version : desktopCorePackageJson.version
-    const embeddedCoreVersion = entry === 'src/bootstrap.ts' && !isDevMode ? 'external' : desktopCorePackageJson.version
+    const entry = forgeConfigSelf?.entry ?? 'src/main/core/desktopCore.ts'
+    const bundleVersion = entry === 'src/main/host/bootstrap.ts' ? packageJson.version : desktopCorePackageJson.version
+    const embeddedCoreVersion = entry === 'src/main/host/bootstrap.ts' && !isDevMode ? 'external' : desktopCorePackageJson.version
 
     return {
         build: {

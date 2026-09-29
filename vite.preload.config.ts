@@ -33,7 +33,7 @@ function resolveBuildCommit(): string {
 export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     const isDevMode = mode === 'development'
     const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
-    const entry = forgeConfigSelf?.entry ?? 'src/main/mainWindowPreload.ts'
+    const entry = forgeConfigSelf?.entry ?? 'src/preload/mainWindowPreload.ts'
     const bundleVersion = entry.endsWith('bootstrapWindowPreload.ts') ? packageJson.version : desktopCorePackageJson.version
 
     return {

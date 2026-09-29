@@ -16,7 +16,6 @@
         "vite-env.d.ts"
     ],
     "exclude": [
-        "src/main/settingsRenderer.ts",
         "node_modules"
     ]
 }
