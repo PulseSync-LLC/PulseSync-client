@@ -239,7 +239,7 @@ const initializeServer = () => {
         })
     })
 
-    server.listen(config.MAIN_PORT, () => {
+    server.listen(config.MAIN_PORT, '127.0.0.1', () => {
         logger.http.log(`Socket.IO server running on port ${config.MAIN_PORT}`)
         attempt = 0
     })
@@ -299,7 +299,7 @@ const handlePortInUse = () => {
     attempt++
     setTimeout(() => {
         server?.close()
-        server?.listen(config.MAIN_PORT, () => {
+        server?.listen(config.MAIN_PORT, '127.0.0.1', () => {
             logger.http.log(`Server restarted on port ${config.MAIN_PORT}`)
             attempt = 0
         })
