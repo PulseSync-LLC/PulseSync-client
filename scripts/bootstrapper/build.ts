@@ -7,6 +7,7 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { promisify } from 'node:util'
 
+import { prepareCodeSigning, signRuntimeBinaries } from '../code-signing.js'
 import { emitBootstrapperUpdateManifest, type PublishedBootstrapperOptions, reusePublishedBootstrapper } from '../desktop-release-manifest.js'
 import { publishToS3 } from '../s3-upload.js'
 
@@ -111,14 +112,17 @@ function resolveBootstrapperExecutable(options: BuildOptions = {}): string {
 }
 
 export async function buildBootstrapperExecutable(options: BuildOptions = {}): Promise<string> {
+    prepareCodeSigning()
     const executablePath = bootstrapperExecutablePath(options)
     const stampPath = `${executablePath}.build-inputs.sha256`
     const buildInputs = await bootstrapperBuildInputsSha256(options)
     if (fs.existsSync(executablePath) && fs.existsSync(stampPath) && fs.readFileSync(stampPath, 'utf8').trim() === buildInputs) {
+        signRuntimeBinaries(executablePath)
         return executablePath
     }
     await runCargoBuild(options)
     const executable = resolveBootstrapperExecutable(options)
+    signRuntimeBinaries(executable)
     fs.writeFileSync(stampPath, `${buildInputs}\n`, 'utf8')
     return executable
 }
@@ -137,6 +141,7 @@ export async function buildUniversalMacBootstrapperExecutable(): Promise<string>
     fs.rmSync(outputPath, { force: true })
     await execFileAsync('/usr/bin/lipo', ['-create', ...slices, '-output', outputPath], { cwd: projectRoot })
     await execFileAsync('/usr/bin/lipo', [outputPath, '-verify_arch', 'x86_64', 'arm64'], { cwd: projectRoot })
+    signRuntimeBinaries(outputPath)
     return outputPath
 }
 
@@ -154,6 +159,7 @@ export async function copyBootstrapperToInstallRoot(
     if (!reused) {
         const executable = options.build === false ? resolveBootstrapperExecutable() : await buildBootstrapperExecutable()
         fs.copyFileSync(executable, targetExecutable)
+        signRuntimeBinaries(targetExecutable)
     }
     if (process.platform !== 'win32') {
         fs.chmodSync(targetExecutable, 0o755)

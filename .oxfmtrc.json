@@ -1,0 +1,26 @@
+{
+    "bracketSpacing": true,
+    "jsxSingleQuote": false,
+    "semi": false,
+    "tabWidth": 4,
+    "trailingComma": "all",
+    "printWidth": 150,
+    "endOfLine": "lf",
+    "arrowParens": "avoid",
+    "singleQuote": true,
+    "sortPackageJson": false,
+    "ignorePatterns": [
+        "node_modules",
+        ".webpack",
+        ".idea",
+        "out",
+        "tsconfig.json",
+        "README.md",
+        "yarn.lock",
+        "ReactDevTools",
+        "*.svg",
+        "*.md",
+        "*.json",
+        "*.yml"
+    ]
+}

@@ -21,6 +21,9 @@ fileAssociations:
     icon: ./icons/pext/pext.ico
 
 win:
+  signtoolOptions:
+    sign: scripts/windows-sign.cjs
+    signingHashAlgorithms: [sha256]
   requestedExecutionLevel: asInvoker
   icon: ./icons/icon.ico
   target: nsis
@@ -32,6 +35,7 @@ win:
   compression: maximum
 
 mac:
+  identity: null
   target:
     - dmg
   category: public.app-category.developer-tools

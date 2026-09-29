@@ -187,6 +187,8 @@ jobs:
 
       - name: Build component and prepare GitHub assets
         env:
+          PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
+          PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           GITHUB_TOKEN: ${{ github.token }}
           GLITCHTIP_SOURCEMAPS: "0"

@@ -1,11 +1,14 @@
-import { type ChildProcess,spawn, spawnSync } from 'node:child_process'
+import { type ChildProcess, spawn, spawnSync } from 'node:child_process'
 import crypto from 'node:crypto'
 import fs from 'node:fs'
 import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signMacBundle, signRuntimeBinaries } from '../code-signing.js'
+
 const projectRoot = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..', '..')
+const signedProbes = new Map<string, Buffer>()
 
 function run(program: string, args: string[]): string {
     const result = spawnSync(program, args, { cwd: projectRoot, encoding: 'utf8', stdio: ['ignore', 'pipe', 'pipe'] })
@@ -66,6 +69,22 @@ function writeCore(directory: string, version: string): void {
     fs.writeFileSync(path.join(directory, 'index.cjs'), `module.exports = ${JSON.stringify(version)}\n`)
     fs.writeFileSync(path.join(directory, 'mainWindowPreload.cjs'), `module.exports = ${JSON.stringify(`preload-${version}`)}\n`)
     fs.writeFileSync(path.join(directory, 'package.json'), `${JSON.stringify({ name: 'pulsesync_desktop_core', version }, null, 4)}\n`)
+    const probe = path.join(directory, 'signed-probe')
+    const cached = signedProbes.get(version)
+    if (cached) {
+        fs.writeFileSync(probe, cached)
+    } else {
+        const source = path.join(directory, 'signing_probe.rs')
+        try {
+            fs.writeFileSync(source, `fn main() { println!("${version}"); }\n`)
+            run('rustc', ['--edition', '2024', '--crate-name', 'signing_probe', source, '-o', probe])
+            signRuntimeBinaries(probe)
+            signedProbes.set(version, fs.readFileSync(probe))
+        } finally {
+            fs.rmSync(source, { force: true })
+        }
+    }
+    fs.chmodSync(probe, 0o755)
 }
 
 function createBundle(root: string, stateRoot: string, fixtureExecutable: string, bootstrapper: string): string {
@@ -83,6 +102,8 @@ function createBundle(root: string, stateRoot: string, fixtureExecutable: string
     fs.copyFileSync(bootstrapper, bootstrapperTarget)
     fs.chmodSync(executable, 0o755)
     fs.chmodSync(bootstrapperTarget, 0o755)
+    signRuntimeBinaries(executable)
+    signRuntimeBinaries(bootstrapperTarget)
     fs.writeFileSync(path.join(contents, 'Info.plist'), plist())
     writeCore(core, '1.0.0')
     fs.mkdirSync(worker, { recursive: true })
@@ -141,6 +162,7 @@ function createBundle(root: string, stateRoot: string, fixtureExecutable: string
             4,
         )}\n`,
     )
+    signMacBundle(bundle)
     return bundle
 }
 
@@ -162,16 +184,7 @@ function readLease(stateRoot: string): Lease | null {
 
 function resolveRuntime(bootstrapper: string, stateRoot: string, hostBundle: string, lease: Lease): Runtime {
     return JSON.parse(
-        run(bootstrapper, [
-            'resolve-runtime',
-            '--json',
-            '--state-root',
-            stateRoot,
-            '--host-bundle',
-            hostBundle,
-            '--active-lease-id',
-            lease.leaseId,
-        ]),
+        run(bootstrapper, ['resolve-runtime', '--json', '--state-root', stateRoot, '--host-bundle', hostBundle, '--active-lease-id', lease.leaseId]),
     ) as Runtime
 }
 
@@ -190,7 +203,15 @@ function acknowledgeRuntime(bootstrapper: string, stateRoot: string, hostBundle:
     ])
 }
 
-function writeHybridManifest(root: string, dist: string, hostBundle: string, version: string, revision: number, metadataVersion: number): string {
+function writeHybridManifest(
+    root: string,
+    dist: string,
+    hostBundle: string,
+    version: string,
+    revision: number,
+    metadataVersion: number,
+    delta?: { bootstrapper: string; sourceDirectory: string; corrupt?: boolean },
+): string {
     const diskName = 'pulsesync_desktop_core'
     const core = path.join(root, `core-${revision}`, diskName)
     writeCore(core, version)
@@ -201,13 +222,42 @@ function writeHybridManifest(root: string, dist: string, hostBundle: string, ver
         .sort()
         .map(name => {
             const filePath = path.join(core, name)
+            const patches = []
+            if (delta && name === 'signed-probe') {
+                const source = path.join(delta.sourceDirectory, name)
+                const patchPath = path.join(root, `probe-${revision}.patch`)
+                run(delta.bootstrapper, [
+                    'make-delta',
+                    '--json',
+                    '--provider',
+                    'bsdiff',
+                    '--source',
+                    source,
+                    '--target',
+                    filePath,
+                    '--output',
+                    patchPath,
+                ])
+                patches.push({
+                    provider: 'bsdiff',
+                    fromSha256: sha256File(source),
+                    resultSha256: sha256File(filePath),
+                    resultSize: fs.statSync(filePath).size,
+                    artifact: { url: patchPath, sha256: sha256File(patchPath), size: fs.statSync(patchPath).size },
+                })
+                if (delta.corrupt) {
+                    const bytes = fs.readFileSync(patchPath)
+                    bytes[bytes.length - 1] ^= 1
+                    fs.writeFileSync(patchPath, bytes)
+                }
+            }
             return {
                 path: name,
                 sha256: sha256File(filePath),
                 size: fs.statSync(filePath).size,
-                executable: false,
+                executable: name === 'signed-probe',
                 artifact: { url: filePath, sha256: sha256File(filePath), size: fs.statSync(filePath).size },
-                patches: [],
+                patches,
             }
         })
     const hostArtifact = path.join(hostBundle, 'Contents', 'Info.plist')
@@ -257,6 +307,26 @@ function writeHybridManifest(root: string, dist: string, hostBundle: string, ver
     return manifestPath
 }
 
+function verifyProbeDelivery(transactionFile: string, expected: 'bsdiff' | 'full'): void {
+    const transaction = JSON.parse(fs.readFileSync(transactionFile, 'utf8')) as {
+        artifacts: { fileOperations: { path: string; delivery: string; deltaAttempts: { outcome: string }[] }[] }[]
+    }
+    const probe = transaction.artifacts.flatMap(artifact => artifact.fileOperations).find(operation => operation.path === 'signed-probe')
+    if (!probe || probe.delivery !== expected || !probe.deltaAttempts?.length) {
+        throw new Error(`Expected ${expected} after a real delta attempt: ${JSON.stringify(probe)}`)
+    }
+    if (expected === 'full' && probe.deltaAttempts.every(attempt => attempt.outcome === 'applied')) {
+        throw new Error('Corrupted patch did not fail before full fallback')
+    }
+}
+
+function verifySignedRuntime(runtime: Runtime, hostBundle: string): void {
+    const probe = path.join(runtime.corePath, 'signed-probe')
+    run('/usr/bin/codesign', ['--verify', '--strict', probe])
+    run('/usr/bin/codesign', ['--verify', '--deep', '--strict', hostBundle])
+    if (run(probe, []) !== runtime.coreVersion) throw new Error('Patched signed executable returned the wrong version')
+}
+
 function prepareUpdate(
     bootstrapper: string,
     stateRoot: string,
@@ -301,13 +371,7 @@ function prepareUpdate(
     return result.transaction.file
 }
 
-async function handoff(
-    bootstrapper: string,
-    stateRoot: string,
-    hostBundle: string,
-    appExecutable: string,
-    oldLease: Lease,
-): Promise<Lease> {
+async function handoff(bootstrapper: string, stateRoot: string, hostBundle: string, appExecutable: string, oldLease: Lease): Promise<Lease> {
     const child = spawn(
         bootstrapper,
         [
@@ -407,10 +471,14 @@ async function macosHostHandoff(
     if (result.state !== 'reserved' || !result.selectedTransactionFile) {
         throw new Error(`macOS hybrid handoff was not reserved: ${stdout}`)
     }
-    const lease = await waitFor(() => {
-        const candidate = readLease(stateRoot)
-        return candidate && candidate.pid !== oldLease.pid ? candidate : null
-    }, 'hybrid host successor lease', 25_000)
+    const lease = await waitFor(
+        () => {
+            const candidate = readLease(stateRoot)
+            return candidate && candidate.pid !== oldLease.pid ? candidate : null
+        },
+        'hybrid host successor lease',
+        25_000,
+    )
     return { lease, transactionFile: result.selectedTransactionFile }
 }
 
@@ -456,6 +524,7 @@ function createIncomingHostBundle(
         required: true,
     }
     fs.writeFileSync(descriptorPath, `${JSON.stringify(descriptor, null, 4)}\n`)
+    signMacBundle(incomingBundle)
     const archive = path.join(root, `pulsesync-host-bundle-${bundleVersion}-${dist}.zip`)
     run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', incomingBundle, archive])
     const manifest = JSON.parse(fs.readFileSync(manifestPath, 'utf8')) as {
@@ -509,8 +578,9 @@ async function main(): Promise<void> {
         }
         const bundleVersionBefore = run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(hostBundle, 'Contents', 'Info.plist')])
 
-        const manifest2 = writeHybridManifest(root, dist, hostBundle, '1.0.1', 2, 2)
-        prepareUpdate(bootstrapper, stateRoot, hostBundle, appExecutable, seedLease, manifest2, '1.0.0', dist)
+        const manifest2 = writeHybridManifest(root, dist, hostBundle, '1.0.1', 2, 2, { bootstrapper, sourceDirectory: seeded.corePath })
+        const transaction2 = prepareUpdate(bootstrapper, stateRoot, hostBundle, appExecutable, seedLease, manifest2, '1.0.0', dist)
+        verifyProbeDelivery(transaction2, 'bsdiff')
         const lease2 = await handoff(bootstrapper, stateRoot, hostBundle, appExecutable, seedLease)
         livePid = lease2.pid
         const pending2 = resolveRuntime(bootstrapper, stateRoot, hostBundle, lease2)
@@ -518,13 +588,20 @@ async function main(): Promise<void> {
         acknowledgeRuntime(bootstrapper, stateRoot, hostBundle, lease2, pending2.generation)
         const confirmed2 = resolveRuntime(bootstrapper, stateRoot, hostBundle, lease2)
         if (confirmed2.activationState !== 'confirmed' || confirmed2.coreVersion !== '1.0.1') throw new Error('revision 2 was not confirmed')
+        verifySignedRuntime(confirmed2, hostBundle)
 
-        const manifest3 = writeHybridManifest(root, dist, hostBundle, '1.0.2', 3, 3)
-        prepareUpdate(bootstrapper, stateRoot, hostBundle, appExecutable, lease2, manifest3, '1.0.1', dist)
+        const manifest3 = writeHybridManifest(root, dist, hostBundle, '1.0.2', 3, 3, {
+            bootstrapper,
+            sourceDirectory: confirmed2.corePath,
+            corrupt: true,
+        })
+        const transaction3 = prepareUpdate(bootstrapper, stateRoot, hostBundle, appExecutable, lease2, manifest3, '1.0.1', dist)
+        verifyProbeDelivery(transaction3, 'full')
         const lease3 = await handoff(bootstrapper, stateRoot, hostBundle, appExecutable, lease2)
         livePid = lease3.pid
         const pending3 = resolveRuntime(bootstrapper, stateRoot, hostBundle, lease3)
         if (pending3.coreVersion !== '1.0.2' || pending3.activationState !== 'pending') throw new Error('revision 3 was not pending')
+        verifySignedRuntime(pending3, hostBundle)
         terminate(lease3.pid)
         livePid = null
         await waitFor(() => {
@@ -559,6 +636,7 @@ async function main(): Promise<void> {
         if (rolledBack.coreVersion !== '1.0.1' || rolledBack.activationState !== 'confirmed') {
             throw new Error(`Failed core did not roll back: ${JSON.stringify(rolledBack)}`)
         }
+        verifySignedRuntime(rolledBack, hostBundle)
         const manifest4 = writeHybridManifest(root, dist, hostBundle, '1.0.2', 3, 4)
         createIncomingHostBundle(root, hostBundle, dist, manifest4, '1.1.0', 2, '1.0.2', 3, 4)
         prepareUpdate(bootstrapper, stateRoot, hostBundle, appExecutable, lease4, manifest4, '1.0.1', dist)
@@ -570,10 +648,14 @@ async function main(): Promise<void> {
             throw new Error(`Combined host/core update was not pending: ${JSON.stringify(pendingHost)}`)
         }
         acknowledgeRuntime(bootstrapper, stateRoot, hostBundle, hostHandoff.lease, pendingHost.generation)
-        await waitFor(() => {
-            const transaction = JSON.parse(fs.readFileSync(hostHandoff.transactionFile, 'utf8')) as { state: string }
-            return transaction.state === 'complete' ? true : null
-        }, 'combined host/core finalization', 20_000)
+        await waitFor(
+            () => {
+                const transaction = JSON.parse(fs.readFileSync(hostHandoff.transactionFile, 'utf8')) as { state: string }
+                return transaction.state === 'complete' ? true : null
+            },
+            'combined host/core finalization',
+            20_000,
+        )
         const confirmedHost = resolveRuntime(bootstrapper, stateRoot, hostBundle, hostHandoff.lease)
         if (confirmedHost.coreVersion !== '1.0.2' || confirmedHost.activationState !== 'confirmed') {
             throw new Error('Combined host/core update was not confirmed')
@@ -587,10 +669,14 @@ async function main(): Promise<void> {
         if (failedHostPending.coreVersion !== '1.0.3' || failedHostPending.activationState !== 'pending') {
             throw new Error('Combined failure fixture did not reach pending runtime')
         }
-        await waitFor(() => {
-            const transaction = JSON.parse(fs.readFileSync(failedHostHandoff.transactionFile, 'utf8')) as { state: string }
-            return transaction.state === 'rolled-back' ? true : null
-        }, 'combined host/core rollback', 45_000)
+        await waitFor(
+            () => {
+                const transaction = JSON.parse(fs.readFileSync(failedHostHandoff.transactionFile, 'utf8')) as { state: string }
+                return transaction.state === 'rolled-back' ? true : null
+            },
+            'combined host/core rollback',
+            45_000,
+        )
         const rollbackRestart = JSON.parse(
             run(bundledBootstrapper, [
                 'start',
@@ -608,15 +694,20 @@ async function main(): Promise<void> {
         if (rollbackRestart.state !== 'launched') {
             throw new Error(`Combined rollback restart failed: ${JSON.stringify(rollbackRestart)}`)
         }
-        const recoveredHostLease = await waitFor(() => {
-            const candidate = readLease(stateRoot)
-            return candidate && candidate.pid !== failedHostHandoff.lease.pid ? candidate : null
-        }, 'combined rollback successor lease', 20_000)
+        const recoveredHostLease = await waitFor(
+            () => {
+                const candidate = readLease(stateRoot)
+                return candidate && candidate.pid !== failedHostHandoff.lease.pid ? candidate : null
+            },
+            'combined rollback successor lease',
+            20_000,
+        )
         livePid = recoveredHostLease.pid
         const recoveredHost = resolveRuntime(bootstrapper, stateRoot, hostBundle, recoveredHostLease)
         if (recoveredHost.coreVersion !== '1.0.2' || recoveredHost.activationState !== 'confirmed') {
             throw new Error(`Combined host/core rollback did not restore known-good: ${JSON.stringify(recoveredHost)}`)
         }
+        verifySignedRuntime(recoveredHost, hostBundle)
         const bundleVersionAfter = run('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleVersion', path.join(hostBundle, 'Contents', 'Info.plist')])
         if (bundleVersionBefore !== '1' || bundleVersionAfter !== '2') throw new Error('Host bundle identity did not advance exactly once')
         const state = JSON.parse(fs.readFileSync(path.join(stateRoot, 'runtime', 'install-state.json'), 'utf8')) as {

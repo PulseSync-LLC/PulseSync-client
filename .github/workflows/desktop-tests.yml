@@ -100,6 +100,12 @@ jobs:
       - name: Verify atomic bundle update
         run: yarn bootstrapper:verify-macos-update
 
+      - name: Reject tampered signed bundle
+        run: yarn bootstrapper:verify-macos-update --tampered-bundle
+
+      - name: Verify signed hybrid updates and bsdiff fallback
+        run: yarn bootstrapper:verify-macos-hybrid-update
+
       - name: Build release bootstrapper for recovery checks
         run: cargo build --release --manifest-path packages/bootstrapper/Cargo.toml
 

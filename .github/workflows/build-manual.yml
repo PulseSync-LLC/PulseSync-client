@@ -128,6 +128,8 @@ jobs:
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
         env:
+          PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
+          PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
