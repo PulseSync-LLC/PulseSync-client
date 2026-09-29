@@ -13,13 +13,14 @@ import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.
 import type { AddonConfig } from '@features/configurationSettings/types'
 
 type Props = {
+    addonId: string
     configData: AddonConfig
     onChange?: (next: AddonConfig) => void
     save?: (next: AddonConfig) => Promise<void> | void
     filePreviewSrc?: (p: string) => string
 } & Record<string, any>
 
-const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
+const ConfigurationSettingsEdit: React.FC<Props> = ({ addonId, configData, onChange, save, filePreviewSrc, ...rest }) => {
     const { t } = useTranslation()
     const rootRef = useRef<HTMLDivElement | null>(null)
     const {
@@ -59,6 +60,7 @@ const ConfigurationSettingsEdit: React.FC<Props> = ({ configData, onChange, save
         updateItem,
         updateTextButton,
     } = useConfigurationEditor({
+        addonId,
         addMenuClassName: css.addMenu,
         configData,
         onChange,
