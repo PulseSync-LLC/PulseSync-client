@@ -17,6 +17,7 @@ import { build as viteBuild } from 'vite'
 
 import { buildBootstrapperExecutable, buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
 import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
+import { prepareCodeSigning, signMacBundle, signRuntimeBinaries } from './code-signing.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import {
     emitDesktopCoreUpdateManifest,
@@ -729,6 +730,7 @@ async function installMacBootstrapperSeed(
         stdio: debug ? 'inherit' : 'pipe',
     })
     writeMacPackagedRuntime(outDir, desktopVersion, hostVersion, bundleVersion)
+    signMacBundle(path.join(outDir, `${getProductNameFromConfig()}.app`))
     return targetDir
 }
 
@@ -1049,6 +1051,7 @@ async function main(): Promise<void> {
         return
     }
     ensureNodeHeapForMac()
+    if (buildApplication || buildOnlyInstaller) prepareCodeSigning()
     if (buildApplication || buildDesktopCore) {
         assertGlitchTipSourceMapConfig()
     }
@@ -1109,6 +1112,7 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(pdPath), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(pdPath)
         copyArtifactWorker(pdPath)
+        signRuntimeBinaries(getPackagedAppRoot(pdPath))
         normalizeVersionedRuntimeModules(pdPath)
         const setupDist = setBuildDist(os.platform(), targetArch)
         const coreVersion = JSON.parse(fs.readFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), 'utf8')).version as string
@@ -1177,6 +1181,7 @@ async function main(): Promise<void> {
         fs.rmSync(path.join(getPackagedResourcesDir(outDir), 'modules'), { force: true, recursive: true })
         copyRuntimeNativeModules(outDir)
         copyArtifactWorker(outDir)
+        signRuntimeBinaries(getPackagedAppRoot(outDir))
         let publishedBootstrapper: PublishedBootstrapperOptions | undefined
         if (publishBranch) {
             const baseS3Url = process.env.S3_URL?.trim()

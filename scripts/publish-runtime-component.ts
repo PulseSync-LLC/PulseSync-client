@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url'
 
 import { build as viteBuild } from 'vite'
 
+import { signRuntimeBinaries } from './code-signing.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import { emitRuntimeComponentUpdateManifest, getDesktopHybridReleaseManifestName, getDesktopReleaseManifestName } from './desktop-release-manifest.js'
 import { fetchWithRetry } from './network-retry.js'
@@ -104,8 +105,11 @@ async function buildArtifactWorker(moduleDir: string): Promise<void> {
 function buildPulsesyncNative(moduleDir: string): void {
     const nativeRoot = path.join(projectRoot, 'nativeModules', 'pulsesyncNative')
     const yarnCommand = process.platform === 'win32' ? 'yarn.cmd' : 'yarn'
-    run(yarnCommand, ['build'], { cwd: nativeRoot })
-    copyFileIntoModule(path.join(nativeRoot, 'build', 'Release', 'pulsesyncNative.node'), moduleDir)
+    run(yarnCommand, ['build', ...(process.platform === 'darwin' ? ['--universal'] : [])], { cwd: nativeRoot })
+    const binary = path.join(nativeRoot, 'build', 'Release', 'pulsesyncNative.node')
+    if (process.platform === 'darwin') run('/usr/bin/lipo', [binary, '-verify_arch', 'x86_64', 'arm64'])
+    copyFileIntoModule(binary, moduleDir)
+    signRuntimeBinaries(moduleDir)
 }
 
 function restoreFiles(snapshots: Map<string, Buffer>): void {

@@ -55,6 +55,9 @@ jobs:
 
       - name: Build (package)
         run: yarn build:package --nativeModules
+        env:
+          PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
+          PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
 
       - name: Verify bootstrapper layout
         run: yarn bootstrapper:verify-build-layout

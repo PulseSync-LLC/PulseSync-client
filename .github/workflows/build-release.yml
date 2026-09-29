@@ -58,6 +58,8 @@ jobs:
       - name: Build (package)
         run: yarn build:package --nativeModules
         env:
+          PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
+          PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}

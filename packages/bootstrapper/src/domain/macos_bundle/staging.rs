@@ -312,6 +312,16 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
         }
         validate_bundle(&bundles[0], &relative_executable)
             .map_err(|error| format!("extracted macOS bundle validation failed: {error}"))?;
+        run_checked(
+            "/usr/bin/codesign",
+            &[
+                std::ffi::OsStr::new("--verify"),
+                std::ffi::OsStr::new("--deep"),
+                std::ffi::OsStr::new("--strict"),
+                bundles[0].as_os_str(),
+            ],
+            "macOS incoming bundle signature verification",
+        )?;
         fs::rename(&bundles[0], &commit_slot)
             .map_err(|error| format!("macOS commit slot creation failed: {error}"))?;
         Ok(commit_slot.clone())

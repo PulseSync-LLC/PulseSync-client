@@ -455,7 +455,18 @@ pub fn start(args: &Args) -> Result<Value> {
                         let layout = layout.as_ref().ok_or("macOS runtime layout is missing")?;
                         let current_helper = current_macos_seed(layout)?;
                         let prepared_helper =
-                            macos_bundle::arm_transaction(&selected.path, &current_helper)?;
+                            match macos_bundle::arm_transaction(&selected.path, &current_helper) {
+                                Ok(helper) => helper,
+                                Err(error) => {
+                                    cancel_handoff(
+                                        install_root,
+                                        &context.predecessor,
+                                        &context.transfer,
+                                        &context.rust_process,
+                                    )?;
+                                    return Err(error);
+                                }
+                            };
                         let app_executable = explicit_app_executable
                             .clone()
                             .or_else(|| Some(layout.app_executable.clone()))

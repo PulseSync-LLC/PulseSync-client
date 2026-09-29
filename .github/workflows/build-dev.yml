@@ -197,6 +197,8 @@ jobs:
       - name: Build dev release
         run: yarn build:package --nativeModules --publish dev
         env:
+          PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
+          PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           BUILD_VERSION: ${{ needs.version.outputs.build_version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: "1"

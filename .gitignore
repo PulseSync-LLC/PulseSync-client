@@ -102,6 +102,7 @@ release
 PulseSync.cer
 PulseSync.pfx
 PulseSync.pvk
+.signing/
 
 schema.graphql
 ReactDevTools

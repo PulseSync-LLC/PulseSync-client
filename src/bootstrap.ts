@@ -114,12 +114,7 @@ function loadApplicationMain(
 
 type LaunchFailureCode = 'LF-CANONICAL' | 'LF-CANONICAL-STATE' | 'LF-CLAIM' | 'LF-RUNTIME' | 'LF-STARTUP'
 
-function captureLaunchFailure(
-    error: unknown,
-    code: LaunchFailureCode,
-    source: string,
-    tags: Record<string, string> = {},
-): BootstrapUiDiagnostic {
+function captureLaunchFailure(error: unknown, code: LaunchFailureCode, source: string, tags: Record<string, string> = {}): BootstrapUiDiagnostic {
     const reference = randomBytes(4).toString('hex').toUpperCase()
     Sentry.withScope(scope => {
         scope.setTags({
@@ -269,11 +264,7 @@ async function startPackagedBootstrap(): Promise<void> {
         })
     } catch (error) {
         console.error('PulseSync active-app claim failed', error)
-        await showBootstrapFailure(
-            bootstrapWindow,
-            'launch-failed',
-            captureLaunchFailure(error, 'LF-CLAIM', 'bootstrap/active-app-claim'),
-        )
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed', captureLaunchFailure(error, 'LF-CLAIM', 'bootstrap/active-app-claim'))
         return
     }
 
@@ -329,11 +320,7 @@ async function startPackagedBootstrap(): Promise<void> {
         }
     } catch (error) {
         console.error('PulseSync runtime could not be prepared for launch', error)
-        await showBootstrapFailure(
-            bootstrapWindow,
-            'launch-failed',
-            captureLaunchFailure(error, 'LF-RUNTIME', 'bootstrap/runtime-prepare'),
-        )
+        await showBootstrapFailure(bootstrapWindow, 'launch-failed', captureLaunchFailure(error, 'LF-RUNTIME', 'bootstrap/runtime-prepare'))
         return
     }
     await launchQueue.bindSink(input => inbox.enqueue(input))

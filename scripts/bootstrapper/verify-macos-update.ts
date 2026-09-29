@@ -5,6 +5,8 @@ import os from 'node:os'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import { signMacBundle, signRuntimeBinaries } from '../code-signing.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
 
@@ -81,6 +83,8 @@ function createBundle(
     fs.writeFileSync(path.join(resources, 'fixture-state-root.txt'), `${stateRoot}\n`)
     fs.writeFileSync(path.join(resources, 'fixture-version.txt'), `${desktopVersion}\n`)
     fs.writeFileSync(path.join(resources, 'fixture-claim-delay-ms.txt'), `${claimDelayMs}\n`)
+    signRuntimeBinaries(contents)
+    signMacBundle(bundle)
     return bundle
 }
 
@@ -94,6 +98,7 @@ async function main(): Promise<void> {
     }
     const root = fs.mkdtempSync(path.join(os.tmpdir(), 'pulsesync-macos-e2e-'))
     const withLaunchAgent = process.argv.includes('--with-launch-agent')
+    const tamperedBundle = process.argv.includes('--tampered-bundle')
     const killHelperAfterExchange = process.argv.includes('--kill-helper-after-exchange')
     const killHelperAfterAck = process.argv.includes('--kill-helper-after-ack')
     if ((killHelperAfterExchange || killHelperAfterAck) && !withLaunchAgent) {
@@ -142,6 +147,9 @@ async function main(): Promise<void> {
             stateRoot,
             killHelperAfterExchange ? 5_000 : killHelperAfterAck ? 1_000 : 0,
         )
+        if (tamperedBundle) {
+            fs.appendFileSync(path.join(incomingBundle, 'Contents', 'Resources', 'fixture-version.txt'), 'tampered\n')
+        }
         const archive = path.join(root, `pulsesync-host-bundle-2-${dist}.zip`)
         run('/usr/bin/ditto', ['-c', '-k', '--sequesterRsrc', '--keepParent', incomingBundle, archive])
         const manifest = path.join(root, 'manifest.json')
@@ -202,6 +210,49 @@ async function main(): Promise<void> {
         ) as { state: string; transaction: { file: string } }
         if (prepare.state !== 'prepared') throw new Error(`Update did not prepare: ${JSON.stringify(prepare)}`)
         transactionFile = prepare.transaction.file
+
+        if (tamperedBundle) {
+            const before = sha256(appExecutable)
+            const rejected = spawnSync(
+                bootstrapper,
+                [
+                    'start',
+                    '--json',
+                    '--progress-json',
+                    '--state-root',
+                    stateRoot,
+                    '--host-bundle',
+                    hostBundle,
+                    '--app-executable',
+                    appExecutable,
+                    '--app-executable-name',
+                    'Contents/MacOS/PulseSync',
+                    '--wait-for-pid',
+                    String(oldPid),
+                    '--active-lease-id',
+                    activeLease.leaseId,
+                    '--wait-timeout-ms',
+                    '1000',
+                ],
+                { encoding: 'utf8', timeout: 15_000, env: { ...process.env, PULSESYNC_DISABLE_LAUNCH_AGENT: '1' } },
+            )
+            const output = `${rejected.stderr}\n${rejected.stdout}`
+            if (rejected.error || rejected.status === 0 || !output.includes('macOS incoming bundle signature verification failed')) {
+                throw new Error(`Tampered bundle was not rejected by signature verification: ${output}`)
+            }
+            if (output.includes('"event":"handoff-armed"') || sha256(appExecutable) !== before) {
+                throw new Error('Tampered update reached handoff or changed the installed executable')
+            }
+            process.kill(oldPid!, 0)
+            const restoredLease = JSON.parse(fs.readFileSync(activeLeasePath, 'utf8')) as { leaseId: string; state: string }
+            if (restoredLease.leaseId !== activeLease.leaseId || restoredLease.state !== 'active') {
+                throw new Error(`Rejected update did not restore the active lease: ${JSON.stringify(restoredLease)}`)
+            }
+            run('/usr/bin/codesign', ['--verify', '--deep', '--strict', hostBundle])
+            transactionFile = null
+            console.log('Tampered signed bundle rejected; installed app and active lease preserved')
+            return
+        }
 
         const start = spawn(
             path.join(hostBundle, 'Contents', 'Resources', 'bootstrapper', 'pulsesync-bootstrapper'),

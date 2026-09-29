@@ -4,7 +4,7 @@
     "author": "PulseSync <contact@pulsesync.dev>",
     "description": "PulseSync app for desktops",
     "homepage": "https://pulsesync.dev",
-    "version": "1.1.35",
+    "version": "1.1.36",
     "main": ".vite/main/bootstrap.cjs",
     "scripts": {
         "start": "tsx scripts/dev-remote.ts",
@@ -19,6 +19,7 @@
         "core:build": "tsx scripts/build.ts --core --debug",
         "core:publish": "tsx scripts/build.ts --core --publish dev --debug",
         "component:publish": "tsx scripts/publish-runtime-component.ts",
+        "signing:certificate": "pwsh -NoProfile -NonInteractive -File scripts/windows-sign.ps1 -Initialize",
         "bootstrapper:build": "tsx scripts/bootstrapper/build.ts build",
         "bootstrapper:copy": "tsx scripts/bootstrapper/build.ts copy",
         "bootstrapper:publish": "tsx scripts/bootstrapper/build.ts publish --channel dev --dist win32-x64",
@@ -45,17 +46,17 @@
         "lint:styles": "yarn stylelint \"{src,static}/**/*.{css,scss}\"",
         "lint:styles:fix": "yarn stylelint \"{src,static}/**/*.{css,scss}\" --fix",
         "typecheck": "tsc -b --noEmit",
-        "format": "prettier --write .",
+        "format": "oxfmt .",
         "updateDeps": "ncu -u"
     },
     "type": "module",
     "engines": {
-        "node": "^22.0.0 || ^24.0.0 || ^25.0.0 || >=26.0.0"
+        "node": "^22.12.0 || ^24.0.0 || ^25.0.0 || >=26.0.0"
     },
     "keywords": [],
     "license": "SEE LICENSE IN LICENSE",
     "devDependencies": {
-        "@aws-sdk/client-s3": "^3.1141.0",
+        "@aws-sdk/client-s3": "^3.1142.0",
         "@babel/core": "8.0.6",
         "@electron-forge/cli": "8.0.0-alpha.10",
         "@electron-forge/plugin-fuses": "8.0.0-alpha.10",
@@ -74,15 +75,14 @@
         "@types/string-similarity": "^4.0.2",
         "@vitejs/plugin-react": "^6.1.1",
         "babel-plugin-react-compiler": "^1.0.0",
-        "chalk": "^6.0.0",
+        "chalk": "^6.0.1",
         "cross-env": "^10.1.0",
         "dotenv": "^18.0.4",
         "electron": "44.4.5",
         "electron-builder": "^26.15.3",
         "eslint-plugin-simple-import-sort": "^14.0.0",
         "js-yaml": "^5.4.2",
-        "oxlint": "^1.85.0",
-        "prettier": "^3.9.9",
+        "oxlint": "^1.86.0",
         "sass": "^1.105.0",
         "stylelint": "^17.15.0",
         "stylelint-config-recess-order": "^7.8.0",
@@ -92,7 +92,8 @@
         "tsx": "4.23.15",
         "typescript": "7.0.2",
         "vite": "^8.3.1",
-        "vite-plugin-svgr": "^5.2.0"
+        "vite-plugin-svgr": "^5.2.0",
+        "oxfmt": "0.71.0"
     },
     "dependencies": {
         "@apollo/client": "^4.3.1",
@@ -113,7 +114,7 @@
         "electron-chrome-web-store": "^0.13.0",
         "electron-store": "11.0.2",
         "formik": "^2.4.9",
-        "framer-motion": "^13.4.4",
+        "framer-motion": "^13.4.6",
         "graphql": "^17.0.2",
         "graphql-tag": "^2.12.7",
         "graphql-ws": "^6.3.0",
@@ -143,7 +144,7 @@
         "socket.io": "^4.8.4",
         "socket.io-client": "^4.8.4",
         "string-similarity": "^4.0.4",
-        "systeminformation": "^5.33.13",
+        "systeminformation": "^5.33.14",
         "uuid": "^14.0.2",
         "yaml": "^2.9.1",
         "zstd-codec": "^0.1.5"
