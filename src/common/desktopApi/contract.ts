@@ -286,6 +286,8 @@ export interface PulseSyncDesktopApi {
         list(): Promise<unknown>
         setEnabled(request: DesktopSetAddonEnabledRequest): Promise<unknown>
         saveOrganization(organization: DesktopAddonOrganization): Promise<void>
+        getCollapsedSettingsSections(addonId: string): Record<string, boolean>
+        saveCollapsedSettingsSections(addonId: string, sections: Record<string, boolean>): Promise<void>
         importPext(path: string): Promise<unknown>
         installStore(request: DesktopInstallStoreAddonRequest): Promise<unknown>
         packageArchive(request: DesktopPackageAddonArchiveRequest): Promise<unknown>

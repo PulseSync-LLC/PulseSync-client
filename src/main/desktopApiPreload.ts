@@ -46,6 +46,14 @@ const subscribePayload = <T>(channel: string, listener: (payload: T) => void) =>
 
 const subscribeVoid = (channel: string, listener: () => void) => subscribe(channel, () => listener())
 
+const getCollapsedSettingsSectionsKey = (addonId: string): string =>
+    `addons.collapsedSettingsSections.addon_${encodeURIComponent(addonId).replace(/\./g, '%2E')}`
+
+const normalizeCollapsedSettingsSections = (value: unknown): Record<string, boolean> => {
+    if (!value || typeof value !== 'object' || Array.isArray(value)) return {}
+    return Object.fromEntries(Object.entries(value).filter(([, collapsed]) => typeof collapsed === 'boolean'))
+}
+
 const trimTrailingPathSeparator = (value: string): string => value.replace(/[\\/]+$/, '')
 
 const joinLinuxPath = (...parts: string[]): string =>
@@ -399,6 +407,13 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         saveOrganization: async organization => {
             ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'addons.organization', organization)
+        },
+
+        getCollapsedSettingsSections: addonId =>
+            normalizeCollapsedSettingsSections(ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, getCollapsedSettingsSectionsKey(addonId))),
+
+        saveCollapsedSettingsSections: async (addonId, sections) => {
+            ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, getCollapsedSettingsSectionsKey(addonId), normalizeCollapsedSettingsSections(sections))
         },
 
         importPext: filePath => ipcRenderer.invoke(MainEvents.IMPORT_PEXT_FILE, filePath),

@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react'
 
+import { useCollapsedSections } from '@features/configurationSettings/model/useCollapsedSections'
 import { normalizeAddonConfig } from '@features/configurationSettings/types'
 
 import type {
@@ -115,6 +116,7 @@ export type AddMenuState = { open: false } | { open: true; x: number; y: number;
 export const typeList: Item['type'][] = ['button', 'slider', 'color', 'file', 'selector', 'text']
 
 type Params = {
+    addonId: string
     addMenuClassName: string
     configData: AddonConfig
     onChange?: (next: AddonConfig) => void
@@ -123,13 +125,13 @@ type Params = {
     t: (key: string, options?: Record<string, any>) => string
 }
 
-export function useConfigurationEditor({ addMenuClassName, configData, onChange, save, configApiSave, t }: Params) {
+export function useConfigurationEditor({ addonId, addMenuClassName, configData, onChange, save, configApiSave, t }: Params) {
     const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
     const [cfg, setCfg] = useState<AddonConfig>(ensureStableKeys(normalizedInitialConfig))
     const baselineRef = useRef<AddonConfig>(ensureStableKeys(normalizedInitialConfig))
     const lastSavedSnapRef = useRef<string>(JSON.stringify(stripInternal(normalizedInitialConfig)))
     const [savedTick, setSavedTick] = useState(0)
-    const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
+    const [collapsed, setCollapsed] = useCollapsedSections(addonId, cfg.sections)
     const [addMenu, setAddMenu] = useState<AddMenuState>({ open: false })
     const dragRef = useRef<{ kind: 'section' | 'item'; fromSi: number; fromIi?: number } | null>(null)
     const [dragOver, setDragOver] = useState<{ si: number; ii?: number; where?: 'before' | 'after' } | null>(null)

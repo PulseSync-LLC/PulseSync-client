@@ -135,6 +135,9 @@ export const desktopApi = {
         setEnabled: (request: Parameters<PulseSyncDesktopApi['addons']['setEnabled']>[0]) => requireDesktopApi().addons.setEnabled(request),
         saveOrganization: (organization: Parameters<PulseSyncDesktopApi['addons']['saveOrganization']>[0]) =>
             requireDesktopApi().addons.saveOrganization(organization),
+        getCollapsedSettingsSections: (addonId: string) => requireDesktopApi().addons.getCollapsedSettingsSections(addonId),
+        saveCollapsedSettingsSections: (addonId: string, sections: Record<string, boolean>) =>
+            requireDesktopApi().addons.saveCollapsedSettingsSections(addonId, sections),
         importPext: (path: string) => requireDesktopApi().addons.importPext(path),
         installStore: (request: Parameters<PulseSyncDesktopApi['addons']['installStore']>[0]) => requireDesktopApi().addons.installStore(request),
         packageArchive: (request: Parameters<PulseSyncDesktopApi['addons']['packageArchive']>[0]) =>

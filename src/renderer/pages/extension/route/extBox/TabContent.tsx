@@ -288,6 +288,7 @@ const TabContent: React.FC<Props> = ({
             return editMode ? (
                 <ConfigurationSettingsEdit
                     key={`${addon.path}:${settingsKey}:edit`}
+                    addonId={addon.directoryName}
                     configApi={configApi}
                     save={configApi.saveSchema}
                     configData={activeConfig}
@@ -296,6 +297,7 @@ const TabContent: React.FC<Props> = ({
             ) : (
                 <ConfigurationSettings
                     key={`${addon.path}:${settingsKey}:use`}
+                    addonId={addon.directoryName}
                     configApi={configApi}
                     save={configApi.save}
                     configData={activeConfig}

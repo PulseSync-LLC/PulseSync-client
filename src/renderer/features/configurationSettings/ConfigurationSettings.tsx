@@ -5,6 +5,7 @@ import { useTranslation } from 'react-i18next'
 
 import BufferedColorInput from '@features/configurationSettings/BufferedColorInput'
 import BufferedSliderInput from '@features/configurationSettings/BufferedSliderInput'
+import { useCollapsedSections } from '@features/configurationSettings/model/useCollapsedSections'
 import { normalizeAddonConfig } from '@features/configurationSettings/types'
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
 import ChangesBar from '@shared/ui/PSUI/ChangesBar'
@@ -17,6 +18,7 @@ import * as css from '@features/configurationSettings/ConfigurationSettings.modu
 import type { AddonConfig, ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
 
 type Props = {
+    addonId: string
     configData: AddonConfig
     onChange?: (next: AddonConfig) => void
     save?: (next: AddonConfig) => Promise<void> | void
@@ -118,7 +120,7 @@ const Collapse: React.FC<{ open: boolean; id?: string; duration?: number; childr
     )
 }
 
-const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, filePreviewSrc, ...rest }) => {
+const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange, save, filePreviewSrc, ...rest }) => {
     const { t } = useTranslation()
     const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
     const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
@@ -128,7 +130,7 @@ const ConfigurationSettings: React.FC<Props> = ({ configData, onChange, save, fi
     const lastSavedSnapRef = useRef<string>(JSON.stringify(normalizedInitialConfig))
 
     const [savedTick, setSavedTick] = useState(0)
-    const [collapsed, setCollapsed] = useState<Record<number, boolean>>({})
+    const [collapsed, setCollapsed] = useCollapsedSections(addonId, cfg.sections)
 
     const lastFocusedRef = useRef<HTMLElement | null>(null)
     useEffect(() => {
