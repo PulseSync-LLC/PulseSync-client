@@ -214,7 +214,7 @@ async function main(): Promise<void> {
         if (tamperedBundle) {
             const before = sha256(appExecutable)
             const rejected = spawnSync(
-                bootstrapper,
+                path.join(hostBundle, 'Contents', 'Resources', 'bootstrapper', 'pulsesync-bootstrapper'),
                 [
                     'start',
                     '--json',
