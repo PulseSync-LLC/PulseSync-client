@@ -107,7 +107,7 @@ PulseSync.pvk
 schema.graphql
 ReactDevTools
 /modules
-src/main/modules/YMusic-DRPC.code-workspace
+src/main/core/YMusic-DRPC.code-workspace
 pnpm-lock.yaml
 
 Release

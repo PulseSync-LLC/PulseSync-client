@@ -33,12 +33,12 @@ jobs:
           base: ${{ github.ref_name }}
           filters: |
             desktop:
-              - 'src/bootstrap.ts'
-              - 'src/index.ts'
               - 'src/main/**'
+              - 'src/preload/**'
               - 'src/common/**'
               - 'src/locales/bundled/*/main.json'
               - 'src/renderer/preloader.html'
+              - 'src/renderer/preloader.ts'
               - 'src/styles/fonts.css'
               - 'src/styles/globals.css'
               - 'src/styles/preloader.css'
@@ -75,7 +75,6 @@ jobs:
             renderer:
               - 'src/renderer/**'
               - 'src/common/**'
-              - 'src/main/renderer.ts'
               - 'src/locales/**'
               - 'src/styles/**'
               - 'static/**'
