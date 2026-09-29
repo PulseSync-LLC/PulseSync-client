@@ -245,7 +245,10 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 const response = await rendererHttpClient.get<{ patchNotes?: AppPatchNote[]; ok?: boolean }>('/api/v1/app/patch-notes')
                 let nextAppUpdates: AppPatchNote[]
                 if (response.status === 404) {
-                    const legacyResponse = await rendererHttpClient.get<{ appInfo?: Array<{ id: number; version: string; changelog: string; createdAt: number }>; ok?: boolean }>('/api/v1/app/info')
+                    const legacyResponse = await rendererHttpClient.get<{
+                        appInfo?: Array<{ id: number; version: string; changelog: string; createdAt: number }>
+                        ok?: boolean
+                    }>('/api/v1/app/info')
                     if (!legacyResponse.ok || !legacyResponse.data?.ok || !Array.isArray(legacyResponse.data.appInfo)) {
                         throw new Error('Failed to fetch app patch notes')
                     }

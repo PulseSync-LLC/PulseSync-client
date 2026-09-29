@@ -1,4 +1,4 @@
-import { type ChildProcess,spawn } from 'node:child_process'
+import { type ChildProcess, spawn } from 'node:child_process'
 import http from 'node:http'
 
 import { remoteRendererDevConfig } from './dev-remote-config.js'

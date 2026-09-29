@@ -249,6 +249,9 @@ export type MainWindowStartupHandle = {
 export async function createWindow(options: { bootstrapWindow?: BrowserWindow } = {}): Promise<MainWindowStartupHandle> {
     const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
     const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
+    const persistWindowState = restorePos && restoreDim
+    const windowName = 'pulsesync-main-window'
+    if (!persistWindowState) BrowserWindow.clearPersistedState(windowName)
     const savedPosition = restorePos ? State.get('settings.windowPosition') : undefined
     const savedDimensions = restoreDim ? State.get('settings.windowDimensions') : undefined
 
@@ -286,6 +289,8 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
     const iconExt = isWindows() ? '.ico' : '.png'
     const icon = getNativeImg('App', iconExt, 'icon').resize({ width: 40, height: 40 })
     mainWindow = new BrowserWindow({
+        name: windowName,
+        windowStatePersistence: persistWindowState,
         show: false,
         frame: false,
         backgroundColor: '#16181E',
@@ -408,16 +413,12 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
     })
 
     mainWindow.on('resized', (): void => {
-        const [widthBefore, heightBefore] = mainWindow.getSize()
-        const newWidth = Math.floor(widthBefore / 2) * 2
-        const newHeight = Math.floor(heightBefore / 2) * 2
-        mainWindow.setSize(newWidth, newHeight)
-        const [width, height] = mainWindow.getSize()
+        const { width, height } = mainWindow.getNormalBounds()
         State.set('settings.windowDimensions', { width, height })
     })
 
     mainWindow.on('moved', (): void => {
-        const [x, y] = mainWindow.getPosition()
+        const { x, y } = mainWindow.getNormalBounds()
         State.set('settings.windowPosition', { x, y })
     })
 

@@ -232,10 +232,7 @@ export async function pruneUnreferencedDesktopArtifacts(
     }
 
     const existingKeys = new Set(objects.map(object => object.key))
-    const archivePattern = new RegExp(
-        `^${escapeRegExp(branchPrefix)}manifests/([1-9]\\d*)/(desktop-update-[a-z0-9_-]+\\.json)$`,
-        'iu',
-    )
+    const archivePattern = new RegExp(`^${escapeRegExp(branchPrefix)}manifests/([1-9]\\d*)/(desktop-update-[a-z0-9_-]+\\.json)$`, 'iu')
     const archiveReleases = new Map<string, StoredS3Object[]>()
     for (const object of objects) {
         const match = archivePattern.exec(object.key)
@@ -272,7 +269,10 @@ export async function pruneUnreferencedDesktopArtifacts(
         const desktopVersion = metadataDesktopVersion(text)
         if (desktopVersion) retainedDesktopVersions.add(desktopVersion)
     }
-    if (currentManifestCount > 0 && ![...keepKeys].some(key => key.startsWith(`${branchPrefix}hosts/`) || key.startsWith(`${branchPrefix}bundles/`))) {
+    if (
+        currentManifestCount > 0 &&
+        ![...keepKeys].some(key => key.startsWith(`${branchPrefix}hosts/`) || key.startsWith(`${branchPrefix}bundles/`))
+    ) {
         throw new Error('Desktop manifests did not reference any host artifacts; cleanup aborted')
     }
 

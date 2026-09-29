@@ -5,8 +5,8 @@ import { type ActiveAppLeaseV1, isUpdateErrorV1, type LaunchRequestEnvelopeV1, t
 import { acknowledgeActiveRuntime } from '../bootstrapper/runtimeCommands'
 import logger from '../logger'
 import { getDesktopUpdateManifestRequest } from '../updater/desktopManifestSource'
-import { recordUpdateActivation } from '../updater/updateTelemetry'
 import { getUpdateSource } from '../updater/updateSource'
+import { recordUpdateActivation } from '../updater/updateTelemetry'
 import { handoffPreparedUpdate, setLaunchHandoffRuntime } from './launchHandoff'
 import { updateCoordinator } from './updateCoordinator'
 
