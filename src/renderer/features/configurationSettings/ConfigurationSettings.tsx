@@ -207,7 +207,7 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
             case 'file':
                 return item.value !== item.defaultValue
             case 'selector':
-                return String(item.value) !== String(item.defaultValue)
+                return Object.values(item.options).some(option => 'value' in option) ? !Object.is(item.value, item.defaultValue) : String(item.value) !== String(item.defaultValue)
             case 'text':
                 return item.value !== item.defaultValue
         }
@@ -302,9 +302,15 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
                             className={css.controlCard}
                             label={it.name}
                             description={it.description}
-                            value={String(it.value)}
+                            value={Object.entries(it.options).find(([key, option]) => Object.is(option.value ?? (toNumber ? Number(key) : key), it.value))?.[0] ?? ''}
                             options={opts}
-                            onChange={val => updateItem(si, ii, { value: toNumber ? Number(val) : (String(val) as any) })}
+                            onChange={val => {
+                                const option = it.options[String(val)]
+                                if (!option) return
+                                const value = option.value ?? (toNumber ? Number(val) : String(val))
+                                if (typeof value === 'number' && !Number.isFinite(value)) return
+                                updateItem(si, ii, { value })
+                            }}
                         />
                         {dirty && (
                             <div className={css.resetRow}>
