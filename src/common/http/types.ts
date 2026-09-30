@@ -21,6 +21,7 @@ export type HttpRequestOptions = {
     authToken?: string | null
     responseType?: HttpResponseType
     timeoutMs?: number
+    signal?: AbortSignal
     onUploadProgress?: (progress: HttpUploadProgress) => void
 }
 

@@ -37,7 +37,7 @@ async function fetchTransport<TResponse = unknown>(request: PreparedHttpRequest)
             method: request.method,
             headers: request.headers,
             body: request.body,
-            signal: controller.signal,
+            signal: request.signal ? AbortSignal.any([controller.signal, request.signal]) : controller.signal,
         })
 
         return {
