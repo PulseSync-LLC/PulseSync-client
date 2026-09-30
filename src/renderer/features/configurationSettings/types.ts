@@ -52,7 +52,7 @@ export type SelectorItem = {
     description?: string
     type: 'selector'
     value: number | string
-    options: Record<string, { event: string; name: string }>
+    options: Record<string, { event: string; name: string; value?: string | number }>
     defaultValue: number | string
 }
 
@@ -137,7 +137,7 @@ type LegacySelectorItem = {
     type: 'selector'
     selected?: number | string
     value?: number | string
-    options: Record<string, { event: string; name: string }>
+    options: Record<string, { event: string; name: string; value?: string | number }>
     defaultParameter?: number | string
     defaultValue?: number | string
 }

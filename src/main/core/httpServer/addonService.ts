@@ -69,6 +69,9 @@ type WebHostAssetBase = {
 type WebHostAddonPayload = WebHostAssetBase & {
     type: 'web-addon'
     code: string
+    allowedUrls: string[]
+    requirements?: { minHostApi?: number; capabilities?: readonly string[] }
+    cssScope?: 'addon' | 'global'
     securityManifest?: ModuleManifest
     catalogAddonId?: string
     localModules?: Record<string, Descriptor>
@@ -84,6 +87,7 @@ type WebHostAddonsSnapshot = {
     hash: string
     addons: WebHostAssetPayload[]
     allowedUrls: string[]
+    clientCapabilities: string[]
 }
 
 type AddonStateSnapshot = {
@@ -124,7 +128,7 @@ const hashAddonState = (snapshot: AddonStateSnapshot): string =>
 const WEB_HOST_ADDON_PROTOCOL_VERSION = 1
 const WEB_HOST_THEME_PROTOCOL_VERSION = 2
 
-const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[]): string =>
+const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[], clientCapabilities: string[]): string =>
     createHash('sha256')
         .update(
             JSON.stringify({
@@ -134,6 +138,7 @@ const hashWebHostAddons = (addons: WebHostAssetPayload[], allowedUrls: string[])
                     return leftKey < rightKey ? -1 : leftKey > rightKey ? 1 : 0
                 }),
                 allowedUrls: [...allowedUrls].sort(),
+                clientCapabilities: [...clientCapabilities].sort(),
             }),
         )
         .digest('hex')
@@ -343,6 +348,10 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                 try {
                     const meta = JSON.parse(fs.readFileSync(metadataPath, 'utf8'))
                     if (meta.type !== 'web-addon') return null
+                    if (meta.requirements !== undefined) {
+                        const requirements = meta.requirements
+                        if (!requirements || typeof requirements !== 'object' || Array.isArray(requirements) || !Number.isSafeInteger(requirements.minHostApi ?? 1) || (requirements.minHostApi ?? 1) < 1 || (requirements.capabilities !== undefined && (!Array.isArray(requirements.capabilities) || requirements.capabilities.length > 64 || requirements.capabilities.some((value: unknown) => typeof value !== 'string' || !/^[a-z][a-z0-9-]{0,63}$/.test(value))))) throw new Error('Invalid WebHost requirements')
+                    }
 
                     const metaName = typeof meta.name === 'string' ? meta.name.trim() : ''
                     const addonName = metaName || folderName
@@ -374,6 +383,9 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         version: typeof meta.version === 'string' ? meta.version : undefined,
                         css,
                         code: validation.code,
+                        allowedUrls: Array.isArray(meta.allowedUrls) ? meta.allowedUrls.filter((value: unknown): value is string => typeof value === 'string') : [],
+                        ...(meta.requirements ? { requirements: meta.requirements } : {}),
+                        cssScope: meta.cssScope === 'addon' ? 'addon' as const : 'global' as const,
                         ...(local
                             ? { securityManifest: local.securityManifest, localModules: local.localModules, catalogAddonId: id }
                             : meta.modules
@@ -438,6 +450,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     const readWebHostAddonsSnapshot = (protocolVersion: number): { snapshot: WebHostAddonsSnapshot; handlesTheme: boolean } => {
         const addons: WebHostAssetPayload[] = readWebHostAddonPayloads()
         const allowedUrls = getAllAllowedUrls()
+        const clientCapabilities = ['typed-settings-v1', 'net-per-addon-v1']
         let handlesTheme = false
 
         if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) {
@@ -448,7 +461,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         }
 
         return {
-            snapshot: { hash: hashWebHostAddons(addons, allowedUrls), addons, allowedUrls },
+            snapshot: { hash: hashWebHostAddons(addons, allowedUrls, clientCapabilities), addons, allowedUrls, clientCapabilities },
             handlesTheme,
         }
     }
