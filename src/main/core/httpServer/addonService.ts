@@ -385,7 +385,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
                         code: validation.code,
                         allowedUrls: Array.isArray(meta.allowedUrls) ? meta.allowedUrls.filter((value: unknown): value is string => typeof value === 'string') : [],
                         ...(meta.requirements ? { requirements: meta.requirements } : {}),
-                        cssScope: meta.cssScope === 'addon' ? 'addon' as const : 'global' as const,
+                        ...(meta.cssScope === 'addon' || meta.cssScope === 'global' ? { cssScope: meta.cssScope } : {}),
                         ...(local
                             ? { securityManifest: local.securityManifest, localModules: local.localModules, catalogAddonId: id }
                             : meta.modules
@@ -479,6 +479,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     }
 
     const emitWebHostAddonsSnapshot = (socket: Socket, snapshot: WebHostAddonsSnapshot): void => {
+        sendAllAddonSettings({ targetSocket: socket })
         socket.emit(MainEvents.WEBHOST_ADDONS_SNAPSHOT, snapshot)
     }
 
