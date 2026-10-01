@@ -18,7 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
-      desktop: ${{ steps.filter.outputs.desktop }}
+      desktop: ${{ steps.filter.outputs.desktop == 'true' || (steps.filter.outputs.desktop_core == 'true' && steps.filter.outputs.bootstrapper == 'true') }}
+      desktop_core: ${{ steps.filter.outputs.desktop_core }}
       renderer: ${{ steps.filter.outputs.renderer }}
       retention: ${{ steps.filter.outputs.retention }}
     steps:
@@ -33,8 +34,11 @@ jobs:
           base: ${{ github.ref_name }}
           filters: |
             desktop:
-              - 'src/main/**'
-              - 'src/preload/**'
+              - 'src/main/!(core)/**'
+              - 'src/main/core/mod/network/artifactWorker*'
+              - 'src/main/core/nativeModules/pulsesyncNative.ts'
+              - 'src/main/core/bootstrap/activeComponents.ts'
+              - 'src/preload/!(mainWindowPreload.ts)/**'
               - 'src/common/**'
               - 'src/locales/bundled/*/main.json'
               - 'src/renderer/preloader.html'
@@ -69,6 +73,9 @@ jobs:
               - '.github/actions/cache-build-deps/**'
               - '.github/workflows/build-dev.yml'
               - '.github/workflows/desktop-tests.yml'
+            desktop_core:
+              - 'src/main/core/**'
+              - 'src/preload/mainWindowPreload.ts'
             bootstrapper:
               - 'packages/bootstrapper/**'
               - 'scripts/bootstrapper/**'
@@ -97,13 +104,14 @@ jobs:
         shell: bash
         run: |
           echo "bootstrapper=${{ steps.filter.outputs.bootstrapper }}"
-          echo "desktop=${{ steps.filter.outputs.desktop }}"
+          echo "desktop_filter=${{ steps.filter.outputs.desktop }}"
+          echo "desktop_core=${{ steps.filter.outputs.desktop_core }}"
           echo "renderer=${{ steps.filter.outputs.renderer }}"
           echo "retention=${{ steps.filter.outputs.retention }}"
 
   version:
     needs: changes
-    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    if: ${{ needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core == 'true' }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
     outputs:
@@ -144,7 +152,7 @@ jobs:
   tests:
     name: Test Desktop
     needs: changes
-    if: ${{ needs.changes.outputs.desktop == 'true' }}
+    if: ${{ needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core == 'true' }}
     uses: ./.github/workflows/desktop-tests.yml
     with:
       checkout_ref: ${{ github.sha }}
@@ -232,6 +240,26 @@ jobs:
           path: release/**/*
           if-no-files-found: error
 
+  publish_desktop_core:
+    name: Publish Desktop Core Component
+    needs: [changes, version, tests]
+    if: >-
+      ${{
+        needs.changes.result == 'success' &&
+        needs.version.result == 'success' &&
+        needs.tests.result == 'success' &&
+        needs.changes.outputs.desktop_core == 'true' &&
+        needs.changes.outputs.desktop != 'true'
+      }}
+    uses: ./.github/workflows/publish-component.yml
+    with:
+      ref: ${{ github.sha }}
+      channel: dev
+      component: desktopCore
+      build_os: all
+      build_version: ${{ needs.version.outputs.build_version }}
+    secrets: inherit
+
   publish_bootstrapper:
     name: Publish Bootstrapper Component
     needs: changes
@@ -247,11 +275,12 @@ jobs:
 
   cleanup_desktop_s3:
     name: Cleanup Desktop S3
-    needs: [changes, build, publish_renderer, github_prerelease]
+    needs: [changes, build, publish_desktop_core, publish_renderer, github_prerelease]
     if: >-
       ${{
         always() &&
         (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.retention == 'true') &&
+        (needs.changes.outputs.desktop_core != 'true' || needs.changes.outputs.desktop == 'true') &&
         (needs.changes.outputs.bootstrapper != 'true' || needs.changes.outputs.desktop == 'true')
       }}
     uses: ./.github/workflows/desktop-s3-cleanup.yml
@@ -261,13 +290,14 @@ jobs:
 
   publish_renderer:
     name: Publish Remote Renderer
-    needs: [changes, github_prerelease]
+    needs: [changes, github_prerelease, publish_desktop_core]
     if: >-
       ${{
         always() &&
         needs.changes.result == 'success' &&
         needs.changes.outputs.renderer == 'true' &&
-        (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success')
+        (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success') &&
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core != 'true' || needs.publish_desktop_core.result == 'success')
       }}
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
@@ -445,7 +475,7 @@ jobs:
 
   skip-build:
     needs: changes
-    if: ${{ needs.changes.outputs.bootstrapper != 'true' && needs.changes.outputs.desktop != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
+    if: ${{ needs.changes.outputs.bootstrapper != 'true' && needs.changes.outputs.desktop != 'true' && needs.changes.outputs.desktop_core != 'true' && needs.changes.outputs.renderer != 'true' && needs.changes.outputs.retention != 'true' }}
     runs-on: ubuntu-latest
     steps:
       - name: Skip dev build

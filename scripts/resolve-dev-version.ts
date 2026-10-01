@@ -4,7 +4,8 @@ import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import path from 'path'
 import semver from 'semver'
 
-const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+)-([a-z0-9_-]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
+const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-((?:(?:win32|linux|darwin)-)?[a-z0-9_]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
+const DESKTOP_CORE_ARTIFACT_RE = /^pulsesync-component-desktopCore-(.+?)-(?:win32|linux|darwin)-[a-z0-9_]+\.zip$/iu
 
 type ResolveDevVersionOptions = {
     baseVersion: string
@@ -48,7 +49,8 @@ function createS3Client(): S3Client {
 }
 
 function parseArtifactVersion(key: string): string | null {
-    const match = VERSIONED_ARTIFACT_RE.exec(path.basename(key))
+    const fileName = path.basename(key)
+    const match = VERSIONED_ARTIFACT_RE.exec(fileName) ?? DESKTOP_CORE_ARTIFACT_RE.exec(fileName)
     return match?.[1] ?? null
 }
 
