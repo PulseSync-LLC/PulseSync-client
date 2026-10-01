@@ -17,6 +17,7 @@ export type GetMeVars = Record<string, never>
 export type LegacyAddonRestrictionsState = {
     enabled: boolean
     loading: boolean
+    overrideGroup?: string
 }
 
 export type AppProvidersProps = {

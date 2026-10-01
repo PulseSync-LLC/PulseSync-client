@@ -25,6 +25,7 @@ import {
 } from 'react-icons/md'
 import { useLocation, useNavigate } from 'react-router'
 
+import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { useModalContext } from '@app/providers/modal'
 import useCarouselDrag from '@pages/store/lib/useCarouselDrag'
 import useStoreReleaseChannel from '@pages/store/lib/useStoreReleaseChannel'
@@ -96,6 +97,7 @@ export default function StorePage() {
     const navigate = useNavigate()
     const { addons: installedAddons, setAddons: setInstalledAddons, user } = useContext(UserContext)
     const { Modals, openModal, setModalState } = useModalContext()
+    const { localOverrides } = useExperiments()
     const [addons, setAddons] = useState<StoreAddon[]>([])
     const [newAddons, setNewAddons] = useState<StoreAddon[]>([])
     const [popularAddons, setPopularAddons] = useState<StoreAddon[]>([])
@@ -518,9 +520,14 @@ export default function StorePage() {
                     title: addon.name,
                     releaseChannel: channel,
                     reviewReleaseId: catalogTab === 'moderation' ? release.id : undefined,
+                    legacyAddonRestrictionsOverrideGroup: localOverrides[CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions]?.group,
                 })) as {
                     reason?: string
                     success?: boolean
+                }
+                if (result?.reason === 'LEGACY_ADDON_UPDATE_DISABLED') {
+                    toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'), { id: toastId })
+                    return
                 }
                 if (!result?.success) throw new Error(result?.reason || 'INSTALL_FAILED')
 
@@ -534,7 +541,7 @@ export default function StorePage() {
                 setInstallingAddonId(current => (current === addon.id ? null : current))
             }
         },
-        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t, releaseChannel, catalogTab],
+        [Modals.BASIC_CONFIRMATION, installingAddonId, openModal, setInstalledAddons, setModalState, t, releaseChannel, catalogTab, localOverrides],
     )
 
     const renderStoreCard = useCallback(

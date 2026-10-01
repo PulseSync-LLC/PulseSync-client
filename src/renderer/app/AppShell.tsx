@@ -286,11 +286,8 @@ function App() {
                 const installedByStoreId = new Map(storeInstalledAddons.map(addon => [addon.storeAddonId!, addon]))
                 const outdatedAddons = updates.filter(publishedAddon => {
                     const installedAddon = installedByStoreId.get(publishedAddon.id)
-                    const legacyUpdateBlocked =
-                        isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type === 'script'
                     return (
                         !!installedAddon &&
-                        !legacyUpdateBlocked &&
                         !!publishedAddon.currentRelease?.downloadUrl &&
                         compareVersions(publishedAddon.currentRelease.version, installedAddon.version) > 0
                     )
@@ -326,6 +323,7 @@ function App() {
                                 downloadUrl: release.downloadUrl,
                                 releaseChannel: installedAddon.storeReleaseChannel ?? 'stable',
                                 title: publishedAddon.name,
+                                legacyAddonRestrictionsOverrideGroup: legacyAddonRestrictions.overrideGroup,
                             })) as { reason?: string; success?: boolean } | null | undefined
 
                             if (!result?.success) {
@@ -346,6 +344,8 @@ function App() {
 
                         continue
                     }
+
+                    if (isRestrictedLegacyAddon(installedAddon, legacyAddonRestrictions.enabled) && publishedAddon.type === 'script') continue
 
                     if (localStorage.getItem(notificationKey) === release.version) {
                         continue
@@ -372,7 +372,7 @@ function App() {
                 storeAddonUpdateCheckInFlightRef.current = false
             }
         },
-        [isAutonomousMode, legacyAddonRestrictions.enabled, legacyAddonRestrictions.loading, setAddons],
+        [isAutonomousMode, legacyAddonRestrictions.enabled, legacyAddonRestrictions.loading, legacyAddonRestrictions.overrideGroup, setAddons],
     )
 
     const handleSocketAchievementsUpdate = useCallback(

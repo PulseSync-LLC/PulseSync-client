@@ -14,6 +14,8 @@ import { getState } from './state'
 import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './utils/addonIdentity'
 import { getAddonsRoot, resolveExistingFileInsideBase } from './utils/addonPaths'
 import { findAddonByPublicationFingerprint } from './utils/addonRegistry'
+import { classifyAddonRuntime } from './utils/addonRuntime'
+import { AddonUpdatePolicyError } from './utils/legacyAddonUpdatePolicy'
 import { validateWebHostAddonRuntime } from './utils/webHostAddonRuntime'
 
 const State = getState()
@@ -23,6 +25,7 @@ type ImportAddonArchiveOptions = {
     releaseChannel?: 'stable' | 'dev'
     installSource?: 'store' | 'local'
     storeAddonId?: string | null
+    validateLegacyStoreUpdate?: () => Promise<void>
 }
 
 export const normalizePextPath = (rawPath: string): string => {
@@ -238,6 +241,15 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
                 preferStoreId: metadata.installSource === 'store',
             })
         const outputDir = path.join(getAddonsRoot(), addonDirectory)
+        if (metadata.installSource === 'store' && options.validateLegacyStoreUpdate && fs.existsSync(outputDir)) {
+            const targetRuntime = await classifyAddonRuntime(stagingDir, metadata)
+            if (targetRuntime === 'legacy') {
+                const existingMetadata = JSON.parse(await fsp.readFile(path.join(outputDir, 'metadata.json'), 'utf8'))
+                if ((await classifyAddonRuntime(outputDir, existingMetadata)) === 'legacy') {
+                    await options.validateLegacyStoreUpdate()
+                }
+            }
+        }
         const preservedSettings = await readPreservedAddonSettings(outputDir)
 
         await restorePreservedAddonSettings(stagingDir, preservedSettings)
@@ -251,6 +263,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
 
         return targetDirectoryOverride ? addonName : addonDirectory
     } catch (err: any) {
+        if (err instanceof AddonUpdatePolicyError) throw err
         logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)
         return null

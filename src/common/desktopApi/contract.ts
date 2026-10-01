@@ -92,6 +92,7 @@ export interface DesktopInstallModRequest {
 }
 
 export interface DesktopInstallStoreAddonRequest {
+    legacyAddonRestrictionsOverrideGroup?: string
     releaseChannel?: 'stable' | 'dev'
     reviewReleaseId?: string
     id?: string

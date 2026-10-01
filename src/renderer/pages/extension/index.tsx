@@ -182,7 +182,7 @@ function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
 export default function ExtensionPage() {
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
-    const { getExperiment, isExperimentEnabled, loading: experimentsLoading } = useExperiments()
+    const { getExperiment, isExperimentEnabled, loading: experimentsLoading, localOverrides } = useExperiments()
     const { Modals, openModal, isModalOpen, setModalState } = useModalContext()
     const { contactId } = useParams()
     const location = useLocation()
@@ -1207,16 +1207,6 @@ export default function ExtensionPage() {
                 return
             }
 
-            if (selectedAddonIsRestrictedLegacy && targetAddon.type === 'script') {
-                if (selectedAddonIsAuthoredByUser) {
-                    toast.custom('error', t('common.errorTitle'), t('extensions.legacyAddon.storeUpdateBlocked'))
-                    void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
-                } else {
-                    toast.custom('error', t('common.errorTitle'), t('extensions.storeUpdateUnavailable'))
-                }
-                return
-            }
-
             setStoreUpdateBusy(true)
             const toastId = toast.custom(
                 'loading',
@@ -1230,11 +1220,22 @@ export default function ExtensionPage() {
                     downloadUrl: targetAddon.currentRelease.downloadUrl || undefined,
                     title: targetAddon.name,
                     releaseChannel: channel ?? selectedAddon.storeReleaseChannel ?? 'stable',
+                    legacyAddonRestrictionsOverrideGroup: localOverrides[CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions]?.group,
                 })) as {
                     reason?: string
                     success?: boolean
                 }
 
+                if (result?.reason === 'LEGACY_ADDON_UPDATE_DISABLED') {
+                    toast.custom(
+                        'error',
+                        t('common.errorTitle'),
+                        t(selectedAddonIsAuthoredByUser ? 'extensions.legacyAddon.storeUpdateBlocked' : 'extensions.storeUpdateUnavailable'),
+                        { id: toastId },
+                    )
+                    if (selectedAddonIsAuthoredByUser) void openLegacyAddonMigrationNews(legacyAddonRestrictionsExperiment?.meta)
+                    return
+                }
                 if (!result?.success) {
                     throw new Error(result?.reason || 'STORE_ADDON_UPDATE_FAILED')
                 }
@@ -1253,7 +1254,7 @@ export default function ExtensionPage() {
             legacyAddonRestrictionsExperiment?.meta,
             selectedAddon,
             selectedAddonIsAuthoredByUser,
-            selectedAddonIsRestrictedLegacy,
+            localOverrides,
             selectedStoreUpdate,
             setAddons,
             storeChannelReleases,

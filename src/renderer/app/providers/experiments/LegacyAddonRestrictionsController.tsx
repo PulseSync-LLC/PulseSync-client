@@ -19,7 +19,8 @@ type Props = {
 }
 
 export default function LegacyAddonRestrictionsController({ addons, onChange, user }: Props) {
-    const { getExperiment, isExperimentEnabled, loading } = useExperiments()
+    const { getExperiment, isExperimentEnabled, loading, localOverrides } = useExperiments()
+    const overrideGroup = localOverrides[CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions]?.group
     const experiment = getExperiment(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions)
     const enabled = !loading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const hasAuthoredLegacyAddons = useMemo(
@@ -28,8 +29,8 @@ export default function LegacyAddonRestrictionsController({ addons, onChange, us
     )
 
     useEffect(() => {
-        onChange({ enabled, loading })
-    }, [enabled, loading, onChange])
+        onChange({ enabled, loading, overrideGroup })
+    }, [enabled, loading, onChange, overrideGroup])
 
     useEffect(() => {
         if (loading || !enabled || !hasAuthoredLegacyAddons) {
