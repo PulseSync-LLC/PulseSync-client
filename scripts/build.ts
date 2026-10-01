@@ -979,7 +979,7 @@ async function readPublishedRevisionManifest(url: string): Promise<PublishedRevi
         },
         { label: 'published revision manifest' },
     )
-    if (response.status === 403 || response.status === 404) return null
+    if (response.status === 404) return null
     if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
     return (await response.json()) as PublishedRevisionManifest
 }
@@ -991,6 +991,12 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
     const components = readRuntimeComponentMetadata(path.resolve(__dirname, '..'))
     const previousManifest = await readPublishedRevisionManifest(manifestUrl)
     const previousTarget = previousManifest?.targets?.[dist]
+    if (!semver.valid(hostVersion)) throw new Error(`Invalid host version: ${hostVersion}`)
+    const previousHostVersion = previousTarget?.host?.version
+    if (previousTarget && (!previousHostVersion || !semver.valid(previousHostVersion))) {
+        throw new Error(`Published host version is invalid for ${dist}`)
+    }
+    const hostChanged = previousTarget !== undefined && previousHostVersion !== hostVersion
     const revisions: Record<string, number> = {}
 
     for (const component of Object.values(components)) {
@@ -998,7 +1004,7 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
         const contentSha256 = hashDirectory(source.module)
         const previous = previousTarget?.components?.[component.name]
 
-        if (!previous) {
+        if (hostChanged || !previous) {
             revisions[component.name] = 1
         } else {
             const previousRevision = previous.revision
@@ -1010,7 +1016,14 @@ async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: s
             revisions[component.name] = contentChanged ? previousRevision + 1 : previousRevision
         }
 
-        const reason = !previous ? 'new component' : revisions[component.name] === previous.revision ? 'unchanged' : 'content changed'
+        if (!Number.isSafeInteger(revisions[component.name])) throw new Error(`Component revision overflow: ${component.name}`)
+        const reason = hostChanged
+            ? 'new host'
+            : !previous
+              ? 'new component'
+              : revisions[component.name] === previous.revision
+                ? 'unchanged'
+                : 'content changed'
         log(LogLevel.INFO, `Resolved ${component.name} revision ${revisions[component.name]} (${reason}, host ${hostVersion})`)
     }
 

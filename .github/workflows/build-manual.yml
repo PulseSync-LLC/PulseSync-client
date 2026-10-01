@@ -132,6 +132,7 @@ jobs:
           PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.upload_to_s3 && '1' || '0' }}
+          PULSESYNC_AUTO_COMPONENT_REVISIONS: ${{ inputs.upload_to_s3 && '1' || '0' }}
           PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
           GLITCHTIP_SOURCEMAPS: ${{ inputs.upload_to_glitchtip && '1' || '0' }}
           GLITCHTIP_SOURCEMAPS_UPLOAD: ${{ inputs.upload_to_glitchtip && '1' || '0' }}

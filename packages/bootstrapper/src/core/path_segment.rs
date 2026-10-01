@@ -20,3 +20,20 @@ pub fn sanitize_path_segment(value: &str) -> Result<String> {
 
     Ok(sanitized)
 }
+
+pub(crate) fn macos_component_container(
+    disk_name: &str,
+    host_version: &str,
+    revision: u64,
+) -> Result<String> {
+    node_semver::Version::parse(host_version)
+        .map_err(|error| format!("invalid component host version: {error}"))?;
+    if revision == 0 {
+        return Err("component revision must be positive".into());
+    }
+    Ok(format!(
+        "{}-{}-{revision}",
+        sanitize_path_segment(disk_name)?,
+        sanitize_path_segment(host_version)?
+    ))
+}

@@ -8,6 +8,7 @@ use crate::core::{
         read_install_state_with_host, write_install_state,
     },
     layout::{assert_inside, canonical_install_root},
+    path_segment::macos_component_container,
     session_lock::SessionLock,
 };
 use serde::Deserialize;
@@ -86,6 +87,7 @@ fn packaged_component_path(host_bundle: &Path, component: &PackagedComponentV3) 
 
 fn managed_component_path(
     state_root: &Path,
+    host_version: &str,
     component: &PackagedComponentV3,
     name: &str,
 ) -> Result<PathBuf> {
@@ -104,7 +106,11 @@ fn managed_component_path(
     }
     Ok(state_root
         .join("components")
-        .join(format!("{disk_name}-{revision}"))
+        .join(macos_component_container(
+            &disk_name,
+            host_version,
+            revision,
+        )?)
         .join(disk_name))
 }
 
@@ -127,6 +133,7 @@ fn seed_component(
     host_bundle: &Path,
     name: &str,
     component: &PackagedComponentV3,
+    host_version: &str,
     externalize_all: bool,
 ) -> Result<RuntimeComponentV3> {
     let source = packaged_component_path(host_bundle, component)?;
@@ -205,7 +212,7 @@ fn seed_component(
         return Err(format!("packaged component must be a directory: {name}").into());
     }
     {
-        let target = managed_component_path(state_root, component, name)?;
+        let target = managed_component_path(state_root, host_version, component, name)?;
         if target.exists() {
             if sha256_directory(&target)? != component.sha256.to_ascii_lowercase() {
                 return Err(
@@ -295,6 +302,28 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
             .parse::<u64>()
             .map_err(|_| "packaged runtime bundleVersion must be an integer")?,
     );
+    if let Some(existing) = existing_state.as_ref()
+        && existing.latest.host.version == descriptor.host_version
+    {
+        for (name, component) in &descriptor.components {
+            if name == "bootstrapper" {
+                continue;
+            }
+            if let Some(previous) = existing.latest.components.get(name) {
+                let revision = component.revision.unwrap_or(1);
+                let previous_revision = previous.revision.unwrap_or(1);
+                let changed = previous.version != component.version
+                    || previous.disk_name != component.disk_name
+                    || !previous.sha256.eq_ignore_ascii_case(&component.sha256);
+                if revision < previous_revision || (changed && revision == previous_revision) {
+                    return Err(format!(
+                        "packaged component revision must advance within the same host: {name}"
+                    )
+                    .into());
+                }
+            }
+        }
+    }
     let mut components = BTreeMap::new();
     for (name, component) in &descriptor.components {
         components.insert(
@@ -304,6 +333,7 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
                 &host_bundle,
                 name,
                 component,
+                &descriptor.host_version,
                 descriptor.external_components,
             )?,
         );
