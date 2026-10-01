@@ -19,6 +19,11 @@ on:
         description: "Platforms to publish"
         required: true
         type: string
+      build_version:
+        description: "Resolved desktop core version"
+        required: false
+        default: ""
+        type: string
       release_mode:
         description: "Create a component release or update the latest full release"
         required: false
@@ -187,6 +192,7 @@ jobs:
 
       - name: Build component and prepare GitHub assets
         env:
+          BUILD_VERSION: ${{ inputs.build_version }}
           PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
           PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
