@@ -26,7 +26,7 @@ export async function isModIntegrityCheckEnabled(): Promise<boolean> {
                     const group = (experiment as Record<string, unknown>).group
                     if (typeof group === 'string') {
                         const normalizedGroup = group.trim()
-                        enabled = normalizedGroup !== 'off' && !normalizedGroup.startsWith('off_')
+                        enabled = normalizedGroup === 'on' || normalizedGroup.startsWith('on_')
                     }
                 }
             }
