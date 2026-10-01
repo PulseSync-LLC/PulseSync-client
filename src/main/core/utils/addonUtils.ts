@@ -7,8 +7,8 @@ import logger from '../../shared/logger'
 import { getState } from '../state'
 import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './addonIdentity'
 import { getAddonsRoot, resolveExistingFileInsideBase } from './addonPaths'
+import { classifyAddonRuntime } from './addonRuntime'
 import { formatSizeUnits, getFolderSize } from './appUtils'
-import { validateWebHostAddonRuntime } from './webHostAddonRuntime'
 
 export { sanitizeLegacyScript, sanitizeScript } from './legacyScriptSanitizer'
 
@@ -254,35 +254,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                 metadata.conflictsWith = normalizeRelationValues(metadata.conflictsWith)
                 metadata.allowedUrls = normalizeRelationValues(metadata.allowedUrls)
                 metadata.supportedVersions = normalizeRelationValues(metadata.supportedVersions)
-                metadata.runtime = 'legacy'
-                if (metadata.type === 'theme' && typeof metadata.css === 'string') {
-                    const cssPath = resolveExistingFileInsideBase(addonFolderPath, metadata.css)
-                    const css = cssPath && fs.existsSync(cssPath) && fs.statSync(cssPath).isFile() ? await fs.promises.readFile(cssPath, 'utf8') : ''
-                    const declaredScript = typeof metadata.script === 'string' && metadata.script.trim() ? metadata.script : null
-                    const scriptPath = declaredScript ? resolveExistingFileInsideBase(addonFolderPath, declaredScript) : null
-                    const scriptIsReadable = !declaredScript || Boolean(scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile())
-                    const script =
-                        scriptPath && fs.existsSync(scriptPath) && fs.statSync(scriptPath).isFile()
-                            ? await fs.promises.readFile(scriptPath, 'utf8')
-                            : ''
-                    if (css.trim() && css.trim() !== '{}' && scriptIsReadable && !script.trim()) metadata.runtime = 'style'
-                } else if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
-                    const scriptPath = resolveExistingFileInsideBase(addonFolderPath, metadata.script)
-                    if (scriptPath) {
-                        try {
-                            const scriptContent = await fs.promises.readFile(scriptPath, 'utf8')
-                            const validation = validateWebHostAddonRuntime(scriptContent)
-                            if (validation.ok) metadata.runtime = 'isolated'
-                            else {
-                                logger.main.warn(
-                                    `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || currentFolder)}: ${validation.category}: ${validation.reason}`,
-                                )
-                            }
-                        } catch (err) {
-                            logger.main.warn(`Addons: failed to validate WebHost runtime in ${currentFolder}: ${String(err)}`)
-                        }
-                    }
-                }
+                metadata.runtime = await classifyAddonRuntime(addonFolderPath, metadata)
                 try {
                     const rootEntries = await fs.promises.readdir(addonFolderPath, { withFileTypes: true })
                     metadata.rootFiles = rootEntries

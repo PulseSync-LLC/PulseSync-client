@@ -24,6 +24,7 @@ function requiredEnv(name: string): string {
 
 function commandOutput(command: string, args: string[]): string {
     const result = spawnSync(command, args, { encoding: 'utf8', windowsHide: true })
+    if (result.error) throw new Error(`${command} failed: ${result.error.message}`)
     if (result.status !== 0) throw new Error(`${command} failed: ${result.stderr || result.stdout || result.error}`)
     return result.stdout.trim()
 }
@@ -37,7 +38,14 @@ function ghJson(args: string[]): any {
 }
 
 function githubReleases(): any[] {
-    return ghJson(['api', '--paginate', '--slurp', `repos/${requiredEnv('GITHUB_REPOSITORY')}/releases?per_page=100`]).flat()
+    const releases = commandOutput(process.platform === 'win32' ? 'gh.exe' : 'gh', [
+        'api',
+        '--paginate',
+        `repos/${requiredEnv('GITHUB_REPOSITORY')}/releases?per_page=100`,
+        '--jq',
+        '.[] | {tag_name, draft, prerelease, assets: [.assets[] | {name}]}',
+    ])
+    return releases ? releases.split('\n').map(release => JSON.parse(release)) : []
 }
 
 function checkNewRelease(tag: string): void {

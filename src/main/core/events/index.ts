@@ -61,6 +61,7 @@ import {
     isYandexMusicRunning,
     uninstallApp,
 } from '../utils/appUtils'
+import { assertLegacyAddonUpdateAllowed } from '../utils/legacyAddonUpdatePolicy'
 import { readBufResilient } from '../utils/readBufResilient'
 
 import type { DesktopInstallStoreAddonRequest, DesktopSetUpdateChannelOverrideRequest } from '../../../common/desktopApi/contract'
@@ -1098,6 +1099,9 @@ const registerExtensionEvents = (): void => {
                 installSource: 'store',
                 storeAddonId: addonId,
                 releaseChannel,
+                validateLegacyStoreUpdate: reviewReleaseId
+                    ? undefined
+                    : () => assertLegacyAddonUpdateAllowed(authToken, payload.legacyAddonRestrictionsOverrideGroup),
             })
             if (!addonName) {
                 return { success: false, reason: 'IMPORT_FAILED' }
