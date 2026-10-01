@@ -60,7 +60,7 @@ jobs:
 
           echo "should_publish=true" >> "$GITHUB_OUTPUT"
 
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         if: ${{ steps.tag.outputs.should_publish == 'true' }}
         with:
           ref: ${{ steps.tag.outputs.checkout_ref }}

@@ -22,11 +22,11 @@ jobs:
         os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, blacksmith-6vcpu-macos-26]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -97,7 +97,7 @@ jobs:
     runs-on: blacksmith-4vcpu-ubuntu-2204
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
@@ -114,7 +114,7 @@ jobs:
           --tag ${{ github.ref_name }}
 
       - name: Create GitHub Release
-        uses: softprops/action-gh-release@v2.6.1
+        uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}

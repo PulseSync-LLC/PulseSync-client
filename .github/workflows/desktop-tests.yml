@@ -23,13 +23,13 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -40,13 +40,13 @@ jobs:
           rustup toolchain install 1.88.0 --profile minimal --component rustfmt --no-self-update
           rustup default 1.88.0
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: |
             packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Install deps
         run: yarn install --frozen-lockfile
@@ -72,13 +72,13 @@ jobs:
       CARGO_PROFILE_DEV_DEBUG: '0'
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -89,16 +89,16 @@ jobs:
           rustup toolchain install 1.88.0 --profile minimal --no-self-update
           rustup default 1.88.0
 
-      - uses: actions/cache@v5
+      - uses: actions/cache@v6
         with:
           path: |
             packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-dev-opt1-debug0-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-dev-opt1-debug0-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
           restore-keys: |
-            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-dev-opt1-debug0-
-            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node22-rust188-
+            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-dev-opt1-debug0-
+            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-
 
       - name: Install deps
         run: yarn install --frozen-lockfile

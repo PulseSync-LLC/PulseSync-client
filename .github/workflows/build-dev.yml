@@ -22,12 +22,12 @@ jobs:
       renderer: ${{ steps.filter.outputs.renderer }}
       retention: ${{ steps.filter.outputs.retention }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
           fetch-depth: 50
 
-      - uses: dorny/paths-filter@v4.0.2
+      - uses: dorny/paths-filter@v4.0.3
         id: filter
         with:
           base: ${{ github.ref_name }}
@@ -109,13 +109,13 @@ jobs:
     outputs:
       build_version: ${{ steps.version.outputs.build_version }}
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -160,13 +160,13 @@ jobs:
         os: [ubuntu-latest, windows-2025, macos-26]
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -276,13 +276,13 @@ jobs:
       cancel-in-progress: false
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -316,7 +316,7 @@ jobs:
 
       - name: Checkout renderer Pages repository
         if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
-        uses: actions/checkout@v6
+        uses: actions/checkout@v7
         with:
           repository: PulseSync-LLC/PulseSync-renderer
           token: ${{ secrets.RENDERER_REPO_TOKEN }}
@@ -353,13 +353,13 @@ jobs:
     environment: BUILD_PRODUCTION
 
     steps:
-      - uses: actions/checkout@v6
+      - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
 
-      - uses: actions/setup-node@v6
+      - uses: actions/setup-node@v7
         with:
-          node-version: 22
+          node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
@@ -431,7 +431,7 @@ jobs:
           --legacy-update-bridge
 
       - name: Create GitHub prerelease
-        uses: softprops/action-gh-release@v2.6.1
+        uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ needs.version.outputs.build_version }}
           target_commitish: ${{ github.sha }}
