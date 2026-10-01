@@ -163,10 +163,12 @@ jobs:
 
       - name: Compute dev version
         id: version
+        env:
+          GH_TOKEN: ${{ github.token }}
         shell: bash
         run: |
           BASE_VERSION="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
-          DEV_VERSION="$(yarn -s tsx scripts/resolve-dev-version.ts --base-version "$BASE_VERSION")"
+          DEV_VERSION="$(yarn -s tsx scripts/resolve-dev-version.ts --base-version "$BASE_VERSION" --repository "$GITHUB_REPOSITORY")"
           echo "build_version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
           echo "Using BUILD_VERSION=$DEV_VERSION"
 
@@ -398,6 +400,9 @@ jobs:
 
   github_prerelease:
     name: Publish Desktop Prerelease
+    concurrency:
+      group: desktop-manifest-publish-dev
+      cancel-in-progress: false
     needs: [changes, version, build]
     if: ${{ needs.changes.outputs.desktop == 'true' }}
     runs-on: ubuntu-latest

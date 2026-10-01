@@ -187,6 +187,9 @@ jobs:
           esac
 
   publish_desktop_s3:
+    concurrency:
+      group: desktop-manifest-publish-${{ inputs.s3_branch }}
+      cancel-in-progress: false
     name: Publish Desktop S3 Release
     needs: build
     if: ${{ inputs.upload_to_s3 == true }}

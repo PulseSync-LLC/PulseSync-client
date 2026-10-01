@@ -5,6 +5,7 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
+import semver from 'semver'
 import { build as viteBuild } from 'vite'
 
 import { signRuntimeBinaries } from './code-signing.js'
@@ -173,7 +174,9 @@ async function buildAuxiliaryComponent(
         previousManifestUrl: publishedManifestUrl,
         releaseDir,
     })
-    await publishToS3(channel, releaseDir, previousManifest.desktopVersion, { keepRecentVersions: null })
+    if (process.env.PULSESYNC_DEFER_S3_PUBLISH !== '1') {
+        await publishToS3(channel, releaseDir, previousManifest.desktopVersion, { keepRecentVersions: null })
+    }
     return path.dirname(generatedManifest)
 }
 
@@ -196,27 +199,15 @@ function releaseAssetFromDescriptor(releaseDir: string, descriptor: any): string
 
 function publishGitHub(repository: string, tag: string, channel: string, targetRoot: string): void {
     const gh = process.platform === 'win32' ? 'gh.exe' : 'gh'
-    const existing = spawnSync(gh, ['release', 'view', tag, '--repo', repository], { cwd: projectRoot, stdio: 'ignore', windowsHide: true })
-    if (existing.status !== 0) {
-        const targetCommit = process.env.GITHUB_SHA?.trim() || commandOutput('git', ['rev-parse', 'HEAD'])
-        const createArgs = [
-            'release',
-            'create',
-            tag,
-            '--repo',
-            repository,
-            '--title',
-            `Runtime components ${tag}`,
-            '--notes',
-            '',
-            '--latest=false',
-            '--target',
-            targetCommit,
-        ]
-        if (channel !== 'beta') createArgs.push('--prerelease')
-        run(gh, createArgs)
+    const existingTags = JSON.parse(commandOutput(gh, ['api', `repos/${repository}/git/matching-refs/tags/`])) as Array<{ ref: string }>
+    const normalizedTag = tag.replace(/^v/u, '')
+    if (existingTags.some(item => [`refs/tags/${normalizedTag}`, `refs/tags/v${normalizedTag}`].includes(item.ref))) {
+        throw new Error(`GitHub tag already exists: ${tag}`)
     }
-    run(gh, ['release', 'upload', tag, '--repo', repository, '--clobber', ...fs.readdirSync(targetRoot).map(name => path.join(targetRoot, name))])
+    const targetCommit = process.env.GITHUB_SHA?.trim() || commandOutput('git', ['rev-parse', 'HEAD'])
+    const createArgs = ['release', 'create', tag, '--repo', repository, '--title', tag, '--notes', '', '--latest=false', '--target', targetCommit]
+    if (channel !== 'beta') createArgs.push('--prerelease')
+    run(gh, [...createArgs, ...fs.readdirSync(targetRoot).map(name => path.join(targetRoot, name))])
 }
 
 async function main(): Promise<void> {
@@ -232,13 +223,29 @@ async function main(): Promise<void> {
     if (!/^\d+$/u.test(metadataVersion) || !Number.isSafeInteger(parsedMetadataVersion) || parsedMetadataVersion <= 0) {
         throw new Error(`Invalid metadata version: ${metadataVersion}`)
     }
-    const packageVersion = JSON.parse(fs.readFileSync(path.join(projectRoot, 'packages', 'desktop-core', 'package.json'), 'utf8')).version as string
-    const baseVersion = packageVersion.split('-')[0]
-    const tag = argValue(args, '--github-tag') || `v${baseVersion}-${channel}.components.${metadataVersion}`
+    const tag = requiredArg(args, '--github-tag')
+    const version = tag.replace(/^v/u, '')
+    const parsedVersion = semver.parse(version)
+    if (
+        !parsedVersion ||
+        parsedVersion.version !== version ||
+        parsedVersion.prerelease.length !== 2 ||
+        parsedVersion.prerelease[0] !== channel ||
+        typeof parsedVersion.prerelease[1] !== 'number'
+    ) {
+        throw new Error(`Expected an ordinary ${channel} release tag, got ${tag}`)
+    }
+    if (component === 'desktopCore') {
+        if (process.env.BUILD_VERSION && process.env.BUILD_VERSION !== version) throw new Error('BUILD_VERSION must match the GitHub release tag')
+        process.env.BUILD_VERSION = version
+    }
+    const deferS3 = process.env.PULSESYNC_DEFER_S3_PUBLISH === '1'
+    process.env.PULSESYNC_DEFER_S3_PUBLISH = '1'
     run(
         process.execPath,
         tsxArgs(path.join(projectRoot, 'scripts', 'github-release-runtime.ts'), [
             'check-component-base',
+            ...(args.includes('--reuse-latest') ? ['--reuse-latest'] : []),
             '--repository',
             repository,
             '--tag',
@@ -251,6 +258,7 @@ async function main(): Promise<void> {
     )
 
     const baseUrl = `${(process.env.S3_URL?.trim() || DEFAULT_S3_URL).replace(/\/+$/u, '')}/builds/app/${channel}`
+    const previousS3Manifest = await readManifest(`${baseUrl}/${manifestName(dist)}`)
     let releaseDir: string
     if (component !== 'bootstrapper') {
         run('cargo', ['build', '--manifest-path', path.join(projectRoot, 'packages', 'bootstrapper', 'Cargo.toml')])
@@ -268,6 +276,7 @@ async function main(): Promise<void> {
         process.execPath,
         tsxArgs(path.join(projectRoot, 'scripts', 'github-release-runtime.ts'), [
             'prepare-component',
+            ...(args.includes('--reuse-latest') ? ['--reuse-latest'] : []),
             '--source-manifest',
             generatedManifestFile,
             '--source-asset',
@@ -287,8 +296,13 @@ async function main(): Promise<void> {
         ]),
     )
 
+    const s3Target = path.join(projectRoot, 'out', 'component-s3-release', dist)
+    fs.rmSync(s3Target, { force: true, recursive: true })
+    fs.cpSync(releaseDir, s3Target, { recursive: true })
+    if (deferS3) fs.writeFileSync(path.join(s3Target, `baseline-${dist}.json`), `${JSON.stringify(previousS3Manifest)}\n`)
     if (args.includes('--publish-github')) publishGitHub(repository, tag, channel, githubTarget)
-    console.log(`Runtime component published: ${component} (${channel}/${dist})`)
+    if (!deferS3) await publishToS3(channel, s3Target, generatedManifest.desktopVersion, { keepRecentVersions: null })
+    console.log(`Runtime component prepared: ${component} (${channel}/${dist})`)
     console.log(`GitHub tag: ${tag}`)
     console.log(`GitHub assets: ${githubTarget}`)
     if (!args.includes('--publish-github')) {

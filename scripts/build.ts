@@ -320,6 +320,10 @@ async function buildDesktopCoreOnly(): Promise<void> {
         releaseDir,
         rendererManifestUrl: process.env.PULSESYNC_REMOTE_RENDERER_MANIFEST_URL,
     })
+    if (process.env.PULSESYNC_DEFER_S3_PUBLISH === '1') {
+        log(LogLevel.INFO, 'S3 publication deferred to the release job')
+        return
+    }
     await publishToS3(publishBranch, releaseDir, coreVersion, { keepRecentVersions: null })
     log(LogLevel.SUCCESS, `Published desktopCore ${coreVersion} revision ${component.revision}`)
 }
