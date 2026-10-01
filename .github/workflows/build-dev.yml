@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
-      desktop: ${{ steps.filter.outputs.desktop == 'true' || (steps.filter.outputs.desktop_core == 'true' && steps.filter.outputs.bootstrapper == 'true') }}
-      desktop_core: ${{ steps.filter.outputs.desktop_core }}
-      renderer: ${{ steps.filter.outputs.renderer }}
+      desktop: ${{ steps.filter.outputs.desktop == 'true' || steps.common.outputs.desktop == 'true' || ((steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true') && steps.filter.outputs.bootstrapper == 'true') }}
+      desktop_core: ${{ steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true' }}
+      renderer: ${{ steps.filter.outputs.renderer == 'true' || steps.common.outputs.renderer == 'true' }}
       retention: ${{ steps.filter.outputs.retention }}
     steps:
       - uses: actions/checkout@v7
@@ -32,6 +32,7 @@ jobs:
         id: filter
         with:
           base: ${{ github.ref_name }}
+          list-files: json
           filters: |
             desktop:
               - 'src/main/!(core)/**'
@@ -39,7 +40,6 @@ jobs:
               - 'src/main/core/nativeModules/pulsesyncNative.ts'
               - 'src/main/core/bootstrap/activeComponents.ts'
               - 'src/preload/!(mainWindowPreload.ts)/**'
-              - 'src/common/**'
               - 'src/locales/bundled/*/main.json'
               - 'src/renderer/preloader.html'
               - 'src/renderer/preloader.ts'
@@ -76,12 +76,13 @@ jobs:
             desktop_core:
               - 'src/main/core/**'
               - 'src/preload/mainWindowPreload.ts'
+            common:
+              - 'src/common/**'
             bootstrapper:
               - 'packages/bootstrapper/**'
               - 'scripts/bootstrapper/**'
             renderer:
               - 'src/renderer/**'
-              - 'src/common/**'
               - 'src/locales/**'
               - 'src/styles/**'
               - 'static/**'
@@ -99,6 +100,26 @@ jobs:
               - '.github/workflows/build-dev.yml'
               - '.github/workflows/build-manual.yml'
               - '.github/workflows/publish-component.yml'
+
+      - uses: actions/setup-node@v7
+        if: ${{ steps.filter.outputs.common == 'true' }}
+        with:
+          node-version: 24
+          check-latest: true
+          cache: yarn
+          cache-dependency-path: '**/yarn.lock'
+
+      - name: Install common routing dependencies
+        if: ${{ steps.filter.outputs.common == 'true' }}
+        run: yarn install --frozen-lockfile --ignore-scripts
+
+      - name: Classify common changes
+        if: ${{ steps.filter.outputs.common == 'true' }}
+        id: common
+        env:
+          COMMON_FILES: ${{ steps.filter.outputs.common_files }}
+          BEFORE_SHA: ${{ github.event.before }}
+        run: node scripts/classify-common-changes.mjs
 
       - name: Report changed build-related files
         shell: bash
