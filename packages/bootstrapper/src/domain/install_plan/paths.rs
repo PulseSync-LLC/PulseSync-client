@@ -1,5 +1,8 @@
 use crate::{
-    core::{error::Result, path_segment::sanitize_path_segment},
+    core::{
+        error::Result,
+        path_segment::{macos_component_container, sanitize_path_segment},
+    },
     domain::{
         artifacts::ArtifactKey,
         manifest::{ArtifactLayout, BootstrapperUpdateDecision},
@@ -64,9 +67,12 @@ pub(crate) fn target_path(
                     .join(format!("app-{}", sanitize_path_segment(host_version)?))
                     .join("modules")
             };
-            Ok(modules_root
-                .join(format!("{}-{}", disk_name, revision))
-                .join(disk_name))
+            let container = if layout == ArtifactLayout::MacosHybrid {
+                macos_component_container(&disk_name, host_version, *revision)?
+            } else {
+                format!("{disk_name}-{revision}")
+            };
+            Ok(modules_root.join(container).join(disk_name))
         }
         ArtifactKey::Bootstrapper => Ok(install_dir
             .join("bootstrapper")

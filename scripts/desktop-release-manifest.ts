@@ -7,6 +7,7 @@ import { pipeline } from 'node:stream/promises'
 import { fileURLToPath, pathToFileURL } from 'node:url'
 
 import AdmZip from 'adm-zip'
+import semver from 'semver'
 
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
@@ -681,6 +682,10 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     const previousTarget = previousManifest?.targets[options.dist]
     const includeFileInventories = previousTarget !== undefined && process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
     const targetHostVersion = options.hostVersion
+    if (!semver.valid(targetHostVersion)) throw new Error(`Invalid host version: ${targetHostVersion}`)
+    if (previousTarget && (!previousTarget.host?.version || !semver.valid(previousTarget.host.version))) {
+        throw new Error(`Published host version is invalid for ${options.dist}`)
+    }
     const sameHostVersion = previousTarget?.host.version === targetHostVersion
     const hostSourceDir = macosBundle ? null : path.join(packagedAppRootDir, 'host')
     const hostContentSha256 = hostSourceDir ? hashDirectory(hostSourceDir) : null
@@ -767,7 +772,17 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         await Promise.all(
             Object.entries(moduleArchivePaths).map(async ([moduleName, moduleArchive]) => {
                 const previousComponent = previousTarget?.components[moduleName]
-                if (sameHostVersion && previousComponent?.revision !== undefined) {
+                if (previousTarget && !sameHostVersion && moduleArchive.revision !== 1) {
+                    throw new Error(`Component revision must start at 1 for a new host: ${moduleName}`)
+                }
+                if (sameHostVersion && previousComponent) {
+                    if (
+                        !Number.isSafeInteger(previousComponent.revision) ||
+                        previousComponent.revision === undefined ||
+                        previousComponent.revision <= 0
+                    ) {
+                        throw new Error(`Published component revision is invalid for ${moduleName}`)
+                    }
                     const contentChanged =
                         previousComponent.version !== moduleArchive.version ||
                         previousComponent.diskName !== moduleArchive.diskName ||

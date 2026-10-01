@@ -1,5 +1,5 @@
 use crate::{
-    core::install_state::InstallStateV3,
+    core::{install_state::InstallStateV3, path_segment::macos_component_container},
     domain::manifest::{
         ArtifactLayout, BootstrapperDistArtifacts, BootstrapperUpdateDecision,
         BootstrapperUpdateManifest, ComponentFileSet, DesktopTargetV3, UpdatePlanAction,
@@ -509,6 +509,7 @@ pub fn decide_component_update(
         decision.plan = target_plan(target, &[], Some(installed));
         return decision;
     }
+    let same_component_host = installed.latest.host.version == target.host.version;
     let same_host_identity = if target.layout == ArtifactLayout::MacosHybrid {
         installed.latest.host.bundle_version.as_deref() == target.host.bundle_version.as_deref()
     } else {
@@ -526,7 +527,7 @@ pub fn decide_component_update(
                 .content_sha256
                 .as_deref()
                 .is_some_and(|sha| !sha.eq_ignore_ascii_case(&installed.latest.host.sha256)));
-    let component_immutable_mismatch = same_host_identity
+    let component_immutable_mismatch = same_component_host
         && target.components.iter().any(|(name, component)| {
             installed
                 .latest
@@ -665,9 +666,22 @@ pub fn decide_component_update(
             }
         }
     }
-    let revision_collision = !host_changed
+    let revision_collision = same_component_host
         && target.components.iter().any(|(name, component)| {
-            selected_artifacts.contains(&format!("module:{name}"))
+            (selected_artifacts.contains(&format!("module:{name}"))
+                || (bundle_replaces_runtime
+                    && installed
+                        .latest
+                        .components
+                        .get(name)
+                        .is_some_and(|previous| {
+                            previous.version != component.version
+                                || previous.disk_name != component.disk_name
+                                || component
+                                    .content_sha256
+                                    .as_deref()
+                                    .is_some_and(|sha| !sha.eq_ignore_ascii_case(&previous.sha256))
+                        })))
                 && component
                     .revision
                     .zip(component.disk_name.as_deref())
@@ -686,10 +700,27 @@ pub fn decide_component_update(
                                 let expected = modules_root
                                     .join(format!("{disk_name}-{revision}"))
                                     .join(disk_name);
-                                installed_component
-                                    .path
-                                    .components()
-                                    .eq(expected.components())
+                                installed_component.revision == Some(revision)
+                                    || installed_component
+                                        .path
+                                        .components()
+                                        .eq(expected.components())
+                                    || (target.layout == ArtifactLayout::MacosHybrid
+                                        && macos_component_container(
+                                            disk_name,
+                                            &target.host.version,
+                                            revision,
+                                        )
+                                        .is_ok_and(
+                                            |container| {
+                                                installed_component.path.components().eq(
+                                                    std::path::PathBuf::from("components")
+                                                        .join(container)
+                                                        .join(disk_name)
+                                                        .components(),
+                                                )
+                                            },
+                                        ))
                             })
                     })
         });
