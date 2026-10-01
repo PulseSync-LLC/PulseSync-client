@@ -25,7 +25,7 @@ on:
         default: ""
         type: string
       release_mode:
-        description: "Create a component release or update the latest full release"
+        description: "Create an ordinary release or update the latest dev release"
         required: false
         default: new
         type: string
@@ -84,14 +84,33 @@ jobs:
   prepare:
     name: Prepare component release
     runs-on: ubuntu-latest
+    environment: BUILD_PRODUCTION
     outputs:
       matrix: ${{ steps.release.outputs.matrix }}
       prerelease: ${{ steps.release.outputs.prerelease }}
       tag: ${{ steps.release.outputs.tag }}
+      build_version: ${{ steps.release.outputs.build_version }}
     steps:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Create environment
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install dependencies
+        run: yarn install --frozen-lockfile
 
       - name: Set up Rust for bootstrapper validation
         if: ${{ inputs.component == 'bootstrapper' }}
@@ -112,37 +131,12 @@ jobs:
         shell: bash
         env:
           GH_TOKEN: ${{ github.token }}
-        run: |
-          if [[ "${{ inputs.build_os }}" == "all" ]]; then
-            matrix='["ubuntu-latest","windows-2025","macos-26"]'
-          else
-            matrix='["${{ inputs.build_os }}"]'
-          fi
-
-          if [[ "${{ inputs.release_mode }}" == "reuse-latest" ]]; then
-            if [[ "${{ inputs.channel }}" != "dev" ]]; then
-              echo "reuse-latest currently supports only dev" >&2
-              exit 1
-            fi
-            if [[ "${{ inputs.component }}" != "bootstrapper" ]]; then
-              echo "reuse-latest currently supports only bootstrapper" >&2
-              exit 1
-            fi
-
-            tag="$(gh api "repos/${GITHUB_REPOSITORY}/releases?per_page=100" --jq '[.[] | select(.draft == false and .prerelease == true) | select(.tag_name | test("^v?[0-9]+\\.[0-9]+\\.[0-9]+-dev\\.[0-9]+$")) | select(any(.assets[]?; .name == "desktop-update-win32-x64.json"))] | first | .tag_name // empty')"
-            if [[ -z "$tag" ]]; then
-              echo "No full dev release found to update" >&2
-              exit 1
-            fi
-          else
-            base_version="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
-            tag="v${base_version}-${{ inputs.channel }}.components.${GITHUB_RUN_ID}.${GITHUB_RUN_ATTEMPT}"
-          fi
-
-          echo "matrix=$matrix" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-          echo "prerelease=${{ inputs.channel != 'beta' }}" >> "$GITHUB_OUTPUT"
-          echo "Publishing ${{ inputs.component }} as $tag on $matrix"
+          BUILD_VERSION: ${{ inputs.build_version }}
+          CHANNEL: ${{ inputs.channel }}
+          BUILD_OS: ${{ inputs.build_os }}
+          RELEASE_MODE: ${{ inputs.release_mode }}
+          COMPONENT: ${{ inputs.component }}
+        run: yarn tsx scripts/component-release.ts resolve
 
   build:
     name: Build ${{ inputs.component }} (${{ matrix.os }})
@@ -192,14 +186,14 @@ jobs:
 
       - name: Build component and prepare GitHub assets
         env:
-          BUILD_VERSION: ${{ inputs.build_version }}
+          BUILD_VERSION: ${{ needs.prepare.outputs.build_version }}
           PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
           PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           GITHUB_TOKEN: ${{ github.token }}
           GLITCHTIP_SOURCEMAPS: "0"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "0"
-          PULSESYNC_DEFER_S3_PUBLISH: ${{ inputs.release_mode == 'reuse-latest' && '1' || '0' }}
+          PULSESYNC_DEFER_S3_PUBLISH: "1"
           PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
         run: >-
           yarn component:publish
@@ -207,6 +201,7 @@ jobs:
           --channel ${{ inputs.channel }}
           --repository ${{ github.repository }}
           --github-tag ${{ needs.prepare.outputs.tag }}
+          ${{ inputs.release_mode == 'reuse-latest' && '--reuse-latest' || '' }}
 
       - name: Upload prepared GitHub assets
         uses: actions/upload-artifact@v7
@@ -216,11 +211,10 @@ jobs:
           if-no-files-found: error
 
       - name: Upload staged S3 assets
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         uses: actions/upload-artifact@v7
         with:
           name: component-s3-${{ runner.os }}-${{ runner.arch }}
-          path: release/bootstrapper/**/*
+          path: out/component-s3-release/**/*
           if-no-files-found: error
 
   cleanup_desktop_s3:
@@ -230,7 +224,7 @@ jobs:
       ${{
         always() &&
         (inputs.channel == 'dev' || inputs.channel == 'beta') &&
-        (inputs.release_mode != 'reuse-latest' || needs.release.result == 'success')
+        needs.release.result == 'success'
       }}
     uses: ./.github/workflows/desktop-s3-cleanup.yml
     with:
@@ -242,15 +236,16 @@ jobs:
     needs: [prepare, build]
     runs-on: ubuntu-latest
     environment: BUILD_PRODUCTION
+    concurrency:
+      group: desktop-manifest-publish-${{ inputs.channel }}
+      cancel-in-progress: false
     steps:
       - name: Checkout component release tooling
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
 
       - name: Set up Node.js
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -259,7 +254,6 @@ jobs:
           cache-dependency-path: "**/yarn.lock"
 
       - name: Create environment
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         shell: bash
         env:
           ENV_FILE: ${{ secrets.ENV_FILE }}
@@ -269,7 +263,6 @@ jobs:
           fi
 
       - name: Install dependencies
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         run: yarn install --frozen-lockfile
 
       - name: Download prepared assets
@@ -280,7 +273,6 @@ jobs:
           merge-multiple: true
 
       - name: Download staged S3 assets
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         uses: actions/download-artifact@v8
         with:
           pattern: component-s3-*
@@ -288,41 +280,15 @@ jobs:
           merge-multiple: true
 
       - id: s3_release
-        name: Validate complete staged S3 release
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
+        name: Validate complete staged release
         shell: bash
-        run: |
-          node - <<'NODE'
-          const crypto = require('node:crypto')
-          const fs = require('node:fs')
-          const path = require('node:path')
-
-          const root = 'component-s3-assets'
-          const expected = [
-              ['desktop-update-hybrid-darwin-universal.json', 'darwin-universal'],
-              ['desktop-update-linux-x64.json', 'linux-x64'],
-              ['desktop-update-win32-x64.json', 'win32-x64'],
-          ]
-          const metadataVersions = new Set()
-          const versions = new Set()
-
-          for (const [name, dist] of expected) {
-              const manifest = JSON.parse(fs.readFileSync(path.join(root, name), 'utf8'))
-              const bootstrapper = manifest.targets?.[dist]?.bootstrapper
-              if (!bootstrapper) throw new Error(`${name} has no bootstrapper target for ${dist}`)
-              metadataVersions.add(manifest.metadataVersion)
-              versions.add(bootstrapper.version)
-              const assetName = decodeURIComponent(new URL(bootstrapper.artifact.url).pathname.split('/').pop())
-              const assetPath = path.join(root, assetName)
-              if (!fs.existsSync(assetPath)) throw new Error(`Missing staged asset: ${assetName}`)
-              const sha256 = crypto.createHash('sha256').update(fs.readFileSync(assetPath)).digest('hex')
-              if (sha256 !== bootstrapper.artifact.sha256) throw new Error(`Staged asset hash mismatch: ${assetName}`)
-          }
-
-          if (metadataVersions.size !== 1) throw new Error(`Metadata versions differ: ${[...metadataVersions].join(', ')}`)
-          if (versions.size !== 1) throw new Error(`Bootstrapper versions differ: ${[...versions].join(', ')}`)
-          fs.appendFileSync(process.env.GITHUB_OUTPUT, `version=${[...versions][0]}\n`)
-          NODE
+        env:
+          BUILD_MATRIX: ${{ needs.prepare.outputs.matrix }}
+          BUILD_VERSION: ${{ needs.prepare.outputs.build_version }}
+          METADATA_VERSION: ${{ github.run_id }}
+          CHANNEL: ${{ inputs.channel }}
+          COMPONENT: ${{ inputs.component }}
+        run: yarn tsx scripts/component-release.ts validate
 
       - name: Show release assets
         shell: bash
@@ -342,47 +308,11 @@ jobs:
       - name: Rebase component manifests onto current release
         if: ${{ inputs.release_mode == 'reuse-latest' }}
         shell: bash
-        run: |
-          mkdir -p rebased-component-release
-          manifest_count=0
-
-          while IFS= read -r -d '' manifest; do
-            manifest_count=$((manifest_count + 1))
-            manifest_name="$(basename "$manifest")"
-            current_manifest="current-release-manifests/$manifest_name"
-            if [[ ! -f "$current_manifest" ]]; then
-              echo "Current release manifest missing: $manifest_name" >&2
-              exit 1
-            fi
-
-            mapfile -t component_data < <(node -e 'const fs = require("node:fs"); const manifest = JSON.parse(fs.readFileSync(process.argv[1], "utf8")); const dist = Object.keys(manifest.targets)[0]; const url = manifest.targets[dist].bootstrapper.artifact.url; console.log(dist); console.log(decodeURIComponent(new URL(url).pathname.split("/").pop()));' "$manifest")
-            dist="${component_data[0]}"
-            asset_name="${component_data[1]}"
-            source_asset="$(find component-release-assets -type f -name "$asset_name" -print -quit)"
-            if [[ -z "$source_asset" ]]; then
-              echo "Prepared component asset missing: $asset_name" >&2
-              exit 1
-            fi
-
-            yarn tsx scripts/github-release-runtime.ts prepare-component \
-              --source-manifest "$manifest" \
-              --source-asset "$source_asset" \
-              --target "rebased-component-release/$dist" \
-              --previous-github-manifest "$current_manifest" \
-              --repository "$GITHUB_REPOSITORY" \
-              --tag "${{ needs.prepare.outputs.tag }}" \
-              --channel "${{ inputs.channel }}" \
-              --dist "$dist" \
-              --component "${{ inputs.component }}"
-          done < <(find component-release-assets -type f -name 'desktop-update-*.json' -print0)
-
-          if [[ "$manifest_count" -eq 0 ]]; then
-            echo "No prepared component manifests found" >&2
-            exit 1
-          fi
-
-          rm -rf component-release-assets
-          mv rebased-component-release component-release-assets
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+          CHANNEL: ${{ inputs.channel }}
+          COMPONENT: ${{ inputs.component }}
+        run: yarn tsx scripts/component-release.ts rebase
 
       - name: Update existing GitHub release
         if: ${{ inputs.release_mode == 'reuse-latest' }}
@@ -398,22 +328,38 @@ jobs:
           gh release view "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null
           gh release upload "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"
 
+      - name: Create ordinary GitHub release draft
+        if: ${{ inputs.release_mode != 'reuse-latest' }}
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ needs.prepare.outputs.tag }}
+          RELEASE_REF: ${{ inputs.ref }}
+          PRERELEASE: ${{ needs.prepare.outputs.prerelease }}
+        run: |
+          mapfile -d '' assets < <(find component-release-assets -type f -print0)
+          yarn tsx scripts/component-release.ts check-new
+          options=(--draft --title "$TAG" --notes "" --latest=false --target "$RELEASE_REF")
+          if [[ "$PRERELEASE" == "true" ]]; then options+=(--prerelease); fi
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" "${options[@]}" "${assets[@]}"
+
       - name: Publish complete S3 release
-        if: ${{ inputs.release_mode == 'reuse-latest' }}
         run: >-
           yarn tsx scripts/s3-upload.ts
           --branch ${{ inputs.channel }}
-          --dir component-s3-assets
+          --dir component-s3-publish
           --version ${{ steps.s3_release.outputs.version }}
 
-      - name: Create GitHub component release
+      - name: Publish ordinary GitHub release
         if: ${{ inputs.release_mode != 'reuse-latest' }}
-        uses: softprops/action-gh-release@v3.0.3
-        with:
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          target_commitish: ${{ inputs.ref }}
-          name: Runtime components ${{ needs.prepare.outputs.tag }}
-          prerelease: ${{ needs.prepare.outputs.prerelease == 'true' }}
-          make_latest: false
-          fail_on_unmatched_files: true
-          files: component-release-assets/**/*
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh release edit "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --draft=false --latest=false
+
+      - name: Report incomplete publication
+        if: ${{ failure() }}
+        shell: bash
+        env:
+          TAG: ${{ needs.prepare.outputs.tag }}
+        run: |
+          echo "Publication of $TAG failed. Inspect the GitHub release/draft and S3 manifests before retrying; either destination may be partially updated." >> "$GITHUB_STEP_SUMMARY"

@@ -4,6 +4,8 @@ import { ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import path from 'path'
 import semver from 'semver'
 
+import { fetchWithRetry } from './network-retry.js'
+
 const VERSIONED_ARTIFACT_RE = /^pulsesync-app-(.+?)-((?:(?:win32|linux|darwin)-)?[a-z0-9_]+)\.([a-z0-9]+(?:\.[a-z0-9]+)?)$/iu
 const DESKTOP_CORE_ARTIFACT_RE = /^pulsesync-component-desktopCore-(.+?)-(?:win32|linux|darwin)-[a-z0-9_]+\.zip$/iu
 
@@ -12,6 +14,7 @@ type ResolveDevVersionOptions = {
     branch: string
     prefix: string
     channel: string
+    repository?: string
 }
 
 function argValue(...flags: string[]): string | null {
@@ -70,14 +73,19 @@ function extractPrereleaseSequence(version: string, baseVersion: string, channel
         return null
     }
 
-    if (typeof prereleaseSequence !== 'number' || !Number.isInteger(prereleaseSequence) || prereleaseSequence < 0) {
+    if (
+        parsedVersion.prerelease.length !== 2 ||
+        typeof prereleaseSequence !== 'number' ||
+        !Number.isInteger(prereleaseSequence) ||
+        prereleaseSequence < 0
+    ) {
         return null
     }
 
     return prereleaseSequence
 }
 
-async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: ResolveDevVersionOptions): Promise<string> {
+async function resolveNextDevVersion({ baseVersion, branch, prefix, channel, repository }: ResolveDevVersionOptions): Promise<string> {
     const bucket = readRequiredEnv('S3_BUCKET')
     const normalizedPrefix = prefix.replace(/^\/+|\/+$/gu, '')
     const branchPrefix = `${normalizedPrefix}/${branch}/`
@@ -119,6 +127,29 @@ async function resolveNextDevVersion({ baseVersion, branch, prefix, channel }: R
         continuationToken = response.IsTruncated ? response.NextContinuationToken : undefined
     } while (continuationToken)
 
+    if (repository) {
+        if (!/^[A-Za-z0-9_.-]+\/[A-Za-z0-9_.-]+$/u.test(repository)) throw new Error(`Invalid GitHub repository: ${repository}`)
+        const token = process.env.GITHUB_TOKEN || process.env.GH_TOKEN
+        for (let page = 1; ; page += 1) {
+            const response = await fetchWithRetry(
+                `https://api.github.com/repos/${repository}/tags?per_page=100&page=${page}`,
+                { headers: { Accept: 'application/vnd.github+json', ...(token ? { Authorization: `Bearer ${token}` } : {}) } },
+                { label: 'Published GitHub versions' },
+            )
+            if (!response.ok) throw new Error(`Cannot resolve GitHub versions (${response.status})`)
+            const tags = (await response.json()) as Array<{ name: string }>
+            if (!Array.isArray(tags)) throw new Error('GitHub tags response is invalid')
+            for (const tag of tags) {
+                const sequence = extractPrereleaseSequence(tag.name.replace(/^v/u, ''), baseVersion, channel)
+                if (sequence !== null) {
+                    foundPublishedSequence = true
+                    maxSequence = Math.max(maxSequence, sequence)
+                }
+            }
+            if (tags.length < 100) break
+        }
+    }
+
     if (!foundPublishedSequence && baseVersion === '3.0.0' && branch === 'dev' && channel === 'dev') {
         maxSequence = 5
     }
@@ -145,6 +176,7 @@ async function main(): Promise<void> {
         branch,
         prefix,
         channel,
+        repository: argValue('--repository') || undefined,
     })
 
     process.stdout.write(nextVersion)

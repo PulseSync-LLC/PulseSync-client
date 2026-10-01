@@ -4,6 +4,8 @@ import path from 'node:path'
 import { Readable } from 'node:stream'
 import { pipeline } from 'node:stream/promises'
 
+import semver from 'semver'
+
 import { fetchWithRetry } from './network-retry.js'
 
 const GITHUB_RENDERER_BASE_URL = 'https://static.pulsesync.dev/app'
@@ -18,7 +20,7 @@ type RuntimeArtifact = {
     size?: number
     url: string
 }
-type RuntimeDescriptor = {
+type RuntimeDescriptor = Record<string, unknown> & {
     artifact: RuntimeArtifact
     files?: unknown
 }
@@ -294,13 +296,20 @@ async function findPreviousGitHubManifest(
     channel: string,
     manifestName: string,
     currentTag: string,
+    reuseLatest = false,
 ): Promise<{ manifest: DesktopManifest; tag: string }> {
     const wantPrerelease = channel === 'dev'
     for (let page = 1; page <= 10; page += 1) {
         const releases = await fetchJson(`https://api.github.com/repos/${repository}/releases?per_page=100&page=${page}`, 'GitHub releases')
         if (!Array.isArray(releases)) throw new Error('GitHub releases response is invalid')
         for (const release of releases as GitHubRelease[]) {
-            if (!release?.tag_name || release.draft === true || release.tag_name === currentTag || release.prerelease !== wantPrerelease) continue
+            if (
+                !release?.tag_name ||
+                release.draft === true ||
+                (!reuseLatest && release.tag_name === currentTag) ||
+                release.prerelease !== wantPrerelease
+            )
+                continue
             if (wantPrerelease && prereleaseChannel(release.tag_name) !== channel) continue
             const asset = Array.isArray(release.assets) ? release.assets.find(candidate => candidate?.name === manifestName) : null
             if (!asset?.browser_download_url) continue
@@ -396,15 +405,45 @@ async function prepareComponentRelease(args: string[]): Promise<void> {
               ),
               tag: 'local-fixture',
           }
-        : await findPreviousGitHubManifest(repository, channel, manifestName, tag)
+        : await findPreviousGitHubManifest(repository, channel, manifestName, tag, args.includes('--reuse-latest'))
     if (previous.manifest.channel !== channel) throw new Error(`Previous GitHub manifest channel mismatch: ${previous.manifest.channel}`)
     const previousTarget = previous.manifest.targets[dist]
     if (!previousTarget || previousTarget.layout !== sourceTarget.layout) {
         throw new Error(`Previous GitHub manifest target/layout mismatch for ${dist}`)
     }
 
+    const inherited = [
+        'host',
+        ...(component === 'bootstrapper' ? [] : ['bootstrapper']),
+        ...Object.keys(sourceTarget.components).filter(name => name !== component),
+    ]
+    for (const name of inherited) {
+        const source = name === 'host' ? sourceTarget.host : name === 'bootstrapper' ? sourceTarget.bootstrapper : sourceTarget.components[name]
+        const baseline =
+            name === 'host' ? previousTarget.host : name === 'bootstrapper' ? previousTarget.bootstrapper : previousTarget.components[name]
+        if (!source && !baseline) continue
+        const fields = ['version', 'revision', 'diskName', 'contentSha256', 'electronAbi', 'requiresHost', 'bundleVersion', 'required']
+        if (!source || !baseline || source.artifact.sha256 !== baseline.artifact.sha256 || fields.some(field => source[field] !== baseline[field])) {
+            throw new Error(`GitHub and source ${name} identity differ for ${dist}; publish a matching baseline before updating ${component}`)
+        }
+    }
+    if (Object.keys(previousTarget.components).some(name => !Object.hasOwn(sourceTarget.components, name))) {
+        throw new Error(`GitHub and source component sets differ for ${dist}`)
+    }
+    if (Number(sourceManifest.metadataVersion) <= Number(previous.manifest.metadataVersion)) {
+        throw new Error('Component metadataVersion must advance the GitHub baseline')
+    }
+
     const selectedSource = component === 'bootstrapper' ? sourceTarget.bootstrapper : sourceTarget.components?.[component]
     if (!selectedSource) throw new Error(`Source manifest does not contain selected component: ${component}`)
+    if (typeof selectedSource.requiresHost === 'string' && !semver.satisfies(String(previousTarget.host.version), selectedSource.requiresHost)) {
+        throw new Error(`${component} is incompatible with GitHub host ${String(previousTarget.host.version)}`)
+    }
+    if (selectedSource.electronAbi && selectedSource.electronAbi !== previousTarget.host.electronAbi) {
+        throw new Error(`${component} Electron ABI does not match the GitHub host`)
+    }
+    const core = component === 'desktopCore' ? selectedSource : previousTarget.components.desktopCore
+    if (sourceManifest.desktopVersion !== core?.version) throw new Error('desktopVersion does not match the inherited desktop core')
     const selected = structuredClone(selectedSource)
     const assetName = artifactAssetName(selected.artifact, component)
     if (path.basename(sourceAssetFile) !== assetName) {
@@ -443,7 +482,7 @@ async function checkComponentBase(args: string[]): Promise<void> {
     const tag = requiredArg(args, '--tag')
     if (!['beta', 'dev'].includes(channel)) throw new Error(`Unsupported component release channel: ${channel}`)
     const name = dist.startsWith('darwin-') ? `desktop-update-hybrid-${dist}.json` : `desktop-update-${dist}.json`
-    const previous = await findPreviousGitHubManifest(repository, channel, name, tag)
+    const previous = await findPreviousGitHubManifest(repository, channel, name, tag, args.includes('--reuse-latest'))
     if (!previous.manifest.targets[dist]) throw new Error(`Previous GitHub manifest has no target: ${dist}`)
     console.log(`GitHub component baseline: ${previous.tag}/${name}`)
 }
