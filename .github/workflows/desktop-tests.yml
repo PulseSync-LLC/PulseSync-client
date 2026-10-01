@@ -13,6 +13,11 @@ on:
         required: false
         type: string
         default: "all"
+      use_blacksmith:
+        description: "Run checks on Blacksmith runners"
+        required: false
+        type: boolean
+        default: false
 
 permissions:
   contents: read
@@ -20,7 +25,7 @@ permissions:
 jobs:
   common:
     name: Common checks
-    runs-on: ubuntu-latest
+    runs-on: ${{ inputs.use_blacksmith && 'blacksmith-4vcpu-ubuntu-2204' || 'ubuntu-latest' }}
 
     steps:
       - uses: actions/checkout@v7
@@ -66,7 +71,7 @@ jobs:
   macos-updater:
     name: macOS updater checks
     if: ${{ inputs.build_os == 'all' || inputs.build_os == 'macos-26' || inputs.build_os == 'windows+macos' }}
-    runs-on: macos-26
+    runs-on: ${{ inputs.use_blacksmith && 'blacksmith-6vcpu-macos-26' || 'macos-26' }}
     env:
       CARGO_PROFILE_DEV_OPT_LEVEL: '1'
       CARGO_PROFILE_DEV_DEBUG: '0'

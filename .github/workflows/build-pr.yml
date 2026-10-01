@@ -7,10 +7,16 @@ on:
 permissions:
   contents: read
 
+concurrency:
+  group: build-pr-${{ github.event.pull_request.number || github.ref }}
+  cancel-in-progress: true
+
 jobs:
   tests:
     name: Test Desktop
     uses: ./.github/workflows/desktop-tests.yml
+    with:
+      use_blacksmith: true
 
   build:
     needs: tests
@@ -19,7 +25,7 @@ jobs:
     environment: BUILD_PRODUCTION
     strategy:
       matrix:
-        os: [ubuntu-latest, windows-2025, macos-26]
+        os: [blacksmith-4vcpu-ubuntu-2204, blacksmith-4vcpu-windows-2025, blacksmith-6vcpu-macos-26]
 
     steps:
       - uses: actions/checkout@v7
@@ -74,7 +80,7 @@ jobs:
 
   renderer:
     name: Build Remote Renderer
-    runs-on: ubuntu-latest
+    runs-on: blacksmith-2vcpu-ubuntu-2204
 
     steps:
       - uses: actions/checkout@v7
