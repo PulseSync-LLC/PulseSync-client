@@ -28,6 +28,8 @@ import { getUpdater } from './updater/updater'
 import { isWindows } from './utils/appUtils'
 import { getNativeImg } from './utils/electronNative'
 
+import type { BootstrapUiController } from '@common/types/bootstrapEvents'
+
 const State = getState()
 
 export let mainWindow: BrowserWindow
@@ -246,7 +248,9 @@ export type MainWindowStartupHandle = {
     window: BrowserWindow
 }
 
-export async function createWindow(options: { bootstrapWindow?: BrowserWindow } = {}): Promise<MainWindowStartupHandle> {
+export async function createWindow(
+    options: { bootstrapUi?: BootstrapUiController; bootstrapWindow?: BrowserWindow } = {},
+): Promise<MainWindowStartupHandle> {
     const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
     const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
     const persistWindowState = restorePos && restoreDim
@@ -336,6 +340,7 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
     }
     let mainRendererSource: MainRendererSource | null = null
     let rendererRetryTimer: NodeJS.Timeout | null = null
+    let rendererLoading = false
     const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
         const previousSource = mainRendererSource
         try {
@@ -349,6 +354,12 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
         }
     }
     const loadMainRenderer = async (): Promise<void> => {
+        if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
+        rendererLoading = true
+        if (rendererRetryTimer) {
+            clearTimeout(rendererRetryTimer)
+            rendererRetryTimer = null
+        }
         try {
             const source = await loadMainWindowRenderer(rendererWindow)
             mainRendererSource = source
@@ -362,11 +373,27 @@ export async function createWindow(options: { bootstrapWindow?: BrowserWindow } 
         } catch (error) {
             logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
             if (!rendererWindow.isDestroyed()) {
+                options.bootstrapUi?.publish({
+                    schemaVersion: 1,
+                    phase: 'error',
+                    statusKey: 'renderer-unavailable',
+                    progress: { kind: 'indeterminate' },
+                    actions: ['retry'],
+                })
                 rendererRetryTimer = setTimeout(() => void loadMainRenderer(), 5000)
                 rendererRetryTimer.unref()
             }
+        } finally {
+            rendererLoading = false
         }
     }
+    options.bootstrapUi?.setActionHandlers({
+        retry: async () => {
+            if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return false
+            void loadMainRenderer()
+            return true
+        },
+    })
     void loadMainRenderer()
     rendererWindow.once('closed', () => {
         if (rendererRetryTimer) clearTimeout(rendererRetryTimer)

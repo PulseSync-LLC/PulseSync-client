@@ -193,6 +193,7 @@ async function buildRemoteRenderer(options: RemoteRendererBuildOptions, artifact
     fs.mkdirSync(manifestDir, { recursive: true })
 
     process.env.PULSESYNC_REMOTE_RENDERER_BUILD = '1'
+    process.env.PULSESYNC_REMOTE_RENDERER_CHANNEL = options.channel
     process.env.PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER = options.buildNumber
     process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR = buildOutDir
     process.env.PULSESYNC_REMOTE_RENDERER_STATIC_ASSETS_DIR = path.join(options.outRoot, 'assets')
@@ -241,12 +242,70 @@ function readBuildOptions(): RemoteRendererBuildOptions {
     }
 }
 
+async function verifyPublishedRenderer(options: RemoteRendererBuildOptions): Promise<void> {
+    const expected = JSON.parse(fs.readFileSync(path.join(options.outRoot, 'desktop', 'manifest.json'), 'utf8')) as RendererManifest
+    const waitSeconds = Number(argValue('--wait-seconds') ?? '300')
+    if (!Number.isFinite(waitSeconds) || waitSeconds < 0 || waitSeconds > 600) throw new Error('--wait-seconds must be between 0 and 600')
+    const deadline = Date.now() + waitSeconds * 1000
+    const readText = async (url: string): Promise<string> => {
+        const response = await fetch(url, {
+            cache: 'no-store',
+            headers: { 'Cache-Control': 'no-cache' },
+            signal: AbortSignal.timeout(10_000),
+        })
+        if (!response.ok) throw new Error(`HTTP ${response.status}: ${url}`)
+        const text = await response.text()
+        if (!text.trim()) throw new Error(`Empty renderer response: ${url}`)
+        return text
+    }
+    for (;;) {
+        try {
+            const manifest = JSON.parse(
+                await readText(`${joinUrl(options.cdnBaseUrl, 'desktop', 'manifest.json')}?_=${Date.now()}`),
+            ) as RendererManifest
+            if (
+                !expected.artifactSha256 ||
+                manifest.artifactSha256 !== expected.artifactSha256 ||
+                manifest.buildNumber !== expected.buildNumber ||
+                manifest.requiresDesktopApi !== expected.requiresDesktopApi
+            ) {
+                throw new Error(`Published renderer manifest does not match build ${expected.buildNumber}`)
+            }
+            const expectedUrl = joinUrl(options.cdnBaseUrl, 'versions', expected.buildNumber, 'index.html')
+            if (manifest.url !== expectedUrl) throw new Error(`Published renderer entry URL does not match ${expectedUrl}`)
+            const html = await readText(expectedUrl)
+            const assetPaths = [...html.matchAll(/<(?:script|link)\b[^>]*\b(?:src|href)="([^"]+)"[^>]*>/gu)].map(match => match[1])
+            if (!/<script\b[^>]*\btype="module"/u.test(html) || !assetPaths.length) throw new Error('Published renderer HTML has no module entry')
+            const versionUrl = joinUrl(options.cdnBaseUrl, 'versions', expected.buildNumber) + '/'
+            await Promise.all(
+                [...new Set(assetPaths)].map(async assetPath => {
+                    const url = new URL(assetPath, expectedUrl).toString()
+                    if (!url.startsWith(versionUrl)) throw new Error(`Renderer HTML references an unexpected asset: ${url}`)
+                    const content = await readText(url)
+                    if (/^\s*(?:<!doctype\s+html|<html\b)/iu.test(content)) throw new Error(`Renderer asset returned HTML: ${url}`)
+                }),
+            )
+            console.log(`Published renderer ${options.channel}/${expected.buildNumber} is reachable: ${options.cdnBaseUrl}`)
+            return
+        } catch (error) {
+            if (Date.now() >= deadline) throw error
+            console.warn(`Waiting for renderer publication: ${error instanceof Error ? error.message : String(error)}`)
+            await new Promise(resolve => setTimeout(resolve, Math.min(10_000, Math.max(0, deadline - Date.now()))))
+        }
+    }
+}
+
 async function cli(): Promise<void> {
     const command = process.argv[2] || 'build'
     const options = readBuildOptions()
 
     if (command === 'build') {
         await buildRemoteRenderer(options)
+        return
+    }
+
+    if (command === 'verify') {
+        await verifyPublishedRenderer(options)
         return
     }
 
@@ -260,6 +319,7 @@ async function cli(): Promise<void> {
                 console.log(
                     `Remote renderer artifact is unchanged; keeping published build ${publishedManifest.buildNumber} (${fingerprintBuild.artifactSha256})`,
                 )
+                await buildRemoteRenderer({ ...options, buildNumber: publishedManifest.buildNumber }, fingerprintBuild.artifactSha256)
                 writePublishOutputs(false, publishedManifest.buildNumber, fingerprintBuild.artifactSha256)
                 return
             }
@@ -276,7 +336,7 @@ async function cli(): Promise<void> {
 
     console.error(
         [
-            'Usage: tsx scripts/renderer/remote-renderer.ts <build|publish>',
+            'Usage: tsx scripts/renderer/remote-renderer.ts <build|publish|verify>',
             'Options:',
             '  --channel <dev|beta>         Default: dev',
             '  --cdn-url <url>              Default: https://pulsesync.dev/app/<channel>',
@@ -285,6 +345,7 @@ async function cli(): Promise<void> {
             '  --prefix <s3-prefix>         Publish only, default: app/<channel>',
             '  --min-client-version <ver>  Optional manifest guard',
             '  --no-build                  Publish existing out dir',
+            '  --wait-seconds <0..600>      Verify only, default: 300',
         ].join('\n'),
     )
     process.exit(1)

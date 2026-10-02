@@ -28,6 +28,7 @@ import {
 import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
 import { fetchWithRetry } from './network-retry.js'
+import { resolveReleaseTag } from './release-tag.js'
 import { publishToS3 } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
@@ -73,34 +74,10 @@ if (publishIndex !== -1) {
     }
 }
 
-function parsePublishBranchFromTag(tagValue: string): string | null {
-    const tag = tagValue
-        .trim()
-        .replace(/^refs\/tags\//u, '')
-        .replace(/^v(?=\d)/u, '')
-    if (!tag.includes('-')) {
-        return null
-    }
-
-    const prereleasePart = tag.split('-').slice(1).join('-')
-    if (!prereleasePart) {
-        return null
-    }
-
-    const candidate = prereleasePart.split('.')[0]?.trim().toLowerCase()
-    if (!candidate) {
-        return null
-    }
-    if (!/^[a-z0-9][a-z0-9-]*$/u.test(candidate)) {
-        return null
-    }
-    return candidate
-}
-
 if (!publishBranch) {
     const tagSourceRaw = process.env.PUBLISH_BRANCH_FROM_TAG?.trim() || process.env.BUILD_VERSION?.trim()
     if (tagSourceRaw) {
-        const parsedBranch = parsePublishBranchFromTag(tagSourceRaw)
+        const parsedBranch = resolveReleaseTag(tagSourceRaw).channel
         if (parsedBranch) {
             publishBranch = parsedBranch
             publishBranchTagSource = tagSourceRaw
@@ -189,7 +166,8 @@ function generateBuildInfo(): { coreVersion: string; hostVersion: string; coreCo
 
     const currentVersion = pkg.version
     let newVersion = currentVersion
-    if (publishBranch) {
+    const stableTag = publishBranchTagSource && semver.parse(currentVersion)?.prerelease.length === 0
+    if (publishBranch && !stableTag) {
         newVersion = resolvePublishedVersion(currentVersion, publishBranch)
         pkg.version = newVersion
     }
@@ -532,8 +510,14 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
     const launcher = [
         '#!/usr/bin/env bash',
         'set -euo pipefail',
-        'APP_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"',
-        'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_DIR}" -- "$@"',
+        'APP_DIR="$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")"',
+        'export CHROME_DEVEL_SANDBOX="${APP_DIR}/chrome-sandbox"',
+        'STATE_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/PulseSync"',
+        'BOOTSTRAPPER="${STATE_DIR}/bootstrapper/pulsesync-bootstrapper"',
+        'if [[ ! -x "${BOOTSTRAPPER}" || ! -f "${STATE_DIR}/runtime/install-state.json" ]]; then',
+        '    BOOTSTRAPPER="${APP_DIR}/bootstrapper/pulsesync-bootstrapper"',
+        'fi',
+        'exec "${BOOTSTRAPPER}" start --state-root "${STATE_DIR}" --seed-root "${APP_DIR}" -- "$@"',
         '',
     ].join('\n')
 
@@ -632,7 +616,9 @@ async function prepareBootstrapperInstallerRoot(outDir: string, published?: Publ
 
     const hostPayloadDir = path.join(installRoot, 'host')
     fs.rmSync(installRoot, { force: true, recursive: true })
-    copyDirectoryEntries(packagedAppRoot, hostPayloadDir, new Set(['app', 'bootstrapper', 'modules', 'native', 'updates']))
+    const excluded = new Set(['app', 'bootstrapper', 'modules', 'native', 'updates'])
+    if (os.platform() === 'linux') excluded.add('chrome-sandbox')
+    copyDirectoryEntries(packagedAppRoot, hostPayloadDir, excluded)
 
     const sourceModulesDir = path.join(packagedAppRoot, 'modules')
     if (fs.existsSync(sourceModulesDir)) {
@@ -640,6 +626,9 @@ async function prepareBootstrapperInstallerRoot(outDir: string, published?: Publ
     }
 
     fs.mkdirSync(path.join(installRoot, 'resources'), { recursive: true })
+    if (os.platform() === 'linux') {
+        fs.copyFileSync(path.join(packagedAppRoot, 'chrome-sandbox'), path.join(installRoot, 'resources', 'chrome-sandbox'))
+    }
     await copyBootstrapperToInstallRoot(installRoot, { published })
     return installRoot
 }
@@ -765,6 +754,11 @@ async function prepareBootstrapperSetupRoot(
         fs.cpSync(modulesRoot, path.join(versionedHostRoot, 'modules'), { recursive: true })
     }
     fs.cpSync(path.join(payloadRoot, 'bootstrapper'), path.join(setupRoot, 'bootstrapper'), { recursive: true })
+    if (os.platform() === 'linux') {
+        fs.copyFileSync(path.join(payloadRoot, 'resources', 'chrome-sandbox'), path.join(setupRoot, 'chrome-sandbox'))
+        fs.chmodSync(path.join(setupRoot, 'chrome-sandbox'), 0o755)
+        fs.cpSync(path.join(versionedHostRoot, 'resources', 'assets'), path.join(setupRoot, 'resources', 'assets'), { recursive: true })
+    }
     writeBootstrapperSetupConfig(setupRoot, channel, dist, coreVersion)
     const desktopCore = componentMetadata.desktopCore
     const coreRelativePath = path.join(`app-${hostVersion}`, 'modules', componentContainerName(desktopCore), desktopCore.diskName)

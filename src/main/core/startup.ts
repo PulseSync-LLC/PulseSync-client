@@ -42,6 +42,7 @@ import { checkCLIArguments } from './utils/processUtils'
 import { readBufResilient } from './utils/readBufResilient'
 
 import type { LaunchRequestEnvelopeV1 } from '../shared/bootstrapper/contracts'
+import type { BootstrapUiController } from '@common/types/bootstrapEvents'
 import type Addon from '@entities/addon/model/addon.interface'
 
 const State = getState()
@@ -97,6 +98,7 @@ const initializeMusicPath = async () => {
 }
 export type ApplicationStartupContext = {
     bootstrapRuntime?: UpdaterBootstrapRuntime
+    bootstrapUi?: BootstrapUiController
     bootstrapWindow?: BrowserWindowType
 }
 
@@ -133,7 +135,7 @@ export async function startMainApplication(context: ApplicationStartupContext = 
                 })
             }
         }
-        const windowStartup = await createWindow({ bootstrapWindow: context.bootstrapWindow })
+        const windowStartup = await createWindow({ bootstrapUi: context.bootstrapUi, bootstrapWindow: context.bootstrapWindow })
         handleEvents(mainWindow)
         const handleLaunchRequest = await createApplicationLaunchRequestHandler()
         const legacyCompletedLaunchRequestIds = State.get('app.completedLaunchRequestIds')
