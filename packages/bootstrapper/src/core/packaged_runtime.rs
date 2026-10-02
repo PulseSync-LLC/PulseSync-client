@@ -1,6 +1,8 @@
 use crate::core::{
     error::Result,
-    fs_ops::{copy_directory, ensure_executable, sha256_directory, sha256_file},
+    fs_ops::{
+        copy_directory, ensure_executable, sha256_directory, sha256_file, sha256_host_directory,
+    },
     host_contract::{read_runtime_host_contract, runtime_host_contract_matches},
     install_state::{
         ActivationState, InstallStateV3, RuntimeActivationV3, RuntimeComponentV3, RuntimeHostV3,
@@ -8,6 +10,7 @@ use crate::core::{
         read_install_state_with_host, write_install_state,
     },
     layout::{assert_inside, canonical_install_root},
+    operation_lock::UpdateLock,
     path_segment::macos_component_container,
     session_lock::SessionLock,
 };
@@ -16,9 +19,78 @@ use std::{
     collections::BTreeMap,
     fs,
     path::{Component, Path, PathBuf},
+    time::Duration,
 };
 
 const PACKAGED_RUNTIME_PATH: &str = "Contents/Resources/pulsesync-runtime.json";
+
+pub fn ensure_seeded_state(state_root: &Path, seed_root: &Path) -> Result<()> {
+    fs::create_dir_all(state_root)?;
+    let state_root = canonical_install_root(state_root)?;
+    let seed_root = canonical_install_root(seed_root)?;
+    if state_root.starts_with(&seed_root) || seed_root.starts_with(&state_root) {
+        return Err("packaged seed and state roots must be separate".into());
+    }
+    if install_state_path(&state_root).exists() {
+        return Ok(());
+    }
+    let _update_lock = UpdateLock::acquire(&state_root, Duration::from_secs(60))?;
+    let _session_lock = SessionLock::acquire(&state_root, Duration::from_secs(10))?;
+    if install_state_path(&state_root).exists() {
+        return Ok(());
+    }
+    #[cfg(unix)]
+    {
+        use std::os::unix::fs::PermissionsExt;
+        fs::set_permissions(&state_root, fs::Permissions::from_mode(0o700))?;
+    }
+    let state = read_install_state_with_host(&seed_root, None)?;
+    if state.schema_version != 3 || !matches!(state.activation.state, ActivationState::Confirmed) {
+        return Err("packaged seed must contain a confirmed versioned runtime".into());
+    }
+    let host_path = &state.latest.host.path;
+    if !valid_relative_path(host_path) || host_path.components().count() != 1 {
+        return Err("packaged seed host must be a top-level directory".into());
+    }
+    if !sha256_host_directory(&seed_root.join(host_path))?
+        .eq_ignore_ascii_case(&state.latest.host.sha256)
+    {
+        return Err("packaged seed host hash mismatch".into());
+    }
+    let staging = state_root.join(".packaged-seed");
+    if staging.exists() {
+        fs::remove_dir_all(&staging)?;
+    }
+    fs::create_dir(&staging)?;
+    for relative in [
+        host_path.as_path(),
+        Path::new("bootstrapper"),
+        Path::new("resources"),
+    ] {
+        copy_directory(&seed_root.join(relative), &staging.join(relative))?;
+    }
+    write_install_state(&staging, &state)?;
+    read_install_state_with_host(&staging, None)?;
+    if !sha256_host_directory(&staging.join(host_path))?
+        .eq_ignore_ascii_case(&state.latest.host.sha256)
+    {
+        return Err("copied seed host hash mismatch".into());
+    }
+    for relative in [
+        host_path.as_path(),
+        Path::new("bootstrapper"),
+        Path::new("resources"),
+    ] {
+        let target = state_root.join(relative);
+        if target.exists() {
+            fs::remove_dir_all(&target)?;
+        }
+        fs::rename(staging.join(relative), target)?;
+    }
+    write_install_state(&state_root, &state)?;
+    fs::remove_dir_all(staging)?;
+    Ok(())
+}
 
 #[derive(Clone, Debug, Deserialize)]
 #[serde(deny_unknown_fields)]

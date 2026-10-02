@@ -16,6 +16,7 @@ const STATUS_TEXT: Record<BootstrapStatusKey, string> = {
     'bootstrapper-missing': 'Установка PulseSync повреждена',
     'launch-blocked': 'PulseSync временно не может запуститься',
     'launch-failed': 'Не удалось запустить PulseSync',
+    'renderer-unavailable': 'Не удалось загрузить интерфейс. Проверьте подключение к интернету.',
 }
 
 const root = document.querySelector<HTMLElement>('#bootstrap-root')

@@ -8,7 +8,29 @@ on:
 permissions:
   contents: write
 
+concurrency:
+  group: release-publish
+  cancel-in-progress: false
+
 jobs:
+  tag:
+    runs-on: ubuntu-latest
+    outputs:
+      channel: ${{ steps.tag.outputs.channel }}
+      version: ${{ steps.tag.outputs.version }}
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+      - run: yarn install --frozen-lockfile --ignore-scripts
+      - name: Resolve release tag
+        id: tag
+        env:
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: yarn tsx scripts/release-tag.ts "$RELEASE_TAG"
+
   tests:
     name: Test Desktop
     uses: ./.github/workflows/desktop-tests.yml
@@ -16,7 +38,7 @@ jobs:
       use_blacksmith: true
 
   build:
-    needs: tests
+    needs: [tag, tests]
     runs-on: ${{ matrix.os }}
     environment: BUILD_PRODUCTION
     strategy:
@@ -62,9 +84,12 @@ jobs:
         env:
           PULSESYNC_WINDOWS_PFX_BASE64: ${{ secrets.PULSESYNC_WINDOWS_PFX_BASE64 }}
           PULSESYNC_WINDOWS_PFX_PASSWORD: ${{ secrets.PULSESYNC_WINDOWS_PFX_PASSWORD }}
-          BUILD_VERSION: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          BUILD_VERSION: ${{ needs.tag.outputs.version }}
           DESKTOP_METADATA_VERSION: ${{ github.run_id }}
           PUBLISH_BRANCH_FROM_TAG: ${{ startsWith(github.ref, 'refs/tags/') && github.ref_name || '' }}
+          PULSESYNC_DEFER_S3_PUBLISH: "1"
+          PULSESYNC_AUTO_COMPONENT_REVISIONS: "1"
+          PULSESYNC_DISABLE_FILE_INVENTORIES: "0"
           GLITCHTIP_SOURCEMAPS: "1"
           GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
           SENTRY_URL: https://issues.pulsesync.dev
@@ -92,20 +117,74 @@ jobs:
           path: release/**/*
           if-no-files-found: error
 
-  github_release:
-    name: Create GitHub Release
-    needs: build
+  publish_renderer:
+    name: Publish Release Renderer
+    needs: [tag, prepare_release]
+    uses: ./.github/workflows/publish-renderer.yml
+    with:
+      channel: ${{ needs.tag.outputs.channel }}
+      checkout_ref: ${{ github.sha }}
+    secrets: inherit
+
+  prepare_release:
+    name: Prepare Complete Release
+    needs: [tag, build]
     if: ${{ startsWith(github.ref, 'refs/tags/') }}
     runs-on: blacksmith-2vcpu-ubuntu-2204
+    environment: BUILD_PRODUCTION
 
     steps:
       - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
         with:
           pattern: release-*
           path: github-release-artifacts
+          merge-multiple: true
+
+      - name: Validate complete staged release
+        env:
+          EXPECTED_VERSION: ${{ needs.tag.outputs.version }}
+          EXPECTED_CHANNEL: ${{ needs.tag.outputs.channel }}
+          EXPECTED_METADATA_VERSION: ${{ github.run_id }}
+        run: |
+          node - <<'NODE'
+          const fs = require('node:fs')
+          const path = require('node:path')
+          const expected = [
+            ['desktop-update-hybrid-darwin-universal.json', 'darwin-universal'],
+            ['desktop-update-linux-x64.json', 'linux-x64'],
+            ['desktop-update-win32-x64.json', 'win32-x64'],
+          ]
+          for (const [name, dist] of expected) {
+            const file = path.join('github-release-artifacts', name)
+            if (!fs.existsSync(file)) throw new Error(`Missing staged manifest: ${name}`)
+            const manifest = JSON.parse(fs.readFileSync(file, 'utf8'))
+            if (String(manifest.metadataVersion) !== process.env.EXPECTED_METADATA_VERSION ||
+                manifest.desktopVersion !== process.env.EXPECTED_VERSION ||
+                manifest.channel !== process.env.EXPECTED_CHANNEL || !manifest.targets?.[dist]) {
+              throw new Error(`Staged manifest does not match this release: ${name}`)
+            }
+          }
+          NODE
 
       - name: Prepare GitHub Release assets
         run: >-
@@ -115,11 +194,75 @@ jobs:
           --repository ${{ github.repository }}
           --tag ${{ github.ref_name }}
 
+      - name: Stage validated S3 release
+        uses: actions/upload-artifact@v7
+        with:
+          name: validated-tagged-release
+          path: github-release-artifacts/**/*
+          if-no-files-found: error
+
+      - name: Stage prepared GitHub assets
+        uses: actions/upload-artifact@v7
+        with:
+          name: prepared-tagged-github-release
+          path: github-release-assets/*
+          if-no-files-found: error
+
+  github_release:
+    name: Publish Complete Release
+    needs: [tag, prepare_release, publish_renderer]
+    concurrency:
+      group: desktop-manifest-publish-${{ needs.tag.outputs.channel }}
+      cancel-in-progress: false
+    runs-on: blacksmith-2vcpu-ubuntu-2204
+    environment: BUILD_PRODUCTION
+
+    steps:
+      - uses: actions/checkout@v7
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          cache: yarn
+
+      - name: Create .env
+        shell: bash
+        env:
+          ENV_FILE: ${{ secrets.ENV_FILE }}
+        run: |
+          if [ -n "$ENV_FILE" ]; then
+            printf '%s' "$ENV_FILE" > .env
+          fi
+
+      - name: Install deps
+        run: yarn install --frozen-lockfile
+
+      - name: Download validated S3 release
+        uses: actions/download-artifact@v8
+        with:
+          name: validated-tagged-release
+          path: github-release-artifacts
+
+      - name: Download prepared GitHub assets
+        uses: actions/download-artifact@v8
+        with:
+          name: prepared-tagged-github-release
+          path: github-release-assets
+
+      - name: Publish complete S3 release
+        run: >-
+          yarn tsx scripts/s3-upload.ts
+          --branch ${{ needs.tag.outputs.channel }}
+          --dir github-release-artifacts
+          --version ${{ needs.tag.outputs.version }}
+          --legacy-update-bridge
+
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
+          prerelease: ${{ contains(needs.tag.outputs.version, '-') }}
           generate_release_notes: true
           overwrite_files: true
           fail_on_unmatched_files: true

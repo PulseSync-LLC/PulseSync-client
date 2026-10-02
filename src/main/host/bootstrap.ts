@@ -28,12 +28,16 @@ import { handleUncaughtException } from './handlers/handleError'
 import { registerSchemes } from './utils/serverUtils'
 
 import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
-import type { BootstrapStatusKey, BootstrapUiDiagnostic } from '@common/types/bootstrapEvents'
+import type { BootstrapStatusKey, BootstrapUiController, BootstrapUiDiagnostic } from '@common/types/bootstrapEvents'
 
 const APP_ID = 'pulsesync.app'
 
 declare const __non_vite_require__: (moduleId: string) => {
-    startup(context?: { bootstrapRuntime?: ApplicationBootstrapRuntime; bootstrapWindow?: Electron.BrowserWindow }): Promise<ApplicationStartupHandle>
+    startup(context?: {
+        bootstrapRuntime?: ApplicationBootstrapRuntime
+        bootstrapUi?: BootstrapUiController
+        bootstrapWindow?: Electron.BrowserWindow
+    }): Promise<ApplicationStartupHandle>
 }
 
 if (process.platform === 'win32') {
@@ -103,7 +107,7 @@ function loadApplicationMain(
     if (activeRuntime) process.env.PULSESYNC_ACTIVE_COMPONENTS_JSON = JSON.stringify(activeRuntime.components)
     console.info('Loading PulseSync desktop core', { coreEntry, activeRuntime })
     const desktopCore = __non_vite_require__(coreEntry)
-    return desktopCore.startup({ bootstrapRuntime, bootstrapWindow })
+    return desktopCore.startup({ bootstrapRuntime, bootstrapUi: bootstrapRuntime?.bootstrapUi, bootstrapWindow })
 }
 
 type LaunchFailureCode = 'LF-CANONICAL' | 'LF-CANONICAL-STATE' | 'LF-CLAIM' | 'LF-RUNTIME' | 'LF-STARTUP'

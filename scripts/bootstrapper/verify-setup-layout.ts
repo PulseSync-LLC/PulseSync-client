@@ -128,7 +128,7 @@ function requireExecutableBit(targetPath: string): void {
 
 function requireBootstrapperEntrypointScript(targetPath: string): void {
     const script = fs.readFileSync(targetPath, 'utf-8')
-    const expectedLaunchLine = 'exec "${APP_DIR}/bootstrapper/pulsesync-bootstrapper" start --install-root "${APP_DIR}" -- "$@"'
+    const expectedLaunchLine = 'exec "${BOOTSTRAPPER}" start --state-root "${STATE_DIR}" --seed-root "${APP_DIR}" -- "$@"'
 
     if (!script.startsWith('#!/usr/bin/env bash\n')) {
         throw new Error(`Expected bootstrapper entrypoint shebang: ${targetPath}`)
@@ -138,6 +138,9 @@ function requireBootstrapperEntrypointScript(targetPath: string): void {
     }
     if (!script.includes(expectedLaunchLine)) {
         throw new Error(`Expected bootstrapper entrypoint to launch native bootstrapper: ${targetPath}`)
+    }
+    if (!script.includes('STATE_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/PulseSync"')) {
+        throw new Error(`Expected Linux entrypoint to use per-user runtime state: ${targetPath}`)
     }
 }
 

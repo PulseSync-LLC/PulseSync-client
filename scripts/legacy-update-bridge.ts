@@ -31,7 +31,8 @@ export function isLegacyUpdateBridgeEnabled(channel: string | null, version: str
     const parsedVersion = semver.parse(version)
     if (!parsedVersion) return false
     const prereleaseChannel = parsedVersion.prerelease[0]
-    if (typeof prereleaseChannel !== 'string' || prereleaseChannel.toLowerCase() !== channel) return false
+    const stableBeta = channel === 'beta' && parsedVersion.prerelease.length === 0
+    if (!stableBeta && (typeof prereleaseChannel !== 'string' || prereleaseChannel.toLowerCase() !== channel)) return false
     const baseVersion = `${parsedVersion.major}.${parsedVersion.minor}.${parsedVersion.patch}`
     return LEGACY_UPDATE_BRIDGE_BASE_VERSIONS[channel].has(baseVersion)
 }
