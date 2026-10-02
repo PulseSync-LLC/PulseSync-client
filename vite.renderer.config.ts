@@ -97,6 +97,18 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             },
         },
         plugins: [
+            {
+                name: 'remote-renderer-channel',
+                transform(code, id) {
+                    if (!isRemoteRendererBuild || path.resolve(id.split('?')[0]) !== path.resolve(__dirname, 'src/common/appConfig.ts')) return
+                    const channel = process.env.PULSESYNC_REMOTE_RENDERER_CHANNEL
+                    if (channel !== 'dev' && channel !== 'beta') throw new Error('Remote renderer channel must be dev or beta')
+                    return code
+                        .replace(/^export const isDev\s*=.*$/m, 'export const isDev = false')
+                        .replace(/^export const isDevmark\s*=.*$/m, `export const isDevmark = ${channel === 'dev'}`)
+                        .replace(/^export const branch\s*=.*$/m, `export const branch = '${channel}'`)
+                },
+            },
             svgr({
                 include: 'src/**/*.svg',
             }),

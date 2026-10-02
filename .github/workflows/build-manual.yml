@@ -374,3 +374,8 @@ jobs:
           git add --all
           git commit -m "chore: publish renderer $GITHUB_RUN_ID"
           git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
+
+      - name: Verify published renderer endpoints
+        run: |
+          yarn tsx scripts/renderer/remote-renderer.ts verify --channel ${{ inputs.renderer_channel }}
+          yarn tsx scripts/renderer/remote-renderer.ts verify --channel ${{ inputs.renderer_channel }} --cdn-url https://static.pulsesync.dev/app/${{ inputs.renderer_channel }}

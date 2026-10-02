@@ -87,6 +87,7 @@ jobs:
               - 'src/styles/**'
               - 'static/**'
               - 'scripts/renderer/**'
+              - '.github/workflows/publish-renderer.yml'
               - 'package.json'
               - 'yarn.lock'
               - '.yarnrc.yml'
@@ -313,90 +314,21 @@ jobs:
 
   publish_renderer:
     name: Publish Remote Renderer
-    needs: [changes, github_prerelease, publish_desktop_core]
+    needs: [changes, github_prerelease, publish_desktop_core, publish_bootstrapper]
     if: >-
       ${{
         always() &&
         needs.changes.result == 'success' &&
-        needs.changes.outputs.renderer == 'true' &&
+        (needs.changes.outputs.renderer == 'true' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core == 'true' || needs.changes.outputs.bootstrapper == 'true') &&
         (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success') &&
-        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core != 'true' || needs.publish_desktop_core.result == 'success')
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core != 'true' || needs.publish_desktop_core.result == 'success') &&
+        (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.bootstrapper != 'true' || needs.publish_bootstrapper.result == 'success')
       }}
-    runs-on: ubuntu-latest
-    environment: BUILD_PRODUCTION
-    concurrency:
-      group: remote-renderer-publish
-      cancel-in-progress: false
-
-    steps:
-      - uses: actions/checkout@v7
-        with:
-          ref: ${{ github.sha }}
-
-      - uses: actions/setup-node@v7
-        with:
-          node-version: 24
-          check-latest: true
-          cache: yarn
-          cache-dependency-path: '**/yarn.lock'
-
-      - name: Create .env
-        shell: bash
-        env:
-          ENV_FILE: ${{ secrets.ENV_FILE }}
-        run: |
-          if [ -n "$ENV_FILE" ]; then
-            printf '%s' "$ENV_FILE" > .env
-          fi
-
-      - name: Install deps
-        run: yarn install --frozen-lockfile
-
-      - name: Check Sentry CLI
-        run: yarn -s sentry-cli --version
-
-      - name: Publish remote renderer
-        id: renderer_publish
-        run: yarn renderer:publish --channel dev
-        env:
-          PULSESYNC_REMOTE_RENDERER_BUILD_NUMBER: ${{ github.run_id }}
-          GLITCHTIP_SOURCEMAPS: "1"
-          GLITCHTIP_SOURCEMAPS_UPLOAD: "1"
-          SENTRY_URL: https://issues.pulsesync.dev
-          SENTRY_AUTH_TOKEN: ${{ secrets.GLITCHTIP_AUTH_TOKEN }}
-          SENTRY_ORG: ${{ vars.GLITCHTIP_ORG }}
-          SENTRY_PROJECT: ${{ vars.GLITCHTIP_PROJECT }}
-
-      - name: Checkout renderer Pages repository
-        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
-        uses: actions/checkout@v7
-        with:
-          repository: PulseSync-LLC/PulseSync-renderer
-          token: ${{ secrets.RENDERER_REPO_TOKEN }}
-          ref: gh-pages
-          path: out/github-pages-repository
-
-      - name: Stage GitHub Pages renderer
-        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
-        run: yarn renderer:stage-pages --channel dev --source out/remote-renderer --target out/github-pages-repository
-
-      - name: Publish GitHub Pages renderer
-        if: ${{ steps.renderer_publish.outputs.changed == 'true' }}
-        shell: bash
-        working-directory: out/github-pages-repository
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add --all
-          if git diff --cached --quiet; then
-            echo "GitHub Pages renderer is already current."
-            exit 0
-          fi
-          expected_head="$(git rev-parse HEAD)"
-          git checkout --orphan pages-publish
-          git add --all
-          git commit -m "chore: publish renderer $GITHUB_RUN_ID"
-          git push --force-with-lease="gh-pages:$expected_head" origin HEAD:gh-pages
+    uses: ./.github/workflows/publish-renderer.yml
+    with:
+      channel: dev
+      checkout_ref: ${{ github.sha }}
+    secrets: inherit
 
   github_prerelease:
     name: Publish Desktop Prerelease

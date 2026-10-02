@@ -44,14 +44,11 @@ jobs:
           echo "checkout_ref=refs/tags/$tag_name" >> "$GITHUB_OUTPUT"
 
           asset_version="${tag_name#v}"
-          if [[ "$asset_version" != *-* ]]; then
-            echo "should_publish=false" >> "$GITHUB_OUTPUT"
-            echo "Skipping AUR publish for stable tag: $tag_name"
-            exit 0
+          channel=beta
+          if [[ "$asset_version" == *-* ]]; then
+            prerelease="${asset_version#*-}"
+            channel="${prerelease%%.*}"
           fi
-
-          prerelease="${asset_version#*-}"
-          channel="${prerelease%%.*}"
           if [ "$channel" = "dev" ]; then
             echo "should_publish=false" >> "$GITHUB_OUTPUT"
             echo "Skipping AUR publish for dev channel: $tag_name"
@@ -95,10 +92,7 @@ jobs:
           prerelease="${prerelease#-}"
           branch="${prerelease%%.*}"
 
-          if [ -z "$branch" ] || [ "$branch" = "$asset_version" ]; then
-            echo "Skipping AUR publish for tag without prerelease channel: ${TAG_NAME}"
-            exit 0
-          fi
+          if [ -z "$branch" ] || [ "$branch" = "$asset_version" ]; then branch=beta; fi
 
           asset_name="pulsesync-app-${asset_version}-linux-x64.tar.gz"
           asset_url="https://s3.pulsesync.dev/builds/app/${branch}/${asset_name}"
@@ -107,6 +101,7 @@ jobs:
           export PKGVER="$pkgver"
           export BRANCH="$branch"
           export ASSET_NAME="$asset_name"
+          export ASSET_VERSION="$asset_version"
           export SHA256="$sha256"
 
           python3 - <<'PY'
@@ -132,7 +127,7 @@ jobs:
               r'^pkgver=.+$': f"pkgver={os.environ['PKGVER']}",
               r'^pkgrel=.+$': f"pkgrel={next_pkgrel}",
               r'^_branch=.+$': f"_branch={os.environ['BRANCH']}",
-              r'^_asset_version=.+$': f"_asset_version=\"{os.environ['PKGVER']}-{os.environ['BRANCH']}\"",
+              r'^_asset_version=.+$': f"_asset_version=\"{os.environ['ASSET_VERSION']}\"",
               r'^_asset=.+$': f"_asset=\"{os.environ['ASSET_NAME']}\"",
               r"^sha256sums_x86_64=\('.+'\)$": f"sha256sums_x86_64=('{os.environ['SHA256']}')",
           }
