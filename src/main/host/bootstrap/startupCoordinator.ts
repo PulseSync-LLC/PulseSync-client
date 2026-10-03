@@ -15,6 +15,7 @@ import type { BootstrapWindowController } from './bootstrapWindow'
 import type { LaunchInbox } from './launchInbox'
 import type { LaunchQueue } from './launchQueue'
 import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
+import type { BootstrapUiController } from '@common/types/bootstrapEvents'
 
 export type ApplicationStartupHandle = {
     deliverLaunchRequest(request: LaunchRequestEnvelopeV1): Promise<boolean>
@@ -22,6 +23,7 @@ export type ApplicationStartupHandle = {
 }
 
 export type ApplicationBootstrapRuntime = {
+    bootstrapUi?: BootstrapUiController
     activeRuntime: ActiveRuntimeV3
     getLastCheckAt(): number | null
     handoffPreparedUpdate(): Promise<boolean>
@@ -174,6 +176,7 @@ export class StartupCoordinator {
             this.options.bootstrapWindow.window,
             {
                 activeRuntime,
+                bootstrapUi: this.options.bootstrapWindow,
                 leaseId: this.options.lease.leaseId,
                 getLastCheckAt: () => updateCoordinator.lastCheckAt,
                 runUpdate: options => updateCoordinator.run(options),

@@ -56,6 +56,12 @@ jobs:
       - name: Install deps
         run: yarn install --frozen-lockfile
 
+      - name: Typecheck desktop
+        run: yarn typecheck
+
+      - name: Lint desktop
+        run: yarn lint
+
       - name: Check bootstrapper formatting
         run: cargo fmt --manifest-path packages/bootstrapper/Cargo.toml --check
 
@@ -64,6 +70,9 @@ jobs:
 
       - name: Test bootstrapper
         run: cargo test --manifest-path packages/bootstrapper/Cargo.toml
+
+      - name: Verify launch routing
+        run: yarn bootstrapper:verify-launch-routing
 
       - name: Verify release routing
         run: yarn bootstrapper:verify-release-routing

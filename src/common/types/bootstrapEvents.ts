@@ -22,6 +22,7 @@ export const BOOTSTRAP_STATUS_KEYS = [
     'bootstrapper-missing',
     'launch-blocked',
     'launch-failed',
+    'renderer-unavailable',
 ] as const
 
 export const BOOTSTRAP_ACTIONS = ['retry', 'continue'] as const
@@ -44,6 +45,11 @@ export type BootstrapUiStateV1 = {
     progress: BootstrapUiProgress
     actions: BootstrapAction[]
     diagnostic?: BootstrapUiDiagnostic
+}
+
+export type BootstrapUiController = {
+    publish(state: BootstrapUiStateV1): void
+    setActionHandlers(handlers: { continue?: () => Promise<boolean>; retry?: () => Promise<boolean> }): void
 }
 
 export type BootstrapWindowApi = {

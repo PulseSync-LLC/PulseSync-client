@@ -15,6 +15,7 @@ use crate::{
             Layout, LayoutKind, canonical_install_root, resolve_layout, resolve_macos_layout,
         },
         operation_lock::UpdateLock,
+        packaged_runtime::ensure_seeded_state,
         self_update::{
             SelfUpdateMutationGate, read_self_update_reservation, reconcile_self_update_mutation,
             remove_self_update_reservation, reservation_child_is_live,
@@ -280,6 +281,12 @@ pub fn start(args: &Args) -> Result<Value> {
     let inferred_install_root = explicit_install_root
         .clone()
         .or_else(|| infer_install_root().ok());
+    if let Some(seed_root) = arg_value(args, "--seed-root") {
+        let state_root = explicit_install_root
+            .as_deref()
+            .ok_or("--seed-root requires --state-root")?;
+        ensure_seeded_state(state_root, Path::new(&seed_root))?;
+    }
     let install_root = explicit_install_root
         .or(inferred_install_root)
         .map(|path| canonical_install_root(&path))

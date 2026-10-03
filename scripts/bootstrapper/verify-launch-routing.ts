@@ -9,7 +9,7 @@ async function main(): Promise<void> {
         '..',
         'src',
         'main',
-        'modules',
+        'host',
         'bootstrapper',
         'launchRouting.ts',
     )
