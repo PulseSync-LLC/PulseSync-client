@@ -1,15 +1,13 @@
 import { BootstrapperCommandError } from '../../shared/bootstrapper/command'
 import { isUpdateErrorV1, type PrepareUpdateResultV1 } from '../../shared/bootstrapper/contracts'
-import { addMainBreadcrumb, countMainMetric, distributeMainMetric } from '../../shared/errorTracking'
+import { addMainBreadcrumb, addMainLog } from '../../shared/errorTracking'
 import logger from '../../shared/logger'
 
 import type { PrepareDesktopUpdateOptions } from '../../shared/updater/bootstrapperUpdateService'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 type UpdateTelemetryContext = Pick<PrepareDesktopUpdateOptions, 'channel' | 'dist' | 'requestedSource'>
-type MetricAttributes = Record<string, string | number | boolean>
-
-function baseAttributes(context: UpdateTelemetryContext): MetricAttributes {
+function baseAttributes(context: UpdateTelemetryContext): Record<string, string | number | boolean> {
     return {
         channel: context.channel,
         dist: context.dist,
@@ -49,52 +47,6 @@ function recordDeliveryTelemetry(result: Extract<PrepareUpdateResultV1, { state:
         deltaAttempts,
         deltaFailures,
     })
-    distributeMainMetric('pulsesync.updater.payload_download_bytes', downloadedBytes, 'byte', attributes)
-    distributeMainMetric('pulsesync.updater.payload_prepare_duration', telemetry.durationMs, 'millisecond', attributes)
-
-    for (const artifact of telemetry.artifacts) {
-        countMainMetric('pulsesync.updater.artifact_delivery', 1, {
-            ...attributes,
-            artifact: artifact.key,
-            delivery: artifact.delivery,
-            reused: artifact.reused,
-        })
-        if (artifact.fallbackReason) {
-            countMainMetric('pulsesync.updater.fallback', 1, {
-                ...attributes,
-                artifact: artifact.key,
-                reason: artifact.fallbackReason,
-                scope: 'artifact',
-            })
-        }
-        for (const delivery of artifact.fileDeliveries) {
-            countMainMetric('pulsesync.updater.file_delivery', delivery.count, {
-                ...attributes,
-                artifact: artifact.key,
-                delivery: delivery.delivery,
-            })
-        }
-        for (const fallback of artifact.fallbacks) {
-            countMainMetric('pulsesync.updater.fallback', fallback.count, {
-                ...attributes,
-                artifact: artifact.key,
-                reason: fallback.reason,
-                scope: 'file',
-            })
-        }
-        for (const attempt of artifact.deltaAttempts) {
-            const deltaAttributes = {
-                ...attributes,
-                artifact: artifact.key,
-                provider: attempt.provider,
-                outcome: attempt.outcome,
-                reason: attempt.reason ?? 'none',
-            }
-            countMainMetric('pulsesync.updater.delta_attempt', attempt.count, deltaAttributes)
-            distributeMainMetric('pulsesync.updater.delta_download_bytes', attempt.downloadBytes, 'byte', deltaAttributes)
-            distributeMainMetric('pulsesync.updater.delta_duration', attempt.durationMs, 'millisecond', deltaAttributes)
-        }
-    }
 }
 
 export function recordUpdatePrepareResult(result: PrepareUpdateResultV1, context: UpdateTelemetryContext, durationMs: number): void {
@@ -104,14 +56,19 @@ export function recordUpdatePrepareResult(result: PrepareUpdateResultV1, context
         ...(result.state === 'prepared' ? { reused: result.reused } : {}),
         ...(result.state === 'blocked' ? { block_code: result.block.code } : {}),
     }
-    countMainMetric('pulsesync.updater.prepare', 1, attributes)
-    distributeMainMetric('pulsesync.updater.prepare_duration', durationMs, 'millisecond', attributes)
     addMainBreadcrumb('pulsesync.updater.prepare', `Update preparation ${result.state}`, {
         ...attributes,
         durationMs,
         targetVersion: result.decision?.targetVersion,
         blockCode: result.state === 'blocked' ? result.block.code : undefined,
     })
+    if (result.state === 'blocked') {
+        addMainLog('warn', `Update preparation blocked: ${result.block.code}`, {
+            ...attributes,
+            durationMs,
+            targetVersion: result.decision?.targetVersion,
+        })
+    }
     if (result.state === 'prepared') recordDeliveryTelemetry(result, context)
 }
 
@@ -122,8 +79,11 @@ export function recordUpdatePrepareFailure(error: unknown, context: UpdateTeleme
         outcome: 'failed',
         error_code: errorCode,
     }
-    countMainMetric('pulsesync.updater.prepare', 1, attributes)
-    distributeMainMetric('pulsesync.updater.prepare_duration', durationMs, 'millisecond', attributes)
+    addMainLog('error', `Update preparation failed: ${errorCode}`, {
+        ...attributes,
+        durationMs,
+        error_message: error instanceof Error ? error.message : String(error),
+    })
     addMainBreadcrumb('pulsesync.updater.prepare', 'Update preparation failed', {
         ...attributes,
         durationMs,
@@ -138,14 +98,16 @@ export function recordUpdateTransition(previous: BootstrapUiStateV1, next: Boots
         to_phase: next.phase,
         status: next.statusKey,
     }
-    countMainMetric('pulsesync.updater.transition', 1, attributes)
     addMainBreadcrumb('pulsesync.updater.transition', 'Updater state transition', attributes)
 }
 
 export function recordUpdateHandoff(outcome: 'armed' | 'failed' | 'launcher-missing', durationMs: number): void {
-    const attributes = { outcome }
-    countMainMetric('pulsesync.updater.handoff', 1, attributes)
-    distributeMainMetric('pulsesync.updater.handoff_duration', durationMs, 'millisecond', attributes)
+    if (outcome !== 'armed') {
+        addMainLog('error', outcome === 'launcher-missing' ? 'Update restart failed: bootstrapper launcher missing' : 'Update restart failed', {
+            outcome,
+            durationMs,
+        })
+    }
     addMainBreadcrumb('pulsesync.updater.handoff', `Updater handoff ${outcome}`, {
         outcome,
         durationMs,
@@ -153,10 +115,12 @@ export function recordUpdateHandoff(outcome: 'armed' | 'failed' | 'launcher-miss
 }
 
 export function recordUpdateActivation(outcome: 'acknowledged' | 'failed', durationMs: number): void {
-    const attributes = { outcome }
     logger.updater.info('Updated runtime activation telemetry', { outcome, durationMs })
-    countMainMetric('pulsesync.updater.activation', 1, attributes)
-    distributeMainMetric('pulsesync.updater.activation_duration', durationMs, 'millisecond', attributes)
+    addMainLog(
+        outcome === 'acknowledged' ? 'info' : 'error',
+        outcome === 'acknowledged' ? `Update activated in ${durationMs} ms` : `Update activation failed after ${durationMs} ms`,
+        { outcome, durationMs },
+    )
     addMainBreadcrumb('pulsesync.updater.activation', `Updated runtime activation ${outcome}`, {
         outcome,
         durationMs,

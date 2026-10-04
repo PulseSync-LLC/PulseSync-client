@@ -126,35 +126,17 @@ export const addMainBreadcrumb = (category: string, message: string, data?: Reco
     }
 }
 
-type MainMetricAttributes = Record<string, string | number | boolean>
-
-const recordMainMetric = (
-    name: string,
-    value: number,
-    type: 'counter' | 'distribution',
-    attributes?: MainMetricAttributes,
-    unit?: 'byte' | 'millisecond',
+export const addMainLog = (
+    level: 'info' | 'warn' | 'error',
+    message: string,
+    attributes?: Record<string, string | number | boolean | undefined>,
 ): void => {
     if (!isInitialized()) return
     try {
-        Sentry.logger.info(name, {
-            ...attributes,
-            'metric.name': name,
-            'metric.type': type,
-            'metric.value': value,
-            ...(unit ? { 'metric.unit': unit } : {}),
-        })
+        Sentry.logger[level](message, attributes)
     } catch (error) {
-        logger.main.warn('Failed to record error tracking metric log:', error)
+        logger.main.warn('Failed to record error tracking log:', error)
     }
-}
-
-export const countMainMetric = (name: string, value: number, attributes?: MainMetricAttributes): void => {
-    recordMainMetric(name, value, 'counter', attributes)
-}
-
-export const distributeMainMetric = (name: string, value: number, unit?: 'byte' | 'millisecond', attributes?: MainMetricAttributes): void => {
-    recordMainMetric(name, value, 'distribution', attributes, unit)
 }
 
 export const captureMainException = (error: unknown, source: string): void => {
