@@ -26,6 +26,7 @@ export const initRendererErrorTracking = (): void => {
             },
             maxBreadcrumbs: 0,
             tracesSampleRate: 0,
+            traceLifecycle: 'static',
             beforeSend: event => addErrorTrackingDebugIds(addErrorTrackingRuntimeTags(sanitizeErrorTrackingEvent(event))),
         })
         Sentry.setTags({
