@@ -1,3 +1,5 @@
+import { setTimeout as delay } from 'node:timers/promises'
+
 import * as semver from 'semver'
 
 import config from '@common/appConfig'
@@ -39,6 +41,8 @@ const MOD_REPO = {
 }
 
 const BRANCH_RELEASE_PREFIX = 'branch-'
+const MOD_BRANCH_LOOKUP_ATTEMPTS = 4
+const MOD_BRANCH_LOOKUP_RETRY_DELAY_MS = 1000
 
 type BranchBuildMetadata = {
     branch: string
@@ -292,8 +296,30 @@ export async function getModReleaseForSelection(selection: ModSourceSelection, s
         return releases[0] ?? null
     }
 
-    const builds = await fetchGithubBranchBuilds()
-    return builds.find(build => build.branch === selection.branch) ?? null
+    for (let attempt = 1; attempt <= MOD_BRANCH_LOOKUP_ATTEMPTS; attempt++) {
+        let lookupError: unknown
+        try {
+            const builds = await fetchGithubBranchBuilds()
+            const release = builds.find(build => build.branch === selection.branch)
+            if (release) return release
+        } catch (error) {
+            if (attempt === MOD_BRANCH_LOOKUP_ATTEMPTS) throw error
+            lookupError = error
+        }
+
+        if (attempt < MOD_BRANCH_LOOKUP_ATTEMPTS) {
+            const delayMs = attempt * MOD_BRANCH_LOOKUP_RETRY_DELAY_MS
+            logger.modManager.warn('Retrying selected mod branch lookup', {
+                branch: selection.branch,
+                attempt: attempt + 1,
+                delayMs,
+                ...(lookupError ? { error: lookupError } : {}),
+            })
+            await delay(delayMs)
+        }
+    }
+
+    return null
 }
 
 export async function getModReleasesForSource(source: UpdateSource): Promise<ModReleaseEntry[]> {
