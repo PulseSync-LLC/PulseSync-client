@@ -788,11 +788,6 @@ export async function publishToS3(
                   parseStructuredArtifactDescriptor(path.basename(fp)) !== null
                 : true,
         )
-    const zipFiles = fs
-        .readdirSync(dir)
-        .filter(name => name.endsWith('.zip'))
-        .map(name => path.join(dir, name))
-    for (const zipPath of zipFiles) if (!files.includes(zipPath)) files.push(zipPath)
 
     const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
     files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
