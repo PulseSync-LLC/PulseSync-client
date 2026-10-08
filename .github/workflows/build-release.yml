@@ -256,6 +256,7 @@ jobs:
           --dir github-release-artifacts
           --version ${{ needs.tag.outputs.version }}
           --legacy-update-bridge
+          --require-baseline
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v3.0.3

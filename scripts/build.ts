@@ -554,6 +554,7 @@ function isManagedReleaseArtifact(fileName: string): boolean {
         fileName.startsWith('latest') ||
         fileName.endsWith('.blockmap') ||
         /^desktop-update-[a-z0-9_-]+\.json$/iu.test(fileName) ||
+        /^baseline-[a-z0-9_-]+\.json$/iu.test(fileName) ||
         /^pulsesync-app-/iu.test(fileName) ||
         /^pulsesync-host-/iu.test(fileName) ||
         /^pulsesync-host-bundle-/iu.test(fileName) ||

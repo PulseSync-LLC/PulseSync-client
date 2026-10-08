@@ -679,6 +679,9 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     if (previousManifest && metadataVersion <= previousManifest.metadataVersion) {
         throw new Error(`metadataVersion must be newer than the published manifest (${previousManifest.metadataVersion}), got ${metadataVersion}`)
     }
+    // Persist the exact baseline used for component reuse and revision checks, including first publication.
+    fs.mkdirSync(releaseDir, { recursive: true })
+    fs.writeFileSync(path.join(releaseDir, `baseline-${options.dist}.json`), `${JSON.stringify(previousManifest)}\n`, 'utf8')
     const previousTarget = previousManifest?.targets[options.dist]
     const includeFileInventories = previousTarget !== undefined && process.env.PULSESYNC_DISABLE_FILE_INVENTORIES?.trim() !== '1'
     const targetHostVersion = options.hostVersion
