@@ -7,8 +7,8 @@ use super::{
         workflow_error,
     },
     prepare_validation::{
-        prepared_ref, public_decision as make_public_decision, resolve_effective_source,
-        transaction_matches,
+        prepared_ref, public_decision as make_public_decision, read_effective_manifest,
+        resolve_effective_source, transaction_matches,
     },
 };
 use crate::{
@@ -29,7 +29,7 @@ use crate::{
         macos_bundle,
         manifest::{
             ArtifactLayout, BootstrapperUpdateManifest, UpdatePlanAction, UpdatePlanDelivery,
-            decide_component_update, decide_update, read_source, validate_manifest,
+            decide_component_update, decide_update, validate_manifest,
         },
         transactions::{prepare_transaction_file_at, prepared_transactions},
     },
@@ -239,16 +239,7 @@ pub fn prepare_update(
         "checking",
         "Checking update manifest",
     ));
-    let manifest_bytes = read_source(&source.url).map_err(|error| {
-        workflow_error(
-            PREPARE_COMMAND,
-            "manifest-fetch-failed",
-            "fetch-manifest",
-            error,
-            true,
-            safe_to_continue,
-        )
-    })?;
+    let (source, manifest_bytes) = read_effective_manifest(&options, source, safe_to_continue)?;
     let manifest: BootstrapperUpdateManifest =
         serde_json::from_slice(&manifest_bytes).map_err(|error| {
             workflow_error(

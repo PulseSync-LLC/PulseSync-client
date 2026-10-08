@@ -16,6 +16,7 @@ use crate::{
         manifest::{
             ArtifactLayout, BootstrapperUpdateDecision, BootstrapperUpdateManifest,
             GitHubManifestFallback, UpdatePlanAction, github_manifest_url, health_check_available,
+            is_manifest_fetch_unavailable, read_source,
         },
         transactions::{TransactionRecord, transaction_artifacts},
     },
@@ -29,18 +30,72 @@ use std::{
 };
 use uuid::Uuid;
 
-pub(super) fn resolve_effective_source(
-    options: &PrepareUpdateOptions,
-    safe_to_continue: bool,
-) -> std::result::Result<EffectiveManifestSource, UpdateWorkflowError> {
-    let fallback = || GitHubManifestFallback {
+fn github_fallback(options: &PrepareUpdateOptions) -> GitHubManifestFallback {
+    GitHubManifestFallback {
         channel: options.channel.clone(),
         dist: options.dist.clone(),
         owner: options.github_owner.clone(),
         repo: options.github_repo.clone(),
         hybrid: options.host_bundle.is_some(),
-    };
+    }
+}
 
+pub(super) fn read_effective_manifest(
+    options: &PrepareUpdateOptions,
+    mut source: EffectiveManifestSource,
+    safe_to_continue: bool,
+) -> std::result::Result<(EffectiveManifestSource, Vec<u8>), UpdateWorkflowError> {
+    let backend_error = match read_source(&source.url) {
+        Ok(bytes) => return Ok((source, bytes)),
+        Err(error)
+            if matches!(source.effective, RequestedManifestSource::Backend)
+                && is_http_source(&source.url)
+                && is_manifest_fetch_unavailable(error.as_ref()) =>
+        {
+            error
+        }
+        Err(error) => {
+            return Err(workflow_error(
+                PREPARE_COMMAND,
+                "manifest-fetch-failed",
+                "fetch-manifest",
+                error,
+                true,
+                safe_to_continue,
+            ));
+        }
+    };
+    let url = github_manifest_url(&github_fallback(options)).map_err(|error| {
+        workflow_error(
+            PREPARE_COMMAND,
+            "github-manifest-resolution-failed",
+            "resolve-source",
+            format!("Backend manifest fetch failed: {backend_error}; GitHub fallback resolution failed: {error}"),
+            true,
+            safe_to_continue,
+        )
+    })?;
+    source.effective = RequestedManifestSource::Github;
+    source.url = url;
+    source.fallback_used = true;
+    source.fallback_reason = Some("manifest-unavailable".to_string());
+    let bytes = read_source(&source.url).map_err(|error| {
+        workflow_error(
+            PREPARE_COMMAND,
+            "manifest-fetch-failed",
+            "fetch-manifest",
+            format!("Backend manifest fetch failed: {backend_error}; GitHub fallback manifest fetch failed: {error}"),
+            true,
+            safe_to_continue,
+        )
+    })?;
+    Ok((source, bytes))
+}
+
+pub(super) fn resolve_effective_source(
+    options: &PrepareUpdateOptions,
+    safe_to_continue: bool,
+) -> std::result::Result<EffectiveManifestSource, UpdateWorkflowError> {
     match options.requested_source {
         RequestedManifestSource::Backend => {
             let manifest_url = options
@@ -90,7 +145,7 @@ pub(super) fn resolve_effective_source(
                     fallback_reason: None,
                 });
             }
-            let url = github_manifest_url(&fallback()).map_err(|error| {
+            let url = github_manifest_url(&github_fallback(options)).map_err(|error| {
                 workflow_error(
                     PREPARE_COMMAND,
                     "github-manifest-resolution-failed",
@@ -109,7 +164,7 @@ pub(super) fn resolve_effective_source(
             })
         }
         RequestedManifestSource::Github => {
-            let url = github_manifest_url(&fallback()).map_err(|error| {
+            let url = github_manifest_url(&github_fallback(options)).map_err(|error| {
                 workflow_error(
                     PREPARE_COMMAND,
                     "github-manifest-resolution-failed",
