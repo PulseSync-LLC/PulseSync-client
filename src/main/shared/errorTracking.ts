@@ -9,6 +9,7 @@ import {
     ERROR_TRACKING_ENABLED,
     ERROR_TRACKING_ENVIRONMENT,
     sanitizeErrorTrackingEvent,
+    sanitizeErrorTrackingText,
 } from '@common/errorTracking'
 import { getDesktopErrorTrackingRelease } from '@common/errorTrackingRelease'
 
@@ -162,6 +163,7 @@ export const captureMainException = (error: unknown, source: string): void => {
                     launcherSource: error.invocation.launcherSource,
                     retryable: result?.error.retryable,
                     safeToContinue: result?.error.safeToContinue,
+                    errorMessage: result ? sanitizeErrorTrackingText(result.error.message).slice(0, 1_000) : undefined,
                     diagnostics: error.diagnostics.slice(0, 8).map(line => line.slice(0, 1_000)),
                 })
             }

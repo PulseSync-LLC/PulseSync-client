@@ -175,12 +175,14 @@ const redactSensitiveText = (value: string): string =>
 const redactUserPath = (value: string): string =>
     value.replace(/([A-Z]:\\Users\\)[^\\]+/gi, '$1[Filtered]').replace(/(\/(?:home|Users)\/)[^/]+/g, '$1[Filtered]')
 
+export const sanitizeErrorTrackingText = (value: string): string => redactUserPath(redactSensitiveText(value))
+
 export const sanitizeErrorTrackingEvent = <T extends ErrorTrackingEvent>(event: T): T => {
-    if (event.message) event.message = redactSensitiveText(event.message)
-    if (event.logentry?.message) event.logentry.message = redactSensitiveText(event.logentry.message)
-    if (event.logentry?.formatted) event.logentry.formatted = redactSensitiveText(event.logentry.formatted)
+    if (event.message) event.message = sanitizeErrorTrackingText(event.message)
+    if (event.logentry?.message) event.logentry.message = sanitizeErrorTrackingText(event.logentry.message)
+    if (event.logentry?.formatted) event.logentry.formatted = sanitizeErrorTrackingText(event.logentry.formatted)
     for (const exception of event.exception?.values ?? []) {
-        if (exception.value) exception.value = redactSensitiveText(exception.value)
+        if (exception.value) exception.value = sanitizeErrorTrackingText(exception.value)
         for (const frame of exception.stacktrace?.frames ?? []) {
             if (frame.filename) frame.filename = redactUserPath(frame.filename)
             if (frame.abs_path) frame.abs_path = redactUserPath(frame.abs_path)
