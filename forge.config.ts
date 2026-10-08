@@ -111,7 +111,6 @@ const forgeConfig: ForgeConfig = {
             resetAdHocDarwinSignature: false,
             [FuseV1Options.RunAsNode]: true,
             [FuseV1Options.EnableEmbeddedAsarIntegrityValidation]: true,
-            [FuseV1Options.EnableCookieEncryption]: true,
             [FuseV1Options.OnlyLoadAppFromAsar]: true,
             [FuseV1Options.EnableNodeCliInspectArguments]: false,
         }),
