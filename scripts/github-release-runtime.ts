@@ -547,7 +547,7 @@ async function prepareRelease(args: string[]): Promise<void> {
     fs.mkdirSync(targetRoot, { recursive: true })
     const canonicalArtifactRoot = path.join(targetRoot, '.canonical-runtime')
     const allFiles = listFiles(sourceRoot)
-    const files = allFiles.filter(file => !isNestedPublicationFile(file, sourceRoot))
+    const files = allFiles.filter(file => !isNestedPublicationFile(file, sourceRoot) && !/^baseline-[a-z0-9_-]+\.json$/iu.test(path.basename(file)))
     const fileIndex = buildFileIndex(files)
     const manifestFiles = files.filter(file => DESKTOP_MANIFEST_PATTERN.test(path.basename(file)))
     if (!manifestFiles.length) throw new Error(`No desktop update manifests found under ${sourceRoot}`)

@@ -705,11 +705,66 @@ async function archiveStoredDesktopManifest(client: S3Client, bucket: string, cu
     log(LogLevel.INFO, `Archived current manifest as ${archiveKey}`)
 }
 
+async function preflightDesktopManifests(
+    client: S3Client,
+    bucket: string,
+    branchPrefix: string,
+    branch: string,
+    files: string[],
+    requireBaseline: boolean,
+): Promise<void> {
+    const manifests = new Map<string, { incoming: unknown; current: unknown | null; filePath: string }>()
+    for (const filePath of files.filter(isDesktopReleaseManifestFile)) {
+        const name = path.basename(filePath)
+        const incoming = JSON.parse(fs.readFileSync(filePath, 'utf8'))
+        if (!Number.isSafeInteger(incoming?.metadataVersion) || incoming.metadataVersion <= 0 || incoming.channel !== branch) {
+            throw new Error(`Desktop manifest has an invalid metadataVersion or channel: ${filePath}`)
+        }
+        let current = null
+        try {
+            current = JSON.parse(await readStoredText(client, bucket, `${branchPrefix}/${name}`))
+            if (!Number.isSafeInteger(current?.metadataVersion) || current.metadataVersion <= 0) {
+                throw new Error(`Published desktop manifest has an invalid metadataVersion: ${name}`)
+            }
+        } catch (error) {
+            if (!isMissingS3Object(error)) throw error
+        }
+        if (current !== null) {
+            if (incoming.metadataVersion < current.metadataVersion) {
+                throw new Error(`Desktop manifest is older than the published metadataVersion (${current.metadataVersion}): ${name}`)
+            }
+            if (incoming.metadataVersion === current.metadataVersion && JSON.stringify(incoming) !== JSON.stringify(current)) {
+                throw new Error(`Desktop manifest conflicts with the published metadataVersion (${current.metadataVersion}): ${name}`)
+            }
+        }
+        manifests.set(name, { incoming, current, filePath })
+    }
+    if (requireBaseline && manifests.size === 0) throw new Error('No desktop manifests found for baseline validation')
+
+    // Validate every platform before uploading artifacts or changing any mutable pointer.
+    // A partial publication may already contain some of these exact incoming manifests.
+    for (const [name, { filePath }] of manifests) {
+        const dist = name.replace(/^desktop-update-(?:hybrid-)?/u, '').replace(/\.json$/u, '')
+        const baselinePath = path.join(path.dirname(filePath), `baseline-${dist}.json`)
+        if (!requireBaseline && !fs.existsSync(baselinePath)) continue
+        const baseline = JSON.parse(fs.readFileSync(baselinePath, 'utf8'))
+        const canonicalName = dist.startsWith('darwin-') ? `desktop-update-hybrid-${dist}.json` : name
+        const canonical = manifests.get(canonicalName)
+        if (!canonical) throw new Error(`Missing desktop manifest for baseline validation: ${canonicalName}`)
+        if (
+            JSON.stringify(canonical.current) !== JSON.stringify(canonical.incoming) &&
+            JSON.stringify(canonical.current) !== JSON.stringify(baseline)
+        ) {
+            throw new Error(`S3 baseline changed during build: ${canonicalName}; rebuild before publishing`)
+        }
+    }
+}
+
 export async function publishToS3(
     branch: string,
     dir: string,
     version?: string,
-    opts?: { prefix?: string; legacyUpdateBridge?: boolean; keepRecentVersions?: null },
+    opts?: { prefix?: string; legacyUpdateBridge?: boolean; requireBaseline?: boolean; keepRecentVersions?: null },
 ): Promise<void> {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
@@ -724,7 +779,7 @@ export async function publishToS3(
         .readdirSync(dir)
         .map(name => path.join(dir, name))
         .filter(filePath => fs.statSync(filePath).isFile())
-        .filter(fp => path.basename(fp) !== 'builder-debug.yml')
+        .filter(fp => path.basename(fp) !== 'builder-debug.yml' && !/^baseline-[a-z0-9_-]+\.json$/iu.test(path.basename(fp)))
         .filter(fp => !isLegacyUpdaterArtifact(fp) || (legacyUpdateBridge && isLegacyUpdateBridgeMetadata(fp)))
         .filter(fp =>
             version
@@ -741,6 +796,8 @@ export async function publishToS3(
 
     const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
     files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
+
+    await preflightDesktopManifests(client, bucket, `${prefix}/${branch}`, branch, files, opts?.requireBaseline === true)
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
@@ -951,7 +1008,7 @@ async function cli(): Promise<void> {
     if (!branch) {
         log(
             LogLevel.ERROR,
-            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--legacy-update-bridge]',
+            'Usage: tsx scripts/s3-upload.ts --branch <name> [--dir release] [--version x.y.z] [--prefix builds/app] [--legacy-update-bridge] [--require-baseline]',
         )
         process.exit(1)
     }
@@ -963,7 +1020,7 @@ async function cli(): Promise<void> {
     log(LogLevel.INFO, `Dir: ${dir}`)
     log(LogLevel.INFO, `Version: ${version}`)
     log(LogLevel.INFO, `Prefix: ${prefix}`)
-    await publishToS3(branch, dir, version, { prefix, legacyUpdateBridge })
+    await publishToS3(branch, dir, version, { prefix, legacyUpdateBridge, requireBaseline: process.argv.includes('--require-baseline') })
 }
 
 const isDirectRun = process.argv[1] != null && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url
