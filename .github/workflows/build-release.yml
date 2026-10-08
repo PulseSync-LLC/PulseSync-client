@@ -278,3 +278,21 @@ jobs:
     with:
       tag_name: ${{ github.ref_name }}
     secrets: inherit
+
+  cleanup_desktop_s3:
+    name: Cleanup Desktop S3
+    needs: [tag, github_release, publish_aur]
+    if: >-
+      ${{
+        !cancelled() &&
+        needs.github_release.result == 'success' &&
+        needs.publish_aur.result == 'success' &&
+        (needs.tag.outputs.channel == 'dev' || needs.tag.outputs.channel == 'beta')
+      }}
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/desktop-s3-cleanup.yml
+    with:
+      checkout_ref: ${{ github.sha }}
+    secrets: inherit
