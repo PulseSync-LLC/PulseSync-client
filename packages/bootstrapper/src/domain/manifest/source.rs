@@ -77,6 +77,27 @@ pub fn read_source(source: &str) -> Result<Vec<u8>> {
     Ok(fs::read(source)?)
 }
 
+pub fn is_manifest_fetch_unavailable(error: &(dyn std::error::Error + 'static)) -> bool {
+    if let Some(error) = error.downcast_ref::<ureq::Error>() {
+        return match error {
+            ureq::Error::Status(status, _) => {
+                matches!(status, 404 | 408 | 429 | 500..=599)
+            }
+            ureq::Error::Transport(error) => matches!(
+                error.kind(),
+                ureq::ErrorKind::Dns
+                    | ureq::ErrorKind::ConnectionFailed
+                    | ureq::ErrorKind::Io
+                    | ureq::ErrorKind::ProxyConnect
+                    | ureq::ErrorKind::BadStatus
+                    | ureq::ErrorKind::BadHeader
+            ),
+        };
+    }
+    // For an HTTP source this is a failure while reading the response body.
+    error.downcast_ref::<std::io::Error>().is_some()
+}
+
 fn is_http_source(source: &str) -> bool {
     source.starts_with("http://") || source.starts_with("https://")
 }
@@ -96,20 +117,6 @@ pub fn health_check_available(health_url: &str) -> bool {
 }
 
 pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> {
-    let api_url = format!(
-        "{GITHUB_API_BASE_URL}/repos/{}/{}/releases",
-        fallback.owner, fallback.repo
-    );
-    let response = http_agent(Duration::from_secs(5), Duration::from_secs(15))
-        .get(&api_url)
-        .set("Accept", "application/vnd.github+json")
-        .set("User-Agent", "PulseSyncBootstrapper")
-        .timeout(Duration::from_secs(15))
-        .call()?;
-    let releases: Value = serde_json::from_reader(response.into_reader())?;
-    let releases = releases
-        .as_array()
-        .ok_or("GitHub releases response must be an array")?;
     let want_prerelease = fallback.channel == "dev";
     let asset_name = if fallback.hybrid {
         format!("desktop-update-hybrid-{}.json", fallback.dist)
@@ -117,41 +124,63 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
         format!("desktop-update-{}.json", fallback.dist)
     };
 
-    for release in releases {
-        if release
-            .get("draft")
-            .and_then(Value::as_bool)
-            .unwrap_or(true)
-        {
-            continue;
-        }
-        if release
-            .get("prerelease")
-            .and_then(Value::as_bool)
-            .unwrap_or(false)
-            != want_prerelease
-        {
-            continue;
-        }
-        if want_prerelease {
-            let release_channel = release
-                .get("tag_name")
-                .and_then(Value::as_str)
-                .and_then(|tag| tag.trim_start_matches('v').split_once('-'))
-                .map(|(_, prerelease)| prerelease.split('.').next().unwrap_or_default());
-            if release_channel != Some(fallback.channel.as_str()) {
-                continue;
-            }
+    const MAX_PAGES: usize = 10;
+    let agent = http_agent(Duration::from_secs(5), Duration::from_secs(15));
+    for page in 1..=MAX_PAGES {
+        let api_url = format!(
+            "{GITHUB_API_BASE_URL}/repos/{}/{}/releases?per_page=100&page={page}",
+            fallback.owner, fallback.repo
+        );
+        let response = agent
+            .get(&api_url)
+            .set("Accept", "application/vnd.github+json")
+            .set("User-Agent", "PulseSyncBootstrapper")
+            .timeout(Duration::from_secs(15))
+            .call()?;
+        let releases: Value = serde_json::from_reader(response.into_reader())?;
+        let releases = releases
+            .as_array()
+            .ok_or("GitHub releases response must be an array")?;
+        if releases.is_empty() {
+            break;
         }
 
-        let Some(assets) = release.get("assets").and_then(Value::as_array) else {
-            continue;
-        };
-        for asset in assets {
-            if asset.get("name").and_then(Value::as_str) == Some(asset_name.as_str())
-                && let Some(url) = asset.get("browser_download_url").and_then(Value::as_str)
+        for release in releases {
+            if release
+                .get("draft")
+                .and_then(Value::as_bool)
+                .unwrap_or(true)
             {
-                return Ok(url.to_string());
+                continue;
+            }
+            if release
+                .get("prerelease")
+                .and_then(Value::as_bool)
+                .unwrap_or(false)
+                != want_prerelease
+            {
+                continue;
+            }
+            if want_prerelease {
+                let release_channel = release
+                    .get("tag_name")
+                    .and_then(Value::as_str)
+                    .and_then(|tag| tag.trim_start_matches('v').split_once('-'))
+                    .map(|(_, prerelease)| prerelease.split('.').next().unwrap_or_default());
+                if release_channel != Some(fallback.channel.as_str()) {
+                    continue;
+                }
+            }
+
+            let Some(assets) = release.get("assets").and_then(Value::as_array) else {
+                continue;
+            };
+            for asset in assets {
+                if asset.get("name").and_then(Value::as_str) == Some(asset_name.as_str())
+                    && let Some(url) = asset.get("browser_download_url").and_then(Value::as_str)
+                {
+                    return Ok(url.to_string());
+                }
             }
         }
     }
