@@ -7,7 +7,7 @@ use crate::core::{
     install_state::{
         ActivationState, InstallStateV3, RuntimeActivationV3, RuntimeComponentV3, RuntimeHostV3,
         RuntimeLocation, RuntimeSnapshotV3, install_state_path, read_install_state_metadata,
-        read_install_state_with_host, write_install_state,
+        read_install_state_with_host, synchronize_mutable_bootstrapper, write_install_state,
     },
     layout::{assert_inside, canonical_install_root},
     operation_lock::UpdateLock,
@@ -321,6 +321,118 @@ fn seed_component(
     }
 }
 
+fn repair_macos_bootstrapper_seed(
+    state_root: &Path,
+    host_bundle: &Path,
+    state: &InstallStateV3,
+    descriptor: &PackagedRuntimeV3,
+) -> Result<()> {
+    if !matches!(state.activation.state, ActivationState::Confirmed)
+        || !descriptor.external_components
+        || !matches!(descriptor.schema_version, 3 | 4)
+        || state.latest.host.location != RuntimeLocation::HostBundle
+        || state.latest.host.path != Path::new(".")
+        || state.latest.host.version != descriptor.host_version
+    {
+        return Ok(());
+    }
+    let Some(expected) = state.latest.components.get("bootstrapper") else {
+        return Ok(());
+    };
+    let target = managed_bootstrapper_path(state_root);
+    if expected.location != RuntimeLocation::StateRoot
+        || !valid_relative_path(&expected.path)
+        || state_root.join(&expected.path) != target
+        || expected.version.trim().is_empty()
+        || !expected.required
+    {
+        return Ok(());
+    }
+    // Confirmed snapshots share this mutable file. Do not repair inconsistent metadata
+    // by silently choosing one snapshot's bootstrapper over another's.
+    for snapshot in [&state.running, &state.known_good, &state.last_successful] {
+        let Some(component) = snapshot.components.get("bootstrapper") else {
+            return Ok(());
+        };
+        if component.location != expected.location
+            || component.path != expected.path
+            || component.version != expected.version
+            || component.required != expected.required
+            || !component.sha256.eq_ignore_ascii_case(&expected.sha256)
+        {
+            return Ok(());
+        }
+    }
+    let parent = target
+        .parent()
+        .ok_or("managed bootstrapper path has no parent")?;
+    match fs::symlink_metadata(parent) {
+        Ok(_) => assert_inside(
+            state_root,
+            &parent.canonicalize()?,
+            "managed bootstrapper directory",
+        )?,
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
+        Err(error) => return Err(error.into()),
+    }
+    assert_inside(state_root, &target, "managed bootstrapper")?;
+    let actual = match fs::metadata(&target) {
+        Ok(metadata) if metadata.is_file() => Some(sha256_file(&target)?),
+        Ok(_) => return Ok(()),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => None,
+        Err(error) => return Err(error.into()),
+    };
+    if actual
+        .as_deref()
+        .is_some_and(|hash| hash.eq_ignore_ascii_case(&expected.sha256))
+    {
+        // A valid independently updated bootstrapper must never be replaced by an older seed.
+        return Ok(());
+    }
+    if state
+        .pinned
+        .as_ref()
+        .and_then(|snapshot| snapshot.components.get("bootstrapper"))
+        .is_some_and(|component| {
+            component.location == expected.location
+                && component.path == expected.path
+                && actual
+                    .as_deref()
+                    .is_some_and(|hash| hash.eq_ignore_ascii_case(&component.sha256))
+        })
+    {
+        return Ok(());
+    }
+    let Some(seed) = descriptor.components.get("bootstrapper") else {
+        return Ok(());
+    };
+    if seed.version != expected.version
+        || !seed.sha256.eq_ignore_ascii_case(&expected.sha256)
+        || !seed.required
+    {
+        return Ok(());
+    }
+    // SessionLock is already held. Never wait for UpdateLock here: an updater may
+    // hold it while waiting for this app's startup acknowledgement.
+    let _update_lock = UpdateLock::acquire(state_root, Duration::ZERO)?;
+    // Applying an update can release SessionLock while keeping UpdateLock. The
+    // metadata read above must still identify the same runtime after we acquire it.
+    if serde_json::to_value(read_install_state_metadata(state_root)?)?
+        != serde_json::to_value(state)?
+    {
+        return Err("install-state changed while repairing packaged bootstrapper seed".into());
+    }
+    seed_component(
+        state_root,
+        host_bundle,
+        "bootstrapper",
+        seed,
+        &descriptor.host_version,
+        true,
+    )?;
+    Ok(())
+}
+
 pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let host_bundle = host_bundle
@@ -340,12 +452,23 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
         }
         let descriptor = read_packaged_descriptor(&host_bundle)?;
         if state.latest.host.bundle_version.as_deref() == Some(descriptor.bundle_version.as_str()) {
+            repair_macos_bootstrapper_seed(&state_root, &host_bundle, &state, &descriptor)?;
             return Ok(state);
         }
         if !matches!(state.activation.state, ActivationState::Confirmed) {
             if state.known_good.host.bundle_version.as_deref()
                 == Some(descriptor.bundle_version.as_str())
             {
+                // Bundle rollback does not restore the shared, independently updated loader.
+                if let Some(bootstrapper) = state
+                    .latest
+                    .components
+                    .get("bootstrapper")
+                    .filter(|component| component.location == RuntimeLocation::StateRoot)
+                    .cloned()
+                {
+                    synchronize_mutable_bootstrapper(&mut state, &bootstrapper);
+                }
                 state.latest = state.known_good.clone();
                 state.running = state.known_good.clone();
                 state.generation = state
@@ -374,6 +497,18 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
             .parse::<u64>()
             .map_err(|_| "packaged runtime bundleVersion must be an integer")?,
     );
+    if existing_state
+        .as_ref()
+        .is_some_and(|existing| metadata_version <= existing.latest.metadata_version)
+    {
+        return Err("rotated macOS host metadataVersion must advance".into());
+    }
+    let next_generation = existing_state.as_ref().map_or(Ok(1), |existing| {
+        existing
+            .generation
+            .checked_add(1)
+            .ok_or("install-state generation overflow")
+    })?;
     if let Some(existing) = existing_state.as_ref()
         && existing.latest.host.version == descriptor.host_version
     {
@@ -398,6 +533,9 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
     }
     let mut components = BTreeMap::new();
     for (name, component) in &descriptor.components {
+        if name == "bootstrapper" {
+            continue;
+        }
         components.insert(
             name.clone(),
             seed_component(
@@ -417,6 +555,20 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
         return Err("packaged desktopCore metadata is invalid".into());
     }
     let host_sha256 = sha256_directory(&host_bundle)?;
+    // Verify the other runtime components and host before replacing the shared loader.
+    if let Some(bootstrapper) = descriptor.components.get("bootstrapper") {
+        components.insert(
+            "bootstrapper".to_string(),
+            seed_component(
+                &state_root,
+                &host_bundle,
+                "bootstrapper",
+                bootstrapper,
+                &descriptor.host_version,
+                descriptor.external_components,
+            )?,
+        );
+    }
     let mut snapshot = RuntimeSnapshotV3 {
         bundle_version: metadata_version.to_string(),
         metadata_version,
@@ -432,17 +584,20 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
         components,
     };
     let state = if let Some(mut existing) = existing_state {
-        if metadata_version <= existing.latest.metadata_version {
-            return Err("rotated macOS host metadataVersion must advance".into());
-        }
         snapshot.metadata_version = metadata_version;
         snapshot.bundle_version = snapshot.metadata_version.to_string();
         existing.latest = snapshot;
+        if let Some(bootstrapper) = existing
+            .latest
+            .components
+            .get("bootstrapper")
+            .filter(|component| component.location == RuntimeLocation::StateRoot)
+            .cloned()
+        {
+            synchronize_mutable_bootstrapper(&mut existing, &bootstrapper);
+        }
         existing.running = existing.known_good.clone();
-        existing.generation = existing
-            .generation
-            .checked_add(1)
-            .ok_or("install-state generation overflow")?;
+        existing.generation = next_generation;
         existing.activation = RuntimeActivationV3 {
             state: ActivationState::Pending,
             generation: existing.generation,

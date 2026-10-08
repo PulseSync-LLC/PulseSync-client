@@ -70,7 +70,8 @@ export function createBootstrapperCommandInvocation(
 function commandExitMessage(operation: string, exitCode: number | null, result: unknown): string {
     const exit = exitCode ?? 'unknown'
     if (isUpdateErrorV1(result)) {
-        return `Bootstrapper ${result.command} failed: ${result.error.code} (${result.error.phase}); exit code ${exit}`
+        const detail = result.error.message.trim()
+        return `Bootstrapper ${result.command} failed: ${result.error.code} (${result.error.phase}); exit code ${exit}${detail ? `; ${detail}` : ''}`
     }
     return `Bootstrapper ${operation} exited with code ${exit}`
 }
