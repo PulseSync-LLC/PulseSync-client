@@ -395,6 +395,11 @@ function parseStructuredArtifactDescriptor(fileName: string): VersionedArtifactD
         return structuredArtifactDescriptor(version, `linux-${normalizeLinuxPackageArch(arch)}`, 'deb', 'setup')
     }
 
+    const aurMatch = /^pulsesync-app-(.+)-linux-x64\.tar\.gz$/iu.exec(fileName)
+    if (aurMatch) {
+        return structuredArtifactDescriptor(aurMatch[1], 'linux-x64', 'tar.gz', 'aur')
+    }
+
     const hostMatch = /^pulsesync-host-(.+)-((?:win32|linux)-[a-z0-9_-]+)\.zip$/iu.exec(fileName)
     if (hostMatch) {
         const [, version, dist] = hostMatch
