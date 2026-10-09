@@ -108,7 +108,11 @@ function buildPulsesyncNative(moduleDir: string): void {
     const yarnCommand = process.platform === 'win32' ? 'yarn.cmd' : 'yarn'
     run(yarnCommand, ['build', ...(process.platform === 'darwin' ? ['--universal'] : [])], { cwd: nativeRoot })
     const binary = path.join(nativeRoot, 'build', 'Release', 'pulsesyncNative.node')
-    if (process.platform === 'darwin') run('/usr/bin/lipo', [binary, '-verify_arch', 'x86_64', 'arm64'])
+    if (process.platform === 'darwin') {
+        for (const arch of ['x86_64', 'arm64']) {
+            run('/usr/bin/lipo', [binary, '-verify_arch', arch])
+        }
+    }
     copyFileIntoModule(binary, moduleDir)
     signRuntimeBinaries(moduleDir)
 }
