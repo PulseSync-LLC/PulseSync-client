@@ -429,9 +429,11 @@ function getBuildTargetArch(): string {
 
 function assertMacUniversalBinary(binaryPath: string): void {
     if (os.platform() !== 'darwin') return
-    execFileSync('/usr/bin/lipo', [binaryPath, '-verify_arch', 'x86_64', 'arm64'], {
-        stdio: debug ? 'inherit' : 'pipe',
-    })
+    for (const arch of ['x86_64', 'arm64']) {
+        execFileSync('/usr/bin/lipo', [binaryPath, '-verify_arch', arch], {
+            stdio: debug ? 'inherit' : 'pipe',
+        })
+    }
 }
 
 function getPackagedAppRoot(outDir: string): string {

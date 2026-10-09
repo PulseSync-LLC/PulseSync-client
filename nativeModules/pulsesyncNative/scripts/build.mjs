@@ -95,12 +95,14 @@ if (universal) {
     if (lipo.status !== 0) {
         process.exit(lipo.status ?? 1)
     }
-    const verify = spawnSync('/usr/bin/lipo', [destination, '-verify_arch', 'x86_64', 'arm64'], {
-        cwd: moduleRoot,
-        stdio: 'inherit',
-    })
-    if (verify.status !== 0) {
-        process.exit(verify.status ?? 1)
+    for (const arch of ['x86_64', 'arm64']) {
+        const verify = spawnSync('/usr/bin/lipo', [destination, '-verify_arch', arch], {
+            cwd: moduleRoot,
+            stdio: 'inherit',
+        })
+        if (verify.status !== 0) {
+            process.exit(verify.status ?? 1)
+        }
     }
     console.log(`Created universal native module -> ${destination}`)
 } else {
