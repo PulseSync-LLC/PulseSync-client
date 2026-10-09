@@ -140,7 +140,9 @@ export async function buildUniversalMacBootstrapperExecutable(): Promise<string>
     fs.mkdirSync(outputDir, { recursive: true })
     fs.rmSync(outputPath, { force: true })
     await execFileAsync('/usr/bin/lipo', ['-create', ...slices, '-output', outputPath], { cwd: projectRoot })
-    await execFileAsync('/usr/bin/lipo', [outputPath, '-verify_arch', 'x86_64', 'arm64'], { cwd: projectRoot })
+    for (const arch of ['x86_64', 'arm64']) {
+        await execFileAsync('/usr/bin/lipo', [outputPath, '-verify_arch', arch], { cwd: projectRoot })
+    }
     signRuntimeBinaries(outputPath)
     return outputPath
 }
