@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import { AnimatePresence, motion } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -71,6 +71,12 @@ const NotificationsBell: React.FC = () => {
     const rootRef = useRef<HTMLDivElement>(null)
     const notificationItems = notificationsContext.notifications
     const hasUnreadNotifications = notificationsContext.unreadCount > 0
+    const { setHistoryOpen } = notificationsContext
+
+    useLayoutEffect(() => {
+        setHistoryOpen(isOpen)
+        return () => setHistoryOpen(false)
+    }, [isOpen, setHistoryOpen])
 
     useEffect(() => {
         if (!isOpen) return
