@@ -212,12 +212,6 @@ class Updater {
         }, delay)
     }
 
-    public stop(): void {
-        if (!this.updaterId) return
-        clearTimeout(this.updaterId)
-        this.updaterId = null
-    }
-
     public onUpdate(listener: (version: string) => void): void {
         this.onUpdateListeners.push(listener)
     }
