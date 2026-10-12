@@ -12,7 +12,7 @@ import {
 } from '@common/addons/handleEvents'
 
 import { getAddonsRoot } from '../utils/addonPaths'
-import { resolveAddonDirectory, resolveAddonDisplayName } from '../utils/addonRegistry'
+import { resolveAddonDirectory } from '../utils/addonRegistry'
 
 export type AddonSettingsPayload = Record<string, any>
 
@@ -129,24 +129,4 @@ export const readAddonSettings = (addonName: string): AddonSettingsPayload => {
 
     const schema = readAddonSettingsSchema(directory)
     return schema ? transformAddonHandleConfig(schema, readAddonSettingsValuesFile(directory)) : {}
-}
-
-export const readAllAddonSettings = (): Record<string, AddonSettingsPayload> => {
-    const addonsRoot = getAddonsRoot()
-    const result: Record<string, AddonSettingsPayload> = {}
-
-    let folders: string[] = []
-    try {
-        folders = fs.readdirSync(addonsRoot)
-    } catch {
-        return result
-    }
-
-    for (const folder of folders) {
-        const schema = readAddonSettingsSchema(folder)
-        if (!schema) continue
-        result[resolveAddonDisplayName(folder) || folder] = transformAddonHandleConfig(schema, readAddonSettingsValuesFile(folder))
-    }
-
-    return result
 }

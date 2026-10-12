@@ -88,13 +88,6 @@ export const resolveAddonId = (ref: unknown): string => {
     return readText(metadata?.id) || directory
 }
 
-export const findAddonByStoreAddonId = (storeAddonId: unknown): AddonMetadataRecord | null => {
-    const normalizedStoreAddonId = readText(storeAddonId).toLowerCase()
-    if (!normalizedStoreAddonId) return null
-
-    return listAddonMetadata().find(item => readText(item.storeAddonId).toLowerCase() === normalizedStoreAddonId) ?? null
-}
-
 export const findAddonByPublicationFingerprint = (fingerprint: unknown, installSource?: 'local' | 'store'): AddonMetadataRecord | null => {
     const normalizedFingerprint = readText(fingerprint)
     if (!normalizedFingerprint) return null
