@@ -27,7 +27,7 @@ import {
     normalizeAddonOrganization,
     setAddonFavorite,
 } from '@pages/extension/model/addonOrganization'
-import { clearAddonFilesCache, preloadAddonFiles } from '@pages/extension/route/extBox/hooks'
+import { clearAddonFilesCache } from '@pages/extension/route/extBox/hooks'
 import ExtensionView from '@pages/extension/route/extensionview'
 import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
 import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
@@ -1264,22 +1264,6 @@ export default function ExtensionPage() {
     )
 
     const hasAnyInstalled = useMemo(() => addons.some(ad => ad.name !== 'Default'), [addons])
-
-    useEffect(() => {
-        if (!mergedAddons.length) return
-
-        const preloadTargets = selectedAddon
-            ? [selectedAddon, ...mergedAddons.filter(addon => addon.directoryName !== selectedAddon.directoryName).slice(0, 7)]
-            : mergedAddons.slice(0, 8)
-
-        const timeoutId = window.setTimeout(() => {
-            preloadTargets.forEach(addon => {
-                void preloadAddonFiles(addon)
-            })
-        }, 0)
-
-        return () => window.clearTimeout(timeoutId)
-    }, [mergedAddons, selectedAddon])
 
     const whitelistedAddonNames = useMemo(() => createWhitelistedAddonNames(addonWhitelist), [addonWhitelist])
 
