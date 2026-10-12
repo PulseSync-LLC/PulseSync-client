@@ -1,3 +1,5 @@
+import { type FSWatcher, watch } from 'node:fs'
+
 import path from 'path'
 
 import { HANDLE_EVENTS_FILENAME, HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
@@ -15,7 +17,11 @@ if (nativeModule) {
 
 const handleSettingsFilenames = new Set([HANDLE_EVENTS_FILENAME.toLowerCase(), HANDLE_EVENTS_SETTINGS_FILENAME.toLowerCase()])
 const ADDON_REFRESH_DEBOUNCE_MS = 250
+const ADDON_WATCH_RECHECK_MS = 30_000
 let addonRefreshTimer: ReturnType<typeof setTimeout> | null = null
+let themeWatcher: FSWatcher | null = null
+let themeWatcherRetryTimer: ReturnType<typeof setInterval> | null = null
+const nativeWatchedRoots = new Set<string>()
 
 const scheduleAddonRefresh = (): void => {
     if (addonRefreshTimer) clearTimeout(addonRefreshTimer)
@@ -38,12 +44,10 @@ const tryExtractAddonNameFromWatchPath = (filename: string): string | null => {
 }
 
 export function startThemeWatcher(themesPath: string, intervalMs: number = 1000): void {
-    if (!nativeModule) {
-        logger.main.warn('pulsesyncNative addon not loaded. startThemeWatcher will not watch files.')
-        return
-    }
-    logger.main.info(`Starting native watcher on ${themesPath} with interval ${intervalMs}ms`)
-    nativeModule.watch(themesPath, intervalMs, (eventType, filename) => {
+    themeWatcher?.close()
+    themeWatcher = null
+    if (themeWatcherRetryTimer) clearInterval(themeWatcherRetryTimer)
+    const onChange = (eventType: string, filename: string) => {
         const watchedAddonName = tryExtractAddonNameFromWatchPath(filename)
         if (watchedAddonName) {
             sendAddonSettings({ addonName: watchedAddonName, force: true })
@@ -70,7 +74,51 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
             default:
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)
         }
-    })
+    }
+    const connectWatcher = () => {
+        if (themeWatcher) return
+        try {
+            const watcher = watch(themesPath, { recursive: true, persistent: false }, (eventType, filename) => {
+                if (!filename) {
+                    sendAllAddonSettings({ force: true })
+                    scheduleAddonRefresh()
+                    return
+                }
+                const target = path.join(themesPath, filename)
+                const basename = path.basename(target).toLowerCase()
+                if (
+                    eventType === 'rename' ||
+                    ['.js', '.css', '.wasm'].includes(path.extname(target).toLowerCase()) ||
+                    handleSettingsFilenames.has(basename) ||
+                    basename === 'metadata.json' ||
+                    basename === 'modules.local.json'
+                ) {
+                    onChange('change', target)
+                }
+            })
+            watcher.on('error', error => {
+                watcher.close()
+                if (themeWatcher === watcher) themeWatcher = null
+                logger.main.warn('Addon filesystem watcher failed; retrying with the next recheck:', error)
+            })
+            watcher.on('close', () => {
+                if (themeWatcher === watcher) themeWatcher = null
+            })
+            themeWatcher = watcher
+        } catch (error) {
+            logger.main.warn('Addon filesystem watcher unavailable:', error)
+        }
+    }
+    connectWatcher()
+    const recheckMs = Math.max(ADDON_WATCH_RECHECK_MS, intervalMs)
+    themeWatcherRetryTimer = setInterval(connectWatcher, recheckMs)
+    themeWatcherRetryTimer.unref()
+    const root = path.resolve(themesPath)
+    if (nativeModule && !nativeWatchedRoots.has(root)) {
+        nativeModule.watch(root, recheckMs, onChange)
+        nativeWatchedRoots.add(root)
+    }
+    logger.main.info(`Watching addons using filesystem events with a ${recheckMs}ms recheck`)
 }
 
 export const nativeGetHardwareIdentity = (): { hash: string; source: string; algorithm: 'sha256' } | null => {
