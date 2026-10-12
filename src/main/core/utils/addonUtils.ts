@@ -10,8 +10,6 @@ import { getAddonsRoot, resolveExistingFileInsideBase } from './addonPaths'
 import { classifyAddonRuntime } from './addonRuntime'
 import { formatSizeUnits, getFolderSize } from './appUtils'
 
-export { sanitizeLegacyScript, sanitizeScript } from './legacyScriptSanitizer'
-
 import type Addon from '@entities/addon/model/addon.interface'
 
 const State = getState()

@@ -328,7 +328,6 @@ const updateData = (newData: any) => {
     mainWindow.webContents.send(RendererEvents.TRACK_INFO, data)
 }
 
-export const getAllAllowedUrls = addonService.getAllAllowedUrls
 export const setAddon = addonService.setAddon
 export const sendAddon = addonService.sendAddon
 export const sendExtensions = addonService.sendExtensions
@@ -353,6 +352,5 @@ export const sendAuthorizationStatus = (isAuthorized: boolean): void => {
         void sendUserValidationToken()
     }
 }
-export const getTrackInfo = () => data
 
 export default server

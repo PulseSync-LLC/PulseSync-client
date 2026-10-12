@@ -231,5 +231,3 @@ export function sanitizeLegacyScript(js: string): string {
     }
     return js
 }
-
-export const sanitizeScript = sanitizeLegacyScript
