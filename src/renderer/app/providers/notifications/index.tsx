@@ -13,6 +13,7 @@ const defaultNotificationsContextValue: NotificationsContextValue = {
     notifications: [],
     unreadCount: 0,
     refresh: noop,
+    setHistoryOpen: () => undefined,
     markRead: noop,
     markAllRead: noop,
 }

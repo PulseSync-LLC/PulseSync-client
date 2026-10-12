@@ -21,6 +21,7 @@ export type NotificationsContextValue = {
     notifications: NotificationItem[]
     unreadCount: number
     refresh: () => Promise<void>
+    setHistoryOpen: (open: boolean) => void
     markRead: (id: string) => Promise<void>
     markAllRead: () => Promise<void>
 }

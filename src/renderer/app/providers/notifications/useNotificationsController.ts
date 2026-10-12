@@ -46,6 +46,12 @@ type NotificationsControllerResult = {
     handleNotificationsReadAll: (payload: unknown) => void
 }
 
+type NotificationHistory = {
+    notifications: NotificationItem[]
+    nextCursor: string | null
+    supportsPagination: boolean
+}
+
 const NOTIFICATIONS_PAGE_SIZE = 20
 const REALTIME_TOAST_NOTIFICATION_TYPES = new Set([
     'achievement.completed',
@@ -64,18 +70,34 @@ function dedupeNotifications(items: NotificationItem[]): NotificationItem[] {
     })
 }
 
+function limitHistory(history: NotificationHistory, limit: number): NotificationHistory {
+    if (history.notifications.length <= limit) return history
+    const notifications = history.notifications.slice(0, limit)
+    return {
+        ...history,
+        notifications,
+        nextCursor: history.supportsPagination ? notifications[notifications.length - 1].id : null,
+    }
+}
+
 export function useNotificationsController(userId: string): NotificationsControllerResult {
-    const [notifications, setNotifications] = useState<NotificationItem[]>([])
+    const [{ notifications, nextCursor }, setHistory] = useState<NotificationHistory>({
+        notifications: [],
+        nextCursor: null,
+        supportsPagination: false,
+    })
     const [notificationsLoading, setNotificationsLoading] = useState(false)
     const [notificationsUnreadCount, setNotificationsUnreadCount] = useState(0)
     const [loadingMore, setLoadingMore] = useState(false)
     const [loadMoreError, setLoadMoreError] = useState(false)
-    const [nextCursor, setNextCursor] = useState<string | null>(null)
     const generationRef = useRef(0)
+    const historyOpenRef = useRef(false)
+    const historyVersionRef = useRef(0)
     const nextPagePendingRef = useRef(false)
     const refreshPendingRef = useRef(false)
     const unreadVersionRef = useRef(0)
     const createdDuringRefreshRef = useRef<NotificationItem[]>([])
+    const refreshOverflowRef = useRef(false)
     const readIdsRef = useRef(new Set<string>())
     const readAllVersionRef = useRef(0)
 
@@ -86,6 +108,7 @@ export function useNotificationsController(userId: string): NotificationsControl
                 method: options?.method || 'GET',
                 auth: true,
                 body: options?.body,
+                timeoutMs: 30000,
                 headers: {
                     Accept: 'application/json',
                 },
@@ -107,12 +130,20 @@ export function useNotificationsController(userId: string): NotificationsControl
         refreshPendingRef.current = false
         createdDuringRefreshRef.current = []
         readIdsRef.current.clear()
-        setNotifications([])
+        setHistory({ notifications: [], nextCursor: null, supportsPagination: false })
         setNotificationsUnreadCount(0)
         setNotificationsLoading(false)
         setLoadingMore(false)
         setLoadMoreError(false)
-        setNextCursor(null)
+    }, [])
+
+    const setHistoryOpen = useCallback((open: boolean) => {
+        if (historyOpenRef.current === open) return
+        historyOpenRef.current = open
+        if (open) return
+        historyVersionRef.current += 1
+        setHistory(current => limitHistory(current, NOTIFICATIONS_PAGE_SIZE))
+        setLoadMoreError(false)
     }, [])
 
     const refreshNotifications = useCallback(async () => {
@@ -127,10 +158,12 @@ export function useNotificationsController(userId: string): NotificationsControl
         nextPagePendingRef.current = false
         refreshPendingRef.current = true
         createdDuringRefreshRef.current = []
+        refreshOverflowRef.current = false
+        readIdsRef.current.clear()
         setNotificationsLoading(true)
         setLoadingMore(false)
         setLoadMoreError(false)
-        setNextCursor(null)
+        setHistory(current => ({ ...current, nextCursor: null }))
         try {
             const [listPayload, unreadPayload] = await Promise.all([
                 requestNotifications<NotificationsListResponse>('/notifications?limit=' + NOTIFICATIONS_PAGE_SIZE),
@@ -141,25 +174,46 @@ export function useNotificationsController(userId: string): NotificationsControl
             const page = listPayload.notifications.map(item =>
                 readIdsRef.current.has(item.id) || readAllVersion !== readAllVersionRef.current ? { ...item, read: true } : item,
             )
-            setNotifications(dedupeNotifications([...createdDuringRefreshRef.current, ...page]))
-            setNextCursor(listPayload.hasMore && listPayload.nextCursor ? listPayload.nextCursor : null)
+            const supportsPagination = typeof listPayload.hasMore === 'boolean'
+            const retained = refreshOverflowRef.current
+                ? createdDuringRefreshRef.current
+                : dedupeNotifications([...createdDuringRefreshRef.current, ...page])
+            const history: NotificationHistory = {
+                notifications: retained,
+                supportsPagination,
+                nextCursor:
+                    refreshOverflowRef.current && supportsPagination
+                        ? (retained[retained.length - 1]?.id ?? null)
+                        : listPayload.hasMore && listPayload.nextCursor
+                          ? listPayload.nextCursor
+                          : null,
+            }
+            setHistory(historyOpenRef.current ? history : limitHistory(history, NOTIFICATIONS_PAGE_SIZE))
             if (unreadVersion === unreadVersionRef.current) setNotificationsUnreadCount(unreadPayload.count)
         } catch {
             if (generation !== generationRef.current) return
-            setNotifications(createdDuringRefreshRef.current)
+            const retained = createdDuringRefreshRef.current
+            setHistory(current => ({
+                ...current,
+                notifications: retained,
+                nextCursor: current.supportsPagination ? (retained[retained.length - 1]?.id ?? null) : null,
+            }))
         } finally {
             if (generation === generationRef.current) {
                 refreshPendingRef.current = false
                 createdDuringRefreshRef.current = []
+                readIdsRef.current.clear()
                 setNotificationsLoading(false)
             }
         }
     }, [requestNotifications, resetNotifications, userId])
 
     const loadMoreNotifications = useCallback(async () => {
-        if (userId === '-1' || !nextCursor || refreshPendingRef.current || nextPagePendingRef.current) return
+        if (userId === '-1' || !historyOpenRef.current || !nextCursor || refreshPendingRef.current || nextPagePendingRef.current) return
         const generation = generationRef.current
+        const historyVersion = historyVersionRef.current
         const readAllVersion = readAllVersionRef.current
+        readIdsRef.current.clear()
         nextPagePendingRef.current = true
         setLoadingMore(true)
         setLoadMoreError(false)
@@ -167,17 +221,25 @@ export function useNotificationsController(userId: string): NotificationsControl
             const payload = await requestNotifications<NotificationsListResponse>(
                 '/notifications?limit=' + NOTIFICATIONS_PAGE_SIZE + '&cursor=' + encodeURIComponent(nextCursor),
             )
-            if (generation !== generationRef.current) return
+            if (generation !== generationRef.current || historyVersion !== historyVersionRef.current) return
             const page = payload.notifications.map(item =>
                 readIdsRef.current.has(item.id) || readAllVersion !== readAllVersionRef.current ? { ...item, read: true } : item,
             )
-            setNotifications(current => dedupeNotifications([...current, ...page]))
-            setNextCursor(payload.hasMore && payload.nextCursor && payload.nextCursor !== nextCursor ? payload.nextCursor : null)
+            setHistory(current =>
+                current.nextCursor !== nextCursor
+                    ? current
+                    : {
+                          ...current,
+                          notifications: dedupeNotifications([...current.notifications, ...page]),
+                          nextCursor: payload.hasMore && payload.nextCursor && payload.nextCursor !== nextCursor ? payload.nextCursor : null,
+                      },
+            )
         } catch {
-            if (generation === generationRef.current) setLoadMoreError(true)
+            if (generation === generationRef.current && historyVersion === historyVersionRef.current) setLoadMoreError(true)
         } finally {
             if (generation === generationRef.current) {
                 nextPagePendingRef.current = false
+                readIdsRef.current.clear()
                 setLoadingMore(false)
             }
         }
@@ -193,12 +255,15 @@ export function useNotificationsController(userId: string): NotificationsControl
             })
 
             if (generation !== generationRef.current) return
-            readIdsRef.current.add(payload.notification.id)
+            if (refreshPendingRef.current || nextPagePendingRef.current) readIdsRef.current.add(payload.notification.id)
             unreadVersionRef.current += 1
             createdDuringRefreshRef.current = createdDuringRefreshRef.current.map(item =>
                 item.id === payload.notification.id ? payload.notification : item,
             )
-            setNotifications(current => current.map(item => (item.id === payload.notification.id ? payload.notification : item)))
+            setHistory(current => ({
+                ...current,
+                notifications: current.notifications.map(item => (item.id === payload.notification.id ? payload.notification : item)),
+            }))
             setNotificationsUnreadCount(payload.count)
         },
         [requestNotifications, userId],
@@ -216,7 +281,7 @@ export function useNotificationsController(userId: string): NotificationsControl
         readAllVersionRef.current += 1
         unreadVersionRef.current += 1
         createdDuringRefreshRef.current = createdDuringRefreshRef.current.map(item => ({ ...item, read: true }))
-        setNotifications(current => current.map(item => ({ ...item, read: true })))
+        setHistory(current => ({ ...current, notifications: current.notifications.map(item => ({ ...item, read: true })) }))
         setNotificationsUnreadCount(payload.count)
     }, [requestNotifications, userId])
 
@@ -224,8 +289,21 @@ export function useNotificationsController(userId: string): NotificationsControl
         const data = payload as NotificationCreatedPayload | undefined
         if (!data?.notification) return
 
-        if (refreshPendingRef.current) createdDuringRefreshRef.current = dedupeNotifications([data.notification, ...createdDuringRefreshRef.current])
-        setNotifications(current => dedupeNotifications([data.notification as NotificationItem, ...current]))
+        if (refreshPendingRef.current) {
+            const created = dedupeNotifications([data.notification, ...createdDuringRefreshRef.current])
+            if (created.length > NOTIFICATIONS_PAGE_SIZE) refreshOverflowRef.current = true
+            createdDuringRefreshRef.current = created.slice(0, NOTIFICATIONS_PAGE_SIZE)
+        }
+        const historyOpen = historyOpenRef.current
+        setHistory(current =>
+            limitHistory(
+                {
+                    ...current,
+                    notifications: dedupeNotifications([data.notification as NotificationItem, ...current.notifications]),
+                },
+                historyOpen ? Math.max(NOTIFICATIONS_PAGE_SIZE, current.notifications.length) : NOTIFICATIONS_PAGE_SIZE,
+            ),
+        )
         if (typeof data.unreadCount === 'number') {
             unreadVersionRef.current += 1
             setNotificationsUnreadCount(data.unreadCount)
@@ -244,11 +322,14 @@ export function useNotificationsController(userId: string): NotificationsControl
     const handleNotificationRead = useCallback((payload: unknown) => {
         const data = payload as NotificationReadPayload | undefined
         if (data?.notificationId) {
-            readIdsRef.current.add(data.notificationId)
+            if (refreshPendingRef.current || nextPagePendingRef.current) readIdsRef.current.add(data.notificationId)
             createdDuringRefreshRef.current = createdDuringRefreshRef.current.map(item =>
                 item.id === data.notificationId ? { ...item, read: true } : item,
             )
-            setNotifications(current => current.map(item => (item.id === data.notificationId ? { ...item, read: true } : item)))
+            setHistory(current => ({
+                ...current,
+                notifications: current.notifications.map(item => (item.id === data.notificationId ? { ...item, read: true } : item)),
+            }))
         }
         if (typeof data?.unreadCount === 'number') {
             unreadVersionRef.current += 1
@@ -260,7 +341,7 @@ export function useNotificationsController(userId: string): NotificationsControl
         const data = payload as NotificationsReadAllPayload | undefined
         readAllVersionRef.current += 1
         createdDuringRefreshRef.current = createdDuringRefreshRef.current.map(item => ({ ...item, read: true }))
-        setNotifications(current => current.map(item => ({ ...item, read: true })))
+        setHistory(current => ({ ...current, notifications: current.notifications.map(item => ({ ...item, read: true })) }))
         if (typeof data?.unreadCount === 'number') {
             unreadVersionRef.current += 1
             setNotificationsUnreadCount(data.unreadCount)
@@ -289,6 +370,7 @@ export function useNotificationsController(userId: string): NotificationsControl
             notifications,
             unreadCount: notificationsUnreadCount,
             refresh: refreshNotifications,
+            setHistoryOpen,
             markRead: markNotificationRead,
             markAllRead: markAllNotificationsRead,
         }),
@@ -303,6 +385,7 @@ export function useNotificationsController(userId: string): NotificationsControl
             notificationsLoading,
             notificationsUnreadCount,
             refreshNotifications,
+            setHistoryOpen,
         ],
     )
 
