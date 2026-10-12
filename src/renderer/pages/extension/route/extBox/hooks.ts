@@ -3,36 +3,69 @@ import { useEffect, useMemo, useState } from 'react'
 import path from 'path'
 import { useTranslation } from 'react-i18next'
 
-import { HANDLE_EVENTS_FILENAME } from '@common/addons/handleEvents'
 import appConfig from '@common/appConfig'
 import rendererHttpClient from '@shared/api/http/client'
 
 import type AddonInterface from '@entities/addon/model/addon.interface'
-import type { AddonConfig } from '@features/configurationSettings/types'
 import type { DocTab } from '@pages/extension/route/extBox/types'
 
 interface HookResult {
     docs: DocTab[]
-    config: AddonConfig | null
-    configExists: boolean | null
 }
 
-const docsCache = new Map<string, DocTab[]>()
-const configCache = new Map<string, AddonConfig | null>()
-const configExistsCache = new Map<string, boolean>()
+interface CachedAddonFiles {
+    docs?: DocTab[]
+    bytes: number
+}
+
+const MAX_CACHED_ADDONS = 16
+const MAX_ADDON_CACHE_BYTES = 4 * 1024 * 1024
+const addonFilesCache = new Map<string, CachedAddonFiles>()
 const docsRequestCache = new Map<string, Promise<DocTab[]>>()
-const configRequestCache = new Map<string, Promise<{ config: AddonConfig | null; exists: boolean }>>()
+let addonCacheBytes = 0
 let cacheGeneration = 0
 
 const DOC_README_PATTERN = /^readme(?:\.[^.]+)?$/i
 const DOC_LICENSE_PATTERN = /^licen[sc]e(?:\.[^.]+)?$/i
 const DOC_CHANGELOG_PATTERN = /^change\s*log(?:\.[^.]+)?$/i
-const HANDLE_EVENTS_PATTERN = /^handleevents\.json$/i
 
 const DEFAULT_DOC_FILES = ['readme.md', 'license', 'changelog.md']
-const DEFAULT_CONFIG_FILE = HANDLE_EVENTS_FILENAME
 
 const getAddonCacheKey = (addon: AddonInterface): string => addon.id || addon.directoryName || addon.name
+
+const deleteCachedAddonFiles = (cacheKey: string): void => {
+    const cached = addonFilesCache.get(cacheKey)
+    if (!cached) return
+    addonCacheBytes -= cached.bytes
+    addonFilesCache.delete(cacheKey)
+}
+
+const getCachedAddonFiles = (cacheKey: string): CachedAddonFiles | undefined => {
+    const cached = addonFilesCache.get(cacheKey)
+    if (cached) {
+        addonFilesCache.delete(cacheKey)
+        addonFilesCache.set(cacheKey, cached)
+    }
+    return cached
+}
+
+const cacheAddonFiles = (cacheKey: string, files: Omit<CachedAddonFiles, 'bytes'>): void => {
+    const cached = { ...addonFilesCache.get(cacheKey), ...files }
+    const docsLength = cached.docs?.reduce((length, doc) => length + doc.content.length + doc.title.length + (doc.value?.length ?? 0), 0) ?? 0
+    const bytes = (cacheKey.length + docsLength) * 2
+
+    deleteCachedAddonFiles(cacheKey)
+    if (bytes > MAX_ADDON_CACHE_BYTES) return
+
+    addonFilesCache.set(cacheKey, { ...cached, bytes })
+    addonCacheBytes += bytes
+
+    while (addonFilesCache.size > MAX_CACHED_ADDONS || addonCacheBytes > MAX_ADDON_CACHE_BYTES) {
+        const oldestKey = addonFilesCache.keys().next().value
+        if (oldestKey === undefined) break
+        deleteCachedAddonFiles(oldestKey)
+    }
+}
 
 const resolveRootFileByPattern = (addon: AddonInterface, pattern: RegExp): string | null => {
     if (!Array.isArray(addon.rootFiles) || addon.rootFiles.length === 0) return null
@@ -49,11 +82,6 @@ const resolveDocFiles = (addon: AddonInterface): string[] => {
     ].filter((file): file is string => Boolean(file))
 
     return Array.from(new Set(files))
-}
-
-const resolveConfigFile = (addon: AddonInterface): string | null => {
-    if (!Array.isArray(addon.rootFiles) || addon.rootFiles.length === 0) return DEFAULT_CONFIG_FILE
-    return resolveRootFileByPattern(addon, HANDLE_EVENTS_PATTERN)
 }
 
 const fetchAddonDocs = async (addon: AddonInterface): Promise<DocTab[]> => {
@@ -80,19 +108,6 @@ const fetchAddonDocs = async (addon: AddonInterface): Promise<DocTab[]> => {
     return fetched
 }
 
-const fetchAddonConfig = async (addon: AddonInterface): Promise<{ config: AddonConfig | null; exists: boolean }> => {
-    const file = resolveConfigFile(addon)
-    if (!file) return { config: null, exists: false }
-
-    try {
-        const res = await rendererHttpClient.get<AddonConfig>(buildAddonUrl(addon, file))
-        if (!res.ok) throw new Error('404')
-        return { config: res.data, exists: true }
-    } catch {
-        return { config: null, exists: false }
-    }
-}
-
 const requestAddonDocs = (addon: AddonInterface, cacheKey: string): Promise<DocTab[]> => {
     const existing = docsRequestCache.get(cacheKey)
     if (existing) return existing
@@ -107,68 +122,25 @@ const requestAddonDocs = (addon: AddonInterface, cacheKey: string): Promise<DocT
     return request
 }
 
-const requestAddonConfig = (addon: AddonInterface, cacheKey: string): Promise<{ config: AddonConfig | null; exists: boolean }> => {
-    const existing = configRequestCache.get(cacheKey)
-    if (existing) return existing
-
-    const request = fetchAddonConfig(addon).finally(() => {
-        if (configRequestCache.get(cacheKey) === request) {
-            configRequestCache.delete(cacheKey)
-        }
-    })
-
-    configRequestCache.set(cacheKey, request)
-    return request
-}
-
 export const clearAddonFilesCache = (addon?: AddonInterface | null): void => {
     cacheGeneration += 1
 
     if (!addon) {
-        docsCache.clear()
-        configCache.clear()
-        configExistsCache.clear()
+        addonFilesCache.clear()
+        addonCacheBytes = 0
         docsRequestCache.clear()
-        configRequestCache.clear()
         return
     }
 
     const cacheKey = getAddonCacheKey(addon)
-    docsCache.delete(cacheKey)
-    configCache.delete(cacheKey)
-    configExistsCache.delete(cacheKey)
+    deleteCachedAddonFiles(cacheKey)
     docsRequestCache.delete(cacheKey)
-    configRequestCache.delete(cacheKey)
 }
 
 const buildAddonUrl = (addon: AddonInterface, file: string): string =>
     `http://127.0.0.1:${appConfig.MAIN_PORT}/addon_file?directory=${encodeURIComponent(addon.directoryName)}&file=${encodeURIComponent(file)}&r=${encodeURIComponent(
         `addon-docs-v2-${addon.lastModified || ''}-${addon.size || ''}`,
     )}`
-
-export const preloadAddonFiles = async (addon: AddonInterface | null): Promise<void> => {
-    if (!addon) return
-
-    const generation = cacheGeneration
-    const cacheKey = getAddonCacheKey(addon)
-    const shouldFetchDocs = !docsCache.has(cacheKey)
-    const shouldFetchConfig = !configExistsCache.has(cacheKey)
-
-    if (!shouldFetchDocs && !shouldFetchConfig) return
-
-    if (shouldFetchDocs) {
-        const fetched = await requestAddonDocs(addon, cacheKey)
-        if (generation !== cacheGeneration) return
-        docsCache.set(cacheKey, fetched)
-    }
-
-    if (shouldFetchConfig) {
-        const { config, exists } = await requestAddonConfig(addon, cacheKey)
-        if (generation !== cacheGeneration) return
-        configCache.set(cacheKey, config)
-        configExistsCache.set(cacheKey, exists)
-    }
-}
 
 function prettify(file: string): string {
     const base = path.basename(file)
@@ -193,36 +165,16 @@ function localizeDocTitle(title: string, t: (key: string) => string): string {
 export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
     const { t } = useTranslation()
     const [docs, setDocs] = useState<DocTab[]>([])
-    const [config, setConfig] = useState<AddonConfig | null>(null)
-    const [configExists, setConfigExists] = useState<boolean | null>(null)
 
     useEffect(() => {
         if (!addon) {
             setDocs([])
-            setConfig(null)
-            setConfigExists(null)
             return
         }
 
         const cacheKey = getAddonCacheKey(addon)
-        const hasCachedDocs = docsCache.has(cacheKey)
-        const cachedDocs = docsCache.get(cacheKey)
-        const cachedConfigExists = configExistsCache.get(cacheKey)
-        const cachedConfig = configCache.get(cacheKey)
-
-        if (hasCachedDocs) {
-            setDocs(cachedDocs ?? [])
-        } else {
-            setDocs([])
-        }
-
-        if (cachedConfigExists !== undefined) {
-            setConfigExists(cachedConfigExists)
-            setConfig(cachedConfig ?? null)
-        } else {
-            setConfigExists(null)
-            setConfig(null)
-        }
+        const cached = getCachedAddonFiles(cacheKey)
+        setDocs(cached?.docs ?? [])
 
         let active = true
         const generation = cacheGeneration
@@ -230,24 +182,12 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
         ;(async () => {
             const fetched = await requestAddonDocs(addon, cacheKey)
             if (generation === cacheGeneration) {
-                docsCache.set(cacheKey, fetched)
+                cacheAddonFiles(cacheKey, { docs: fetched })
                 if (active) {
                     setDocs(fetched)
                 }
             }
         })()
-        ;(async () => {
-            const { config, exists } = await requestAddonConfig(addon, cacheKey)
-            if (generation === cacheGeneration) {
-                configCache.set(cacheKey, config)
-                configExistsCache.set(cacheKey, exists)
-                if (active) {
-                    setConfig(config)
-                    setConfigExists(exists)
-                }
-            }
-        })()
-
         return () => {
             active = false
         }
@@ -262,5 +202,5 @@ export const useAddonFiles = (addon: AddonInterface | null): HookResult => {
         [docs, t],
     )
 
-    return { docs: localizedDocs, config, configExists }
+    return { docs: localizedDocs }
 }
