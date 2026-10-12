@@ -124,97 +124,122 @@ function App() {
         userId: user.id,
     })
 
-    const fetchModInfo = useCallback(async (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
-        const isManualCheck = !!options?.manual
-        const silentNotInstalled = !!options?.silentNotInstalled
-        const manualToastId = isManualCheck
-            ? toast.custom('loading', tRef.current('updates.checkingTitle'), tRef.current('common.pleaseWait'), {
-                  id: MOD_UPDATE_TOAST_ID,
-                  duration: Infinity,
-              })
-            : null
-        const updateManualToast = (kind: 'error' | 'info', title: string, msg: string) => {
-            if (!manualToastId) return
-            toast.update(manualToastId, { kind, title, msg, sticky: false, duration: 5000 })
+    const refreshInstalledMod = useCallback(async () => {
+        const snapshot = await desktopApi.settings.getSnapshot()
+        const mod = { ...settingsInitials.mod, ...snapshot.mod }
+        appRef.current = { ...appRef.current, mod }
+        setApp(previous => ({ ...previous, mod }))
+        return mod
+    }, [])
+
+    useEffect(() => {
+        const handleFocus = () => {
+            void refreshInstalledMod().catch(error => console.error('Failed to refresh installed mod:', error))
         }
+        window.addEventListener('focus', handleFocus)
+        return () => window.removeEventListener('focus', handleFocus)
+    }, [refreshInstalledMod])
 
-        try {
-            const mods = (await desktopApi.mods.getReleases()) as ModInterface[] | undefined
-            if (!mods) {
-                console.error('Invalid response format for mod releases:', mods)
-                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
-                return
+    const fetchModInfo = useCallback(
+        async (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => {
+            const isManualCheck = !!options?.manual
+            const silentNotInstalled = !!options?.silentNotInstalled
+            const manualToastId = isManualCheck
+                ? toast.custom('loading', tRef.current('updates.checkingTitle'), tRef.current('common.pleaseWait'), {
+                      id: MOD_UPDATE_TOAST_ID,
+                      duration: Infinity,
+                  })
+                : null
+            const updateManualToast = (kind: 'error' | 'info', title: string, msg: string) => {
+                if (!manualToastId) return
+                toast.update(manualToastId, { kind, title, msg, sticky: false, duration: 5000 })
             }
 
-            if (mods.length === 0) {
-                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
-                return
-            }
+            try {
+                await refreshInstalledMod()
+                const mods = (await desktopApi.mods.getReleases()) as ModInterface[] | undefined
+                if (!mods) {
+                    console.error('Invalid response format for mod releases:', mods)
+                    updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+                    return
+                }
 
-            setMod(mods)
+                if (mods.length === 0) {
+                    updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
+                    return
+                }
 
-            const latest = mods[0]
-            if (app.settings.modSource.type === 'branch' && latest.channel === 'stable') {
-                setApp(previous => {
-                    const currentSource = previous.settings.modSource
-                    if (currentSource.type !== 'branch' || currentSource.branch !== app.settings.modSource.branch) return previous
+                setMod(mods)
 
-                    return {
-                        ...previous,
-                        settings: {
-                            ...previous.settings,
-                            modSource: STABLE_MOD_SOURCE,
-                        },
+                const latest = mods[0]
+                if (app.settings.modSource.type === 'branch' && latest.channel === 'stable') {
+                    setApp(previous => {
+                        const currentSource = previous.settings.modSource
+                        if (currentSource.type !== 'branch' || currentSource.branch !== app.settings.modSource.branch) return previous
+
+                        return {
+                            ...previous,
+                            settings: {
+                                ...previous.settings,
+                                modSource: STABLE_MOD_SOURCE,
+                            },
+                        }
+                    })
+                }
+                const installedMod = appRef.current.mod
+                if (!installedMod.installed || !installedMod.version) {
+                    const toastKey = `not-installed:${latest.modVersion}`
+                    if (isManualCheck) {
+                        lastNotInstalledToastKeyRef.current = toastKey
+                        updateManualToast(
+                            'info',
+                            tRef.current('mod.notInstalledTitle'),
+                            tRef.current('mod.availableVersion', { version: latest.modVersion }),
+                        )
+                    } else if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
+                        lastNotInstalledToastKeyRef.current = toastKey
+                        toast.custom(
+                            'info',
+                            tRef.current('mod.notInstalledTitle'),
+                            tRef.current('mod.availableVersion', { version: latest.modVersion }),
+                        )
                     }
-                })
-            }
-            if (!app.mod.installed || !app.mod.version) {
-                const toastKey = `not-installed:${latest.modVersion}`
-                if (isManualCheck) {
-                    lastNotInstalledToastKeyRef.current = toastKey
+                    return
+                }
+
+                lastNotInstalledToastKeyRef.current = null
+                if (isModReleaseUpdateAvailable(latest, installedMod)) {
+                    prepareModReleaseUpdate(latest)
                     updateManualToast(
                         'info',
-                        tRef.current('mod.notInstalledTitle'),
-                        tRef.current('mod.availableVersion', { version: latest.modVersion }),
+                        tRef.current('mod.updateAvailableTitle'),
+                        tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
                     )
-                } else if (!silentNotInstalled && lastNotInstalledToastKeyRef.current !== toastKey) {
-                    lastNotInstalledToastKeyRef.current = toastKey
-                    toast.custom('info', tRef.current('mod.notInstalledTitle'), tRef.current('mod.availableVersion', { version: latest.modVersion }))
+                    const releaseIdentity = getModReleaseIdentity(latest)
+                    const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
+                    if (lastNotifiedModVersion !== releaseIdentity) {
+                        desktopApi.system.showNotification({
+                            title: tRef.current('mod.updateAvailableTitle'),
+                            body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
+                        })
+                        localStorage.setItem('lastNotifiedModVersion', releaseIdentity)
+                    }
+                } else {
+                    updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
                 }
-                return
-            }
-
-            lastNotInstalledToastKeyRef.current = null
-            if (isModReleaseUpdateAvailable(latest, app.mod)) {
-                prepareModReleaseUpdate(latest)
-                updateManualToast(
-                    'info',
-                    tRef.current('mod.updateAvailableTitle'),
-                    tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
-                )
-                const releaseIdentity = getModReleaseIdentity(latest)
-                const lastNotifiedModVersion = localStorage.getItem('lastNotifiedModVersion')
-                if (lastNotifiedModVersion !== releaseIdentity) {
-                    desktopApi.system.showNotification({
-                        title: tRef.current('mod.updateAvailableTitle'),
-                        body: tRef.current('mod.updateAvailableBody', { version: latest.modVersion }),
-                    })
-                    localStorage.setItem('lastNotifiedModVersion', releaseIdentity)
+            } catch (modFetchError) {
+                console.error('Failed to fetch mod info:', modFetchError)
+                if (isManualCheck) {
+                    updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
+                } else {
+                    toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
                 }
-            } else {
-                updateManualToast('info', tRef.current('updates.mod.notFoundTitle'), tRef.current('updates.mod.notFoundMessage'))
+            } finally {
+                setModInfoFetched(true)
             }
-        } catch (modFetchError) {
-            console.error('Failed to fetch mod info:', modFetchError)
-            if (isManualCheck) {
-                updateManualToast('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
-            } else {
-                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('common.somethingWrongTitle'))
-            }
-        } finally {
-            setModInfoFetched(true)
-        }
-    }, [])
+        },
+        [refreshInstalledMod],
+    )
 
     const refreshAddons = useCallback(async () => {
         const nextAddons = await desktopApi.addons.list()

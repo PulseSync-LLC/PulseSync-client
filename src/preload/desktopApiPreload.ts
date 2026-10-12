@@ -212,15 +212,15 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     },
 
     settings: {
-        getSnapshot: async () => ({
-            settings: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'settings') ?? {},
-
-            mod: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'mod') ?? {},
-
-            app: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'app') ?? {},
-
-            addons: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'addons') ?? {},
-        }),
+        getSnapshot: async () => {
+            const mod = await ipcRenderer.invoke(MainEvents.GET_INSTALLED_MOD_STATE)
+            return {
+                settings: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'settings') ?? {},
+                mod: mod ?? {},
+                app: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'app') ?? {},
+                addons: ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'addons') ?? {},
+            }
+        },
 
         updatePreferences: async patch => {
             applySettingsPatch(patch)

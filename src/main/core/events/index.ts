@@ -34,6 +34,7 @@ import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../auth/browserAuth
 import { inSleepMode, mainWindow } from '../createWindow'
 import mainHttpClient from '../http/client'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
+import { refreshInstalledModState } from '../mod/integrity'
 import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelection } from '../mod/modSource'
 import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/network/releaseCatalog'
 import { nativeGetHardwareIdentity } from '../nativeModules'
@@ -391,6 +392,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         const release = await getModReleaseForSelection(selection, stableSource)
         return release ? [release] : []
     })
+    ipcMain.handle(MainEvents.GET_INSTALLED_MOD_STATE, () => refreshInstalledModState())
     ipcMain.handle(MainEvents.GET_MOD_SOURCES, async () => {
         const branches = await getModBranchBuildSummaries()
         const selected = getModSourceSelection()
