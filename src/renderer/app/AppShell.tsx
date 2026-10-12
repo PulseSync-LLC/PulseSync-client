@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 
 import { useTranslation } from 'react-i18next'
 
@@ -12,7 +12,7 @@ import AppProviders from '@app/providers/AppProviders'
 import { useNotificationsController } from '@app/providers/notifications/useNotificationsController'
 import { SocketProvider } from '@app/providers/socket'
 import { createAppRouter } from '@app/router'
-import { fetchInstalledStoreAddonUpdates } from '@entities/addon/api/storeAddons'
+import { fetchInstalledStoreAddonUpdates, getInstalledStoreAddonUpdatesKey } from '@entities/addon/api/storeAddons'
 import { isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import AddonInitials from '@entities/addon/model/addon.initials'
 import { prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
@@ -416,10 +416,13 @@ function App() {
         await syncStoreAddonUpdates(addons)
     }, [addons, isAutonomousMode, syncStoreAddonUpdates])
 
+    const installedStoreRequestKey = useMemo(() => getInstalledStoreAddonUpdatesKey(addons), [addons])
+    const checkInstalledStoreUpdates = useEffectEvent(() => syncStoreAddonUpdates(addons))
+
     useEffect(() => {
-        if (isAutonomousMode || !addons.length) return
-        void syncStoreAddonUpdates(addons)
-    }, [addons, isAutonomousMode, syncStoreAddonUpdates])
+        if (isAutonomousMode || !installedStoreRequestKey || user.id === '-1') return
+        void checkInstalledStoreUpdates()
+    }, [installedStoreRequestKey, isAutonomousMode, syncStoreAddonUpdates, user.id])
 
     useEffect(() => {
         if (user.id === '-1') {
@@ -427,15 +430,13 @@ function App() {
         }
 
         const intervalId = window.setInterval(() => {
-            if (addons.length) {
-                void syncStoreAddonUpdates(addons)
-            }
+            void checkInstalledStoreUpdates()
         }, STORE_ADDON_UPDATE_CHECK_INTERVAL_MS)
 
         return () => {
             window.clearInterval(intervalId)
         }
-    }, [addons, syncStoreAddonUpdates, user.id])
+    }, [user.id])
 
     useAppInitialization({
         appRef,
