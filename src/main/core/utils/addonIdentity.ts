@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto'
+import { createHash } from 'node:crypto'
 
 type AddonIdentitySource = {
     author?: unknown
@@ -41,8 +41,6 @@ const normalizeAddonName = (value: unknown): string => readText(value).toLowerCa
 const normalizeAddonType = (value: unknown): string => readText(value).toLowerCase()
 
 export const isDefaultAddon = (source: Pick<AddonIdentitySource, 'name'>): boolean => readText(source.name) === DEFAULT_ADDON_NAME
-
-export const createGeneratedLocalAddonId = (): string => randomUUID().replace(/-/g, '')
 
 export const createDeterministicLocalAddonId = (source: AddonIdentitySource): string => {
     const payload = JSON.stringify({

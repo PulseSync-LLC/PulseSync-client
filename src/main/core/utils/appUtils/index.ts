@@ -256,8 +256,6 @@ export const getFolderSize = async (folderPath: string): Promise<number> => {
     return total
 }
 
-export const formatJson = (data: any) => JSON.stringify(data, null, 4)
-
 export const checkAsar = () => {
     if ((State.get('mod.installed') || State.get('mod.version')) && !fso.existsSync(asarBackup)) {
         State.delete('mod')
@@ -561,24 +559,6 @@ export class AsarPatcher {
             }
             callback?.(0, t('main.appUtils.macPatchError', { message }))
             return false
-        }
-    }
-}
-
-export async function clearDirectory(directoryPath: string): Promise<void> {
-    try {
-        await fsp.access(directoryPath)
-    } catch {
-        return
-    }
-    for (const entry of await fsp.readdir(directoryPath)) {
-        const full = path.join(directoryPath, entry)
-        const stat = await fsp.stat(full)
-        if (stat.isDirectory()) {
-            await clearDirectory(full)
-            await fsp.rmdir(full)
-        } else {
-            await fsp.unlink(full)
         }
     }
 }

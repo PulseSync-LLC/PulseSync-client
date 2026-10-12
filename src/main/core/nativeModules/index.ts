@@ -131,16 +131,6 @@ export const nativeGetHardwareIdentity = (): { hash: string; source: string; alg
     }
 }
 
-export const nativeReadFile = (filePath: string): Buffer | null => {
-    if (!nativeModule) return null
-    try {
-        return nativeModule.readFile(filePath)
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error in nativeReadFile for '${filePath}': ${err}`)
-        return null
-    }
-}
-
 export const nativeDeleteFile = (filePath: string): boolean => {
     if (!nativeModule) return false
     try {
@@ -159,17 +149,6 @@ export const nativeRenameFile = (oldPath: string, newPath: string): boolean => {
         return true
     } catch (err) {
         logger.nativeModuleManager.error(`Error in nativeRenameFile from '${oldPath}' to '${newPath}': ${err}`)
-        return false
-    }
-}
-
-export const nativeMoveFile = (source: string, destination: string): boolean => {
-    if (!nativeModule) return false
-    try {
-        nativeModule.moveFile(source, destination)
-        return true
-    } catch (err) {
-        logger.nativeModuleManager.error(`Error in nativeMoveFile from '${source}' to '${destination}': ${err}`)
         return false
     }
 }
@@ -193,11 +172,6 @@ export const nativeFileExists = (filePath: string): boolean => {
         logger.nativeModuleManager.error(`Error in nativeFileExists for '${filePath}': ${err}`)
         return false
     }
-}
-
-export const nativeCalculateAsarHeaderHash = (filePath: string): string => {
-    if (!nativeModule) throw new Error('pulsesyncNative addon is not available')
-    return nativeModule.calculateAsarHeaderHash(filePath)
 }
 
 export const nativePatchWindowsIntegrity = (exePath: string, asarPath: string): string => {
