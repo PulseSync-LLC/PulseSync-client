@@ -101,11 +101,6 @@ const ensureUpdateSourceSwitchAllowed = () => {
     }
 }
 
-export const getPath = (args: string) => {
-    const savePath = app.getPath('userData')
-    return path.resolve(`${savePath}/extensions/${args}`)
-}
-
 function launchExtensionBackgroundWorkers(session = electronSession.defaultSession) {
     return Promise.all(
         session.extensions.getAllExtensions().map(async extension => {
