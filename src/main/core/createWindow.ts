@@ -36,15 +36,24 @@ export let mainWindow: BrowserWindow
 export let inSleepMode = false
 let isAppQuitting = false
 
-const minMain = { width: 1400, height: 850 }
+const defaultMain = { width: 1280, height: 760 }
+const minMain = { width: 1100, height: 600 }
 
 app.on('before-quit', () => {
     isAppQuitting = true
 })
 
-const isWithinDisplayBounds = (pos: { x: number; y: number }, display: Electron.Display) => {
-    const area = display.workArea
-    return pos.x >= area.x && pos.y >= area.y && pos.x < area.x + area.width && pos.y < area.y + area.height
+const fitMainWindowBounds = (bounds: Partial<Electron.Rectangle>, area: Electron.Rectangle): Electron.Rectangle => {
+    const width = Math.min(area.width, Math.max(minMain.width, bounds.width ?? defaultMain.width))
+    const height = Math.min(area.height, Math.max(minMain.height, bounds.height ?? defaultMain.height))
+    const x = bounds.x ?? area.x + Math.round((area.width - width) / 2)
+    const y = bounds.y ?? area.y + Math.round((area.height - height) / 2)
+    return {
+        x: Math.min(Math.max(x, area.x), area.x + area.width - width),
+        y: Math.min(Math.max(y, area.y), area.y + area.height - height),
+        width,
+        height,
+    }
 }
 
 const resolveDroppedPextPath = (navigationUrl: string): string | null => {
@@ -259,13 +268,15 @@ export async function createWindow(
     const savedPosition = restorePos ? State.get('settings.windowPosition') : undefined
     const savedDimensions = restoreDim ? State.get('settings.windowDimensions') : undefined
 
-    let position: { x: number; y: number } | undefined =
-        savedPosition && typeof savedPosition.x === 'number' && typeof savedPosition.y === 'number'
-            ? { x: savedPosition.x, y: savedPosition.y }
-            : undefined
+    const position: { x: number; y: number } | undefined =
+        savedPosition && Number.isFinite(savedPosition.x) && Number.isFinite(savedPosition.y) ? { x: savedPosition.x, y: savedPosition.y } : undefined
 
     const dimensions: { width: number; height: number } | undefined =
-        savedDimensions && typeof savedDimensions.width === 'number' && typeof savedDimensions.height === 'number'
+        savedDimensions &&
+        Number.isFinite(savedDimensions.width) &&
+        savedDimensions.width > 0 &&
+        Number.isFinite(savedDimensions.height) &&
+        savedDimensions.height > 0
             ? { width: savedDimensions.width, height: savedDimensions.height }
             : undefined
 
@@ -274,22 +285,15 @@ export async function createWindow(
     let usedDisplay: Electron.Display
 
     if (restorePos && position) {
-        const nearest = screen.getDisplayNearestPoint(position)
-        if (isWithinDisplayBounds(position, nearest)) {
-            usedDisplay = nearest
-        } else {
-            position = undefined
-            usedDisplay = screen.getPrimaryDisplay()
-        }
+        usedDisplay = screen.getDisplayNearestPoint(position)
     } else if (lastDisplayId) {
         usedDisplay = displays.find(d => d.id === lastDisplayId) || screen.getPrimaryDisplay()
-        position = undefined
     } else {
         usedDisplay = screen.getPrimaryDisplay()
-        position = undefined
     }
 
     State.set('settings.lastDisplayId', usedDisplay.id)
+    const windowBounds = fitMainWindowBounds({ ...position, ...dimensions }, usedDisplay.workArea)
     const iconExt = isWindows() ? '.ico' : '.png'
     const icon = getNativeImg('App', iconExt, 'icon').resize({ width: 40, height: 40 })
     mainWindow = new BrowserWindow({
@@ -298,11 +302,9 @@ export async function createWindow(
         show: false,
         frame: false,
         backgroundColor: '#16181E',
-        width: dimensions?.width ?? minMain.width,
-        height: dimensions?.height ?? minMain.height,
-        ...(position ? { x: position.x, y: position.y } : { center: true }),
-        minWidth: minMain.width,
-        minHeight: minMain.height,
+        ...windowBounds,
+        minWidth: Math.min(minMain.width, usedDisplay.workArea.width),
+        minHeight: Math.min(minMain.height, usedDisplay.workArea.height),
         titleBarStyle: 'hidden',
         trafficLightPosition: { x: 15, y: 18 },
         icon,
@@ -315,6 +317,17 @@ export async function createWindow(
     })
     registerRemoteMainWindowSecurity(mainWindow)
     const rendererWindow = mainWindow
+    const fitNormalWindowToDisplay = (): void => {
+        if (rendererWindow.isDestroyed() || rendererWindow.isMaximized() || rendererWindow.isFullScreen() || rendererWindow.isMinimized()) return
+        const bounds = rendererWindow.getBounds()
+        const { workArea } = screen.getDisplayMatching(bounds)
+        const fitted = fitMainWindowBounds(bounds, workArea)
+        rendererWindow.setMinimumSize(Math.min(minMain.width, workArea.width), Math.min(minMain.height, workArea.height))
+        if (fitted.x !== bounds.x || fitted.y !== bounds.y || fitted.width !== bounds.width || fitted.height !== bounds.height) {
+            rendererWindow.setBounds(fitted)
+        }
+    }
+    rendererWindow.once('persisted-state-restored', fitNormalWindowToDisplay)
     mainWindow.webContents.on('preload-error', (_event, preloadPath, error) => {
         logger.main.error('Main window preload failed', { preloadPath, error })
     })
@@ -329,6 +342,7 @@ export async function createWindow(
             return
         }
         mainWindowReadyHandled = true
+        fitNormalWindowToDisplay()
         if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) {
             options.bootstrapWindow.destroy()
         }
