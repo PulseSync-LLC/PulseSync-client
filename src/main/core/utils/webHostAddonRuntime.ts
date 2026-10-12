@@ -223,10 +223,6 @@ function hasWebHostQueueRegistration(root: JavaScriptNode): boolean {
     return found
 }
 
-export function isValidWebHostAddonRuntime(content: string): boolean {
-    return validateWebHostAddonRuntime(content).ok
-}
-
 export function validateWebHostAddonRuntime(content: string): WebHostAddonValidationResult {
     if (!content.trim()) return { ok: false, category: 'empty-code', reason: 'bundle is empty' }
 

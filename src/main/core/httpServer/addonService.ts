@@ -816,7 +816,6 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
     }
 
     return {
-        getAllAllowedUrls,
         readModuleAddon: (id: string) => {
             const matches = readWebHostAddonPayloads(id)
             const addon = matches.length === 1 ? matches[0] : undefined
