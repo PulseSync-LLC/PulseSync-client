@@ -490,8 +490,8 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
         getWebHostAddonProtocolVersion(socket, protocolVersion) >= WEB_HOST_ADDON_PROTOCOL_VERSION
 
     const setAddon = (_theme: string) => {
-        const io = getIo()
-        if (!getAuthorized() || !io) return
+        const recipients = getMusicRecipients()
+        if (!recipients.length) return
 
         const themesPath = getAddonsRoot()
         const selected = getSelectedThemeDirectory()
@@ -511,33 +511,19 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
             return
         }
 
-        const waitForSocket = new Promise<void>(resolve => {
-            const interval = setInterval(() => {
-                if (io && io.engine.clientsCount > 0) {
-                    clearInterval(interval)
-                    resolve()
-                }
-            }, 100)
-        })
-
-        waitForSocket.then(() => {
-            io.sockets.sockets.forEach(sock => {
-                const s = sock as any
-                if (s.clientType === 'yaMusic' && getAuthorized() && s.hasPong) {
-                    const protocolVersion = getWebHostAddonProtocolVersion(sock)
-                    const webHost = readWebHostAddonsSnapshot(protocolVersion)
-                    if (webHost.handlesTheme) {
-                        const defaultTheme = readThemePayload(true)
-                        if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
-                        emitWebHostAddonsSnapshot(sock, webHost.snapshot)
-                    } else {
-                        sock.emit('THEME', { theme: themeData, allowedUrls: getAllAllowedUrls() })
-                        if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) emitWebHostAddonsSnapshot(sock, webHost.snapshot)
-                    }
-                    sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
-                }
-            })
-        })
+        for (const sock of recipients) {
+            const protocolVersion = getWebHostAddonProtocolVersion(sock)
+            const webHost = readWebHostAddonsSnapshot(protocolVersion)
+            if (webHost.handlesTheme) {
+                const defaultTheme = readThemePayload(true)
+                if (defaultTheme) sock.emit('THEME', { theme: defaultTheme })
+                emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+            } else {
+                sock.emit('THEME', { theme: themeData, allowedUrls: getAllAllowedUrls() })
+                if (protocolVersion >= WEB_HOST_THEME_PROTOCOL_VERSION) emitWebHostAddonsSnapshot(sock, webHost.snapshot)
+            }
+            sock.emit('ALLOWED_URLS', { allowedUrls: getAllAllowedUrls() })
+        }
     }
 
     const sendAddon = (withJs: boolean, themeDef?: boolean) => {
