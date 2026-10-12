@@ -1,5 +1,6 @@
 import * as fs from 'original-fs'
 
+import { isDeveloperAccount } from '../auth/developerAccess'
 import { getState } from '../state'
 import { resolveBasePaths } from './mod-files'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
@@ -125,6 +126,7 @@ async function refreshInstalledMod(epoch: number): Promise<Record<string, unknow
 
         if (!missingPath) {
             if (normalizeAsarChecksum(snapshot.checksum)) {
+                if (await isDeveloperAccount()) return getInstalledModSnapshot()
                 const result = await verifyInstalledModIntegrity()
                 if (result.ok || result.reason !== 'checksum-mismatch') return getInstalledModSnapshot()
             } else {
