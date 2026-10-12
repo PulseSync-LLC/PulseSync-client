@@ -15,7 +15,7 @@ import { getState } from '../state'
 import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../utils/appUtils'
 import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../utils/appUtils/elevation'
 import { DownloadError, downloadToTempWithProgress, resetProgress, sendFailure, sendToRenderer, unlinkIfExists } from './download.helpers'
-import { normalizeAsarChecksum, readInstalledAsarChecksum } from './integrity'
+import { beginInstalledModMutation, normalizeAsarChecksum, readInstalledAsarChecksum } from './integrity'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import {
     cleanupModArtifacts,
@@ -290,6 +290,7 @@ export const modManager = (window: BrowserWindow): void => {
     })
 
     ipcMain.on(MainEvents.INSTALL_MOD, async (_event, request: DesktopInstallModRequest) => {
+        const finishMutation = beginInstalledModMutation()
         try {
             const { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source, channel, branch, commit } =
                 request
@@ -593,10 +594,13 @@ export const modManager = (window: BrowserWindow): void => {
             }
             HandleErrorsElectron.handleError('modManager', 'install', 'unexpected', error)
             sendFailure(window, { error: error.message, type: 'unexpected_error' })
+        } finally {
+            finishMutation()
         }
     })
 
     ipcMain.on(MainEvents.REMOVE_MOD, async () => {
+        const finishMutation = beginInstalledModMutation()
         try {
             const paths = await resolveBasePaths()
             const wasClosed = await closeMusicIfRunning(window)
@@ -633,6 +637,8 @@ export const modManager = (window: BrowserWindow): void => {
             }
             HandleErrorsElectron.handleError('modManager', 'remove', 'unexpected', error)
             sendToRenderer(window, RendererEvents.REMOVE_MOD_FAILURE, { success: false, error: error.message, type: 'remove_mod_error' })
+        } finally {
+            finishMutation()
         }
     })
     ipcMain.on(MainEvents.CLEAR_MOD_CACHE, async () => {
