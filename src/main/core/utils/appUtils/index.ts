@@ -14,6 +14,7 @@ import { t } from '../../../shared/i18n'
 import logger from '../../../shared/logger'
 import { YM_RELEASE_METADATA_URL } from '../../constants/urls'
 import { mainWindow } from '../../createWindow'
+import { beginInstalledModMutation } from '../../mod/integrity'
 import { nativeCopyFile, nativeFileExists, nativePatchMacIntegrity, nativePatchWindowsIntegrity, nativeReadAsarVersion } from '../../nativeModules'
 import { asarBackup, musicPath } from '../../startup/runtimeState'
 import { getState } from '../../state'
@@ -330,6 +331,7 @@ export const downloadYandexMusic = async (type?: string) => {
     if (yandexMusicDownloadInFlight) return
 
     yandexMusicDownloadInFlight = true
+    const finishModMutation = beginInstalledModMutation()
     let downloadPath = ''
 
     try {
@@ -452,6 +454,7 @@ export const downloadYandexMusic = async (type?: string) => {
         if (downloadPath) unlinkDownload(downloadPath)
         sendDownloadFailure(error as Error)
     } finally {
+        finishModMutation()
         yandexMusicDownloadInFlight = false
     }
 }

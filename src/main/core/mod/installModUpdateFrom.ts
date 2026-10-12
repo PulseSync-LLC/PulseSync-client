@@ -11,7 +11,7 @@ import logger from '../../shared/logger'
 import { getState } from '../state'
 import { isLinuxAccessError } from '../utils/appUtils/elevation'
 import { sendToRenderer } from './download.helpers'
-import { readInstalledAsarChecksum } from './integrity'
+import { beginInstalledModMutation, readInstalledAsarChecksum } from './integrity'
 import { ensureBackup, ensureLinuxModPath, installPreparedAsarAndPatchBundle, resolveBasePaths } from './mod-files'
 import { closeMusicIfRunning, persistInstalledModState, sendSuccessAfterLaunch } from './mod-manager.helpers'
 import { prepareAsarArtifactInWorker } from './network/artifactWorkerClient'
@@ -182,6 +182,7 @@ export const installModUpdateFromAsar = async (
     }
 
     let wasClosed = false
+    const finishMutation = beginInstalledModMutation()
 
     try {
         const { incomingChecksum, matchedMod } = await resolveInstallModMatch(asarPath)
@@ -241,5 +242,7 @@ export const installModUpdateFromAsar = async (
         const message = error?.message || String(error)
         sendInstallFailure(window, { error: message, type: 'install_mod_update_from_error' })
         return { success: false, type: 'install_mod_update_from_error', error: message }
+    } finally {
+        finishMutation()
     }
 }
