@@ -6,7 +6,6 @@ import fso, { promises as fsp } from 'original-fs'
 import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
-import * as yaml from 'yaml'
 
 import RendererEvents from '../../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../../shared/handlers/handleErrorsElectron'
@@ -195,26 +194,6 @@ export async function copyFile(target: string, dest: string): Promise<void> {
         } else {
             logger.modManager.error('File copying failed:', error)
             throw error
-        }
-    }
-}
-
-export async function createDirIfNotExist(target: string): Promise<void> {
-    if (!fso.existsSync(target)) {
-        try {
-            await fsp.mkdir(target, { recursive: true })
-        } catch (error: any) {
-            if (isLinuxAccessError(error)) {
-                logger.modManager.warn('Directory creation requires permissions on Linux:', {
-                    target,
-                    code: error?.code,
-                    message: error?.message,
-                })
-                throw error
-            } else {
-                logger.modManager.error('Directory creation failed:', error)
-                throw error
-            }
         }
     }
 }
@@ -584,10 +563,6 @@ export async function findAppByName(namePart: string): Promise<AppxPackage | nul
 export async function uninstallApp(packageFullName: string): Promise<void> {
     const psScript = ['& {', 'param([string]$packageFullName)', 'Remove-AppxPackage -Package $packageFullName', '}'].join(' ')
     await runPowerShell(psScript, [packageFullName])
-}
-
-export async function getYandexMusicMetadata() {
-    return yaml.parse(await (await fetch(YM_RELEASE_METADATA_URL)).text())
 }
 
 export async function getLinuxInstallerUrl(): Promise<string> {
