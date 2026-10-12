@@ -34,7 +34,6 @@ export function SocketProvider({
     userId,
     appVersion,
     setUser,
-    setLoading,
     onLogout,
     onAchievementsUpdate,
     onAddonStoreUpdated,
@@ -179,7 +178,6 @@ export function SocketProvider({
             connectionErrorAttemptsRef.current = 0
             setSocket(currentSocket)
             setSocketConnected(true)
-            setLoading(false)
             toast.custom('success', t('common.connectionEstablished'))
         }
 
@@ -212,7 +210,6 @@ export function SocketProvider({
         onNotificationsReadAll,
         Modals.PREMIUM_UNLOCKED,
         openModal,
-        setLoading,
         setUser,
         t,
         zstdReady,

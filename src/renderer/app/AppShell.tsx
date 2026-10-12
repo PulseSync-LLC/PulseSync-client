@@ -487,7 +487,6 @@ function App() {
             userId={user.id}
             appVersion={app.info.version}
             setUser={setUser}
-            setLoading={setLoading}
             onLogout={handleSocketLogout}
             onAchievementsUpdate={handleSocketAchievementsUpdate}
             onAddonStoreUpdated={handleSocketStoreAddonUpdated}
