@@ -2,6 +2,7 @@ import path from 'path'
 
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
+import getUserToken from '@shared/lib/auth/getUserToken'
 
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
@@ -14,6 +15,40 @@ type OwnAddonsResponse = {
 type StoreAddonUpdatesResponse = {
     addons?: StoreAddon[]
     ok?: boolean
+}
+
+type StoreAddonReadOptions = { force?: boolean }
+
+const MAX_STORE_READ_REQUESTS = 32
+const storeReadRequests = new Map<string, Promise<StoreAddon[]>>()
+let storeReadAuthToken = ''
+
+function requestStoreAddons(
+    key: string,
+    fetchAddons: (authToken: string) => Promise<StoreAddon[]>,
+    options?: StoreAddonReadOptions,
+): Promise<StoreAddon[]> {
+    const authToken = getUserToken()
+    if (storeReadAuthToken !== authToken) {
+        storeReadRequests.clear()
+        storeReadAuthToken = authToken
+    }
+
+    const existing = storeReadRequests.get(key)
+    if (existing && !options?.force) return existing
+
+    const request = fetchAddons(authToken).finally(() => {
+        if (storeReadRequests.get(key) === request) storeReadRequests.delete(key)
+    })
+    storeReadRequests.set(key, request)
+
+    while (storeReadRequests.size > MAX_STORE_READ_REQUESTS) {
+        const oldestKey = storeReadRequests.keys().next().value
+        if (oldestKey === undefined) break
+        storeReadRequests.delete(oldestKey)
+    }
+
+    return request
 }
 
 type PackageArchiveResponse = {
@@ -141,50 +176,82 @@ async function packageAddon(addon: Addon): Promise<{ blob: Blob; fileName: strin
     }
 }
 
-export async function fetchOwnStoreAddons(): Promise<StoreAddon[]> {
-    const response = await rendererHttpClient.get<OwnAddonsResponse>('/extensions/mine', {
-        auth: true,
-        headers: {
-            Accept: 'application/json',
+export function fetchOwnStoreAddons(options?: StoreAddonReadOptions): Promise<StoreAddon[]> {
+    return requestStoreAddons(
+        'mine',
+        async authToken => {
+            const response = await rendererHttpClient.get<OwnAddonsResponse>('/extensions/mine', {
+                authToken,
+                headers: {
+                    Accept: 'application/json',
+                },
+            })
+
+            const payload = response.data ?? null
+            if (!response.ok || payload?.ok === false) {
+                throw new Error('FAILED_TO_LOAD_OWN_ADDONS')
+            }
+
+            return Array.isArray(payload?.addons) ? payload.addons : []
         },
-    })
-
-    const payload = response.data ?? null
-    if (!response.ok || payload?.ok === false) {
-        throw new Error('FAILED_TO_LOAD_OWN_ADDONS')
-    }
-
-    return Array.isArray(payload?.addons) ? payload.addons : []
+        options,
+    )
 }
 
 export async function fetchStoreAddonUpdates(
     ids: string[],
     releaseChannel: 'stable' | 'dev' = 'stable',
     includeRatings = false,
+    options?: StoreAddonReadOptions,
 ): Promise<StoreAddon[]> {
-    const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean)))
+    const normalizedIds = Array.from(new Set(ids.map(id => String(id || '').trim()).filter(Boolean))).sort()
 
     if (!normalizedIds.length) {
         return []
     }
 
-    const response = await rendererHttpClient.post<StoreAddonUpdatesResponse>('/extensions/updates', {
-        auth: true,
-        headers: {
-            Accept: 'application/json',
+    return requestStoreAddons(
+        JSON.stringify(['updates', normalizedIds, releaseChannel, includeRatings]),
+        async authToken => {
+            const response = await rendererHttpClient.post<StoreAddonUpdatesResponse>('/extensions/updates', {
+                authToken,
+                headers: {
+                    Accept: 'application/json',
+                },
+                body: { ids: normalizedIds, releaseChannel, ...(includeRatings ? { includeRatings: true } : {}) },
+            })
+
+            const payload = response.data ?? null
+            if (!response.ok || payload?.ok === false) {
+                throw new Error('FAILED_TO_LOAD_STORE_ADDON_UPDATES')
+            }
+
+            return Array.isArray(payload?.addons) ? payload.addons : []
         },
-        body: { ids: normalizedIds, releaseChannel, ...(includeRatings ? { includeRatings: true } : {}) },
-    })
-
-    const payload = response.data ?? null
-    if (!response.ok || payload?.ok === false) {
-        throw new Error('FAILED_TO_LOAD_STORE_ADDON_UPDATES')
-    }
-
-    return Array.isArray(payload?.addons) ? payload.addons : []
+        options,
+    )
 }
 
-export async function fetchInstalledStoreAddonUpdates(addons: Addon[]): Promise<StoreAddon[]> {
+export function getInstalledStoreAddonUpdatesKey(addons: Addon[]): string {
+    return addons
+        .filter(addon => addon.installSource === 'store' && addon.storeAddonId?.trim())
+        .map(addon =>
+            JSON.stringify([
+                addon.storeAddonId!.trim(),
+                addon.storeReleaseChannel === 'dev' ? 'dev' : 'stable',
+                addon.version,
+                addon.packageHash ?? '',
+                addon.directoryName,
+                addon.path,
+                addon.runtime,
+                addon.type,
+            ]),
+        )
+        .sort()
+        .join('\n')
+}
+
+export async function fetchInstalledStoreAddonUpdates(addons: Addon[], options?: StoreAddonReadOptions): Promise<StoreAddon[]> {
     return (
         await Promise.all(
             (['stable', 'dev'] as const).map(channel =>
@@ -193,6 +260,8 @@ export async function fetchInstalledStoreAddonUpdates(addons: Addon[]): Promise<
                         .filter(addon => addon.installSource === 'store' && (addon.storeReleaseChannel === 'dev' ? 'dev' : 'stable') === channel)
                         .map(addon => addon.storeAddonId || ''),
                     channel,
+                    false,
+                    options,
                 ),
             ),
         )
@@ -205,6 +274,7 @@ export async function promoteAddonRelease(addonId: string, releaseId: string): P
         { auth: true },
     )
     if (!response.ok) throw new Error('ADDON_PROMOTION_FAILED')
+    storeReadRequests.clear()
 }
 
 export async function persistAddonStoreLink(addon: Addon, storeAddonId: string): Promise<void> {
@@ -327,5 +397,6 @@ export async function submitAddonArchiveForStore(options: {
         })
     }
 
+    storeReadRequests.clear()
     return extractStoreAddonId(payload)
 }

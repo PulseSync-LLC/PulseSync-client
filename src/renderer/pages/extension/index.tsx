@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useContext, useEffect, useEffectEvent, useMemo, useRef, useState } from 'react'
 
 import { useTranslation } from 'react-i18next'
 import { useLocation, useParams } from 'react-router'
@@ -40,6 +40,7 @@ import {
     fetchInstalledStoreAddonUpdates,
     fetchOwnStoreAddons,
     fetchStoreAddonUpdates,
+    getInstalledStoreAddonUpdatesKey,
     persistAddonPreview,
     persistAddonStoreLink,
     promoteAddonRelease,
@@ -199,7 +200,11 @@ export default function ExtensionPage() {
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
     const [addonWhitelist, setAddonWhitelist] = useState<AddonWhitelistItem[]>([])
     const [storePublications, setStorePublications] = useState<StoreAddon[]>([])
+    const ownPublicationsRequestRef = useRef(0)
     const [installedStoreUpdates, setInstalledStoreUpdates] = useState<StoreAddon[]>([])
+    const [storeRefreshVersion, setStoreRefreshVersion] = useState(0)
+    const installedStoreRefreshRef = useRef(0)
+    const storeChannelsRefreshRef = useRef(0)
     const [storeChannelReleases, setStoreChannelReleases] = useState<Partial<Record<'stable' | 'dev', StoreAddon>>>({})
     const [storeChannelLoading, setStoreChannelLoading] = useState(false)
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
@@ -291,10 +296,17 @@ export default function ExtensionPage() {
         fetchAddonWhitelist()
     }, [])
 
+    const installedStoreRequestKey = useMemo(() => getInstalledStoreAddonUpdatesKey(addons), [addons])
+    const requestInstalledStoreUpdates = useEffectEvent((force: boolean) => fetchInstalledStoreAddonUpdates(addons, { force }))
+
     useEffect(() => {
         let active = true
         setInstalledStoreUpdates([])
-        void fetchInstalledStoreAddonUpdates(addons)
+        if (!user?.id || user.id === '-1') return
+
+        const force = installedStoreRefreshRef.current !== storeRefreshVersion
+        installedStoreRefreshRef.current = storeRefreshVersion
+        void requestInstalledStoreUpdates(force)
             .then(updates => {
                 if (active) setInstalledStoreUpdates(updates)
             })
@@ -302,25 +314,32 @@ export default function ExtensionPage() {
         return () => {
             active = false
         }
-    }, [addons])
+    }, [installedStoreRequestKey, storeRefreshVersion, user?.id])
 
-    const refreshOwnPublications = useCallback(async () => {
-        if (!user?.id || user.id === '-1') {
-            setStorePublications([])
-            return
-        }
+    const refreshOwnPublications = useCallback(
+        async (force = false) => {
+            const requestId = ++ownPublicationsRequestRef.current
+            if (!user?.id || user.id === '-1') {
+                setStorePublications([])
+                return
+            }
 
-        try {
-            const ownAddons = await fetchOwnStoreAddons()
-            setStorePublications(ownAddons)
-        } catch (error) {
-            console.error('[ExtensionPage] failed to load own store addons', error)
-            setStorePublications([])
-        }
-    }, [user?.id])
+            try {
+                const ownAddons = await fetchOwnStoreAddons({ force })
+                if (requestId === ownPublicationsRequestRef.current) setStorePublications(ownAddons)
+            } catch (error) {
+                console.error('[ExtensionPage] failed to load own store addons', error)
+                if (requestId === ownPublicationsRequestRef.current) setStorePublications([])
+            }
+        },
+        [user?.id],
+    )
 
     useEffect(() => {
         void refreshOwnPublications()
+        return () => {
+            ownPublicationsRequestRef.current += 1
+        }
     }, [refreshOwnPublications])
 
     useEffect(() => {
@@ -752,6 +771,7 @@ export default function ExtensionPage() {
             clearAddonFilesCache()
             desktopApi.addons.refreshClients()
             await loadAddons(true)
+            setStoreRefreshVersion(version => version + 1)
             setSelectedAddonId(null)
             toast.custom('success', t('common.doneTitle'), t('extensions.reloadSuccess'))
         } catch (e) {
@@ -831,14 +851,19 @@ export default function ExtensionPage() {
 
     useEffect(() => {
         setStoreChannelReleases({})
-        if (!selectedStoreAddonId) {
+        if (!selectedStoreAddonId || !user?.id || user.id === '-1') {
             setStoreChannelLoading(false)
             return
         }
 
         let active = true
+        const force = storeChannelsRefreshRef.current !== storeRefreshVersion
+        storeChannelsRefreshRef.current = storeRefreshVersion
         setStoreChannelLoading(true)
-        void Promise.all([fetchStoreAddonUpdates([selectedStoreAddonId], 'stable'), fetchStoreAddonUpdates([selectedStoreAddonId], 'dev')])
+        void Promise.all([
+            fetchStoreAddonUpdates([selectedStoreAddonId], 'stable', false, { force }),
+            fetchStoreAddonUpdates([selectedStoreAddonId], 'dev', false, { force }),
+        ])
             .then(([stableAddons, devAddons]) => {
                 if (!active) return
                 setStoreChannelReleases({
@@ -856,7 +881,7 @@ export default function ExtensionPage() {
         return () => {
             active = false
         }
-    }, [selectedStoreAddonId])
+    }, [selectedStoreAddonId, storeRefreshVersion, user?.id])
 
     const selectedAddonMissingDependencies = useMemo(
         () => (selectedAddon && addonRelationsEnabled ? getMissingDependencyLabels(selectedAddon) : []),
@@ -1053,8 +1078,9 @@ export default function ExtensionPage() {
                     visibility ?? selectedPublication?.currentRelease?.visibility ?? 'public',
                     releaseChannel ?? 'stable',
                 )
-                const ownAddons = await fetchOwnStoreAddons()
-                setStorePublications(ownAddons)
+                const requestId = ++ownPublicationsRequestRef.current
+                const ownAddons = await fetchOwnStoreAddons({ force: true })
+                if (requestId === ownPublicationsRequestRef.current) setStorePublications(ownAddons)
 
                 if (!linkedStoreAddonId) {
                     const normalizedAddonName = selectedAddon.name.trim().toLowerCase()
@@ -1126,7 +1152,7 @@ export default function ExtensionPage() {
         setPublicationBusy(true)
         try {
             await promoteAddonRelease(selectedPublication.id, release.id)
-            await refreshOwnPublications()
+            await refreshOwnPublications(true)
             toast.custom('success', t('common.doneTitle'), t('extensions.publication.promoted'))
         } catch (error) {
             console.error('[ExtensionPage] failed to promote release', error)
