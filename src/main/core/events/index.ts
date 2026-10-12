@@ -1,25 +1,16 @@
 import os from 'node:os'
 
-import { app, clipboard, dialog, ipcMain, Notification, session as electronSession, session, shell } from 'electron'
+import { app, clipboard, ipcMain, Notification, session as electronSession, session } from 'electron'
 
-import AdmZip from 'adm-zip'
-import axios from 'axios'
-import { execFile } from 'child_process'
 import { installExtension, updateExtensions } from 'electron-chrome-web-store'
-import * as fsp from 'fs/promises'
-import fs from 'original-fs'
 import path from 'path'
-import * as si from 'systeminformation'
-import { v4 } from 'uuid'
 
-import { HANDLE_EVENTS_SETTINGS_FILENAME } from '@common/addons/handleEvents'
-import { branch, isDevmark } from '@common/appConfig'
+import { isDevmark } from '@common/appConfig'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
 import { setMainErrorTrackingUser } from '../../shared/errorTracking'
-import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import {
@@ -32,40 +23,26 @@ import { getUpdateSource, setUpdateSource } from '../../shared/updater/updateSou
 import isAppDev from '../../shared/utils/isAppDev'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../auth/browserAuth'
 import { inSleepMode, mainWindow } from '../createWindow'
-import mainHttpClient from '../http/client'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
 import { refreshInstalledModState } from '../mod/integrity'
 import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelection } from '../mod/modSource'
 import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/network/releaseCatalog'
 import { nativeGetHardwareIdentity } from '../nativeModules'
 import { obsWidgetManager } from '../obsWidget/obsWidgetManager'
-import { importAddonArchive, importPextFile, isPextFilePath } from '../pextImporter'
 import { checkRendererUpdate, installRendererUpdate } from '../rendererUpdate'
-import { musicPath, updated } from '../startup/runtimeState'
+import { updated } from '../startup/runtimeState'
 import { getState } from '../state'
-import { getFfmpegMeta, getYtDlpMeta } from '../submodulesChecker'
 import { isUiReady, markUiReady } from '../uiReady'
 import { UpdateStatus } from '../updater/constants/updateStatus'
 import { CLIENT_REPO, listStableGitHubReleases, normalizeGitHubTagVersion } from '../updater/githubReleaseResolver'
 import { getUpdater } from '../updater/updater'
-import { loadAddons } from '../utils/addonUtils'
-import {
-    checkMusic,
-    findAppByName,
-    getInstalledYmMetadata,
-    getLinuxInstallerUrl,
-    getYandexMusicAppDataPath,
-    getYandexMusicLogsPath,
-    isLinux,
-    isMac,
-    isYandexMusicRunning,
-    uninstallApp,
-} from '../utils/appUtils'
-import { assertLegacyAddonUpdateAllowed } from '../utils/legacyAddonUpdatePolicy'
-import { readBufResilient } from '../utils/readBufResilient'
+import { isLinux, isMac } from '../utils/appUtils'
+import { registerAddonPackageEvents } from './addonPackageEvents'
+import { registerLogArchiveEvent, registerLoggingEvents } from './diagnosticsEvents'
+import { registerMusicStatusEvents, registerYandexMusicEvents } from './musicEvents'
+import { registerShellEvents } from './shellEvents'
 
-import type { DesktopInstallStoreAddonRequest, DesktopSetUpdateChannelOverrideRequest } from '../../../common/desktopApi/contract'
-import type { SubcomponentsMeta } from '../../../common/types/subcomponentsMeta'
+import type { DesktopSetUpdateChannelOverrideRequest } from '../../../common/desktopApi/contract'
 import type { BrowserWindow } from 'electron'
 
 const updater = getUpdater()
@@ -75,8 +52,6 @@ export let updateAvailable = false
 export let authorized = false
 let pendingAddonOpen: string | null = null
 let updaterStartListenerBound = false
-const ADDON_TEMPLATE_DOWNLOAD_URL = 'https://codeload.github.com/PulseSync-LLC/PulseSync-ExampleAddon/zip/refs/heads/main'
-const ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME = 'PulseSync-ExampleAddon'
 const MOD_REPO = {
     owner: 'PulseSync-LLC',
     repo: 'PulseSync-mod',
@@ -150,16 +125,6 @@ async function registerAppReadyEvents(): Promise<void> {
     }
 }
 
-const mimeByExt: Record<string, string> = {
-    '.png': 'image/png',
-    '.jpg': 'image/jpeg',
-    '.jpeg': 'image/jpeg',
-    '.gif': 'image/gif',
-    '.webp': 'image/webp',
-    '.bmp': 'image/bmp',
-    '.svg': 'image/svg+xml',
-}
-
 export const queueAddonOpen = (addonName: string): void => {
     pendingAddonOpen = addonName
     tryOpenPendingAddon()
@@ -169,149 +134,6 @@ const tryOpenPendingAddon = (): void => {
     if (!authorized || !isUiReady() || !pendingAddonOpen || !mainWindow || mainWindow.isDestroyed()) return
     mainWindow.webContents.send(RendererEvents.OPEN_ADDON, pendingAddonOpen)
     pendingAddonOpen = null
-}
-
-const allowedExternalProtocols = new Set(['http:', 'https:', 'yandexmusic:'])
-const allowedMusicHosts = new Set(['desktop.app.music.yandex.net'])
-
-const isSafeExternalUrl = (rawUrl: string): boolean => {
-    try {
-        const url = new URL(rawUrl)
-        return allowedExternalProtocols.has(url.protocol)
-    } catch {
-        return false
-    }
-}
-
-const isAllowedMusicDownloadUrl = (rawUrl: string): boolean => {
-    try {
-        const url = new URL(rawUrl)
-        if (url.protocol !== 'https:') return false
-        if (!allowedMusicHosts.has(url.hostname)) return false
-        return (
-            /^\/stable\/Yandex_Music_x64_[\d.]+\.exe$/i.test(url.pathname) ||
-            /^\/stable\/Yandex_Music_universal_[\d.]+\.dmg$/i.test(url.pathname) ||
-            /^\/stable\/Yandex_Music_amd64_[\d.]+\.deb$/i.test(url.pathname)
-        )
-    } catch {
-        return false
-    }
-}
-
-const resolveWithinBase = (baseDir: string, target: string): string | null => {
-    const resolved = path.resolve(baseDir, target)
-    const normalizedBase = path.resolve(baseDir)
-    if (resolved === normalizedBase) return resolved
-    return resolved.startsWith(normalizedBase + path.sep) ? resolved : null
-}
-
-const shouldIncludeAddonArchiveEntry = (relativePath: string): boolean => {
-    if (!relativePath) return true
-
-    const parts = relativePath.split(path.sep)
-    if (parts.some(part => part.startsWith('.'))) {
-        return false
-    }
-
-    return path.basename(relativePath) !== HANDLE_EVENTS_SETTINGS_FILENAME
-}
-
-const getSuggestedAddonTemplatePath = (parentPath = app.getPath('documents')): string => {
-    const basePath = path.join(parentPath, ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME)
-
-    if (!fs.existsSync(basePath)) {
-        return basePath
-    }
-
-    let counter = 2
-    let candidatePath = `${basePath}-${counter}`
-    while (fs.existsSync(candidatePath)) {
-        counter += 1
-        candidatePath = `${basePath}-${counter}`
-    }
-
-    return candidatePath
-}
-
-const ensureAddonTemplateDestination = async (targetPath: string): Promise<void> => {
-    try {
-        const stats = await fsp.stat(targetPath)
-        if (!stats.isDirectory()) {
-            throw new Error(t('main.events.addonTemplateDestinationBusy'))
-        }
-
-        const existingEntries = await fsp.readdir(targetPath)
-        if (existingEntries.length > 0) {
-            throw new Error(t('main.events.addonTemplateDestinationBusy'))
-        }
-    } catch (error: any) {
-        if (error?.code === 'ENOENT') {
-            await fsp.mkdir(targetPath, { recursive: true })
-            return
-        }
-
-        throw error
-    }
-}
-
-const extractAddonTemplateArchive = async (archiveBuffer: Buffer, targetPath: string): Promise<void> => {
-    let tempDir = ''
-
-    try {
-        tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'addon-template-'))
-        const zip = new AdmZip(archiveBuffer)
-        zip.extractAllTo(tempDir, true)
-
-        const extractedEntries = await fsp.readdir(tempDir, { withFileTypes: true })
-        const templateRoot =
-            extractedEntries.length === 1 && extractedEntries[0].isDirectory() ? path.join(tempDir, extractedEntries[0].name) : tempDir
-
-        const templateRootEntries = await fsp.readdir(templateRoot)
-        if (!templateRootEntries.length) {
-            throw new Error(t('main.events.addonTemplateArchiveInvalid'))
-        }
-
-        await ensureAddonTemplateDestination(targetPath)
-
-        for (const entry of templateRootEntries) {
-            await fsp.cp(path.join(templateRoot, entry), path.join(targetPath, entry), {
-                force: true,
-                recursive: true,
-            })
-        }
-    } finally {
-        if (tempDir) {
-            await fsp.rm(tempDir, { recursive: true, force: true })
-        }
-    }
-}
-
-const scaffoldAddonTemplate = async (): Promise<{ canceled?: boolean; success: boolean; name?: string; path?: string; error?: string }> => {
-    const { canceled, filePaths } = await dialog.showOpenDialog({
-        buttonLabel: t('main.common.ok'),
-        defaultPath: app.getPath('documents'),
-        properties: ['openDirectory', 'createDirectory', 'promptToCreate'],
-        title: t('main.events.addonTemplateDirectoryDialogTitle'),
-    })
-
-    if (canceled || !filePaths.length) {
-        return { canceled: true, success: false }
-    }
-
-    const selectedDirectory = path.normalize(filePaths[0])
-    const targetPath = getSuggestedAddonTemplatePath(selectedDirectory)
-    const response = await axios.get<ArrayBuffer>(ADDON_TEMPLATE_DOWNLOAD_URL, {
-        responseType: 'arraybuffer',
-    })
-
-    await extractAddonTemplateArchive(Buffer.from(response.data), targetPath)
-    await shell.openPath(targetPath)
-
-    return {
-        success: true,
-        name: path.basename(targetPath),
-        path: targetPath,
-    }
 }
 
 const registerWindowEvents = (): void => {
@@ -496,286 +318,11 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     })
 }
 
-const registerFileOperations = (): void => {
-    ipcMain.on(MainEvents.OPEN_EXTERNAL, async (_event, url: string) => {
-        try {
-            if (!isSafeExternalUrl(url)) {
-                logger.main.warn(`Blocked opening external URL: ${url}`)
-                return
-            }
-            await shell.openExternal(url)
-        } catch (error) {
-            logger.main.error('Error opening external URL:', error)
-        }
-    })
-
-    ipcMain.on(MainEvents.OPEN_FILE, (_event, markdownContent: string) => {
-        const tempFilePath = path.join(os.tmpdir(), 'terms.ru.md')
-        fsp.writeFile(tempFilePath, markdownContent)
-            .then(async () => {
-                const openError = await shell.openPath(tempFilePath)
-                if (openError) {
-                    logger.main.error(`Error opening the file: ${openError}`)
-                }
-                setTimeout(async () => {
-                    try {
-                        await fsp.unlink(tempFilePath)
-                        logger.main.log('Temporary file successfully deleted')
-                    } catch (unlinkErr: any) {
-                        if (unlinkErr?.code !== 'ENOENT') {
-                            logger.main.error('Error deleting the file:', unlinkErr)
-                        }
-                    }
-                }, 10000)
-            })
-            .catch(err => {
-                logger.main.error('Error writing to file:', err)
-            })
-    })
-
-    ipcMain.on(MainEvents.OPEN_PATH, async (_event, data: any) => {
-        switch (data.action) {
-            case 'openApplications': {
-                await shell.openPath('/Applications')
-                break
-            }
-            case 'openPath': {
-                if (typeof data.path === 'string' && data.path.trim().length > 0) {
-                    await shell.openPath(data.path)
-                }
-                break
-            }
-            case 'appPath': {
-                const appPath = app.getAppPath()
-                const pulseSyncPath = path.resolve(appPath, '../..')
-                await shell.openPath(pulseSyncPath)
-                break
-            }
-            case 'musicPath': {
-                const musicDir = app.getPath('music')
-                const downloadDir = path.join(musicDir, 'PulseSyncMusic')
-                await shell.openPath(downloadDir)
-                break
-            }
-            case 'addonsPath': {
-                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-                await shell.openPath(themesFolderPath)
-                break
-            }
-            case 'theme': {
-                const addonsRoot = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-                const safeThemePath = resolveWithinBase(addonsRoot, data.themeName || '')
-                if (!safeThemePath) {
-                    logger.main.warn(`Blocked opening theme path: ${data.themeName}`)
-                    break
-                }
-                await shell.openPath(safeThemePath)
-                break
-            }
-            case 'obsWidgetPath': {
-                const widgetPath = path.join(app.getPath('appData'), 'PulseSync', 'obs-widget')
-                await shell.openPath(widgetPath)
-                break
-            }
-            case 'privacySettings': {
-                if (isMac()) {
-                    await shell.openExternal('x-apple.systempreferences:com.apple.preference.security?Privacy')
-                }
-                break
-            }
-        }
-    })
-
-    ipcMain.handle(MainEvents.DIALOG_OPEN_FILE, async (_evt, opts?: { filters?: Electron.FileFilter[]; defaultPath?: string }) => {
-        const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: opts?.filters,
-            defaultPath: opts?.defaultPath,
-        })
-        if (canceled || !filePaths.length) return null
-        return path.normalize(filePaths[0])
-    })
-
-    ipcMain.handle(MainEvents.DIALOG_OPEN_DIRECTORY, async (_evt, opts?: { defaultPath?: string }) => {
-        const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openDirectory'],
-            defaultPath: opts?.defaultPath,
-        })
-        if (canceled || !filePaths.length) return null
-        return path.normalize(filePaths[0])
-    })
-
-    ipcMain.handle(MainEvents.DIALOG_SAVE_FILE, async (_evt, opts?: { filters?: Electron.FileFilter[]; defaultPath?: string }) => {
-        const { canceled, filePath } = await dialog.showSaveDialog({
-            filters: opts?.filters,
-            defaultPath: opts?.defaultPath,
-        })
-        if (canceled || !filePath) return null
-        return path.normalize(filePath)
-    })
-
-    ipcMain.handle(MainEvents.FILE_AS_DATA_URL, async (_evt, fullPath: string) => {
-        if (!fullPath) return null
-        try {
-            const buf = await (async () => {
-                return await readBufResilient(fullPath)
-            })()
-            const ext = path.extname(fullPath).toLowerCase()
-            const mime = (mimeByExt as any)?.[ext] || 'application/octet-stream'
-            return `data:${mime};base64,${buf.toString('base64')}`
-        } catch (e) {
-            console.error('[file:asDataUrl] resilient read error:', e)
-            return null
-        }
-    })
-
-    ipcMain.handle(MainEvents.DIALOG_OPEN_FILE_METADATA, async (_evt, opts?: { filters?: Electron.FileFilter[]; defaultPath?: string }) => {
-        const { canceled, filePaths } = await dialog.showOpenDialog({
-            properties: ['openFile'],
-            filters: opts?.filters,
-            defaultPath: opts?.defaultPath,
-        })
-        if (canceled || !filePaths.length) return null
-
-        const [fullPath] = filePaths
-        const normalizedPath = path.normalize(fullPath)
-        const searchSubstr = path.join('PulseSync', 'addons') + path.sep
-
-        return normalizedPath.includes(searchSubstr) ? path.basename(normalizedPath) : normalizedPath
-    })
-}
-
-const registerMediaEvents = (): void => {
-    ipcMain.on(MainEvents.DOWNLOAD_YANDEX_MUSIC, async (event, downloadUrl?: string) => {
-        const unlinkDownload = (downloadPath: string) => {
-            try {
-                fs.unlinkSync(downloadPath)
-            } catch (error: any) {
-                if (error?.code !== 'ENOENT') {
-                    logger.main.warn('Failed to remove downloaded Yandex Music installer:', error)
-                }
-            }
-        }
-
-        let exeUrl = downloadUrl
-        if (!exeUrl) {
-            const { data } = await axios.get('https://desktop.app.music.yandex.net/stable/latest.yml')
-            const match = data.match(/version:\s*([\d.]+)/)
-            if (!match) throw new Error(t('main.events.latestYmlVersionNotFound'))
-            exeUrl = isMac()
-                ? `https://desktop.app.music.yandex.net/stable/Yandex_Music_universal_${match[1]}.dmg`
-                : isLinux()
-                  ? await getLinuxInstallerUrl()
-                  : `https://desktop.app.music.yandex.net/stable/Yandex_Music_x64_${match[1]}.exe`
-        } else if (!isAllowedMusicDownloadUrl(exeUrl)) {
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, { success: false, error: t('main.events.invalidDownloadUrl') })
-            return
-        }
-
-        const fileName = path.basename(exeUrl)
-        const downloadPath = path.join(app.getPath('appData'), 'PulseSync', 'downloads', fileName)
-
-        try {
-            await fs.promises.mkdir(path.dirname(downloadPath), { recursive: true })
-            const response = await axios.get(exeUrl, { responseType: 'stream' })
-            const totalLength = parseInt(<string>response.headers['content-length'] || '0', 10)
-            let downloadedLength = 0
-            const writer = fs.createWriteStream(downloadPath)
-
-            response.data.on('data', (chunk: Buffer) => {
-                downloadedLength += chunk.length
-                if (totalLength <= 0) return
-
-                const progress = Math.min(downloadedLength / totalLength, 1)
-                event.reply(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(progress * 100) })
-                mainWindow.setProgressBar(progress)
-            })
-
-            await new Promise<void>((resolve, reject) => {
-                writer.on('finish', resolve)
-                writer.on('error', reject)
-                response.data.pipe(writer)
-            })
-
-            writer.close()
-            mainWindow.setProgressBar(-1)
-            fs.chmodSync(downloadPath, 0o755)
-
-            setTimeout(async () => {
-                if (process.platform === 'win32') {
-                    execFile(downloadPath, error => {
-                        if (error) {
-                            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
-                                success: false,
-                                error: t('main.events.fileExecuteFailed', { message: error.message }),
-                            })
-                            return
-                        }
-                        event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-                            success: true,
-                            message: t('main.events.fileExecutedSuccessfully'),
-                        })
-                        unlinkDownload(downloadPath)
-                    })
-                    return
-                }
-
-                const openError = await shell.openPath(downloadPath)
-                if (openError) {
-                    event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
-                        success: false,
-                        error: t('main.events.fileOpenFailed', { message: openError }),
-                    })
-                    return
-                }
-                event.reply(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-                    success: true,
-                    message: t('main.events.fileOpenedSuccessfully'),
-                })
-                unlinkDownload(downloadPath)
-            }, 100)
-        } catch (error: any) {
-            mainWindow.setProgressBar(-1)
-            unlinkDownload(downloadPath)
-            event.reply(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
-                success: false,
-                error: t('main.events.fileDownloadError', { message: error.message }),
-            })
-        }
-    })
-}
-
-const registerDeviceEvents = (): void => {
-    ipcMain.on(MainEvents.GET_MUSIC_DEVICE, event => {
-        si.system().then(data => {
-            event.returnValue = `os=${os.type()}; os_version=${os.version()}; manufacturer=${data.manufacturer}; model=${data.model}; clid=WindowsPhone; device_id=${data.uuid}; uuid=${v4(
-                { random: Buffer.from(data.uuid) },
-            )}`
-        })
-    })
-
+const registerAutoStartEvent = (): void => {
     ipcMain.on(MainEvents.AUTO_START_APP, (_event, enabled: boolean) => {
         if (isAppDev) return
         if (isLinux()) return
         app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
-    })
-
-    ipcMain.handle(MainEvents.GET_MUSIC_STATUS, async () => {
-        if (isLinux()) return true
-        else return fs.existsSync(musicPath)
-    })
-
-    ipcMain.handle(MainEvents.GET_MUSIC_RUNNING_STATUS, async () => {
-        return await isYandexMusicRunning()
-    })
-
-    ipcMain.handle(MainEvents.GET_MUSIC_VERSION, async () => {
-        const metadata = await getInstalledYmMetadata()
-        return metadata?.version
-    })
-
-    ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {
-        checkMusic()
     })
 }
 
@@ -806,18 +353,7 @@ const registerUpdateEvents = (): void => {
     })
 }
 
-const registerLoggingEvents = (): void => {
-    const formatRendererLogMessage = (prefix: string, payload: Record<string, any> | null | undefined) => {
-        const text = payload?.text ?? payload?.message ?? ''
-        const details: string[] = []
-        const type = payload?.type ? `type=${payload.type}` : null
-        if (type) details.push(type)
-        if (payload?.stack) details.push(`stack:\n${payload.stack}`)
-        if (payload?.componentStack) details.push(`componentStack:\n${payload.componentStack}`)
-        const detailText = details.length ? `\n${details.join('\n')}` : ''
-        return `[${prefix}] ${text}${detailText}`.trim()
-    }
-
+const registerAuthEvents = (): void => {
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
         authorized = data.status
         setMainErrorTrackingUser(data.status ? data.user : null)
@@ -835,24 +371,6 @@ const registerLoggingEvents = (): void => {
         sendAuthorizationStatus(false)
         return { success: true }
     })
-
-    ipcMain.on(MainEvents.RENDERER_LOG, (_event, data: any) => {
-        const message = formatRendererLogMessage('RENDERER_LOG', data)
-        const level = data?.error ? 'error' : data?.info ? 'info' : 'log'
-        logger.renderer[level](message)
-    })
-
-    ipcMain.on(MainEvents.LOG_ERROR, (_event, errorInfo: any) => {
-        const message = formatRendererLogMessage('LOG_ERROR', errorInfo)
-        logger.renderer.error(message)
-        const errorMessage = errorInfo?.message ?? t('main.events.rendererError')
-        const error = new Error(errorMessage)
-        if (errorInfo?.stack) {
-            const componentStack = errorInfo?.componentStack ? `\nComponentStack:\n${errorInfo.componentStack}` : ''
-            error.stack = `${errorInfo.stack}${componentStack}`
-        }
-        HandleErrorsElectron.handleError('renderer-error', errorInfo?.type ?? 'unknown', 'error-boundary', error)
-    })
 }
 
 const registerNotificationEvents = (): void => {
@@ -868,307 +386,24 @@ const registerNotificationEvents = (): void => {
     })
 }
 
-const registerLogArchiveEvent = (): void => {
-    ipcMain.on(MainEvents.GET_LOG_ARCHIVE, async () => {
-        try {
-            const logDirPath = path.join(app.getPath('appData'), 'PulseSync', 'logs')
-            const now = new Date()
-            const year = now.getFullYear()
-            const month = String(now.getMonth() + 1).padStart(2, '0')
-            const day = String(now.getDate()).padStart(2, '0')
-            const archiveName = `logs-${year}-${month}-${day}.zip`
-            const archivePath = path.join(logDirPath, archiveName)
-            const userInfo = os.userInfo()
-            const gpuData = await si.graphics()
-
-            const systemInfo = {
-                appVersion: DESKTOP_CORE_VERSION,
-                osType: os.type(),
-                osRelease: os.release(),
-                cpu: os.cpus(),
-                gpu: gpuData.controllers,
-                freeMemory: os.freemem(),
-                arch: os.arch(),
-                platform: os.platform(),
-                osInfo: await si.osInfo(),
-                memInfo: await si.mem(),
-                userInfo: { username: userInfo.username, homedir: userInfo.homedir },
-            }
-
-            const systemInfoPath = path.join(logDirPath, 'system-info.json')
-            const configPulsePath = path.join(app.getPath('userData'), 'pulsesync_settings.json')
-            const configYandexMusicPath = path.join(getYandexMusicAppDataPath(), 'config.json')
-            const logsYandexMusicPath = getYandexMusicLogsPath()
-
-            fs.writeFileSync(systemInfoPath, JSON.stringify(systemInfo, null, 4), 'utf-8')
-
-            const zip = new AdmZip()
-            zip.addLocalFolder(logDirPath, '', filePath => !filePath.endsWith('.zip') && filePath !== archiveName)
-            zip.addLocalFolder(logsYandexMusicPath, 'yandexmusic/logs')
-            zip.addLocalFile(configPulsePath, '')
-            zip.addLocalFile(configYandexMusicPath, 'yandexmusic/')
-            zip.writeZip(archivePath)
-            shell.showItemInFolder(archivePath)
-        } catch (error: any) {
-            logger.main.error(`Error while creating archive file: ${error}`)
-        }
-    })
-}
-
 const registerSleepModeEvent = (): void => {
     ipcMain.handle(MainEvents.CHECK_SLEEP_MODE, async () => inSleepMode)
-}
-
-const registerExtensionEvents = (): void => {
-    ipcMain.handle(MainEvents.GET_ADDONS, async () => {
-        try {
-            return await loadAddons()
-        } catch (error) {
-            logger.main.error(t('main.events.addonsLoadError'), error)
-        }
-    })
-    ipcMain.handle(MainEvents.CREATE_NEW_EXTENSION, async (_event, _args: any) => {
-        try {
-            return await scaffoldAddonTemplate()
-        } catch (error: any) {
-            HandleErrorsElectron.handleError('event-handler', MainEvents.CREATE_NEW_EXTENSION, 'try-catch', error)
-            logger.main.error(t('main.events.createExtensionError'), error)
-            return { success: false, error: error.message }
-        }
-    })
-
-    ipcMain.handle(MainEvents.EXPORT_ADDON, async (_event, data: any) => {
-        try {
-            if (!fs.existsSync(data.path)) {
-                logger.main.error(t('main.events.folderNotFound'))
-            }
-
-            const zip = new AdmZip()
-
-            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
-
-            const exportsDir = path.join(app.getPath('userData'), 'exports')
-            if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
-
-            const outputFilePath = path.join(exportsDir, data.name)
-            const outputPath = path.format({
-                dir: path.dirname(outputFilePath),
-                name: path.basename(outputFilePath, '.pext'),
-                ext: '.pext',
-            })
-
-            zip.writeZip(outputPath)
-            logger.main.info(`Create theme ${outputPath}`)
-            shell.showItemInFolder(outputPath)
-
-            try {
-                const zipPath = path.format({
-                    dir: path.dirname(outputFilePath),
-                    name: path.basename(outputFilePath, '.pext'),
-                    ext: '.zip',
-                })
-
-                zip.writeZip(zipPath)
-                logger.main.info(`Create zip ${zipPath}`)
-                shell.showItemInFolder(zipPath)
-            } catch (errZip: any) {
-                logger.main.error(t('main.events.createZipError'), errZip)
-            }
-
-            return true
-        } catch (error: any) {
-            logger.main.error(t('main.events.createArchiveError'), error.message)
-            return false
-        }
-    })
-
-    ipcMain.handle(MainEvents.PACKAGE_ADDON_ARCHIVE, async (_event, data: { name?: string; path?: string }) => {
-        try {
-            if (!data?.path || !fs.existsSync(data.path)) {
-                return { success: false, reason: 'ADDON_PATH_NOT_FOUND' }
-            }
-
-            const zip = new AdmZip()
-            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
-
-            return {
-                success: true,
-                fileName: `${(data.name || path.basename(data.path)).replace(/[^\w.-]+/g, '_') || 'addon'}.zip`,
-                base64: zip.toBuffer().toString('base64'),
-            }
-        } catch (error: any) {
-            logger.main.error('Failed to package addon archive:', error)
-            return { success: false, reason: error?.message || 'PACKAGE_FAILED' }
-        }
-    })
-
-    ipcMain.handle(MainEvents.IMPORT_PEXT_FILE, async (_event, rawPath: string) => {
-        try {
-            if (!isPextFilePath(rawPath)) {
-                return { success: false, reason: 'INVALID_FILE' }
-            }
-            const addonName = await importPextFile(rawPath)
-            if (!addonName) {
-                return { success: false, reason: 'IMPORT_FAILED' }
-            }
-            queueAddonOpen(addonName)
-            return { success: true, addonName }
-        } catch (error: any) {
-            logger.main.error('Failed to import .pext from renderer drop:', error)
-            return { success: false, reason: error?.message || 'IMPORT_FAILED' }
-        }
-    })
-
-    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: DesktopInstallStoreAddonRequest) => {
-        let tempArchivePath = ''
-
-        try {
-            const addonId = payload?.id?.trim().toLowerCase()
-            if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
-            const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
-            const authToken = State.get('tokens.token')
-            if (!authorized || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
-
-            let downloadUrl: string | null | undefined
-            const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
-            if (reviewReleaseId) {
-                const descriptor = await mainHttpClient.get<{
-                    ok?: boolean
-                    release?: { id: string; addonId: string; downloadUrl?: string | null }
-                }>(`/extensions/${encodeURIComponent(addonId)}/releases/${encodeURIComponent(reviewReleaseId)}/review-download`, {
-                    authToken,
-                    timeoutMs: 15000,
-                })
-                const release = descriptor.data?.release
-                if (descriptor.ok && descriptor.data?.ok === true && release?.addonId === addonId && release.id === reviewReleaseId) {
-                    downloadUrl = release.downloadUrl
-                }
-            } else {
-                const descriptor = await mainHttpClient.post<{
-                    ok?: boolean
-                    addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
-                }>('/extensions/updates', {
-                    authToken,
-                    headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
-                    body: { ids: [addonId], releaseChannel },
-                    timeoutMs: 15000,
-                })
-                const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
-                if (descriptor.ok && descriptor.data?.ok !== false && addon?.currentRelease?.status === 'accepted') {
-                    downloadUrl = addon.currentRelease.downloadUrl
-                }
-            }
-            if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
-            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
-
-            const parsedUrl = new URL(downloadUrl)
-            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                return { success: false, reason: 'INVALID_PROTOCOL' }
-            }
-
-            const ext = path.extname(parsedUrl.pathname).toLowerCase() === '.pext' ? '.pext' : '.zip'
-            tempArchivePath = path.join(app.getPath('temp'), `store-addon-${v4()}${ext}`)
-
-            const response = await axios.get<ArrayBuffer>(downloadUrl, {
-                responseType: 'arraybuffer',
-            })
-            if (State.get('tokens.token') !== authToken || !authorized) return { success: false, reason: 'AUTH_REQUIRED' }
-
-            await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
-
-            const addonName = await importAddonArchive(tempArchivePath, {
-                installSource: 'store',
-                storeAddonId: addonId,
-                releaseChannel,
-                validateLegacyStoreUpdate: reviewReleaseId
-                    ? undefined
-                    : () => assertLegacyAddonUpdateAllowed(authToken, payload.legacyAddonRestrictionsOverrideGroup),
-            })
-            if (!addonName) {
-                return { success: false, reason: 'IMPORT_FAILED' }
-            }
-
-            queueAddonOpen(addonName)
-            return { success: true, addonName }
-        } catch (error: any) {
-            logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
-            return { success: false, reason: error?.message || 'INSTALL_FAILED' }
-        } finally {
-            if (tempArchivePath) {
-                try {
-                    await fsp.rm(tempArchivePath, { force: true })
-                } catch (cleanupError) {
-                    logger.main.warn(`Unable to remove temporary store addon archive: ${String(cleanupError)}`)
-                }
-            }
-        }
-    })
-}
-
-const registerYandexMusicEvents = (window: BrowserWindow): void => {
-    ipcMain.on(MainEvents.DELETE_YANDEX_MUSIC_APP, async _event => {
-        try {
-            logger.main.info(t('main.events.yandexUninstallStart'))
-
-            const namePart = 'Yandex.Music'
-            const pkg = await findAppByName(namePart)
-
-            if (!pkg) {
-                logger.main.warn(t('main.events.yandexNotFound'))
-                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
-                    success: false,
-                    message: t('main.events.yandexNotFoundMessage'),
-                })
-                return
-            }
-
-            try {
-                logger.main.info(`Uninstalling Yandex Music: ${pkg.PackageFullName}`)
-                await uninstallApp(pkg.PackageFullName)
-
-                logger.main.info(t('main.events.yandexUninstallSuccess'))
-                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
-                    success: true,
-                    message: t('main.events.yandexUninstallSuccessMessage'),
-                })
-            } catch (uninstallErr) {
-                logger.main.error(`Uninstall error: ${(uninstallErr as Error).message}`)
-                window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
-                    success: false,
-                    message: t('main.events.yandexUninstallFailedWithReason', { message: (uninstallErr as Error).message }),
-                })
-            }
-        } catch (error: any) {
-            logger.main.error(`Uninstall exception: ${error.message}`)
-            window.webContents.send(RendererEvents.DELETE_YANDEX_MUSIC_RESULT, {
-                success: false,
-                message: t('main.events.yandexUninstallError'),
-            })
-        }
-    })
-    ipcMain.handle(MainEvents.GET_SUBCOMPONENTS_META, async () => {
-        const meta: SubcomponentsMeta = {
-            ffmpeg: await getFfmpegMeta(),
-            ytdlp: await getYtDlpMeta(),
-        }
-
-        return meta
-    })
 }
 
 export const handleEvents = (window: BrowserWindow): void => {
     registerWindowEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)
-    registerFileOperations()
-    registerMediaEvents()
-    registerDeviceEvents()
+    registerShellEvents()
+    registerAutoStartEvent()
+    registerMusicStatusEvents()
     registerUpdateEvents()
+    registerAuthEvents()
     registerLoggingEvents()
     registerNotificationEvents()
     registerLogArchiveEvent()
     registerSleepModeEvent()
-    registerExtensionEvents()
+    registerAddonPackageEvents({ isAuthorized: () => authorized, queueAddonOpen })
     registerYandexMusicEvents(window)
     obsWidgetManager(window, app)
 }
