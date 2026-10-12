@@ -188,12 +188,8 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_ISMAC, async event => {
         event.returnValue = isMac()
     })
-    ipcMain.handle(MainEvents.GET_VERSION, async () => DESKTOP_CORE_VERSION)
     ipcMain.on(MainEvents.ELECTRON_ISLINUX, async event => {
         event.returnValue = isLinux()
-    })
-    ipcMain.on(MainEvents.GET_LAST_BRANCH, event => {
-        event.returnValue = process.env.BRANCH
     })
     ipcMain.on(MainEvents.GET_CLIENT_HARDWARE_IDENTITY, event => {
         event.returnValue = nativeGetHardwareIdentity()

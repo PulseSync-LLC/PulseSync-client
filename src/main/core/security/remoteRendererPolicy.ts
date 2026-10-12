@@ -16,10 +16,6 @@ export function shouldAllowDevRemoteRenderer(isDevMode: boolean, isDevMarkedBuil
     return isDevMode || isDevMarkedBuild || process.env.PULSESYNC_ALLOW_LOCAL_REMOTE_RENDERER === '1'
 }
 
-export function getRemoteRendererAllowedOrigins(isDevMode: boolean): Set<string> {
-    return new Set([...PROD_REMOTE_RENDERER_RULES.map(rule => rule.origin), ...(isDevMode ? DEV_REMOTE_RENDERER_ORIGINS : [])])
-}
-
 export function getUrlOrigin(rawUrl: string): string | null {
     try {
         return new URL(rawUrl).origin
