@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { CombinedGraphQLErrors, ServerError } from '@apollo/client'
-import { useQuery } from '@apollo/client/react'
+import { useLazyQuery } from '@apollo/client/react'
 
 import config from '@common/appConfig'
 import { setRendererErrorTrackingUser } from '@app/errorTracking'
@@ -35,38 +35,20 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
     const [tokenReady, setTokenReady] = useState(false)
     const [hasToken, setHasToken] = useState(false)
     const lastAuthStatusRef = useRef<string | null>(null)
+    const mountedRef = useRef(true)
+    const authorizationRef = useRef<{ token: string; controller: AbortController; promise: Promise<void> } | null>(null)
 
     useEffect(() => {
-        let mounted = true
-        void getUserTokenAsync().then(token => {
-            if (mounted) {
-                setHasToken(!!token)
-                setTokenReady(true)
-            }
-        })
+        mountedRef.current = true
         return () => {
-            mounted = false
+            mountedRef.current = false
+            authorizationRef.current?.controller.abort()
+            authorizationRef.current = null
         }
     }, [])
 
-    useEffect(() => {
-        if (userId !== '-1') return
-        void getUserTokenAsync().then(token => {
-            if (!token) {
-                setHasToken(false)
-                setTokenReady(true)
-            }
-        })
-    }, [userId])
-
-    const {
-        data: meData,
-        loading: meLoading,
-        error: meError,
-        refetch: refetchMe,
-    } = useQuery<GetMeData, GetMeVars>(UserMeQuery, {
+    const [fetchMe, { loading: meLoading }] = useLazyQuery<GetMeData, GetMeVars>(UserMeQuery, {
         fetchPolicy: 'no-cache',
-        skip: !tokenReady || !hasToken,
     })
 
     const shouldRedirectToHomeAfterAuth = useCallback(() => {
@@ -109,92 +91,47 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         sendAuthStatus(null)
     }, [router, sendAuthStatus, setUser, setHasToken])
 
-    useEffect(() => {
-        if (!meData || !tokenReady) return
-
-        if (meData.getMe && meData.getMe.id) {
-            setUser(prev => ({ ...prev, ...meData.getMe }) as UserInterface)
-            ;(async () => {
-                if (shouldRedirectToHomeAfterAuth()) {
-                    await router.navigate('/home', { replace: true })
-                }
-                sendAuthStatus(meData.getMe)
+    const authorize = useCallback(async () => {
+        let token: string
+        try {
+            token = await getUserTokenAsync()
+        } catch {
+            if (mountedRef.current) {
+                sendAuthStatus(null)
                 setLoading(false)
-            })()
+            }
             return
         }
+        if (!mountedRef.current) return
+        if (authorizationRef.current?.token === token) return authorizationRef.current.promise
 
-        setLoading(false)
-        ;(async () => {
-            await redirectToAuth()
-        })()
-        toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.failedToFetchUser'), undefined, undefined, 10000)
-    }, [meData, redirectToAuth, router, sendAuthStatus, setLoading, setUser, shouldRedirectToHomeAfterAuth, tRef, tokenReady])
-
-    useEffect(() => {
-        if (!meError) return
-
-        const message = meError?.message || tRef.current('auth.unknownAuthError')
-        if (CombinedGraphQLErrors.is(meError)) {
-            const isDeprecated = meError.errors?.some((err: any) => err.extensions?.originalError?.error === 'DEPRECATED_VERSION')
-            const isForbidden = meError.errors?.some((err: any) => err.extensions?.code === 'FORBIDDEN')
-
-            if (isForbidden) {
-                toast.custom('error', tRef.current('common.errorTitle'), tRef.current('auth.sessionExpired'), undefined, undefined, 10000)
-                ;(async () => {
-                    await redirectToAuth()
-                })()
-                setLoading(false)
-                return
-            }
-
-            if (isDeprecated) {
-                toast.custom(
-                    'error',
-                    tRef.current('auth.appVersionDeprecatedTitle'),
-                    tRef.current('auth.appVersionDeprecatedMessage'),
-                    undefined,
-                    undefined,
-                    10000,
-                )
-                desktopApi.updates.start()
-                setIsAppDeprecated(true)
-                ;(async () => {
-                    await redirectToAuth()
-                })()
-                setLoading(false)
-                return
-            }
+        authorizationRef.current?.controller.abort()
+        const controller = new AbortController()
+        const authorization = { token, controller, promise: Promise.resolve() }
+        authorizationRef.current = authorization
+        const isActive = () => mountedRef.current && !controller.signal.aborted
+        const hasCurrentToken = async () => {
+            const currentToken = await getUserTokenAsync()
+            if (currentToken !== token) controller.abort()
+            return isActive()
         }
-
-        toast.custom('error', tRef.current('auth.accessQuestionTitle'), message)
-        sendAuthStatus(null)
-        setLoading(false)
-    }, [meError, redirectToAuth, sendAuthStatus, setIsAppDeprecated, setLoading, tRef])
-
-    const authorize = useCallback(async () => {
         let retryCount = config.MAX_RETRY_COUNT
 
         const attemptAuthorization = async (): Promise<boolean> => {
-            const token = await getUserTokenAsync()
-
-            if (!token) {
-                sendAuthStatus(null)
-                setLoading(false)
-                return false
-            }
+            if (!(await hasCurrentToken())) return false
 
             const isOnline = await checkInternetAccess()
+            if (!(await hasCurrentToken())) return false
             if (!isOnline) {
                 if (retryCount > 0) {
                     notifyUserRetries(retryCount)
                     retryCount--
-                    return false
+                    setLoading(false)
+                    return true
                 }
 
                 toast.custom('error', tRef.current('common.takeBreakTitle'), tRef.current('common.tooManyAttempts'))
                 sendAuthStatus(null)
-                setLoading(false)
                 return false
             }
 
@@ -207,7 +144,10 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
             }
 
             try {
-                const res = await refetchMe()
+                const res = await fetchMe({
+                    context: { queryDeduplication: false, fetchOptions: { signal: controller.signal } },
+                })
+                if (!(await hasCurrentToken())) return false
                 const data = res.data as GetMeData | undefined
 
                 if (data?.getMe && data.getMe.id) {
@@ -215,27 +155,27 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                     if (shouldRedirectToHomeAfterAuth()) {
                         await router.navigate('/home', { replace: true })
                     }
-                    sendAuthStatus(data.getMe)
-                    return true
+                    if (isActive()) sendAuthStatus(data.getMe)
+                    return false
                 }
 
-                setLoading(false)
                 await redirectToAuth()
                 sendErrorAuthNotify(tRef.current('auth.failedToFetchUser'))
                 return false
             } catch (authorizationError: unknown) {
+                if (!(await hasCurrentToken())) return false
                 const err = authorizationError as unknown
 
                 if ((ServerError as any)?.is?.(err) || (err as any)?.name === 'TypeError') {
                     if (retryCount > 0) {
                         notifyUserRetries(retryCount)
                         retryCount--
-                        return false
+                        setLoading(false)
+                        return true
                     }
 
                     toast.custom('error', tRef.current('common.pingPongTitle'), tRef.current('common.serverUnavailable'))
                     sendAuthStatus(null)
-                    setLoading(false)
                     return false
                 }
 
@@ -268,40 +208,47 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
                 toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
                 sendAuthStatus(null)
-                setLoading(false)
                 return false
             }
         }
 
-        const retryAuthorization = async () => {
-            let isAuthorized = await attemptAuthorization()
+        authorization.promise = (async () => {
+            try {
+                setHasToken(!!token)
+                setTokenReady(true)
+                if (!token) {
+                    sendAuthStatus(null)
+                    return
+                }
+                const isSleeping = await desktopApi.system.checkSleepMode()
+                if (!isActive() || isSleeping) return
 
-            if (!isAuthorized) {
-                const retryInterval = setInterval(async () => {
-                    const token = await getUserTokenAsync()
-
-                    if (!token) {
-                        sendAuthStatus(null)
-                        setLoading(false)
-                        clearInterval(retryInterval)
-                        return
-                    }
-
-                    isAuthorized = await attemptAuthorization()
-
-                    if (isAuthorized || retryCount === 0) {
-                        clearInterval(retryInterval)
-                    }
-                }, config.RETRY_INTERVAL_MS)
+                while (isActive() && (await attemptAuthorization())) {
+                    await new Promise<void>(resolve => {
+                        const finish = () => {
+                            clearTimeout(timer)
+                            controller.signal.removeEventListener('abort', finish)
+                            resolve()
+                        }
+                        const timer = setTimeout(finish, config.RETRY_INTERVAL_MS)
+                        controller.signal.addEventListener('abort', finish, { once: true })
+                        if (!isActive()) finish()
+                    })
+                }
+            } catch {
+                if (isActive()) {
+                    toast.custom('error', tRef.current('auth.accessQuestionTitle'), tRef.current('auth.unknownAuthError'))
+                    sendAuthStatus(null)
+                }
+            } finally {
+                if (authorizationRef.current === authorization) {
+                    authorizationRef.current = null
+                    if (isActive()) setLoading(false)
+                }
             }
-        }
-
-        desktopApi.system.checkSleepMode().then(async (res: boolean) => {
-            if (!res) {
-                await retryAuthorization()
-            }
-        })
-    }, [redirectToAuth, refetchMe, router, sendAuthStatus, setIsAppDeprecated, setLoading, setUser, shouldRedirectToHomeAfterAuth, tRef])
+        })()
+        return authorization.promise
+    }, [fetchMe, redirectToAuth, router, sendAuthStatus, setIsAppDeprecated, setLoading, setUser, shouldRedirectToHomeAfterAuth, tRef])
 
     useEffect(() => {
         if (typeof window === 'undefined') return

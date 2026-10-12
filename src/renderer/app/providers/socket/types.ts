@@ -15,7 +15,6 @@ export type SocketProviderProps = {
     userId: string
     appVersion: string
     setUser: Dispatch<SetStateAction<UserInterface>>
-    setLoading: Dispatch<SetStateAction<boolean>>
     onLogout: () => Promise<void>
     onAchievementsUpdate?: (payload: unknown) => Promise<void> | void
     onAddonStoreUpdated?: (payload: unknown) => Promise<void> | void
