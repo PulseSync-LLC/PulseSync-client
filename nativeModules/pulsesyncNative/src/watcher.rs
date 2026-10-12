@@ -11,11 +11,26 @@ use std::time::{Duration, SystemTime};
 type Snapshot = HashMap<PathBuf, SystemTime>;
 
 fn is_watched_file(path: &Path) -> bool {
-    path.extension()
-        .and_then(|extension| extension.to_str())
-        .is_some_and(|extension| {
-            extension.eq_ignore_ascii_case("js") || extension.eq_ignore_ascii_case("css")
-        })
+    let filename = path
+        .file_name()
+        .and_then(|name| name.to_str())
+        .unwrap_or("");
+    [
+        "metadata.json",
+        "modules.local.json",
+        "handleEvents.json",
+        "pulsesync.settings.json",
+    ]
+    .iter()
+    .any(|name| filename.eq_ignore_ascii_case(name))
+        || path
+            .extension()
+            .and_then(|extension| extension.to_str())
+            .is_some_and(|extension| {
+                extension.eq_ignore_ascii_case("js")
+                    || extension.eq_ignore_ascii_case("css")
+                    || extension.eq_ignore_ascii_case("wasm")
+            })
 }
 
 fn visit_directory(path: &Path, snapshot: &mut Snapshot) {
