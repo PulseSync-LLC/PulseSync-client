@@ -92,11 +92,12 @@ function graph(snapshot) {
         const entry = lock.get(selector)
         if (!entry) throw new Error(`Unresolved lock dependency: ${selector}`)
         const peerKey = Object.hasOwn(snapshot.peerConsumers ?? {}, name) ? name : `${name}@${entry.version}`
-        // These audited platform binary leaves have no peer dependencies. They are
-        // absent on other runner platforms; unknown missing metadata is ambiguous.
+        // These audited platform binary leaves, including macOS-only fsevents,
+        // have no peer dependencies. They can be absent on other runner platforms;
+        // unknown missing metadata remains ambiguous.
         const platformBinary =
             optional &&
-            /^(?:@esbuild\/|@(?:oxc-parser|oxfmt|oxlint|rolldown)\/binding-|@parcel\/watcher-|@sentry\/cli-|@typescript\/typescript-|lightningcss-)/u.test(
+            /^(?:fsevents$|@esbuild\/|@(?:oxc-parser|oxfmt|oxlint|rolldown)\/binding-|@parcel\/watcher-|@sentry\/cli-|@typescript\/typescript-|lightningcss-)/u.test(
                 name,
             ) &&
             !Object.keys(entry.dependencies).length &&
