@@ -70,12 +70,30 @@ pub struct RuntimeComponentV3 {
 #[derive(Clone, Debug, Deserialize, Serialize)]
 #[serde(deny_unknown_fields)]
 pub struct RuntimeSnapshotV3 {
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub channel: Option<String>,
     #[serde(rename = "bundleVersion")]
     pub bundle_version: String,
     #[serde(rename = "metadataVersion")]
     pub metadata_version: u64,
     pub host: RuntimeHostV3,
     pub components: BTreeMap<String, RuntimeComponentV3>,
+}
+
+impl RuntimeSnapshotV3 {
+    pub fn release_channel(&self) -> Option<&str> {
+        self.channel.as_deref().or_else(|| {
+            // Older snapshots did not record the channel. Published desktop core
+            // versions encode it in the prerelease. Unknown legacy channels keep
+            // the existing conservative version checks until an update records one.
+            self.components.get("desktopCore").and_then(|core| {
+                let version = core.version.split('+').next().unwrap_or(&core.version);
+                version
+                    .split_once('-')
+                    .map(|(_, prerelease)| prerelease.split('.').next().unwrap_or(prerelease))
+            })
+        })
+    }
 }
 
 #[derive(Clone, Debug, Deserialize, Serialize)]
@@ -380,7 +398,13 @@ fn validate_snapshot_identity(snapshot: &RuntimeSnapshotV3) -> Result<()> {
 }
 
 fn same_snapshot(left: &RuntimeSnapshotV3, right: &RuntimeSnapshotV3) -> bool {
-    left.bundle_version == right.bundle_version
+    left.bundle_version == right.bundle_version && same_snapshot_channel(left, right)
+}
+
+fn same_snapshot_channel(left: &RuntimeSnapshotV3, right: &RuntimeSnapshotV3) -> bool {
+    left.release_channel()
+        .zip(right.release_channel())
+        .is_none_or(|(left, right)| left == right)
 }
 
 fn validate_lifecycle(state: &InstallStateV3) -> Result<()> {
@@ -409,7 +433,9 @@ fn validate_lifecycle(state: &InstallStateV3) -> Result<()> {
             }
         }
         ActivationState::Pending => {
-            if state.latest.metadata_version <= state.known_good.metadata_version {
+            if same_snapshot_channel(&state.latest, &state.known_good)
+                && state.latest.metadata_version <= state.known_good.metadata_version
+            {
                 return Err("pending latest snapshot must be newer than knownGood".into());
             }
             let expected_running = if state.activation.launch_owner.is_some() {
