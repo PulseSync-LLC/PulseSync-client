@@ -812,6 +812,12 @@
     line-height: 26px;
 }
 
+.newsFeaturedCard:is(:hover, :focus-visible) .newsFeaturedTitle,
+.newsListItem:is(:hover, :focus-visible) .newsFeaturedTitle {
+    text-decoration: underline;
+    text-underline-offset: 3px;
+}
+
 .newsFeaturedDescription,
 .newsListItemDescription {
     margin: 0;
