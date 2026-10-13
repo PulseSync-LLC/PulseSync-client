@@ -571,9 +571,8 @@ pub fn decide_component_update(
                             })
                 })
         });
-    let immutable_mismatch = host_immutable_mismatch
-        || component_immutable_mismatch
-        || bootstrapper_immutable_mismatch;
+    let immutable_mismatch =
+        host_immutable_mismatch || component_immutable_mismatch || bootstrapper_immutable_mismatch;
     if immutable_mismatch {
         let mut decision = decide_update(
             manifest,
