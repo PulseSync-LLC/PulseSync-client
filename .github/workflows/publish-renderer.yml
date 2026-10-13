@@ -1,6 +1,21 @@
 name: Publish Remote Renderer
 
 on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: "Renderer channel to publish"
+        required: true
+        type: choice
+        options:
+          - dev
+          - beta
+        default: dev
+      checkout_ref:
+        description: "Branch, tag, or commit to publish"
+        required: true
+        type: string
+        default: dev
   workflow_call:
     inputs:
       channel:
