@@ -1,12 +1,8 @@
 {
     "main": {
         "appUtils": {
-            "appInstalledAndLaunched": "Приложение установлено и запущено",
             "dmgAppNotFound": "В DMG не найден .app пакет",
             "dumpingEntitlements": "Дампим entitlements…",
-            "executeFailed": "Не удалось выполнить: {{message}}",
-            "fileExecutedSuccessfully": "Файл успешно выполнен",
-            "fileOpenedSuccessfully": "Файл успешно открыт",
             "hashUpdated": "Хеш обновлён",
             "jsonArrayEndNotFound": "Не найден конец JSON-массива",
             "jsonArrayStartNotFound": "Не найдено начало JSON-массива",
@@ -108,14 +104,11 @@
             "saveAsTitle": "Сохранить модификацию ASAR как..."
         },
         "modManager": {
-            "closingMusic": "Закрытие Яндекс Музыки...",
             "fullDiskAccessRequired": "Пожалуйста, предоставьте приложению полный доступ к диску.",
             "incompatibleMod": "Мод не совместим с текущей версией Яндекс Музыки.",
             "linuxPermissionsRequired": "Недостаточно прав для изменения файлов Яндекс Музыки. Разрешите доступ и повторите действие.",
-            "modAlreadyInstalled": "Мод уже установлен.",
             "modAsarNotFound": "{{name}} не найден. Пожалуйста, переустановите Яндекс Музыку.",
-            "modVersionNotFoundByChecksum": "Этот патч сейчас не поддерживается. Установка отменена.",
-            "usingCache": "Использую кеш мода..."
+            "modVersionNotFoundByChecksum": "Этот патч сейчас не поддерживается. Установка отменена."
         },
         "modNetwork": {
             "compatibilityCheckError": "Произошла ошибка при проверке совместимости мода.",
@@ -128,13 +121,10 @@
         "obsWidget": {
             "downloadError": "Ошибка при скачивании виджета",
             "downloadUnknownError": "Неизвестная ошибка при скачивании виджета",
-            "downloading": "Скачивание виджета OBS...",
-            "extracting": "Распаковка архива...",
             "installSuccess": "Виджет OBS успешно установлен",
             "removeError": "Ошибка при удалении виджета",
             "removeSuccess": "Виджет OBS успешно удален",
-            "removeUnknownError": "Неизвестная ошибка при удалении виджета",
-            "removing": "Удаление виджета OBS..."
+            "removeUnknownError": "Неизвестная ошибка при удалении виджета"
         },
         "process": {
             "updateCompleteBody": "Посмотреть список изменений можно в приложении",

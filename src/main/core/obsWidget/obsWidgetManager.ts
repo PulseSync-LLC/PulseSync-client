@@ -56,7 +56,6 @@ const fetchLatestReleaseUrl = async (): Promise<string> => {
 const downloadWidget = async (window: BrowserWindow, downloadUrl: string, installDir: string): Promise<boolean> => {
     let tempZipPath: string | null = null
     try {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.obsWidget.downloading') })
         logger.main.info(`Downloading widget from: ${downloadUrl}`)
 
         await fsp.mkdir(installDir, { recursive: true })
@@ -87,7 +86,6 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
             response.data.pipe(writer)
         })
 
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.obsWidget.extracting') })
         logger.main.info('Extracting widget archive')
 
         const zip = new AdmZip(tempZipPath)
@@ -109,7 +107,6 @@ const downloadWidget = async (window: BrowserWindow, downloadUrl: string, instal
 
 const removeWidget = async (window: BrowserWindow, installDir: string): Promise<boolean> => {
     try {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.obsWidget.removing') })
         logger.main.info(`Removing widget from: ${installDir}`)
 
         if (!fs.existsSync(installDir)) {

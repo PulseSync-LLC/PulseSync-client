@@ -16,29 +16,16 @@ const INITIAL_STATE: BootstrapUiStateV1 = {
 
 export class UpdateCoordinator {
     private activeOperation: Promise<PrepareUpdateResultV1> | null = null
-    private continueHandler: (() => Promise<boolean>) | null = null
     private lastOptions: PrepareDesktopUpdateOptions | null = null
     private listeners = new Set<BootstrapStateListener>()
     private state: BootstrapUiStateV1 = INITIAL_STATE
 
     public lastCheckAt: number | null = null
 
-    public get active(): boolean {
-        return this.activeOperation !== null
-    }
-
-    public get currentState(): BootstrapUiStateV1 {
-        return this.state
-    }
-
     public subscribe(listener: BootstrapStateListener): () => void {
         this.listeners.add(listener)
         listener(this.state)
         return () => this.listeners.delete(listener)
-    }
-
-    public setContinueHandler(handler: (() => Promise<boolean>) | null): void {
-        this.continueHandler = handler
     }
 
     public run(options: PrepareDesktopUpdateOptions): Promise<PrepareUpdateResultV1> {
@@ -74,21 +61,6 @@ export class UpdateCoordinator {
             })
         this.activeOperation = operation
         return operation
-    }
-
-    public retry(): boolean {
-        if (!this.state.actions.includes('retry') || !this.lastOptions || this.activeOperation) {
-            return false
-        }
-        void this.run(this.lastOptions).catch(() => undefined)
-        return true
-    }
-
-    public async continue(): Promise<boolean> {
-        if (!this.state.actions.includes('continue') || !this.continueHandler) {
-            return false
-        }
-        return await this.continueHandler()
     }
 
     private publish(state: BootstrapUiStateV1): void {

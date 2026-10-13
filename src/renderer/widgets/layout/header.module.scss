@@ -50,46 +50,6 @@
                 }
             }
 
-            .settingsTooltip {
-                display: flex;
-
-                align-items: center;
-
-                cursor: default;
-                -webkit-app-region: no-drag;
-            }
-
-            .settingsButton {
-                display: flex;
-
-                flex-direction: row;
-
-                gap: 4px;
-
-                align-items: center;
-
-                padding: 10px;
-
-                cursor: pointer;
-
-                border-radius: 28px;
-
-                transition: var(--transition);
-
-                &:disabled {
-                    pointer-events: none;
-                    cursor: default;
-
-                    background: transparent;
-
-                    opacity: 0.5;
-
-                    &:hover {
-                        background: var(--surface-elevated);
-                    }
-                }
-            }
-
             .logoplace {
                 display: flex;
 
@@ -110,24 +70,6 @@
 
                 &:hover {
                     background: var(--surface-elevated);
-                }
-
-                .false {
-                    transform: rotate(0deg);
-
-                    transition: var(--transition);
-                }
-
-                .true {
-                    transform: rotate(180deg);
-
-                    transition: var(--transition);
-                }
-
-                .logoapp {
-                    --size: 20px;
-                    width: var(--size);
-                    height: var(--size);
                 }
 
                 span {
@@ -153,10 +95,6 @@
 
                     border-radius: 6px;
                 }
-            }
-
-            .active {
-                background: var(--surface-elevated);
             }
 
             button {
@@ -202,190 +140,6 @@
                 height: 100%;
 
                 margin-right: 5px;
-
-                .rpcStatus {
-                    position: relative;
-
-                    display: flex;
-
-                    flex-direction: row;
-
-                    gap: 7px;
-
-                    align-items: center;
-
-                    padding: 4px 14px 4px 4px;
-
-                    cursor: pointer;
-
-                    background: var(--surface-elevated);
-                    border-radius: 8px;
-
-                    transition: var(--transition);
-                    -webkit-app-region: no-drag;
-
-                    &:hover {
-                        background: var(--surface-tertiary);
-                    }
-
-                    & > .imageDetail {
-                        position: relative;
-
-                        display: flex;
-
-                        & > .image {
-                            z-index: 0;
-
-                            box-sizing: border-box;
-                            display: flex;
-
-                            flex: none;
-                            flex-grow: 0;
-
-                            order: 0;
-
-                            width: var(--size);
-                            height: var(--size);
-
-                            border-radius: 4px;
-
-                            --size: 30px;
-                        }
-                    }
-
-                    & > .rpcDetail {
-                        display: flex;
-
-                        flex-direction: column;
-
-                        gap: 2px;
-
-                        align-items: flex-start;
-                        justify-content: center;
-
-                        padding: 0;
-
-                        font-size: 14px;
-                        font-weight: 500;
-
-                        line-height: 16px;
-
-                        & > .rpcTitle {
-                            flex: none;
-
-                            min-width: 59px;
-                            max-width: 135px;
-
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-
-                            font-size: 12px;
-                            font-weight: 900;
-
-                            line-height: 110%;
-
-                            color: var(--text-primary);
-
-                            white-space: nowrap;
-                        }
-
-                        & > .rpcAuthor {
-                            flex: none;
-
-                            min-width: 59px;
-                            max-width: 135px;
-
-                            overflow: hidden;
-                            text-overflow: ellipsis;
-
-                            font-size: 10px;
-                            font-weight: 500;
-
-                            line-height: 110%;
-
-                            color: var(--text-primary);
-
-                            white-space: nowrap;
-                        }
-                    }
-                }
-
-                .rpcCard {
-                    position: absolute;
-                    top: calc(100% + 10px);
-                    right: 0;
-                    z-index: 99997;
-
-                    display: flex;
-
-                    flex-direction: column;
-
-                    align-items: flex-start;
-
-                    width: 340px;
-                    height: 400px;
-
-                    padding: 16px 16px 0;
-
-                    overflow: hidden;
-
-                    background: var(--border);
-                    border-radius: 8px;
-                    box-shadow: #0000009c 1px 2px 20px 1px;
-
-                    &::after {
-                        position: absolute;
-                        right: 0;
-                        bottom: 361px;
-                        left: 0;
-                        z-index: 1;
-
-                        height: 18px;
-
-                        pointer-events: none;
-
-                        content: '';
-
-                        background: linear-gradient(180deg, var(--border) 38%, transparent 100%);
-                    }
-
-                    & > .titleRpc {
-                        font-size: 18px;
-                        font-weight: 900;
-
-                        line-height: 140%;
-
-                        color: var(--text-primary);
-                    }
-
-                    & > .settingsContainer {
-                        display: flex;
-
-                        flex-direction: column;
-
-                        gap: 15px;
-
-                        align-items: flex-start;
-
-                        height: -webkit-fill-available;
-
-                        padding: 10px 0 16px;
-
-                        overflow: auto;
-
-                        & > .options {
-                            display: flex;
-
-                            flex-direction: column;
-
-                            gap: 8px;
-
-                            width: -webkit-fill-available;
-
-                            padding: 0 1px;
-                        }
-                    }
-                }
 
                 .user_container {
                     position: relative;
@@ -502,51 +256,6 @@
 
                     transform-origin: top right;
                     -webkit-app-region: no-drag;
-
-                    & > .user_alert {
-                        box-sizing: border-box;
-                        display: flex;
-
-                        flex-direction: column;
-
-                        gap: 2px;
-
-                        align-items: flex-start;
-
-                        width: 100%;
-
-                        padding: 10px 15px;
-
-                        background: var(--warning);
-
-                        & > .alert_info {
-                            width: 100%;
-                            max-width: 360px;
-
-                            font-size: 14px;
-                            font-weight: 800;
-
-                            line-height: 16px;
-
-                            color: var(--surface-tertiary);
-
-                            text-align: center;
-                        }
-
-                        & > .alert_reson {
-                            width: 100%;
-                            max-width: 360px;
-
-                            font-size: 12px;
-                            font-weight: 600;
-
-                            line-height: 15px;
-
-                            color: var(--surface-tertiary);
-
-                            text-align: center;
-                        }
-                    }
 
                     & > .user_info {
                         position: relative;
@@ -1025,41 +734,6 @@
 
     border-radius: 10px;
     -webkit-app-region: no-drag;
-}
-
-.devOverridesBadge {
-    position: absolute;
-    top: -5px;
-    right: -5px;
-
-    display: inline-flex;
-
-    align-items: center;
-    justify-content: center;
-
-    min-width: 18px;
-    height: 18px;
-
-    padding: 0 5px;
-
-    font-size: 10px;
-    font-weight: 900;
-
-    line-height: 1;
-
-    color: var(--text-primary);
-
-    pointer-events: none;
-
-    background: var(--danger);
-    border-radius: 999px;
-    box-shadow: 0 0 0 2px var(--surface-tertiary);
-}
-
-.devOverridesBadge {
-    color: var(--accent-foreground);
-
-    background: var(--warning);
 }
 
 .giveawaysBadge {

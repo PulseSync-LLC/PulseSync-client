@@ -37,7 +37,6 @@ interface Props {
     availableStoreChannels?: ('stable' | 'dev')[]
     onStoreChannelChange?: (channel: 'stable' | 'dev') => void
     onStoreUpdate?: () => void
-    themeActive: boolean
     onToggleEnabled: (enabled: boolean) => void
     publication?: StoreAddon | null
     publicationChangelogText?: string
@@ -123,7 +122,6 @@ const ThemeInfo: React.FC<Props> = ({
     availableStoreChannels = [],
     onStoreChannelChange,
     onStoreUpdate,
-    themeActive,
     onToggleEnabled,
     publication,
     publicationChangelogText = '',
@@ -257,9 +255,7 @@ const ThemeInfo: React.FC<Props> = ({
               ]
             : []),
         ...createContextMenuActions(
-            undefined,
-            themeActive,
-            { showCheck: false, showDirectory: true, showExport: true, showDelete: true },
+            { showDirectory: true, showExport: true, showDelete: true },
             addon,
             { Modals, openModal, setModalState },
             refreshAddons,

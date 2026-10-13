@@ -11,13 +11,11 @@ import {
     parseClaimRequestsResult,
     parseClaimResult,
     parseEnqueueResult,
-    parseHandoffArmedProgress,
     parseRepairRuntimeResultV3,
     parseRuntimeAcknowledgementV3,
     parseStartResult,
     type RepairRuntimeResultV3,
     type RuntimeAcknowledgementV3,
-    type RustHandoffArmedEventV1,
     type StartResultV1,
     unwrapSemanticResult,
 } from '../../shared/bootstrapper/contracts'
@@ -104,48 +102,6 @@ export async function ackLaunchRequest(options: {
             command: 'ack-launch-request',
             args: ['--state-root', options.stateRoot, '--active-lease-id', options.activeLeaseId, '--request-id', options.requestId],
             parseResult: parseAckResult,
-        }),
-    )
-}
-
-export async function startPreparedHandoff(options: {
-    activeLeaseId: string
-    appExecutable: string
-    appExecutableName: string
-    hostBundle?: string | null
-    launcher: BootstrapperLauncher
-    onArmed: (event: RustHandoffArmedEventV1) => void
-    onDiagnostic?: (line: string) => void
-    passthrough?: string[]
-    stateRoot: string
-    waitForPid: number
-    waitTimeoutMs?: number
-}): Promise<StartResultV1> {
-    const args = [
-        ...runtimePathArgs(options),
-        '--app-executable-name',
-        options.appExecutableName,
-        '--app-executable',
-        options.appExecutable,
-        '--wait-for-pid',
-        String(options.waitForPid),
-        '--active-lease-id',
-        options.activeLeaseId,
-        '--wait-timeout-ms',
-        String(options.waitTimeoutMs ?? 60_000),
-        '--',
-        ...(options.passthrough ?? []),
-    ]
-    return unwrapSemanticResult(
-        await runBootstrapperCommand({
-            launcher: options.launcher,
-            command: 'start',
-            args,
-            progressJson: true,
-            parseProgress: parseHandoffArmedProgress,
-            onProgress: options.onArmed,
-            onDiagnostic: options.onDiagnostic,
-            parseResult: parseStartResult,
         }),
     )
 }

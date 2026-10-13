@@ -46,12 +46,6 @@ export const registerServerIpcEvents = ({
         await stopSocketServer()
     })
 
-    ipcMain.on(MainEvents.WEBSOCKET_RESTART, async () => {
-        logger.http.log('WEBSOCKET_RESTART: restarting server...')
-        await stopSocketServer()
-        setTimeout(() => startSocketServer(), 1500)
-    })
-
     ipcMain.on(MainEvents.REFRESH_MOD_INFO, () => {
         logger.http.log('REFRESH_MOD_INFO: forcing data send...')
         sendDataToMusic()

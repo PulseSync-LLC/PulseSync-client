@@ -21,7 +21,6 @@ import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
 import { staticAsset } from '@shared/lib/staticAssets'
-import { useCharCount } from '@shared/lib/useCharCount'
 import { compareVersions } from '@shared/lib/utils'
 import ButtonV2 from '@shared/ui/buttonV2'
 import { Avatar } from '@shared/ui/PSUI/Image'
@@ -32,7 +31,6 @@ import Maximize from '@shared/assets/icons/maximize.svg'
 import Minimize from '@shared/assets/icons/minimize.svg'
 import Minus from '@shared/assets/icons/minus.svg'
 
-import * as inputStyle from '../../../../static/styles/page/textInputContainer.module.scss'
 import * as styles from '@widgets/layout/header.module.scss'
 
 import type { PlayStatus } from '@widgets/layout/model/playStatus'
@@ -65,12 +63,9 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const isAppChangelogModalOpen = isModalOpen(Modals.APP_CHANGELOG)
     const isModModalOpen = isModalOpen(Modals.MOD_CHANGELOG)
-    const containerRef = useRef<HTMLDivElement>(null)
     const userCardRef = useRef<HTMLDivElement>(null)
     const nav = useNavigate()
     const location = useLocation()
-
-    const fixedAddon = { charCount: inputStyle.charCount }
 
     const [playStatus, setPlayStatus] = useState<PlayStatus>('null')
 
@@ -164,8 +159,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
             day: 'numeric',
         })
     }, [])
-
-    useCharCount(containerRef, fixedAddon)
 
     const handleAvatarChange = useCallback(
         (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -399,17 +392,12 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 modChangesInfo={modChangesInfo}
                 modError={modError}
             />
-            <header ref={containerRef} className={`${styles.nav_bar} ${isMac ? styles.mac : ''}`}>
+            <header className={`${styles.nav_bar} ${isMac ? styles.mac : ''}`}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>
                         <div className={styles.railLogoSlot} aria-hidden="true">
                             <img className={styles.railLogo} src={staticAsset('assets/icons/ui/rail-logo.svg')} alt="" />
                         </div>
-                        {/*<TooltipButton tooltipText="В разработке" side="bottom" as="div" className={styles.settingsTooltip}>*/}
-                        {/*    <button className={styles.settingsButton} disabled={!settingsAvailable}>*/}
-                        {/*        <MdSettings size={22} />*/}
-                        {/*    </button>*/}
-                        {/*</TooltipButton>*/}
                         <button type="button" className={styles.logoplace} onClick={openSettings}>
                             <span>{title ?? 'PulseSync'}</span>
                             {titleDetail ? (

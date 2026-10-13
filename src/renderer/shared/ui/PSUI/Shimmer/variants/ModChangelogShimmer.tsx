@@ -1,5 +1,3 @@
-import React from 'react'
-
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/ModChangelogShimmer.module.scss'
 
 export default function ModChangelogShimmer() {

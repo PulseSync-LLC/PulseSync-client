@@ -1,7 +1,6 @@
 import { ipcMain } from 'electron'
 
 import * as fsp from 'fs/promises'
-import * as fs from 'original-fs'
 import path from 'path'
 
 import MainEvents from '@common/types/mainEvents'
@@ -12,8 +11,6 @@ import { selectedAddon, setSelectedAddon } from '../startup/runtimeState'
 import { getState } from '../state'
 import { getAddonsRoot, resolveExistingDirectoryInsideBase } from '../utils/addonPaths'
 import { loadAddons } from '../utils/addonUtils'
-
-import type Addon from '@entities/addon/model/addon.interface'
 
 const State = getState()
 
@@ -116,44 +113,6 @@ export function registerAddonEvents(): void {
         } catch (error) {
             logger.main.error('Ошибка при изменении состояния аддона:', error)
             return { success: false, reason: error instanceof Error ? error.message : 'SET_ADDON_ENABLED_FAILED' }
-        }
-    })
-
-    ipcMain.on(MainEvents.THEME_CHANGED, async (_event, addon: Addon) => {
-        try {
-            if (!addon) {
-                logger.main.error('Addons: No addon data received')
-                return
-            }
-            const addonsFolder = getAddonsRoot()
-            const addonFolder = path.join(addonsFolder, addon.directoryName)
-            const metadataPath = path.join(addonFolder, 'metadata.json')
-
-            let validated: Addon
-            if (fs.existsSync(metadataPath)) {
-                const data = await fsp.readFile(metadataPath, 'utf-8')
-                validated = JSON.parse(data) as Addon
-                if (!validated.directoryName) {
-                    validated.directoryName = addon.directoryName
-                }
-            } else {
-                throw new Error(`Metadata file not found for addon ${addon.directoryName}`)
-            }
-
-            if (validated.type !== 'theme') {
-                logger.main.warn(
-                    `Addons: Received theme change for addon ${validated.directoryName} with type '${validated.type}'. Reverting to Default theme.`,
-                )
-                setSelectedAddon('Default')
-            } else {
-                setSelectedAddon(validated.directoryName)
-            }
-            logger.main.info(`Addons: theme changed to: ${selectedAddon}`)
-            setAddon(selectedAddon)
-        } catch (error: any) {
-            logger.main.error(`Addons: Error processing theme change: ${error.message}`)
-            setSelectedAddon('Default')
-            setAddon(selectedAddon)
         }
     })
 }

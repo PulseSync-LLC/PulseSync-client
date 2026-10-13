@@ -1,12 +1,5 @@
 import type { LevelInfo, LevelInfoV2 } from '@entities/user/model/user.interface'
 
-export const defaultLevelInfo: LevelInfo = {
-    totalPoints: 0,
-    currentLevel: 1,
-    progressInCurrentLevel: 0,
-    currentLevelThreshold: 100,
-}
-
 type LevelInfoOwner = {
     levelInfoV2?: LevelInfoV2 | null
 }

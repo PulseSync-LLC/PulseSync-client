@@ -6,9 +6,6 @@ import { t } from '@app/i18n'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
 
-import CheckOn from '@shared/assets/stratis-icons/check-square-on.svg'
-import CheckOff from '@shared/assets/stratis-icons/minus-square-off.svg'
-
 import type { ModalsContextValue } from '@app/providers/modal/types'
 import type Addon from '@entities/addon/model/addon.interface'
 
@@ -20,7 +17,6 @@ export interface MenuItem {
 }
 
 interface ActionVisibility {
-    showCheck?: boolean
     showDirectory?: boolean
     showExport?: boolean
     showDelete?: boolean
@@ -29,8 +25,6 @@ interface ActionVisibility {
 type ContextMenuModalActions = Pick<ModalsContextValue, 'Modals' | 'openModal' | 'setModalState'>
 
 export const createContextMenuActions = (
-    handleToggleCheck: ((themeName: string, isChecked: boolean) => void) | undefined,
-    checkedState: boolean = false,
     actionVisibility: ActionVisibility = {},
     currentAddon: Addon,
     modalActions: ContextMenuModalActions,
@@ -38,18 +32,6 @@ export const createContextMenuActions = (
 ): MenuItem[] => {
     const { Modals, setModalState } = modalActions
     return [
-        {
-            label: checkedState
-                ? t('contextMenuThemes.disable', { name: currentAddon.name })
-                : t('contextMenuThemes.enable', { name: currentAddon.name }),
-            onClick: () => {
-                if (handleToggleCheck) {
-                    handleToggleCheck(currentAddon.name, !checkedState)
-                }
-            },
-            show: actionVisibility.showCheck ?? true,
-            icon: checkedState ? <CheckOn /> : <CheckOff />,
-        },
         {
             label: t('contextMenuThemes.directory', { name: currentAddon.name }),
             onClick: () => desktopApi.addons.openDirectory(currentAddon.directoryName),
@@ -75,21 +57,6 @@ export const createContextMenuActions = (
             },
             show: actionVisibility.showExport ?? false,
             icon: <MdIosShare size={20} />,
-        },
-        {
-            label: t('contextMenuThemes.page', { name: currentAddon.name }),
-            onClick: () => console.log(t('contextMenuThemes.pageLog')),
-            show: false,
-        },
-        {
-            label: t('contextMenuThemes.publish', { name: currentAddon.name }),
-            onClick: () => console.log(t('contextMenuThemes.publishLog')),
-            show: false,
-        },
-        {
-            label: t('contextMenuThemes.rollback'),
-            onClick: () => console.log(t('contextMenuThemes.rollbackLog')),
-            show: false,
         },
         {
             label: t('contextMenuThemes.delete', { name: currentAddon.name }),

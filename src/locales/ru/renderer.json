@@ -6,16 +6,13 @@
     "common": {
         "ok": "Ясно",
         "all": "Все",
-        "allGoodTitle": "Все хорошо",
         "attentionTitle": "Внимание",
         "cancel": "Отмена",
         "cancelled": "Отменено",
         "caution": "Осторожно",
         "clear": "Очистить",
         "clickToEdit": "Нажмите, чтобы редактировать",
-        "connectedTitle": "Подключено",
         "connectionEstablished": "Соединение установлено",
-        "connectionRestored": "Соединение восстановлено",
         "continue": "Продолжить",
         "delete": "Удалить",
         "disable": "Отключить",
@@ -39,14 +36,12 @@
         "infoTitleShort": "Инфо",
         "linkLabel": "ссылка",
         "loading": "Загрузка...",
-        "loadingThemes": "Загрузка тем...",
         "loadingTitle": "Загрузка",
         "more": "Еще",
         "networkTitle": "Сеть",
         "notAvailable": "Недоступно",
         "oopsTitle": "Ой...",
         "operationCancelled": "Операция отменена",
-        "phewTitle": "Фух",
         "pingPongTitle": "Пинг-понг",
         "pleaseWait": "Ожидайте",
         "refresh": "Обновить",
@@ -62,8 +57,7 @@
         "thinkLater": "Установить позже",
         "tooManyAttempts": "Превышено количество попыток подключения.",
         "waitTitle": "Подождите",
-        "warningTitleShort": "Предупреждение",
-        "discordRpc": "Discord RPC"
+        "warningTitleShort": "Предупреждение"
     },
     "auth": {
         "accessQuestionTitle": "Может у тебя нет доступа?",
@@ -74,9 +68,7 @@
         "checkUpdates": "Проверить обновления",
         "closeAfterSeconds": "Приложение закроется через 10 секунд",
         "consentPrefix": "Нажимая на “Авторизация”, вы соглашаетесь с",
-        "consentPrefixQuotes": "Нажимая на \"Авторизация\", вы соглашаетесь с",
         "deprecatedRequiresUpdate": "Приложение устарело и требует обновления 😡😡😡",
-        "deprecatedRequiresUpdateShort": "Приложение устарело и требует обновления",
         "deprecatedSoon": "Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.",
         "hardwareIdentityWarning": "Не удалось подтвердить HWID клиента. Некоторые функции могут быть ограничены.",
         "discordAuth": "Авторизация",
@@ -107,21 +99,17 @@
         "addItem": "Добавить элемент",
         "addItemAfter": "Добавить элемент после",
         "addOption": "Добавить опцию",
-        "addRow": "Добавить строку",
         "addSection": "Добавить секцию",
         "collapse": "Свернуть",
         "collapseAll": "Свернуть все",
         "defaults": {
-            "line": "Линия",
             "newButton": "Новая кнопка",
             "newColor": "Новый цвет",
             "newFile": "Новый файл",
-            "newRow": "Новая строка",
             "newSection": "Новая секция",
             "newSelector": "Новый селектор",
             "newSlider": "Новый слайдер",
             "newText": "Новая строка",
-            "newTextBlock": "Новый текстовый блок",
             "option": "Опция {{index}}"
         },
         "deleteSection": "Удалить секцию",
@@ -142,7 +130,6 @@
         "placeholderTitle": "Компонент в переработке",
         "placeholderWithType": "Компонент {{type}} в переработке",
         "removeOption": "Удалить опцию",
-        "removeRow": "Удалить строку",
         "resetToDefault": "Сбросить к эталону"
     },
     "settingsModal": {
@@ -152,9 +139,6 @@
             "title": "Действия"
         },
         "category": "Разделы",
-        "emptyDescription": "Новые разделы настроек появятся здесь позже.",
-        "emptyTitle": "Настройки пока недоступны",
-        "movedHint": "Настройки теперь открываются кнопкой в левом нижнем углу.",
         "searchEmpty": "Настройки не найдены",
         "searchPlaceholder": "Найти настройку...",
         "sections": {
@@ -171,7 +155,6 @@
         "developer": {
             "category": "Для разработчиков",
             "componentsTitle": "Тестирование UI",
-            "interfaceTitle": "Интерфейс",
             "runtimeTitle": "Среда разработки",
             "showDevFrameDescription": "Показывает жёлтую рамку, нижний отступ и отметку dev-сборки.",
             "settingsTab": "Параметры",
@@ -198,10 +181,8 @@
             "checkUpdates": "Проверить обновления",
             "collectLogs": "Собрать логи в архив",
             "logsReady": "Скоро открою папку",
-            "settings": "Настройки",
             "showDevFrame": "Показывать рамку разработки",
             "title": "Система",
-            "version": "Версия: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Статус вебсокета"
         },
         "mod": {
@@ -265,21 +246,11 @@
         "deleteError": "Ошибка при удалении темы \"{{name}}\"",
         "deleteSuccess": "Тема \"{{name}}\" и связанные файлы удалены.",
         "directory": "Директория аддона {{name}}",
-        "disable": "Выключить {{name}}",
-        "enable": "Включить {{name}}",
         "export": "Экспорт {{name}}",
-        "exportSuccess": "Успешный экспорт",
-        "page": "Страница темы {{name}}",
-        "pageLog": "Страница темы",
-        "publish": "Опубликовать {{name}}",
-        "publishLog": "Опубликовать",
-        "rollback": "Откатиться до версии с сервера",
-        "rollbackLog": "Откат",
-        "title": "Управление"
+        "exportSuccess": "Успешный экспорт"
     },
     "dev": {
         "addonPlaceholder": "Пример аддона",
-        "badge": "DEV",
         "cards": {
             "form": {
                 "open": "Открыть форму",
@@ -318,7 +289,6 @@
             "text": "Это модальное окно использует Formik.",
             "title": "Formik форма"
         },
-        "loadingAnalytics": "Загрузка аналитики",
         "metrics": {
             "averageOnline": "Средний онлайн",
             "onlineNow": "Сейчас онлайн",
@@ -339,22 +309,17 @@
             "extension": "Расширения",
             "joint": "Joint",
             "store": "Каталог",
-            "trackInfo": "TrackInfo",
             "users": "Пользователи"
         },
         "navigationHint": "Пример навигации",
         "noData": "Нет данных",
-        "pageTitle": "Dev Gallery",
         "rangeHours": "{{hours}}ч",
         "rangeLabel": "Диапазон",
         "sections": {
             "analytics": "Аналитика",
-            "components": "Компоненты",
             "metrics": "Метрики",
             "navigation": "Навигация"
         },
-        "subtitle": "Прокручивай вниз и пробуй компоненты вживую.",
-        "title": "Developer Gallery",
         "updatedLabel": "Обновлено",
         "updatedLabelWithTime": "Обновлено: {{time}}",
         "upload": {
@@ -377,8 +342,6 @@
     },
     "extensions": {
         "actions": {
-            "store": "Каталог",
-            "github": "GitHub",
             "openStore": "Открыть страницу в каталоге",
             "openGithub": "Открыть страницу GitHub"
         },
@@ -386,7 +349,6 @@
         "addonCreatedMessage": "Шаблон {{name}} успешно сохранён",
         "addonCreatedTitle": "Шаблон аддона скачан",
         "createHandleEvents": "Создайте handleEvents.json",
-        "defaultThemeSet": "Тема по умолчанию установлена",
         "disableAction": "Выключить",
         "editModeEnter": "Режим редактирования включен",
         "editModeExit": "Режим редактирования выключен",
@@ -396,8 +358,7 @@
         "loadFailed": "Ошибка загрузки",
         "linksTitle": "Ссылки",
         "groups": {
-            "favorites": "Избранное",
-            "category": "Категория"
+            "favorites": "Избранное"
         },
         "organization": {
             "addFavorite": "Добавить в избранное",
@@ -422,7 +383,6 @@
             "authors": "Авторы:",
             "conflictsWith": "Несовместимо с",
             "dependencies": "Зависимости",
-            "relations": "Связи",
             "source": "Источник",
             "size": "Размер",
             "tags": "Теги",
@@ -468,7 +428,6 @@
             "visibilityDeveloper": "Только DEVELOPER",
             "visibilityHint": "Версия появится только в каталоге dev-клиента. Остальные пользователи продолжат получать последнюю общедоступную версию.",
             "statusLabel": "Публикация",
-            "modalTitle": "Публикация аддона",
             "noteLabel": "Заметка модератора",
             "githubUrlLabel": "Ссылка на GitHub",
             "githubUrlPlaceholder": "https://github.com/owner/repository",
@@ -490,7 +449,6 @@
             "changelogEmpty": "Для этой версии список изменений пока не добавлен.",
             "cooldownLabel": "Повторная отправка",
             "cooldownMessage": "После отклонения аддон можно отправить снова только через 3 дня. Доступно {{date}}.",
-            "statusDate": "Обновлено {{date}}",
             "publish": "Опубликовать",
             "update": "Обновить",
             "uploading": "Отправляю...",
@@ -577,7 +535,6 @@
         "themeDeactivated": "Тема деактивирована",
         "themeDeactivatedMessage": "Включена тема по умолчанию.",
         "noResults": "Ничего не найдено",
-        "analyzingAddons": "Анализирую аддоны…",
         "confirmTitle": "Вы уверены?",
         "enableAnyway": "Всё равно включить",
         "filtersLabel": "Фильтры",
@@ -709,13 +666,10 @@
         },
         "giveaways": {
             "open": "Открыть розыгрыши подписок",
-            "eyebrow": "Подписки",
             "title": "Розыгрыши подписок",
-            "subtitle": "Участвуй в активных розыгрышах и получай подписку при победе.",
             "count": "Активных розыгрышей: {{count}}",
             "availableCount": "Доступно для участия: {{count}}",
             "refresh": "Обновить",
-            "loading": "Загружаю розыгрыши...",
             "loadError": "Не удалось загрузить розыгрыши подписок.",
             "errorTitle": "Розыгрыши недоступны",
             "emptyTitle": "Пока нет активных розыгрышей",
@@ -723,8 +677,6 @@
             "plan": "План: {{plan}}",
             "planDisplay": "{{type}} · {{duration}}",
             "winners": "Подписок в розыгрыше: {{count}}",
-            "endsAt": "До {{date}}",
-            "planLabel": "План",
             "planTypes": {
                 "basic": "Basic",
                 "infinite": "Бессрочная"
@@ -735,12 +687,6 @@
                 "yearly": "12 месяцев",
                 "custom": "{{months}} мес."
             },
-            "winnersLabel": "Победителей",
-            "timeLeftLabel": "Осталось",
-            "endsLabel": "Завершение",
-            "statusLive": "Идёт",
-            "statusEntered": "Участвуете",
-            "statusEnded": "Завершён",
             "timeUnknown": "Срок неизвестен",
             "ended": "Завершён",
             "remainingDays": "{{days}} д. {{hours}} ч.",
@@ -756,13 +702,11 @@
             "enterErrorText": "Проверь подключение и попробуй еще раз."
         },
         "devOverrides": {
-            "open": "Локальные overrides experiments",
             "title": "Experiments",
             "description": "Локальные overrides применяются поверх серверной группы только на этом устройстве.",
             "warningTitle": "Осторожно",
             "warningBody": "Это экспериментальные функции. Они могут работать нестабильно и вызывать ошибки.",
             "warningHint": "Меняй настройки только если понимаешь, за что они отвечают. Изменения сохраняются только на этом устройстве.",
-            "loading": "Загружаю experiments...",
             "empty": "Пока нет доступных experiments.",
             "searchPlaceholder": "Поиск experiments",
             "searchEmpty": "По запросу ничего не найдено.",
@@ -772,18 +716,12 @@
             "serverDefault": "Серверное значение ({{group}})",
             "moreDetails": "Подробнее »",
             "hideDetails": "Скрыть детали »",
-            "selectExperiment": "Выбери experiment слева.",
-            "overrideBadge": "override",
-            "overrideActive": "Override активен",
             "group": "Группа",
             "groupPlaceholder": "on / variant_name",
             "metaLabel": "Meta (JSON)",
-            "availableGroups": "Доступные группы",
-            "groupsCount": "Групп: {{count}}",
             "groupRollout": "{{percentage}}%",
             "groupDescriptionEmpty": "Без описания",
             "groupRequired": "Укажи группу перед применением override",
-            "noGroup": "Без группы",
             "copyName": "Скопировать ключ",
             "copyNameSuccess": "Ключ скопирован",
             "copyNameError": "Не удалось скопировать ключ",
@@ -906,7 +844,6 @@
         "basicConfirmation": {
             "confirm": "Да",
             "delete": "Удалить",
-            "ok": "Ясно",
             "cancel": "Отмена",
             "defaultTitle": "Подтверждение",
             "defaultDescription": "Вы уверены?"
@@ -918,18 +855,13 @@
         "downloading": "Загружаю {{name}}...",
         "errorOccurred": "Произошла ошибка",
         "errorWithMessage": "Ошибка: {{message}}",
-        "forceInstallAction": "Все равно установить",
-        "forceUpdateAction": "Все равно обновить",
-        "infoTitle": "Информация.",
         "installAction": "Установить",
         "installPreparedUpdateAction": "Установить",
-        "installErrorTitle": "Ошибка установки",
         "installUpdateTooltip": "Применить обновление",
         "authRequired": {
             "description": "Этот раздел доступен только после входа в учётную запись. Сначала войди, потом открой его снова.",
             "title": "Нужен вход в аккаунт"
         },
-        "installedVersionOutdated": "Установленная версия ({{version}}) устарела",
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",
         "modInstallErrorProxyHint": "Проверьте, что данные домены проксируются/добавлены в zapret:",
@@ -941,7 +873,6 @@
         "modInstallDescription": "Процесс займет около минуты",
         "modInstallUpdateError": "Ошибка установки/обновления",
         "modNotInstalled": "Не установлен",
-        "modNotSupportedOnLinux": "Мод не поддерживается на Linux.",
         "modUpdateAlreadyRunning": "Обновление уже запущено",
         "modUpdateFailed": "Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.",
         "modUpdateLoadError": "Ошибка загрузки обновления",
@@ -951,43 +882,25 @@
         "modUpdateStart": "Начало загрузки обновления...",
         "modUpdateSuccess": "Обновление прошло успешно!",
         "modUpdateTitle": "Обновление мода",
-        "musicAppName": "Я.Музыку",
-        "musicDownloadProgress": "Загрузка: {{progress}}%",
-        "musicDownloadProgressLabel": "Установка Я.Музыки",
-        "musicInstallFailed": "Не удалось выполнить установку Я.Музыки",
-        "musicInstallSuccess": "Установка Я.Музыки прошла успешно.",
-        "musicUpdateFailed": "Не удалось выполнить обновление Я.Музыки",
-        "musicUpdateSuccess": "Обновление Я.Музыки прошло успешно.",
         "nav": {
             "addonsBeta": "Аддоны",
-            "development": "Development",
             "extensionsStore": "Каталог аддонов",
             "home": "Главная",
-            "trackInfo": "Информация о треке",
             "users": "Пользователи",
             "unavailableInAutonomous": "Недоступно в автономном режиме"
         },
-        "newVersionFound": "Найдена новая версия {{version}}. Выполняю автообновление...",
         "noModInstallsAvailable": "Нет доступных модификаций для установки.",
         "noModUpdatesAvailable": "Нет доступных обновлений для установки.",
-        "patchUpdateAlt": "Обновление патча",
         "updateAction": "Обновить",
-        "updateAlreadyRunning": "Обновление уже запущено",
-        "updateMusicAction": "Обновить Яндекс.Музыку",
         "unknownError": "Неизвестная ошибка."
     },
     "levelProgress": {
         "level": "Уровень {{level}}",
         "totalPoints": "Всего очков за все уровни: {{totalPoints}}"
     },
-    "optionHeader": {
-        "settings": "Настройки"
-    },
     "metadata": {
         "authorsEditor": {
             "title": "Авторы",
-            "pulseTitle": "Пользователи PulseSync",
-            "pulseHint": "Поиск по username и nickname. Нажмите на пользователя, чтобы добавить его в авторы аддона.",
             "searchPlaceholder": "Найти пользователя",
             "requiredPlaceholder": "Добавьте хотя бы одного автора",
             "searchHint": "Начните вводить username или nickname.",
@@ -995,12 +908,10 @@
             "loading": "Загрузка пользователей...",
             "add": "Добавить",
             "added": "Добавлен",
-            "previewEmpty": "Не задано",
             "minimumOneAuthor": "У аддона должен быть минимум один автор.",
             "selfRemovalBlocked": "Вы не можете удалить себя из авторов аддона."
         },
         "examples": {
-            "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru",
             "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
@@ -1022,7 +933,6 @@
             "edit": "Настроить",
             "dependenciesSummary": "Добавлено зависимостей: {{count}}",
             "conflictsSummary": "Добавлено конфликтов: {{count}}",
-            "noSearchResults": "Ничего не найдено",
             "previewEmpty": "Не задано"
         },
         "compatibilityEditor": {
@@ -1042,7 +952,6 @@
         "authorOnlyAccess": "Редактировать metadata может только автор аддона.",
         "labels": {
             "allowedUrls": "Разрешённые URL",
-            "author": "Автор",
             "banner": "Баннер",
             "css": "CSS",
             "conflictsWith": "Запрещённые аддоны",
@@ -1072,7 +981,6 @@
         "cacheClearError": "Не удалось очистить кеш: {{message}}",
         "cacheCleared": "Кеш мода успешно очищен",
         "cacheClearing": "Очистка кеша мода...",
-        "latestInstalled": "Установлена последняя версия",
         "notInstalledTitle": "Мод не установлен",
         "removeError": "Ошибка удаления мода: {{message}}",
         "removedSuccess": "Мод удален успешно",
@@ -1094,8 +1002,7 @@
     "options": {
         "addonsDirectory": "Директория аддонов",
         "createAddon": "Создать аддон",
-        "reloadAddons": "Перезагрузить аддоны",
-        "title": "Опции"
+        "reloadAddons": "Перезагрузить аддоны"
     },
     "pages": {
         "home": {
@@ -1103,10 +1010,7 @@
             "mainComponents": "Основные компоненты",
             "auxiliaryComponents": "Вспомогательные компоненты",
             "news": "Новости",
-            "newsSubtitle": "Последние обновления проекта и важные анонсы.",
             "newsOpenAll": "Открыть все",
-            "newsReadArticle": "Читать статью",
-            "newsReadTime": "{{count}} мин чтения",
             "newsEmpty": "Пока новостей нет",
             "newsEmptyDescription": "Как только команда PulseSync опубликует новый материал, он появится здесь.",
             "newsError": "Не удалось загрузить новости",
@@ -1128,21 +1032,7 @@
             "comingSoon": "Скоро",
             "title": "Joint"
         },
-        "settings": {
-            "comingSoon": "Скоро",
-            "title": "Настройки"
-        },
         "store": {
-            "cards": {
-                "betterPlayer": "Улучшенный плеер",
-                "colorize": "Раскрась интерфейс",
-                "customUi": "Кастомный UI",
-                "reachtext": "ReachText",
-                "themeGenerator": "Генератор тем",
-                "volumeControl": "Контроль громкости"
-            },
-            "headerSubtitle": "Обновляйте интерфейс, открывайте новые возможности",
-            "headerTitle": "Каталог аддонов",
             "title": "Каталог аддонов"
         }
     },
@@ -1187,7 +1077,6 @@
         },
         "level": "Уровень {{level}}",
         "noNickname": "Без ника",
-        "pageTitle": "Профиль",
         "registrationDate": "Дата регистрации",
         "settings": {
             "placeholder": "Тут вы можете добавить форму редактирования и т.п."
@@ -1198,8 +1087,6 @@
         },
         "tabs": {
             "friends": "Друзья",
-            "friendsWithName": "Друзья {{username}}",
-            "profileWithName": "Профиль {{username}}",
             "settings": "Настройки профиля"
         }
     },
@@ -1216,67 +1103,6 @@
         },
         "title": "Пользователи"
     },
-    "trackInfo": {
-        "albumCoverAlt": "Обложка альбома",
-        "buttons": {
-            "enableDeepLinkDescription": "Добавляет кнопки «Открыть в вебе/приложении Яндекс Музыки».",
-            "enableDeepLinkLabel": "Включить DeepLink",
-            "enableListenDescription": "Показывает кнопку «Слушать» в статусе.",
-            "enableListenLabel": "Включить кнопку (Слушать)",
-            "enableWebsiteDescription": "Добавляет кнопку на сайт проекта.",
-            "enableWebsiteLabel": "Включить кнопку (PulseSync Project)"
-        },
-        "fallbackAlbumTitle": "PulseSync {{version}}",
-        "fields": {
-            "appIdDescription": "Идентификатор приложения в Discord Developer Portal, необходимый для отображения Rich Presence",
-            "appIdLabel": "App ID",
-            "detailsDescription": "Описание Details",
-            "detailsLabel": "Details",
-            "stateDescription": "Описание State",
-            "stateLabel": "State",
-            "listenButtonDescription": "Текст кнопки в активности. Максимум 15 символов для русского текста, 30 для английского",
-            "listenButtonLabel": "Слушать трек на Яндекс Музыке",
-            "statusDisplayTypeAria": "Тип отображения статуса",
-            "statusDisplayTypeDescription": "В статусе меняет, как будет отображаться активность после «Слушать»",
-            "statusDisplayTypeLabel": "Тип отображения статуса активности",
-            "statusLanguage": "На каком языке будет отображаться название приложения в RPC",
-            "textPlaceholder": "введите текст"
-        },
-        "listeningStatus": "Слушает PulseSync",
-        "pageTitle": "Discord RPC",
-        "sections": {
-            "buttons": "Кнопки",
-            "special": "Особое",
-            "status": "Статус"
-        },
-        "special": {
-            "showPausedDescription": "Показывает трек в статусе, даже когда он на паузе.",
-            "showPausedLabel": "Показывать трек на паузе",
-            "showSmallIconDescription": "Показывает маленькую иконку со статусом прослушивания.",
-            "showSmallIconLabel": "Включить иконку статуса прослушивания",
-            "showTrackVersionDescription": "Добавляет версию трека к названию.",
-            "showTrackVersionLabel": "Включить показ версии трека",
-            "supporterHideBrandingDescription": "Скрывает брендинг PulseSync в Rich Presence.",
-            "supporterHideBrandingLabel": "Скрывать брендинг PulseSync",
-            "supporterHideBrandingLockedDescription": "Доступно только с подпиской на Boosty.",
-            "showVersionOrDeviceDescription": "В подсказке к иконке показывает версию приложения вместо устройства.",
-            "showVersionOrDeviceLabel": "Показывать версию приложения вместо устройства, где играет трек."
-        },
-        "validation": {
-            "maxLength": "Максимальная длина {{count}} символов",
-            "minLength": "Минимальная длина {{count}} символов",
-            "statusDisplayTypeFormat": "Введите 0 (Name), 1 (State) или 2 (Details)",
-            "statusDisplayTypeRequired": "Введите 0, 1 или 2"
-        }
-    },
-    "rpc": {
-        "message": "{{message}}",
-        "paused": "Пауза",
-        "unknownArtist": "Неизвестный исполнитель",
-        "unknownAlbum": "Неизвестный альбом",
-        "unknownTrack": "Неизвестный трек",
-        "neuroMusic": "Нейромузыка"
-    },
     "settings": {
         "restartRequired": "Изменения вступят в силу после перезапуска приложения",
         "toggles": {
@@ -1291,8 +1117,7 @@
             "saveWindowDimensions": "Опция \"Сохранять размер окна\" {{status}}",
             "saveWindowPosition": "Опция \"Сохранять положение окна\" {{status}}",
             "showModChangelog": "Опция \"Показывать список изменений после установки\" {{status}}"
-        },
-        "websocketStatusChanged": "Статус вебсокета изменен"
+        }
     },
     "store": {
         "catalog": {
@@ -1322,8 +1147,6 @@
             "next": "Следующие аддоны"
         },
         "rating": {
-            "title": "Оценка",
-            "average": "Средняя",
             "votes": "Оценок: {{count}}",
             "votesShort": "{{count}} голосов",
             "hint": "Оцените аддон",
@@ -1332,7 +1155,6 @@
         },
         "download": "Скачать",
         "openAuthorProfile": "Открыть профиль автора {{author}}",
-        "loading": "Загружаю аддоны каталога...",
         "empty": "Пока нет опубликованных аддонов.",
         "noResults": "Ничего не найдено.",
         "filters": {
@@ -1354,17 +1176,9 @@
         "pendingSectionTitle": "Аддоны на модерации",
         "pendingSectionSubtitle": "Аддоны проходящие модерацию",
         "pendingEmpty": "По текущему запросу аддоны на модерации не найдены.",
-        "searchPlaceholder": "Найти аддон...",
-        "downloadCount": "{{count}} скачиваний",
-        "approvedAt": "Проверено {{date}}",
-        "submittedAt": "Отправлено {{date}}",
-        "installed": "Уже установлен",
-        "notInstalled": "Не установлен",
-        "localVersionLinked": "Локальная версия аддона {{title}} уже установлена и связана с публикацией.",
         "installComplete": "Аддон {{title}} установлен.",
         "installFailed": "Не удалось установить аддон {{title}}.",
         "installUnavailable": "Для аддона {{title}} пока недоступен файл установки.",
-        "openLocal": "Открыть локальный",
         "share": "Поделиться",
         "shareCopied": "Ссылка на аддон скопирована.",
         "shareFailed": "Не удалось скопировать ссылку.",
@@ -1373,11 +1187,6 @@
         "removeComplete": "Аддон {{title}} удалён.",
         "removeFailed": "Не удалось удалить аддон {{title}}.",
         "unknownAddon": "Аддон",
-        "logs": {
-            "downloadComplete": "[Store] Завершено скачивание. Начинаем установку.",
-            "downloadStart": "[Store] Начинаем скачивание {{title}}",
-            "installComplete": "[Store] Установлено {{title}}!"
-        },
         "status": {
             "accepted": "Принят",
             "active": "Активно",
@@ -1395,11 +1204,6 @@
             "officialTemplate": "Официальный шаблон",
             "aiUsage": "AI",
             "aiUsageTooltip": "При разработке этого аддона использовался AI"
-        },
-        "type": {
-            "both": "CSS + JS",
-            "css": "CSS",
-            "js": "JS"
         }
     },
     "textInput": {
@@ -1412,10 +1216,6 @@
             "appName": "Название приложения",
             "trackArtist": "Автор трека",
             "trackTitle": "Название трека"
-        },
-        "statusLanguage": {
-            "english": "Английский",
-            "russian": "Русский"
         }
     },
     "updates": {
@@ -1440,10 +1240,6 @@
         "online": "Онлайн"
     },
     "utils": {
-        "charCount": {
-            "withMax": "{{currentLength}} / {{maxLength}}",
-            "withoutMax": "{{currentLength}}"
-        },
         "connectionAttemptMessage": "Попытка подключения. Осталось попыток: {{retriesLeft}}. Следующая через {{retryIntervalInSeconds}} сек.",
         "connectionAttemptTitle": "Пинг-понг",
         "internetCheckError": "Не удалось проверить подключение к интернету",

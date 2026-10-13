@@ -7,7 +7,6 @@ import os from 'os'
 import path from 'path'
 import { promisify } from 'util'
 
-import RendererEvents from '../../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../../shared/handlers/handleErrorsElectron'
 import { t } from '../../../shared/i18n'
 import logger from '../../../shared/logger'
@@ -271,18 +270,7 @@ export const checkMusic = () => {
         })
 }
 
-export const downloadYandexMusic = async (type?: string) => {
-    const sendDownloadFailure = (err: Error | string) => {
-        try {
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_FAILURE, {
-                success: false,
-                error: typeof err === 'string' ? err : t('main.appUtils.executeFailed', { message: err.message }),
-            })
-        } catch (sendError) {
-            logger.main.error('Failed to send Yandex Music download failure:', sendError)
-        }
-    }
-
+export const downloadYandexMusic = async (_type?: string) => {
     const unlinkDownload = (downloadPath: string) => {
         try {
             fso.unlinkSync(downloadPath)
@@ -290,18 +278,6 @@ export const downloadYandexMusic = async (type?: string) => {
             if (error?.code !== 'ENOENT') {
                 logger.main.warn('Failed to remove Yandex Music installer:', error)
             }
-        }
-    }
-
-    const sendExecutionSuccess = (message: string) => {
-        try {
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_EXECUTION_SUCCESS, {
-                success: true,
-                message,
-                type: type || 'update',
-            })
-        } catch (sendError) {
-            logger.main.error('Failed to send Yandex Music install success:', sendError)
         }
     }
 
@@ -336,7 +312,6 @@ export const downloadYandexMusic = async (type?: string) => {
             if (total <= 0) return
 
             const p = Math.min(received / total, 1)
-            mainWindow.webContents.send(RendererEvents.DOWNLOAD_MUSIC_PROGRESS, { progress: Math.round(p * 100) })
             mainWindow.setProgressBar(p)
         })
         await new Promise<void>((res, rej) => {
@@ -351,11 +326,9 @@ export const downloadYandexMusic = async (type?: string) => {
         if (isLinux()) {
             const openError = await shell.openPath(downloadPath)
             if (openError) {
-                sendDownloadFailure(new Error(openError))
                 return
             }
             unlinkDownload(downloadPath)
-            sendExecutionSuccess(t('main.appUtils.fileOpenedSuccessfully'))
             return
         }
 
@@ -395,18 +368,15 @@ export const downloadYandexMusic = async (type?: string) => {
 
                 try {
                     await execFileAsync('open', [targetAppPath])
-                } catch (e) {
-                    sendDownloadFailure(e as Error)
+                } catch {
                     return
                 }
 
                 checkAsar()
-                sendExecutionSuccess(t('main.appUtils.appInstalledAndLaunched'))
-            } catch (error) {
+            } catch {
                 try {
                     await execFileAsync('hdiutil', ['detach', '-force', mountPoint])
                 } catch {}
-                sendDownloadFailure(error as Error)
             }
             return
         }
@@ -415,21 +385,18 @@ export const downloadYandexMusic = async (type?: string) => {
             setTimeout(() => {
                 execFile(downloadPath, error => {
                     if (error) {
-                        sendDownloadFailure(error)
                         resolve()
                         return
                     }
                     unlinkDownload(downloadPath)
                     checkAsar()
-                    sendExecutionSuccess(t('main.appUtils.fileExecutedSuccessfully'))
                     resolve()
                 })
             }, 100)
         })
-    } catch (error) {
+    } catch {
         mainWindow.setProgressBar(-1)
         if (downloadPath) unlinkDownload(downloadPath)
-        sendDownloadFailure(error as Error)
     } finally {
         finishModMutation()
         yandexMusicDownloadInFlight = false

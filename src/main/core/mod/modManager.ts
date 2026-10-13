@@ -409,7 +409,6 @@ export const modManager = (window: BrowserWindow): void => {
                     const currentHash = fileExists(paths.modAsar) ? await readChecksum(paths.modAsar) : null
                     if (currentHash === releaseData.checksum) {
                         logger.modManager.info('app.asar hash matches, skipping download')
-                        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.modAlreadyInstalled') })
                         if (hasUnpacked) {
                             setProgressPercent(window, PROGRESS_UNPACKED.base, 'app.asar.unpacked')
                         } else {
