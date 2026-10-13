@@ -6,9 +6,9 @@ use crate::{
             sha256_file,
         },
         install_state::{
-            ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation, RuntimeSnapshotV3,
-            read_install_state, read_install_state_with_host, synchronize_mutable_bootstrapper,
-            write_install_state,
+            ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation,
+            RuntimeSnapshotV3, read_install_state, read_install_state_with_host,
+            synchronize_mutable_bootstrapper, write_install_state,
         },
         layout::assert_inside,
         path_segment::sanitize_path_segment,

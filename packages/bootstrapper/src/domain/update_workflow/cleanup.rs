@@ -163,10 +163,14 @@ pub fn cleanup_terminal_update_workspaces(install_root: &Path) -> Result<Vec<Pat
         .flatten()
         .any(|snapshot| {
             snapshot.host.location == RuntimeLocation::StateRoot
-                && install_root.join(&snapshot.host.path).starts_with(&workspace.backup_dir)
+                && install_root
+                    .join(&snapshot.host.path)
+                    .starts_with(&workspace.backup_dir)
                 || snapshot.components.values().any(|component| {
                     component.location == RuntimeLocation::StateRoot
-                        && install_root.join(&component.path).starts_with(&workspace.backup_dir)
+                        && install_root
+                            .join(&component.path)
+                            .starts_with(&workspace.backup_dir)
                 })
         });
         if backup_in_use {
