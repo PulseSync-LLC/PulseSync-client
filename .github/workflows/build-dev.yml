@@ -18,9 +18,9 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
-      desktop: ${{ steps.filter.outputs.desktop == 'true' || steps.common.outputs.desktop == 'true' || ((steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true') && steps.filter.outputs.bootstrapper == 'true') }}
+      desktop: ${{ steps.filter.outputs.desktop == 'true' || steps.common.outputs.desktop == 'true' || steps.dependencies.outputs.desktop == 'true' || ((steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true') && steps.filter.outputs.bootstrapper == 'true') }}
       desktop_core: ${{ steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true' }}
-      renderer: ${{ steps.filter.outputs.renderer == 'true' || steps.common.outputs.renderer == 'true' }}
+      renderer: ${{ steps.filter.outputs.renderer == 'true' || steps.common.outputs.renderer == 'true' || steps.dependencies.outputs.renderer == 'true' }}
       retention: ${{ steps.filter.outputs.retention }}
     steps:
       - uses: actions/checkout@v7
@@ -57,8 +57,6 @@ jobs:
               - 'scripts/resolve-dev-version.ts'
               - 'scripts/s3-upload.ts'
               - 'scriptsInstaller/**'
-              - 'package.json'
-              - 'yarn.lock'
               - '.yarnrc.yml'
               - 'forge.config.ts'
               - 'vite.main.config.ts'
@@ -78,6 +76,9 @@ jobs:
               - 'src/preload/mainWindowPreload.ts'
             common:
               - 'src/common/**'
+            dependencies:
+              - 'package.json'
+              - 'yarn.lock'
             bootstrapper:
               - 'packages/bootstrapper/**'
               - 'scripts/bootstrapper/**'
@@ -88,8 +89,6 @@ jobs:
               - 'static/**'
               - 'scripts/renderer/**'
               - '.github/workflows/publish-renderer.yml'
-              - 'package.json'
-              - 'yarn.lock'
               - '.yarnrc.yml'
               - 'vite.renderer.config.ts'
               - 'vite-env.d.ts'
@@ -103,15 +102,15 @@ jobs:
               - '.github/workflows/publish-component.yml'
 
       - uses: actions/setup-node@v7
-        if: ${{ steps.filter.outputs.common == 'true' }}
+        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
         with:
           node-version: 24
           check-latest: true
           cache: yarn
           cache-dependency-path: '**/yarn.lock'
 
-      - name: Install common routing dependencies
-        if: ${{ steps.filter.outputs.common == 'true' }}
+      - name: Install routing dependencies
+        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
         run: yarn install --frozen-lockfile --ignore-scripts
 
       - name: Classify common changes
@@ -122,6 +121,13 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
         run: node scripts/classify-common-changes.mjs
 
+      - name: Classify dependency changes
+        if: ${{ steps.filter.outputs.dependencies == 'true' }}
+        id: dependencies
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: node scripts/classify-dependency-changes.mjs
+
       - name: Report changed build-related files
         shell: bash
         run: |
@@ -129,6 +135,8 @@ jobs:
           echo "desktop_filter=${{ steps.filter.outputs.desktop }}"
           echo "desktop_core=${{ steps.filter.outputs.desktop_core }}"
           echo "renderer=${{ steps.filter.outputs.renderer }}"
+          echo "dependencies_desktop=${{ steps.dependencies.outputs.desktop }}"
+          echo "dependencies_renderer=${{ steps.dependencies.outputs.renderer }}"
           echo "retention=${{ steps.filter.outputs.retention }}"
 
   version:
