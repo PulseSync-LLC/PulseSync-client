@@ -139,7 +139,7 @@
 
                 height: 100%;
 
-                margin-right: 15px;
+                margin-right: 5px;
 
                 .user_container {
                     position: relative;
@@ -605,8 +605,14 @@
 }
 
 .nav_bar.mac {
-    .fix_size .app_menu {
-        padding-left: 72px;
+    .fix_size {
+        .app_menu {
+            padding-left: 72px;
+        }
+
+        .event_container .menu {
+            margin-right: 15px;
+        }
     }
 }
 
