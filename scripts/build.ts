@@ -27,9 +27,8 @@ import {
 } from './desktop-release-manifest.js'
 import { assertGlitchTipSourceMapConfig, prepareDesktopCoreGlitchTipSourceMaps, uploadGlitchTipSourceMaps } from './glitchtip-sourcemaps.js'
 import { emitLegacyUpdateBridge, isLegacyUpdateBridgeEnabled } from './legacy-update-bridge.js'
-import { fetchWithRetry } from './network-retry.js'
 import { resolveReleaseTag } from './release-tag.js'
-import { publishToS3 } from './s3-upload.js'
+import { publishToS3, readPublishedDesktopManifest } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 
@@ -198,17 +197,10 @@ function generateBuildInfo(): { coreVersion: string; hostVersion: string; coreCo
 }
 
 async function advanceDesktopCoreRevision(previousManifestUrl: string, dist: string): Promise<number> {
-    const response = await fetchWithRetry(
-        previousManifestUrl,
-        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
-        {
-            label: 'desktop core revision manifest',
-        },
-    )
-    if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${previousManifestUrl}`)
-    const manifest = (await response.json()) as {
+    const manifest = (await readPublishedDesktopManifest(previousManifestUrl, 'desktop core revision manifest')) as {
         targets?: Record<string, { components?: { desktopCore?: { revision?: number } } }>
-    }
+    } | null
+    if (!manifest) throw new Error(`No published desktop manifest for ${dist}; publish a full desktop release before publishing desktopCore`)
     const previousRevision = manifest.targets?.[dist]?.components?.desktopCore?.revision
     if (!Number.isSafeInteger(previousRevision) || previousRevision === undefined || previousRevision <= 0) {
         throw new Error(`Published desktopCore revision is invalid for ${dist}`)
@@ -968,17 +960,10 @@ function findPackagedComponentModule(
 
 async function readPublishedRevisionManifest(url: string): Promise<PublishedRevisionManifest | null> {
     const separator = url.includes('?') ? '&' : '?'
-    const response = await fetchWithRetry(
+    return (await readPublishedDesktopManifest(
         `${url}${separator}_=${Date.now()}`,
-        {
-            cache: 'no-store',
-            headers: { 'Cache-Control': 'no-cache' },
-        },
-        { label: 'published revision manifest' },
-    )
-    if (response.status === 404) return null
-    if (!response.ok) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
-    return (await response.json()) as PublishedRevisionManifest
+        'published revision manifest',
+    )) as PublishedRevisionManifest | null
 }
 
 async function resolvePublishedComponentRevisions(outDir: string, manifestUrl: string, dist: string, hostVersion: string): Promise<void> {

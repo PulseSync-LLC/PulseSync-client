@@ -20,6 +20,8 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
+import { fetchWithRetry } from './network-retry.js'
+
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
@@ -664,6 +666,52 @@ async function readStoredText(client: S3Client, bucket: string, key: string): Pr
         throw new Error(`S3 object has no body: ${key}`)
     }
     return await response.Body.transformToString('utf8')
+}
+
+function parsePublishedDesktopManifest(text: string): Record<string, unknown> {
+    const payload: unknown = JSON.parse(text)
+    if (typeof payload !== 'object' || payload === null || Array.isArray(payload)) {
+        throw new Error('Published desktop manifest must be a JSON object')
+    }
+    return payload as Record<string, unknown>
+}
+
+export async function readPublishedDesktopManifest(url: string, label = 'published desktop manifest'): Promise<Record<string, unknown> | null> {
+    const response = await fetchWithRetry(url, { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } }, { label })
+    if (response.status === 404) return null
+    if (response.ok) return parsePublishedDesktopManifest(await response.text())
+    if (response.status !== 403) throw new Error(`Cannot read published desktop manifest (${response.status}): ${url}`)
+    await response.body?.cancel()
+
+    // Public S3 reads can return AccessDenied for a missing key. Only a signed read can confirm first publication.
+    const baseUrl = process.env.S3_URL?.trim()
+    if (!baseUrl) throw new Error('S3_URL is required to verify a forbidden published desktop manifest')
+    const base = new URL(`${baseUrl.replace(/\/+$/u, '')}/`)
+    const manifest = new URL(url)
+    const key = decodeURIComponent(manifest.pathname.slice(base.pathname.length))
+    if (
+        manifest.origin !== base.origin ||
+        !manifest.pathname.startsWith(base.pathname) ||
+        !/^builds\/app\/[a-z0-9][a-z0-9-]*\/desktop-update-[a-z0-9_-]+\.json$/iu.test(key)
+    ) {
+        throw new Error(`Published desktop manifest is outside the configured S3 release path: ${url}`)
+    }
+    for (const name of ['S3_BUCKET', 'S3_ACCESS_KEY_ID', 'S3_SECRET_ACCESS_KEY']) {
+        if (!process.env[name]?.trim()) throw new Error(`${name} is required to verify a forbidden published desktop manifest`)
+    }
+
+    const client = createS3Client()
+    try {
+        return parsePublishedDesktopManifest(await readStoredText(client, process.env.S3_BUCKET!, key))
+    } catch (error) {
+        if (!isMissingS3Object(error)) {
+            throw new Error(`Cannot read published desktop manifest through authenticated S3: ${key}`, { cause: error })
+        }
+        log(LogLevel.INFO, `No published desktop manifest at ${key}; confirmed through authenticated S3`)
+        return null
+    } finally {
+        client.destroy()
+    }
 }
 
 async function archiveStoredDesktopManifest(client: S3Client, bucket: string, currentKey: string, archiveRoot: string): Promise<void> {
