@@ -277,6 +277,13 @@
     color: var(--text-primary);
 
     white-space: nowrap;
+
+    transition: color 0.15s ease;
+}
+
+.cardClickable:hover:not(:has(button:hover, a:hover)) .titleRow h3,
+.cardClickable:focus-visible .titleRow h3 {
+    color: var(--ps-info, #4af);
 }
 
 .posterCard .titleRow h3 {
