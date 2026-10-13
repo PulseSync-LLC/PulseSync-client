@@ -6,9 +6,10 @@ import { PULSESYNC_STORE_ENCRYPTION_KEY, PULSESYNC_STORE_NAME } from '../shared/
 
 const ElectronStore = ElectronStoreModule
 
-let storeInstance: any
+let storeInstance: Store | undefined
 
 export interface StoreType {
+    get(key: string): any
     getAll(): Record<string, any>
     set(key: string, value: any): void
     delete(key: string): void
@@ -329,7 +330,7 @@ const schema = {
     },
 }
 
-class Store {
+class Store implements StoreType {
     public store: any
 
     constructor() {
@@ -338,12 +339,19 @@ class Store {
                 name: PULSESYNC_STORE_NAME,
                 encryptionKey: PULSESYNC_STORE_ENCRYPTION_KEY,
                 schema,
+                cache: true,
             })
             logger.main.info('Store initialized')
             this.store.delete('app.rendererSourceMode')
         } catch (error) {
             logger.main.error('Error initializing ElectronStore:', error)
         }
+    }
+
+    get(key: string): any {
+        const value = this.store.get(key)
+        // Cached objects are frozen; callers receive independent mutable snapshots.
+        return value !== null && typeof value === 'object' ? structuredClone(value) : value
     }
 
     set(key: string, value: any): void {
@@ -355,7 +363,7 @@ class Store {
     }
 
     getAll() {
-        return this.store.store
+        return structuredClone(this.store.store)
     }
 }
 
