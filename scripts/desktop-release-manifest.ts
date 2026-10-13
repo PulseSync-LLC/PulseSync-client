@@ -12,6 +12,7 @@ import semver from 'semver'
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import { fetchWithRetry } from './network-retry.js'
+import { readPublishedDesktopManifest } from './s3-upload.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
@@ -297,16 +298,8 @@ function deltaToolPath(): string {
 
 async function readPreviousManifest(url: string | undefined): Promise<BootstrapperUpdateManifest | null> {
     if (!url) return null
-    const response = await fetchWithRetry(
-        url,
-        { cache: 'no-store', headers: { 'Cache-Control': 'no-cache' } },
-        {
-            label: 'previous desktop manifest',
-        },
-    )
-    if (response.status === 404) return null
-    if (!response.ok) throw new Error(`Cannot read previous desktop manifest (${response.status}): ${url}`)
-    const payload: unknown = await response.json()
+    const payload = await readPublishedDesktopManifest(url, 'previous desktop manifest')
+    if (payload === null) return null
     if (typeof payload !== 'object' || payload === null) throw new Error(`Previous desktop manifest is invalid: ${url}`)
     if (!('schemaVersion' in payload) || ![3, 4, 5].includes(payload.schemaVersion as number)) {
         throw new Error(`Unsupported previous desktop manifest schema: ${url}`)
