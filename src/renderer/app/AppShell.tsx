@@ -28,8 +28,6 @@ import { usePextDnDImport } from '@shared/lib/usePextDnDImport'
 import { compareVersions } from '@shared/lib/utils'
 import toast from '@shared/ui/toast'
 
-import 'react-loading-skeleton/dist/skeleton.css'
-
 import type { LegacyAddonRestrictionsState } from '@app/AppShell.types'
 import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
