@@ -8,6 +8,7 @@ use super::{
 use crate::{
     core::{
         error::Result,
+        install_state::{RuntimeLocation, read_install_state_metadata},
         layout::{canonical_install_root, is_inside, resolve_layout},
         operation_lock::UpdateLock,
     },
@@ -120,6 +121,7 @@ pub fn cleanup_terminal_update_workspaces(install_root: &Path) -> Result<Vec<Pat
     let install_root = canonical_install_root(install_root)?;
     let _update_lock = UpdateLock::acquire(&install_root, UPDATE_LOCK_TIMEOUT)?;
     let layout = resolve_layout(install_root.clone(), None)?;
+    let state = read_install_state_metadata(&install_root)?;
     let mut records = transaction_records(&layout.transaction_root)?;
     let terminal = records
         .iter()
@@ -149,6 +151,27 @@ pub fn cleanup_terminal_update_workspaces(install_root: &Path) -> Result<Vec<Pat
                 continue;
             }
         };
+
+        let backup_in_use = [
+            Some(&state.latest),
+            Some(&state.running),
+            Some(&state.last_successful),
+            Some(&state.known_good),
+            state.pinned.as_ref(),
+        ]
+        .into_iter()
+        .flatten()
+        .any(|snapshot| {
+            snapshot.host.location == RuntimeLocation::StateRoot
+                && install_root.join(&snapshot.host.path).starts_with(&workspace.backup_dir)
+                || snapshot.components.values().any(|component| {
+                    component.location == RuntimeLocation::StateRoot
+                        && install_root.join(&component.path).starts_with(&workspace.backup_dir)
+                })
+        });
+        if backup_in_use {
+            continue;
+        }
 
         let cleanup_result = (|| -> Result<()> {
             if !referenced_by_transaction(&remaining, &workspace.staging_dir)

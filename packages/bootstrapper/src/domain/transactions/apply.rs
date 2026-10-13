@@ -6,7 +6,7 @@ use crate::{
             sha256_file,
         },
         install_state::{
-            ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation,
+            ActivationState, RuntimeActivationV3, RuntimeComponentV3, RuntimeLocation, RuntimeSnapshotV3,
             read_install_state, read_install_state_with_host, synchronize_mutable_bootstrapper,
             write_install_state,
         },
@@ -88,6 +88,42 @@ fn validate_complete_versioned_runtime_slot(
                 "versioned host update is missing component in the new runtime slot: {name}"
             )
             .into());
+        }
+    }
+    Ok(())
+}
+
+fn preserve_snapshot_backups(
+    snapshot: &mut RuntimeSnapshotV3,
+    artifacts: &[TransactionArtifact],
+    install_dir: &Path,
+) -> Result<()> {
+    let mut backups = artifacts
+        .iter()
+        .filter(|artifact| artifact.key != "bootstrapper" && artifact.backup_path.exists())
+        .collect::<Vec<_>>();
+    // A host backup contains its old modules, so prefer it over nested targets.
+    backups.sort_by_key(|artifact| artifact.target_path.components().count());
+    let relocate = |path: &mut PathBuf| -> Result<()> {
+        let absolute = install_dir.join(&*path);
+        for artifact in &backups {
+            if let Ok(suffix) = absolute.strip_prefix(&artifact.target_path) {
+                *path = artifact
+                    .backup_path
+                    .join(suffix)
+                    .strip_prefix(install_dir)?
+                    .to_path_buf();
+                break;
+            }
+        }
+        Ok(())
+    };
+    if snapshot.host.location == RuntimeLocation::StateRoot {
+        relocate(&mut snapshot.host.path)?;
+    }
+    for component in snapshot.components.values_mut() {
+        if component.location == RuntimeLocation::StateRoot {
+            relocate(&mut component.path)?;
         }
     }
     Ok(())
@@ -460,6 +496,12 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     transaction["applied"] = json!(true);
     transaction["artifacts"] = Value::Array(applied);
     let mut next_snapshot = install_state.latest.clone();
+    next_snapshot.channel = transaction
+        .get("channel")
+        .and_then(Value::as_str)
+        .filter(|channel| !channel.is_empty())
+        .map(str::to_string)
+        .or(next_snapshot.channel);
     let component_versions = transaction
         .get("componentVersions")
         .and_then(Value::as_object)
@@ -597,6 +639,16 @@ pub fn apply_transaction_file(transaction_file: &Path) -> Result<Value> {
     }
     let bootstrapper = next_snapshot.components.get("bootstrapper").cloned();
     install_state.latest = next_snapshot;
+    for snapshot in [
+        &mut install_state.running,
+        &mut install_state.last_successful,
+        &mut install_state.known_good,
+    ] {
+        preserve_snapshot_backups(snapshot, &artifacts, &install_dir)?;
+    }
+    if let Some(pinned) = install_state.pinned.as_mut() {
+        preserve_snapshot_backups(pinned, &artifacts, &install_dir)?;
+    }
     if let Some(bootstrapper) = bootstrapper.as_ref() {
         synchronize_mutable_bootstrapper(&mut install_state, bootstrapper);
     }

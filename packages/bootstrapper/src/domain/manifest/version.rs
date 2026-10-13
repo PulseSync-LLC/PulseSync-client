@@ -496,7 +496,11 @@ pub fn decide_component_update(
             dist,
         );
     };
-    if manifest.metadata_version < installed.latest.metadata_version {
+    let same_channel = installed
+        .latest
+        .release_channel()
+        .is_none_or(|channel| channel == manifest.channel);
+    if same_channel && manifest.metadata_version < installed.latest.metadata_version {
         let mut decision = decide_update(
             manifest,
             installed_desktop_version,
@@ -509,12 +513,13 @@ pub fn decide_component_update(
         decision.plan = target_plan(target, &[], Some(installed));
         return decision;
     }
-    let same_component_host = installed.latest.host.version == target.host.version;
-    let same_host_identity = if target.layout == ArtifactLayout::MacosHybrid {
-        installed.latest.host.bundle_version.as_deref() == target.host.bundle_version.as_deref()
-    } else {
-        installed.latest.host.version == target.host.version
-    };
+    let same_component_host = same_channel && installed.latest.host.version == target.host.version;
+    let same_host_identity = same_channel
+        && if target.layout == ArtifactLayout::MacosHybrid {
+            installed.latest.host.bundle_version.as_deref() == target.host.bundle_version.as_deref()
+        } else {
+            installed.latest.host.version == target.host.version
+        };
     let host_immutable_mismatch = same_host_identity
         && (installed
             .latest
@@ -550,9 +555,8 @@ pub fn decide_component_update(
                             }))
                 })
         });
-    let immutable_mismatch = host_immutable_mismatch
-        || component_immutable_mismatch
-        || target.bootstrapper.as_ref().is_some_and(|bootstrapper| {
+    let bootstrapper_immutable_mismatch = same_channel
+        && target.bootstrapper.as_ref().is_some_and(|bootstrapper| {
             installed
                 .latest
                 .components
@@ -567,6 +571,9 @@ pub fn decide_component_update(
                             })
                 })
         });
+    let immutable_mismatch = host_immutable_mismatch
+        || component_immutable_mismatch
+        || bootstrapper_immutable_mismatch;
     if immutable_mismatch {
         let mut decision = decide_update(
             manifest,
@@ -581,11 +588,7 @@ pub fn decide_component_update(
         return decision;
     }
     let mut selected_artifacts = Vec::new();
-    let host_version_changed = if target.layout == ArtifactLayout::MacosHybrid {
-        installed.latest.host.bundle_version.as_deref() != target.host.bundle_version.as_deref()
-    } else {
-        installed.latest.host.version != target.host.version
-    };
+    let host_version_changed = !same_host_identity;
     let host_abi_changed = target
         .host
         .electron_abi
@@ -739,12 +742,13 @@ pub fn decide_component_update(
     }
     if !bundle_replaces_runtime
         && let Some(bootstrapper) = target.bootstrapper.as_ref()
-        && installed
-            .latest
-            .components
-            .get("bootstrapper")
-            .map(|value| value.version.as_str())
-            != Some(bootstrapper.version.as_str())
+        && (!same_channel
+            || installed
+                .latest
+                .components
+                .get("bootstrapper")
+                .map(|value| value.version.as_str())
+                != Some(bootstrapper.version.as_str()))
     {
         selected_artifacts.push("bootstrapper".to_string());
     }

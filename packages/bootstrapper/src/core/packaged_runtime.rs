@@ -570,6 +570,7 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
         );
     }
     let mut snapshot = RuntimeSnapshotV3 {
+        channel: None,
         bundle_version: metadata_version.to_string(),
         metadata_version,
         host: RuntimeHostV3 {

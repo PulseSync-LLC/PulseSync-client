@@ -788,6 +788,7 @@ async function prepareBootstrapperSetupRoot(
         required: true,
     }
     const initialSnapshot = {
+        channel,
         bundleVersion,
         metadataVersion: Number(bundleVersion),
         host: {
