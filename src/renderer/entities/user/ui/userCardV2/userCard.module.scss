@@ -232,37 +232,11 @@
     white-space: nowrap;
 }
 
-.rssIcon,
 .statusIcon {
     width: 20px;
     height: 20px;
 
     color: var(--statusColorProfile);
-}
-
-.userCardSkeleton {
-    position: relative;
-
-    width: 100%;
-    height: 150px;
-
-    background-color: var(--skeleton-base);
-    border-radius: 8px;
-
-    &::before {
-        position: absolute;
-        top: 0;
-        left: -100%;
-
-        width: 100%;
-        height: 100%;
-
-        content: '';
-
-        background: linear-gradient(90deg, transparent, var(--hover), transparent);
-
-        animation: shimmer 1.6s infinite;
-    }
 }
 
 @keyframes shimmer {

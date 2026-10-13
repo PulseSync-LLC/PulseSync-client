@@ -78,12 +78,6 @@
         color var(--transition);
 }
 
-.open .arrow {
-    color: var(--text-primary);
-
-    transform: rotate(180deg);
-}
-
 .panel {
     position: fixed;
     z-index: 10000;

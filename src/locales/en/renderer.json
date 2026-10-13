@@ -6,16 +6,13 @@
     "common": {
         "ok": "Ok",
         "all": "All",
-        "allGoodTitle": "All good",
         "attentionTitle": "Attention",
         "cancel": "Cancel",
         "cancelled": "Cancelled",
         "caution": "Caution",
         "clear": "Clear",
         "clickToEdit": "Click to edit",
-        "connectedTitle": "Connected",
         "connectionEstablished": "Connection established",
-        "connectionRestored": "Connection restored",
         "continue": "Continue",
         "delete": "Delete",
         "disable": "Disable",
@@ -39,14 +36,12 @@
         "infoTitleShort": "Info",
         "linkLabel": "link",
         "loading": "Loading...",
-        "loadingThemes": "Loading themes...",
         "loadingTitle": "Loading",
         "more": "More",
         "networkTitle": "Network",
         "notAvailable": "Not available",
         "oopsTitle": "Oops",
         "operationCancelled": "Operation cancelled",
-        "phewTitle": "Phew",
         "pingPongTitle": "Ping-pong",
         "pleaseWait": "Please wait",
         "refresh": "Refresh",
@@ -62,8 +57,7 @@
         "thinkLater": "Install later",
         "tooManyAttempts": "Too many connection attempts.",
         "waitTitle": "Wait",
-        "warningTitleShort": "Warning",
-        "discordRpc": "Discord RPC"
+        "warningTitleShort": "Warning"
     },
     "auth": {
         "accessQuestionTitle": "Maybe you don't have access?",
@@ -74,9 +68,7 @@
         "checkUpdates": "Check for updates",
         "closeAfterSeconds": "The app will close in 10 seconds",
         "consentPrefix": "By clicking \"Authorize\", you agree to",
-        "consentPrefixQuotes": "By clicking \"Authorize\", you agree to",
         "deprecatedRequiresUpdate": "The app is outdated and requires an update 😡😡😡",
-        "deprecatedRequiresUpdateShort": "The app is outdated and requires an update",
         "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
         "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
@@ -107,21 +99,17 @@
         "addItem": "Add item",
         "addItemAfter": "Add item after",
         "addOption": "Add option",
-        "addRow": "Add row",
         "addSection": "Add section",
         "collapse": "Collapse",
         "collapseAll": "Collapse all",
         "defaults": {
-            "line": "Line",
             "newButton": "New button",
             "newColor": "New color",
             "newFile": "New file",
-            "newRow": "New row",
             "newSection": "New section",
             "newSelector": "New selector",
             "newSlider": "New slider",
             "newText": "New text row",
-            "newTextBlock": "New text block",
             "option": "Option {{index}}"
         },
         "deleteSection": "Delete section",
@@ -142,7 +130,6 @@
         "placeholderTitle": "Component in progress",
         "placeholderWithType": "{{type}} component in progress",
         "removeOption": "Remove option",
-        "removeRow": "Remove row",
         "resetToDefault": "Reset to default"
     },
     "settingsModal": {
@@ -152,9 +139,6 @@
             "title": "Actions"
         },
         "category": "Sections",
-        "emptyDescription": "New settings sections will appear here later.",
-        "emptyTitle": "No settings available yet",
-        "movedHint": "Settings now open from the button in the bottom-left corner.",
         "searchEmpty": "No settings found",
         "searchPlaceholder": "Find a setting...",
         "sections": {
@@ -171,7 +155,6 @@
         "developer": {
             "category": "Developer tools",
             "componentsTitle": "UI testing",
-            "interfaceTitle": "Interface",
             "runtimeTitle": "Development runtime",
             "showDevFrameDescription": "Shows the yellow frame, bottom spacing, and development build label.",
             "settingsTab": "Preferences",
@@ -198,10 +181,8 @@
             "checkUpdates": "Check for updates",
             "collectLogs": "Collect logs archive",
             "logsReady": "Opening the folder soon",
-            "settings": "Settings",
             "showDevFrame": "Show development frame",
             "title": "System",
-            "version": "Version: v{{version}}. Commit #{{branch}}",
             "websocketStatus": "Websocket status"
         },
         "mod": {
@@ -265,21 +246,11 @@
         "deleteError": "Error deleting theme \"{{name}}\"",
         "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
         "directory": "Addon directory {{name}}",
-        "disable": "Disable {{name}}",
-        "enable": "Enable {{name}}",
         "export": "Export {{name}}",
-        "exportSuccess": "Export successful",
-        "page": "Theme page {{name}}",
-        "pageLog": "Theme page",
-        "publish": "Publish {{name}}",
-        "publishLog": "Publish",
-        "rollback": "Rollback to server version",
-        "rollbackLog": "Rollback",
-        "title": "Manage"
+        "exportSuccess": "Export successful"
     },
     "dev": {
         "addonPlaceholder": "Example Addon",
-        "badge": "DEV",
         "cards": {
             "form": {
                 "open": "Open form",
@@ -318,7 +289,6 @@
             "text": "This modal uses Formik.",
             "title": "Formik form"
         },
-        "loadingAnalytics": "Loading analytics",
         "metrics": {
             "averageOnline": "Average online",
             "onlineNow": "Online now",
@@ -339,22 +309,17 @@
             "extension": "Extensions",
             "joint": "Joint",
             "store": "Catalog",
-            "trackInfo": "TrackInfo",
             "users": "Users"
         },
         "navigationHint": "Navigation example",
         "noData": "No data",
-        "pageTitle": "Dev Gallery",
         "rangeHours": "{{hours}}h",
         "rangeLabel": "Range",
         "sections": {
             "analytics": "Analytics",
-            "components": "Components",
             "metrics": "Metrics",
             "navigation": "Navigation"
         },
-        "subtitle": "Scroll down and try components live.",
-        "title": "Developer Gallery",
         "updatedLabel": "Updated",
         "updatedLabelWithTime": "Updated: {{time}}",
         "upload": {
@@ -377,8 +342,6 @@
     },
     "extensions": {
         "actions": {
-            "store": "Catalog",
-            "github": "GitHub",
             "openStore": "Open page in store",
             "openGithub": "Open GitHub page"
         },
@@ -386,7 +349,6 @@
         "addonCreatedMessage": "The {{name}} template was saved successfully",
         "addonCreatedTitle": "Addon template downloaded",
         "createHandleEvents": "Create handleEvents.json",
-        "defaultThemeSet": "Default theme set",
         "disableAction": "Disable",
         "editModeEnter": "Edit mode enabled",
         "editModeExit": "Edit mode disabled",
@@ -396,8 +358,7 @@
         "loadFailed": "Load failed",
         "linksTitle": "Links",
         "groups": {
-            "favorites": "Favorites",
-            "category": "Category"
+            "favorites": "Favorites"
         },
         "organization": {
             "addFavorite": "Add to favorites",
@@ -422,7 +383,6 @@
             "authors": "Authors:",
             "conflictsWith": "Incompatible with",
             "dependencies": "Dependencies",
-            "relations": "Relations",
             "source": "Source",
             "size": "Size",
             "tags": "Tags",
@@ -468,7 +428,6 @@
             "visibilityDeveloper": "DEVELOPER role only",
             "visibilityHint": "This release will only appear in the dev client catalog. Other users will keep receiving the latest public release.",
             "statusLabel": "Publication",
-            "modalTitle": "Add-on publication",
             "noteLabel": "Moderator note",
             "githubUrlLabel": "GitHub link",
             "githubUrlPlaceholder": "https://github.com/owner/repository",
@@ -490,7 +449,6 @@
             "changelogEmpty": "No changelog was added for this version yet.",
             "cooldownLabel": "Resubmission",
             "cooldownMessage": "After rejection, the add-on can be submitted again only after 3 days. Available {{date}}.",
-            "statusDate": "Updated {{date}}",
             "publish": "Publish",
             "update": "Update",
             "uploading": "Sending...",
@@ -577,7 +535,6 @@
         "themeDeactivated": "Theme deactivated",
         "themeDeactivatedMessage": "Default theme enabled.",
         "noResults": "No results found",
-        "analyzingAddons": "Analyzing add-ons…",
         "confirmTitle": "Are you sure?",
         "enableAnyway": "Enable anyway",
         "filtersLabel": "Filters",
@@ -709,13 +666,10 @@
         },
         "giveaways": {
             "open": "Open subscription giveaways",
-            "eyebrow": "Subscriptions",
             "title": "Subscription giveaways",
-            "subtitle": "Join active giveaways and get a subscription if you win.",
             "count": "Active giveaways: {{count}}",
             "availableCount": "Available to join: {{count}}",
             "refresh": "Refresh",
-            "loading": "Loading giveaways...",
             "loadError": "Failed to load subscription giveaways.",
             "errorTitle": "Giveaways unavailable",
             "emptyTitle": "No active giveaways yet",
@@ -723,8 +677,6 @@
             "plan": "Plan: {{plan}}",
             "planDisplay": "{{type}} · {{duration}}",
             "winners": "Subscriptions to win: {{count}}",
-            "endsAt": "Until {{date}}",
-            "planLabel": "Plan",
             "planTypes": {
                 "basic": "Basic",
                 "infinite": "Lifetime"
@@ -735,12 +687,6 @@
                 "yearly": "12 months",
                 "custom": "{{months}} mo"
             },
-            "winnersLabel": "Winners",
-            "timeLeftLabel": "Left",
-            "endsLabel": "Ends",
-            "statusLive": "Live",
-            "statusEntered": "Joined",
-            "statusEnded": "Ended",
             "timeUnknown": "Time unknown",
             "ended": "Ended",
             "remainingDays": "{{days}}d {{hours}}h",
@@ -756,13 +702,11 @@
             "enterErrorText": "Check your connection and try again."
         },
         "devOverrides": {
-            "open": "Open local experiment overrides",
             "title": "Experiments",
             "description": "Local overrides are applied over the server group on this device only.",
             "warningTitle": "Hold on",
             "warningBody": "These features are still experimental and may be unstable or cause errors.",
             "warningHint": "Change these settings only if you know what they do. Changes are saved on this device only.",
-            "loading": "Loading experiments...",
             "empty": "No experiments are available yet.",
             "searchPlaceholder": "Search experiments",
             "searchEmpty": "No experiments match the search.",
@@ -772,18 +716,12 @@
             "serverDefault": "Server default ({{group}})",
             "moreDetails": "More details »",
             "hideDetails": "Hide details »",
-            "selectExperiment": "Select an experiment on the left.",
-            "overrideBadge": "override",
-            "overrideActive": "Override active",
             "group": "Group",
             "groupPlaceholder": "on / variant_name",
             "metaLabel": "Meta (JSON)",
-            "availableGroups": "Available groups",
-            "groupsCount": "Groups: {{count}}",
             "groupRollout": "{{percentage}}%",
             "groupDescriptionEmpty": "No description",
             "groupRequired": "Specify a group before applying the override",
-            "noGroup": "No group",
             "copyName": "Copy key",
             "copyNameSuccess": "Experiment key copied",
             "copyNameError": "Failed to copy experiment key",
@@ -906,7 +844,6 @@
         "basicConfirmation": {
             "confirm": "Confirm",
             "delete": "Delete",
-            "ok": "Ok",
             "cancel": "Cancel",
             "defaultTitle": "Confirmation",
             "defaultDescription": "Are you sure?"
@@ -918,18 +855,13 @@
         "downloading": "Downloading {{name}}...",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
-        "forceInstallAction": "Install anyway",
-        "forceUpdateAction": "Update anyway",
-        "infoTitle": "Info.",
         "installAction": "Install",
         "installPreparedUpdateAction": "Install",
-        "installErrorTitle": "Install error",
         "installUpdateTooltip": "Apply update",
         "authRequired": {
             "description": "This section is available only after you sign in. Sign in first, then open it again.",
             "title": "Sign in required"
         },
-        "installedVersionOutdated": "Installed version ({{version}}) is outdated",
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
         "modInstallErrorProxyHint": "Make sure these domains are proxied/added to zapret:",
@@ -941,7 +873,6 @@
         "modInstallDescription": "The process will take about a minute",
         "modInstallUpdateError": "Install/update error",
         "modNotInstalled": "Not installed",
-        "modNotSupportedOnLinux": "The mod is not supported on Linux.",
         "modUpdateAlreadyRunning": "Update already started",
         "modUpdateFailed": "Failed to update the mod. Please try again or check your connection.",
         "modUpdateLoadError": "Update download error",
@@ -951,43 +882,25 @@
         "modUpdateStart": "Starting update download...",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",
-        "musicAppName": "Yandex Music",
-        "musicDownloadProgress": "Downloading: {{progress}}%",
-        "musicDownloadProgressLabel": "Yandex Music installation",
-        "musicInstallFailed": "Failed to install Yandex Music",
-        "musicInstallSuccess": "Yandex Music installed successfully.",
-        "musicUpdateFailed": "Failed to update Yandex Music",
-        "musicUpdateSuccess": "Yandex Music updated successfully.",
         "nav": {
             "addonsBeta": "Add-ons",
-            "development": "Development",
             "extensionsStore": "Extension store",
             "home": "Home",
-            "trackInfo": "Track info",
             "users": "Users",
             "unavailableInAutonomous": "Unavailable in autonomous mode"
         },
-        "newVersionFound": "New version {{version}} found. Running auto-update...",
         "noModInstallsAvailable": "No mod installations available.",
         "noModUpdatesAvailable": "No updates available to install.",
-        "patchUpdateAlt": "Patch update",
         "updateAction": "Update",
-        "updateAlreadyRunning": "Update already started",
-        "updateMusicAction": "Update Yandex Music",
         "unknownError": "Unknown error."
     },
     "levelProgress": {
         "level": "Level {{level}}",
         "totalPoints": "Total points across all levels: {{totalPoints}}"
     },
-    "optionHeader": {
-        "settings": "Settings"
-    },
     "metadata": {
         "authorsEditor": {
             "title": "Authors",
-            "pulseTitle": "PulseSync users",
-            "pulseHint": "Search by username and nickname. Click a user to add them as an add-on author.",
             "searchPlaceholder": "Find a user",
             "requiredPlaceholder": "Add at least one author",
             "searchHint": "Start typing a username or nickname.",
@@ -995,12 +908,10 @@
             "loading": "Loading users...",
             "add": "Add",
             "added": "Added",
-            "previewEmpty": "Not set",
             "minimumOneAuthor": "An add-on must have at least one author.",
             "selfRemovalBlocked": "You cannot remove yourself from the add-on authors."
         },
         "examples": {
-            "addonName": "My Awesome Addon",
             "allowedUrls": "https://music.yandex.ru",
             "supportedVersions": "^5.75.0",
             "tags": "theme, dark, minimal"
@@ -1022,7 +933,6 @@
             "edit": "Configure",
             "dependenciesSummary": "Dependencies added: {{count}}",
             "conflictsSummary": "Conflicts added: {{count}}",
-            "noSearchResults": "Nothing found",
             "previewEmpty": "Not set"
         },
         "compatibilityEditor": {
@@ -1042,7 +952,6 @@
         "authorOnlyAccess": "Only the add-on author can edit metadata.",
         "labels": {
             "allowedUrls": "Allowed URLs",
-            "author": "Author",
             "banner": "Banner",
             "css": "CSS",
             "conflictsWith": "Blocked add-ons",
@@ -1072,7 +981,6 @@
         "cacheClearError": "Failed to clear cache: {{message}}",
         "cacheCleared": "Mod cache cleared",
         "cacheClearing": "Clearing mod cache...",
-        "latestInstalled": "Latest version installed",
         "notInstalledTitle": "Mod not installed",
         "removeError": "Error removing mod: {{message}}",
         "removedSuccess": "Mod removed successfully",
@@ -1094,8 +1002,7 @@
     "options": {
         "addonsDirectory": "Addons directory",
         "createAddon": "Create addon",
-        "reloadAddons": "Reload addons",
-        "title": "Options"
+        "reloadAddons": "Reload addons"
     },
     "pages": {
         "home": {
@@ -1103,10 +1010,7 @@
             "mainComponents": "Primary components",
             "auxiliaryComponents": "Secondary components",
             "news": "News",
-            "newsSubtitle": "Latest project updates and important announcements.",
             "newsOpenAll": "Open all",
-            "newsReadArticle": "Read article",
-            "newsReadTime": "{{count}} min read",
             "newsEmpty": "No news yet",
             "newsEmptyDescription": "New PulseSync posts will appear here as soon as the team publishes them.",
             "newsError": "Failed to load news",
@@ -1128,21 +1032,7 @@
             "comingSoon": "Coming soon",
             "title": "Joint"
         },
-        "settings": {
-            "comingSoon": "Coming soon",
-            "title": "Settings"
-        },
         "store": {
-            "cards": {
-                "betterPlayer": "Better player",
-                "colorize": "Colorize interface",
-                "customUi": "Custom UI",
-                "reachtext": "ReachText",
-                "themeGenerator": "Theme generator",
-                "volumeControl": "Volume control"
-            },
-            "headerSubtitle": "Refresh the interface and unlock new features",
-            "headerTitle": "Add-on catalog",
             "title": "Add-on catalog"
         }
     },
@@ -1187,7 +1077,6 @@
         },
         "level": "Level {{level}}",
         "noNickname": "No nickname",
-        "pageTitle": "Profile",
         "registrationDate": "Registration date",
         "settings": {
             "placeholder": "You can add an edit form and other settings here."
@@ -1198,8 +1087,6 @@
         },
         "tabs": {
             "friends": "Friends",
-            "friendsWithName": "Friends {{username}}",
-            "profileWithName": "Profile {{username}}",
             "settings": "Profile settings"
         }
     },
@@ -1216,67 +1103,6 @@
         },
         "title": "Users"
     },
-    "trackInfo": {
-        "albumCoverAlt": "Album cover",
-        "buttons": {
-            "enableDeepLinkDescription": "Adds “Open in web/app Yandex Music” buttons.",
-            "enableDeepLinkLabel": "Enable DeepLink",
-            "enableListenDescription": "Shows a “Listen” button in the status.",
-            "enableListenLabel": "Enable button (Listen)",
-            "enableWebsiteDescription": "Adds a button to the project site.",
-            "enableWebsiteLabel": "Enable button (PulseSync Project)"
-        },
-        "fallbackAlbumTitle": "PulseSync {{version}}",
-        "fields": {
-            "appIdDescription": "Discord Developer Portal application ID required to show Rich Presence",
-            "appIdLabel": "App ID",
-            "detailsDescription": "Details description",
-            "detailsLabel": "Details",
-            "listenButtonDescription": "Button label text",
-            "listenButtonLabel": "Listen to the track on Yandex Music",
-            "stateDescription": "State description",
-            "stateLabel": "State",
-            "statusDisplayTypeAria": "Status display type",
-            "statusDisplayTypeDescription": "Changes how activity is shown after “Listen”.",
-            "statusDisplayTypeLabel": "Change activity status display type",
-            "statusLanguage": "Change the language in which the app name will be displayed in RPC",
-            "textPlaceholder": "enter text"
-        },
-        "listeningStatus": "Listening to PulseSync",
-        "pageTitle": "Discord RPC",
-        "sections": {
-            "buttons": "Buttons",
-            "special": "Special",
-            "status": "Status"
-        },
-        "special": {
-            "showPausedDescription": "Shows the track in status even when paused.",
-            "showPausedLabel": "Show track while paused",
-            "showSmallIconDescription": "Shows a small icon with listening status.",
-            "showSmallIconLabel": "Enable listening status icon",
-            "showTrackVersionDescription": "Adds the track version to the title.",
-            "showTrackVersionLabel": "Show track version",
-            "supporterHideBrandingDescription": "Hides PulseSync branding in Rich Presence.",
-            "supporterHideBrandingLabel": "Hide PulseSync branding",
-            "supporterHideBrandingLockedDescription": "Available only with a Boosty subscription.",
-            "showVersionOrDeviceDescription": "Shows the app version instead of the device in the icon tooltip.",
-            "showVersionOrDeviceLabel": "Show app version instead of the playback device."
-        },
-        "validation": {
-            "maxLength": "Maximum length is {{count}} characters",
-            "minLength": "Minimum length is {{count}} characters",
-            "statusDisplayTypeFormat": "Enter 0 (Name), 1 (State), or 2 (Details)",
-            "statusDisplayTypeRequired": "Enter 0, 1, or 2"
-        }
-    },
-    "rpc": {
-        "message": "{{message}}",
-        "paused": "Paused",
-        "unknownArtist": "Unknown artist",
-        "unknownAlbum": "Unknown album",
-        "unknownTrack": "Unknown track",
-        "neuroMusic": "Neuro music"
-    },
     "settings": {
         "restartRequired": "Changes will take effect after restarting the app",
         "toggles": {
@@ -1291,8 +1117,7 @@
             "saveWindowDimensions": "Option \"Save window size\" {{status}}",
             "saveWindowPosition": "Option \"Save window position\" {{status}}",
             "showModChangelog": "Option \"Show changelog after install\" {{status}}"
-        },
-        "websocketStatusChanged": "Websocket status changed"
+        }
     },
     "store": {
         "catalog": {
@@ -1322,8 +1147,6 @@
             "next": "Next add-ons"
         },
         "rating": {
-            "title": "Rating",
-            "average": "Average",
             "votes": "Ratings: {{count}}",
             "votesShort": "{{count}} votes",
             "hint": "Rate this add-on",
@@ -1332,7 +1155,6 @@
         },
         "download": "Download",
         "openAuthorProfile": "Open {{author}}'s profile",
-        "loading": "Loading store add-ons...",
         "empty": "No published add-ons are available yet.",
         "noResults": "Nothing was found.",
         "filters": {
@@ -1354,17 +1176,9 @@
         "pendingSectionTitle": "Add-ons under moderation",
         "pendingSectionSubtitle": "Add-ons undergoing moderation",
         "pendingEmpty": "No add-ons under moderation match the current query.",
-        "searchPlaceholder": "Find an add-on...",
-        "downloadCount": "{{count}} downloads",
-        "approvedAt": "Reviewed {{date}}",
-        "submittedAt": "Submitted {{date}}",
-        "installed": "Installed",
-        "notInstalled": "Not installed",
-        "localVersionLinked": "A local version of {{title}} is already installed and linked to this publication.",
         "installComplete": "Add-on {{title}} was installed.",
         "installFailed": "Failed to install add-on {{title}}.",
         "installUnavailable": "There is no installation file available for {{title}} yet.",
-        "openLocal": "Open local",
         "share": "Share",
         "shareCopied": "Add-on link copied.",
         "shareFailed": "Failed to copy the link.",
@@ -1373,11 +1187,6 @@
         "removeComplete": "Add-on {{title}} was removed.",
         "removeFailed": "Failed to remove add-on {{title}}.",
         "unknownAddon": "Add-on",
-        "logs": {
-            "downloadComplete": "[Store] Download complete. Starting installation.",
-            "downloadStart": "[Store] Starting download {{title}}",
-            "installComplete": "[Store] Installed {{title}}!"
-        },
         "status": {
             "accepted": "Accepted",
             "active": "Active",
@@ -1395,11 +1204,6 @@
             "officialTemplate": "Official template",
             "aiUsage": "AI",
             "aiUsageTooltip": "AI was used during development of this add-on"
-        },
-        "type": {
-            "both": "CSS + JS",
-            "css": "CSS",
-            "js": "JS"
         }
     },
     "textInput": {
@@ -1412,10 +1216,6 @@
             "appName": "App name",
             "trackArtist": "Track artist",
             "trackTitle": "Track title"
-        },
-        "statusLanguage": {
-            "english": "English",
-            "russian": "Russian"
         }
     },
     "updates": {
@@ -1440,10 +1240,6 @@
         "online": "Online"
     },
     "utils": {
-        "charCount": {
-            "withMax": "{{currentLength}} / {{maxLength}}",
-            "withoutMax": "{{currentLength}}"
-        },
         "connectionAttemptMessage": "Connection attempt. Retries left: {{retriesLeft}}. Next in {{retryIntervalInSeconds}}s.",
         "connectionAttemptTitle": "Ping-pong",
         "internetCheckError": "Failed to check internet connection",

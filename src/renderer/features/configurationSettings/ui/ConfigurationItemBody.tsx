@@ -1,5 +1,3 @@
-import React from 'react'
-
 import { MdAdd, MdDelete } from 'react-icons/md'
 
 import { produce } from '@features/configurationSettings/model/useConfigurationEditor'

@@ -95,32 +95,6 @@
     color: var(--text-secondary);
 }
 
-.statusLabel {
-    font-size: 12px;
-    font-weight: 700;
-
-    color: var(--text-secondary);
-}
-
-.statusValue {
-    font-size: 15px;
-    font-weight: 800;
-
-    color: #fff;
-}
-
-.statusMeta,
-.statusMuted {
-    font-size: 14px;
-    font-weight: 700;
-
-    text-align: right;
-}
-
-.statusMeta {
-    color: var(--text-primary);
-}
-
 .fieldWrap {
     display: flex;
 

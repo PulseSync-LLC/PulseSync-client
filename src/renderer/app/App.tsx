@@ -1,7 +1,5 @@
 import './i18n'
 
-import React from 'react'
-
 import { ApolloProvider } from '@apollo/client/react'
 import { Toaster } from 'react-hot-toast'
 

@@ -7,6 +7,4 @@ const IncomingSocketEvents = {
     RECONNECT: 'reconnect',
 } as const
 
-export type IncomingSocketEvent = (typeof IncomingSocketEvents)[keyof typeof IncomingSocketEvents]
-
 export default IncomingSocketEvents

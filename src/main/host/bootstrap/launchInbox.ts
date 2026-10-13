@@ -56,11 +56,6 @@ export class LaunchInbox {
         await this.reconcile()
     }
 
-    public stop(): void {
-        this.delivery = null
-        this.closeWatcher()
-    }
-
     public reconcile(): Promise<void> {
         if (!this.delivery || this.frozen) return Promise.resolve()
         if (this.reconcilePromise) return this.reconcilePromise

@@ -185,8 +185,6 @@
     width: 100%;
 }
 
-.notificationItem,
-.notificationItemUnread,
 .notificationItemSuccess,
 .notificationItemUnreadSuccess,
 .notificationItemError,
@@ -216,8 +214,6 @@
         box-shadow 0.15s ease;
 }
 
-.notificationItem:hover,
-.notificationItemUnread:hover,
 .notificationItemSuccess:hover,
 .notificationItemUnreadSuccess:hover,
 .notificationItemError:hover,
@@ -228,11 +224,6 @@
     box-shadow: 0 8px 20px rgb(0, 0, 0, 0.16);
 
     transform: translateY(-1px);
-}
-
-.notificationItemUnread {
-    background: color-mix(in srgb, var(--surface-secondary) 84%, var(--warning) 16%);
-    border-color: var(--border);
 }
 
 .notificationItemSuccess,
@@ -410,13 +401,11 @@
     color: color-mix(in srgb, var(--danger) 78%, var(--text-secondary) 22%);
 }
 
-.notificationItemUnreadWarning .notificationTone,
-.notificationItemUnread .notificationTone {
+.notificationItemUnreadWarning .notificationTone {
     color: var(--warning);
 }
 
-.notificationItemWarning .notificationTone,
-.notificationItem .notificationTone {
+.notificationItemWarning .notificationTone {
     color: color-mix(in srgb, var(--warning) 78%, var(--text-secondary) 22%);
 }
 
@@ -430,8 +419,7 @@
     box-shadow: 0 0 0 3px rgb(255, 119, 119, 0.16);
 }
 
-.notificationItemUnreadWarning .notificationUnreadDot,
-.notificationItemUnread .notificationUnreadDot {
+.notificationItemUnreadWarning .notificationUnreadDot {
     background: var(--warning);
     box-shadow: 0 0 0 3px color-mix(in srgb, var(--warning) 20%, transparent 80%);
 }

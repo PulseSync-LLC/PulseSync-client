@@ -2,13 +2,10 @@ export const isDev = false
 export const isDevmark = true
 export const branch = 'dev'
 
-const PORT = '2007'
 const MAIN_PORT = 2007
 const AUTONOMOUS_MUSIC_VERSION = '5.105.3'
 
 const config = {
-    PORT,
-    UPDATE_URL: 'https://s3.pulsesync.dev',
     SERVER_URL: isDev ? 'http://localhost:4000' : 'https://ru-node-1.pulsesync.dev',
     SERVER_v2_URL: 'https://ru-node-1.pulsesync.dev',
     WEBSITE_URL: isDev ? 'http://localhost:3100' : 'https://pulsesync.dev',

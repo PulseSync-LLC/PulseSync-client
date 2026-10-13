@@ -82,7 +82,6 @@ export class StartupCoordinator {
         setLaunchHandoffRuntime({
             inbox: options.inbox,
             lease: options.lease,
-            publishState: state => options.bootstrapWindow.publish(state),
             queue: options.queue,
             runtimePaths: options.runtimePaths,
         })

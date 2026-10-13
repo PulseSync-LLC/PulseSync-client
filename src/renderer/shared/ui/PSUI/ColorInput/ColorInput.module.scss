@@ -247,28 +247,6 @@
     opacity: 0.25;
 }
 
-.inputs {
-    display: grid;
-
-    grid-template-columns: 1fr 96px;
-
-    gap: 8px;
-}
-
-.inputBox {
-    position: relative;
-
-    display: grid;
-
-    gap: 4px;
-}
-
-.inputLabel {
-    font-size: 12px;
-
-    color: var(--text-secondary);
-}
-
 .text {
     width: 100%;
 

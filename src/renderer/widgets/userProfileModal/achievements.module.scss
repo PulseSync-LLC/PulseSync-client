@@ -1,17 +1,3 @@
-.achievementList {
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 5px;
-
-    align-items: flex-start;
-
-    width: 100%;
-
-    padding: 0;
-}
-
 .achievementCard {
     position: relative;
 
@@ -110,8 +96,7 @@
     position: relative;
 }
 
-.achievementDescription,
-.achievementHint {
+.achievementDescription {
     width: 100%;
 
     color: var(--text-secondary);
@@ -123,18 +108,12 @@
     opacity: 1;
 }
 
-.achievementHint {
-    opacity: 0;
-}
-
 .buttonsItem {
     display: flex;
 
     gap: 5px;
 }
 
-.editButton,
-.deleteButton,
 .expandButton {
     display: flex;
 
@@ -156,30 +135,6 @@
     border-radius: 33px;
 
     transition: var(--transition);
-}
-
-.editButton {
-    height: fit-content;
-
-    color: var(--accent-foreground);
-
-    background: var(--accent);
-
-    &:hover {
-        filter: brightness(0.85);
-    }
-}
-
-.deleteButton {
-    height: fit-content;
-
-    color: var(--text-primary);
-
-    background: var(--danger);
-
-    &:hover {
-        filter: brightness(0.85);
-    }
 }
 
 .expandButton {

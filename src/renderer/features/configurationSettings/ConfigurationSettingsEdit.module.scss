@@ -269,66 +269,10 @@
         0 1px 10px color-mix(in srgb, var(--success) 25%, transparent) inset;
 }
 
-.rowWithDelete {
-    display: grid;
-
-    grid-template-columns: 1fr auto;
-
-    gap: 8px;
-
-    align-items: end;
-}
-
-.addRow {
-    display: grid;
-
-    gap: 6px;
-
-    margin-top: 2px;
-}
-
 .smallTitle {
     font-size: 12px;
 
     color: var(--cfg-muted);
-}
-
-.addButtons {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 6px;
-}
-
-.chip {
-    display: inline-flex;
-
-    gap: 6px;
-
-    align-items: center;
-
-    height: 28px;
-
-    padding: 0 10px;
-
-    font-size: 12px;
-
-    color: var(--text-primary);
-
-    cursor: pointer;
-
-    background: var(--border-hover);
-    border: 1px solid var(--border-hover);
-    border-radius: 999px;
-
-    transition: 0.18s ease;
-}
-
-.chip:hover {
-    border-color: var(--text-muted);
-
-    transform: translateY(-1px);
 }
 
 .rowEnd {
@@ -444,18 +388,6 @@
     font-size: 12px;
 
     color: var(--cfg-muted);
-}
-
-.dropTarget {
-    outline-color: color-mix(in srgb, var(--text-secondary) 90%, transparent) !important;
-
-    box-shadow: 0 0 0 2px color-mix(in srgb, var(--text-secondary) 25%, transparent) inset;
-}
-
-.list {
-    display: grid;
-
-    gap: 8px;
 }
 
 .footerSpace {

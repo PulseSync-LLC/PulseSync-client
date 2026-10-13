@@ -392,12 +392,6 @@
     word-break: break-word;
 }
 
-.listPreviewEmpty {
-    font-size: 13px;
-
-    color: var(--cfg-muted);
-}
-
 .listEditorModal {
     min-width: min(760px, calc(100vw - 32px)) !important;
     max-width: min(760px, calc(100vw - 32px)) !important;
@@ -631,10 +625,6 @@
     white-space: nowrap;
 }
 
-.authorChips {
-    display: contents;
-}
-
 .authorChip {
     display: flex;
 
@@ -796,49 +786,6 @@
     background: color-mix(in srgb, var(--danger) 14%, transparent);
     border: 1px solid color-mix(in srgb, var(--danger) 32%, transparent);
     border-radius: 12px;
-}
-
-.preview {
-    width: 100%;
-    max-height: 220px;
-
-    object-fit: cover;
-
-    background: var(--surface-elevated);
-    border: 1px solid var(--border-hover);
-    border-radius: 10px;
-}
-
-.inlineActions {
-    display: flex;
-
-    gap: 10px;
-
-    justify-content: flex-end;
-
-    margin-top: 8px;
-}
-
-.primaryBtn {
-    color: var(--accent-foreground) !important;
-
-    background: var(--accent) !important;
-    border: 0 !important;
-}
-
-.primaryBtn:hover {
-    filter: brightness(1.06);
-}
-
-.secondaryBtn {
-    color: var(--danger) !important;
-
-    background: color-mix(in srgb, var(--danger) 12%, transparent) !important;
-    border: 0 !important;
-}
-
-.secondaryBtn:hover {
-    background: color-mix(in srgb, var(--danger) 20%, transparent) !important;
 }
 
 .footerSpace {

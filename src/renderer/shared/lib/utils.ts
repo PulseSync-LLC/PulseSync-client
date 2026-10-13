@@ -82,10 +82,6 @@ export const errorTypesToShow = new Set([
     'linux_permissions_required',
 ])
 
-export function getCoverImage(t: Track): string {
-    return t.albumArt || 'https://cdn.discordapp.com/app-assets/984031241357647892/1180527644668862574.png'
-}
-
 export function mapArtists(artists: any[] | undefined) {
     if (!Array.isArray(artists)) return []
     return artists.map(a => ({
