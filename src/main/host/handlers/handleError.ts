@@ -33,7 +33,7 @@ export const handleUncaughtException = () => {
         HandleErrorsElectron.handleError('error_handler', 'unhandled_rejection', error.name, error)
     })
 
-    app.on('render-process-gone', (event, webContents, detailed) => {
+    app.on('render-process-gone', (_event, _webContents, detailed) => {
         const REASON_CRASHED = 'crashed'
         const REASON_OOM = 'oom'
         captureRendererTermination(detailed)

@@ -77,10 +77,6 @@ export class LaunchQueue {
         return this.serial
     }
 
-    public unbindSink(): void {
-        this.sink = null
-    }
-
     public flush(): Promise<void> {
         return this.serial
     }

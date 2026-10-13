@@ -1,5 +1,3 @@
-import React from 'react'
-
 import { useTranslation } from 'react-i18next'
 import { MdCode, MdExtension, MdInfoOutline, MdInsights, MdLink, MdScience, MdSettings, MdSystemUpdateAlt, MdWidgets } from 'react-icons/md'
 

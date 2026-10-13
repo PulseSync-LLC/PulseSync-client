@@ -1,5 +1,3 @@
-import React from 'react'
-
 import * as styles from '@shared/ui/PSUI/Shimmer/variants/ProfileShimmer.module.scss'
 
 export default function ProfileShimmer() {

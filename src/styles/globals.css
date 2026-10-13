@@ -43,11 +43,6 @@
     stroke: none;
 }
 
-#_rht_toaster {
-    inset: 50px 6px !important;
-    z-index: 9000 !important;
-}
-
 textarea {
     resize: none;
 }

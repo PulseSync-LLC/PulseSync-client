@@ -98,8 +98,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
         }
     }, [activeTab, docs, hasPublicationChangelog, hasRelations])
 
-    const themeActive = useMemo(() => isEnabled && addon.type === 'theme', [isEnabled, addon.type])
-
     const toggleWithToast = (enabled: boolean) => {
         onToggleEnabled(enabled)
     }
@@ -127,7 +125,6 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     availableStoreChannels={availableStoreChannels}
                     onStoreChannelChange={onStoreChannelChange}
                     onStoreUpdate={onStoreUpdate}
-                    themeActive={themeActive}
                     onToggleEnabled={toggleWithToast}
                     publication={publication}
                     publicationChangelogText={publicationChangelogText}

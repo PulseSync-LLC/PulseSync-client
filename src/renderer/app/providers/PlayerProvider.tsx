@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import { useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'

@@ -288,10 +288,10 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
         event.returnValue = State.get(val)
     })
-    ipcMain.on(MainEvents.ELECTRON_STORE_SET, (event, key, val) => {
+    ipcMain.on(MainEvents.ELECTRON_STORE_SET, (_event, key, val) => {
         State.set(key, val)
     })
-    ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (event, key) => {
+    ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (_event, key) => {
         State.delete(key)
     })
     ipcMain.handle(MainEvents.SET_STORE_RELEASE_CHANNEL, (_event, channel: unknown) => {

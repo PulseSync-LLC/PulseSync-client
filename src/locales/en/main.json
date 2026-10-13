@@ -1,12 +1,8 @@
 {
     "main": {
         "appUtils": {
-            "appInstalledAndLaunched": "App installed and launched.",
             "dmgAppNotFound": "No .app bundle found in DMG",
             "dumpingEntitlements": "Dumping entitlements…",
-            "executeFailed": "Failed to execute: {{message}}",
-            "fileExecutedSuccessfully": "File executed successfully.",
-            "fileOpenedSuccessfully": "File opened successfully.",
             "hashUpdated": "Hash updated",
             "jsonArrayEndNotFound": "JSON array end not found",
             "jsonArrayStartNotFound": "JSON array start not found",
@@ -109,14 +105,11 @@
             "saveAsTitle": "Save ASAR modification as..."
         },
         "modManager": {
-            "closingMusic": "Closing Yandex Music...",
             "fullDiskAccessRequired": "Please grant full disk access to the app.",
             "incompatibleMod": "The mod is not compatible with the current Yandex Music version.",
             "linuxPermissionsRequired": "Not enough permissions to modify Yandex Music files. Grant access and retry.",
-            "modAlreadyInstalled": "Mod is already installed.",
             "modAsarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
-            "modVersionNotFoundByChecksum": "This patch is not supported right now. Installation was cancelled.",
-            "usingCache": "Using mod cache..."
+            "modVersionNotFoundByChecksum": "This patch is not supported right now. Installation was cancelled."
         },
         "modNetwork": {
             "compatibilityCheckError": "An error occurred while checking mod compatibility.",
@@ -129,13 +122,10 @@
         "obsWidget": {
             "downloadError": "Error downloading widget",
             "downloadUnknownError": "Unknown error while downloading widget",
-            "downloading": "Downloading OBS widget...",
-            "extracting": "Extracting archive...",
             "installSuccess": "OBS widget installed successfully",
             "removeError": "Error removing widget",
             "removeSuccess": "OBS widget removed successfully",
-            "removeUnknownError": "Unknown error while removing widget",
-            "removing": "Removing OBS widget..."
+            "removeUnknownError": "Unknown error while removing widget"
         },
         "process": {
             "updateCompleteBody": "You can view the changelog in the app",

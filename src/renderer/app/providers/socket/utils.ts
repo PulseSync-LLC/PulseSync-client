@@ -8,7 +8,6 @@ import type { Socket } from 'socket.io-client'
 const SOCKET_VERSION_FALLBACK = '0.0.0'
 const COMPRESSION_LEVEL = 3
 
-export const SOCKET_OFFLINE_CLEAR_AFTER_MS = 15000
 export const CONNECTION_ERROR_TOAST_THRESHOLD = 3
 
 export function buildRealtimeSocketAuth(appVersion: string, token: string, runtimeInfo: DesktopRuntimeInfo): RealtimeSocketAuth {

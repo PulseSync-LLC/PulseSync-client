@@ -4,9 +4,7 @@ import * as path from 'path'
 
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
-import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
-import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import { CACHE_DIR } from '../constants/paths'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
@@ -47,9 +45,8 @@ export function clearCacheOnVersionChange(): void {
     }
 }
 
-export async function closeMusicIfRunning(window: BrowserWindow | null | undefined): Promise<boolean> {
+export async function closeMusicIfRunning(_window: BrowserWindow | null | undefined): Promise<boolean> {
     if (await isYandexMusicRunning()) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.closingMusic') })
         await closeYandexMusic()
         const deadline = Date.now() + MUSIC_CLOSE_TIMEOUT_MS
         while (Date.now() < deadline) {
@@ -76,7 +73,6 @@ export async function tryUseCacheOrDownload(
     onFailure?: (failure: { error: string; type: string }) => void,
 ): Promise<boolean> {
     if (fileExists(cacheFile)) {
-        sendToRenderer(window, RendererEvents.UPDATE_MESSAGE, { message: t('main.modManager.usingCache') })
         try {
             logger.modManager.info(`Using cached app.asar from ${cacheFile}`)
             const progressBase = progress?.base ?? 0

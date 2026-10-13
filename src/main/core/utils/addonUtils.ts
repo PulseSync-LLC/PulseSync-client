@@ -445,7 +445,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
 
     const addonsConflict = (left: Addon, right: Addon): boolean => addonConflictsWith(left, right) || addonConflictsWith(right, left)
 
-    const hasActiveDependency = (addon: Addon, dependencyDirectory: string): boolean => {
+    const hasActiveDependency = (dependencyDirectory: string): boolean => {
         const dependencyAddon = addonByDirectory.get(dependencyDirectory)
         if (!dependencyAddon) {
             return false
@@ -518,7 +518,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
         for (const addon of activeAddons) {
             const hasMissingDependency = normalizeRelationValues(addon.dependencies)
                 .map(getRelationDirectory)
-                .some(dependencyDirectory => !dependencyDirectory || !hasActiveDependency(addon, dependencyDirectory))
+                .some(dependencyDirectory => !dependencyDirectory || !hasActiveDependency(dependencyDirectory))
 
             const hasConflict = activeAddons.some(otherAddon => otherAddon.directoryName !== addon.directoryName && addonsConflict(addon, otherAddon))
 

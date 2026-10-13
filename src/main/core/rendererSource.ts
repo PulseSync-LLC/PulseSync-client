@@ -7,7 +7,7 @@ import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
 import { readBootstrapSettings } from '../shared/bootstrap/bootstrapSettings'
 import logger from '../shared/logger'
 import { getEffectiveUpdateChannel } from '../shared/updater/updateChannel'
-import { getUpdateSource, type UpdateSource } from '../shared/updater/updateSource'
+import { getUpdateSource } from '../shared/updater/updateSource'
 import isAppDev from '../shared/utils/isAppDev'
 import {
     BACKEND_REMOTE_RENDERER_BASE_URL,
@@ -55,11 +55,6 @@ function rejectRemoteRenderer(message: string, details?: Record<string, unknown>
         logger.main.warn(message)
     }
     throw new Error(message)
-}
-
-export function getDefaultRemoteRendererManifestUrl(updateSource: UpdateSource): string {
-    const channel = getPublicRendererChannel()
-    return updateSource === 'github' ? getGithubRendererManifestUrl(channel) : getBackendRendererManifestUrl(channel)
 }
 
 function getRemoteManifestUrls(): string[] {

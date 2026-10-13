@@ -12,6 +12,4 @@ const IncomingGatewayEvents = {
     NOTIFICATIONS_READ_ALL: 'notifications_read_all',
 } as const
 
-export type IncomingGatewayEvent = (typeof IncomingGatewayEvents)[keyof typeof IncomingGatewayEvents]
-
 export default IncomingGatewayEvents

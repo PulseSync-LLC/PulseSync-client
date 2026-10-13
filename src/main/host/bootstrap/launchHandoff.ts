@@ -10,12 +10,10 @@ import type { ActiveAppLeaseV1 } from '../../shared/bootstrapper/contracts'
 import type { BootstrapperRuntimePaths } from '../../shared/bootstrapper/paths'
 import type { LaunchInbox } from './launchInbox'
 import type { LaunchQueue } from './launchQueue'
-import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 export type LaunchHandoffRuntime = {
     inbox: LaunchInbox
     lease: ActiveAppLeaseV1
-    publishState?: (state: BootstrapUiStateV1) => void
     queue: LaunchQueue
     runtimePaths: BootstrapperRuntimePaths
 }
@@ -25,10 +23,6 @@ let activeHandoff: Promise<boolean> | null = null
 
 export function setLaunchHandoffRuntime(runtime: LaunchHandoffRuntime): void {
     activeRuntime = runtime
-}
-
-export function getActiveAppLease(): ActiveAppLeaseV1 | null {
-    return activeRuntime?.lease ?? null
 }
 
 export function handoffPreparedUpdate(): Promise<boolean> {

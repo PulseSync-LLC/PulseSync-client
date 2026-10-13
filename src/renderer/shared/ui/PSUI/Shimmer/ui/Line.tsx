@@ -1,5 +1,3 @@
-import React from 'react'
-
 import cn from 'clsx'
 
 import * as styles from '@shared/ui/PSUI/Shimmer/ui/Line.module.scss'

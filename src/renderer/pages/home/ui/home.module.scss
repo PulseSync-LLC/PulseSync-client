@@ -13,20 +13,6 @@
     color: var(--text-primary);
 }
 
-.surface {
-    box-sizing: border-box;
-
-    width: 100%;
-    height: 100%;
-    min-height: 0;
-
-    padding: 18px;
-
-    background: var(--surface-elevated);
-    border: 1px solid color-mix(in srgb, var(--text-muted) 55%, transparent);
-    border-radius: 14px;
-}
-
 .grid {
     display: grid;
 
@@ -108,14 +94,6 @@
     color: var(--text-primary);
 
     letter-spacing: 0;
-}
-
-.newsSubtitle {
-    display: none;
-}
-
-.newsHeaderAction {
-    display: none;
 }
 
 .primaryList,
@@ -218,18 +196,6 @@
     align-items: center;
 
     min-width: 0;
-}
-
-.logoFrame {
-    display: inline-flex;
-
-    flex: 0 0 72px;
-
-    align-items: center;
-    justify-content: center;
-
-    width: 72px;
-    height: 72px;
 }
 
 .componentLogo {
@@ -771,8 +737,7 @@
     overflow: hidden;
 }
 
-.newsFeaturedMediaFallback,
-.newsListItemMediaFallback {
+.newsFeaturedMediaFallback {
     position: absolute;
     inset: 0;
 
@@ -781,8 +746,7 @@
         linear-gradient(135deg, var(--surface-elevated) 0%, var(--surface-tertiary) 55%, var(--surface-secondary) 100%);
 }
 
-.newsFeaturedImage,
-.newsListItemImage {
+.newsFeaturedImage {
     position: absolute;
     inset: 0;
 
@@ -825,7 +789,6 @@
 }
 
 .newsMetaDate,
-.newsMetaReadTime,
 .newsMetaDot {
     color: var(--text-muted);
 }
@@ -834,8 +797,7 @@
     font-weight: 700;
 }
 
-.newsFeaturedTitle,
-.newsListItemTitle {
+.newsFeaturedTitle {
     margin: 0;
 
     color: var(--text-primary);
@@ -867,47 +829,6 @@
 
     font-size: 14px;
     -webkit-box-orient: vertical;
-}
-
-.newsListItemFooter {
-    display: flex;
-
-    gap: 12px;
-
-    align-items: center;
-    justify-content: space-between;
-}
-
-.newsFeaturedSlug {
-    min-width: 0;
-
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    font-size: 12px;
-    font-weight: 600;
-
-    color: rgb(184, 196, 230, 0.66);
-
-    white-space: nowrap;
-}
-
-.newsReadButton {
-    flex: 0 0 auto;
-
-    padding: 10px 14px;
-
-    font-size: 13px;
-    font-weight: 800;
-
-    color: var(--border);
-
-    background: var(--text-primary);
-    border-radius: 10px;
-
-    &:not(:disabled):active {
-        color: var(--border);
-    }
 }
 
 .newsListItem {

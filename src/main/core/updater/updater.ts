@@ -9,7 +9,6 @@ import { discardPreparedUpdate, type PrepareDesktopUpdateOptions, type PrepareUp
 import { getDesktopUpdateManifestRequest } from '../../shared/updater/desktopManifestSource'
 import { getUpdateSource, type UpdateSource } from '../../shared/updater/updateSource'
 import { mainWindow } from '../createWindow'
-import { state } from '../handlers/state'
 import { UpdateStatus } from './constants/updateStatus'
 
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
@@ -183,7 +182,6 @@ class Updater {
         this.updateStatus = UpdateStatus.DOWNLOADED
         this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
-        this.safeSend(RendererEvents.UPDATE_APP_DATA, { update: true })
         this.setProgressBar(-1)
         this.flashFrame(true)
         this.notifyAvailable(result.decision.targetVersion)
@@ -258,14 +256,11 @@ class Updater {
 
     public async install(): Promise<boolean> {
         if (!this.isRuntimeUpdateEnabled()) return false
-        state.willQuit = true
         try {
             const handedOff = (await bootstrapRuntime?.handoffPreparedUpdate()) ?? false
-            if (!handedOff) state.willQuit = false
             return handedOff
         } catch (error) {
             logger.updater.error('Bootstrapper handoff failed', error)
-            state.willQuit = false
             return false
         }
     }

@@ -1,4 +1,4 @@
-import React, { useContext, useEffect, useMemo, useRef, useState } from 'react'
+import { useContext, useEffect, useMemo, useRef, useState } from 'react'
 
 import { useQuery } from '@apollo/client/react'
 import { useTranslation } from 'react-i18next'

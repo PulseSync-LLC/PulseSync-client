@@ -1,5 +1,3 @@
-import React from 'react'
-
 import { MdKeyboardArrowRight, MdOutlineWarningAmber, MdUpdate } from 'react-icons/md'
 
 import * as pageStyles from '@widgets/layout/layout.module.scss'
