@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo } from 'react'
 
 import { CssVarsProvider } from '@mui/joy'
-import { SkeletonTheme } from 'react-loading-skeleton'
 import { RouterProvider } from 'react-router/dom'
 
 import { ExperimentsProvider } from '@app/providers/experiments'
@@ -149,9 +148,7 @@ export default function AppProviders({
                         <UpdateChannelOverrideModal />
                         <NotificationsProvider value={notificationsValue}>
                             <PlayerProvider>
-                                <SkeletonTheme baseColor="#1c1c22" highlightColor="#333">
-                                    <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
-                                </SkeletonTheme>
+                                <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
                             </PlayerProvider>
                         </NotificationsProvider>
                     </ExperimentsProvider>
