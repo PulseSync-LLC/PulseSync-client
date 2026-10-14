@@ -82,7 +82,7 @@ function resolveRelease(): void {
             throw new Error('reuse-latest supports only the dev/beta bootstrapper')
         }
 
-        const tagPattern = channel === 'dev' ? /^v?\d+\.\d+\.\d+-dev\.\d+$/u : /^v?\d+\.\d+\.\d+-beta\.\d+$/u
+        const tagPattern = channel === 'dev' ? /^v?\d+\.\d+\.\d+-dev\.\d+$/u : /^v?\d+\.\d+\.\d+-beta(?:\.\d+)?$/u
 
         const release = githubReleases().find(
             release =>

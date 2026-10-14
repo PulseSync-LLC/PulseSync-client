@@ -230,12 +230,21 @@ async function main(): Promise<void> {
     const tag = requiredArg(args, '--github-tag')
     const version = tag.replace(/^v/u, '')
     const parsedVersion = semver.parse(version)
+    const prerelease = parsedVersion?.prerelease ?? []
+    const isNumberedChannelTag =
+        prerelease.length === 2 &&
+        prerelease[0] === channel &&
+        typeof prerelease[1] === 'number'
+    const isReusedBetaBootstrapperTag =
+        args.includes('--reuse-latest') &&
+        component === 'bootstrapper' &&
+        channel === 'beta' &&
+        prerelease.length === 1 &&
+        prerelease[0] === 'beta'
     if (
         !parsedVersion ||
         parsedVersion.version !== version ||
-        parsedVersion.prerelease.length !== 2 ||
-        parsedVersion.prerelease[0] !== channel ||
-        typeof parsedVersion.prerelease[1] !== 'number'
+        !(isNumberedChannelTag || isReusedBetaBootstrapperTag)
     ) {
         throw new Error(`Expected an ordinary ${channel} release tag, got ${tag}`)
     }
