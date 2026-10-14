@@ -511,7 +511,7 @@ function writeLinuxBootstrapperEntrypoint(setupRoot: string): void {
         'if [[ ! -x "${BOOTSTRAPPER}" || ! -f "${STATE_DIR}/runtime/install-state.json" ]]; then',
         '    BOOTSTRAPPER="${APP_DIR}/bootstrapper/pulsesync-bootstrapper"',
         'fi',
-        'exec "${BOOTSTRAPPER}" start --state-root "${STATE_DIR}" --seed-root "${APP_DIR}" -- "$@"',
+        'exec "${BOOTSTRAPPER}" start --state-root "${STATE_DIR}" --seed-root "${APP_DIR}" --app-executable-name "pulsesync" -- "$@"',
         '',
     ].join('\n')
 

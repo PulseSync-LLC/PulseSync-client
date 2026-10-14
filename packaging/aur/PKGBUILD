@@ -45,6 +45,12 @@ package() {
     [[ -f "${executable}" ]] && chmod 755 "${executable}"
   done
 
+  for dir in "${pkgdir}"/opt/PulseSync/app-*; do
+    if [[ -d "${dir}" && -f "${dir}/pulsesync" && ! -e "${dir}/PulseSync" ]]; then
+      ln -sf "pulsesync" "${dir}/PulseSync"
+    fi
+  done
+
   install -dm755 "${pkgdir}/usr/bin"
   ln -sf "/opt/PulseSync/pulsesync" "${pkgdir}/usr/bin/pulsesync"
   install -Dm644 "${srcdir}/pulsesync.desktop" "${pkgdir}/usr/share/applications/pulsesync.desktop"
