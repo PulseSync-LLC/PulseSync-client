@@ -78,15 +78,24 @@ function resolveRelease(): void {
     const matrix = buildOs === 'all' ? ['ubuntu-latest', 'windows-2025', 'macos-26'] : [buildOs]
     let tag: string
     if (mode === 'reuse-latest') {
-        if (channel !== 'dev' || component !== 'bootstrapper') throw new Error('reuse-latest supports only the dev bootstrapper')
+        if (!['dev', 'beta'].includes(channel) || component !== 'bootstrapper') {
+            throw new Error('reuse-latest supports only the dev/beta bootstrapper')
+        }
+
+        const tagPattern = channel === 'dev' ? /^v?\d+\.\d+\.\d+-dev\.\d+$/u : /^v?\d+\.\d+\.\d+-beta\.\d+$/u
+
         const release = githubReleases().find(
             release =>
                 release.draft === false &&
-                release.prerelease === true &&
-                /^v?\d+\.\d+\.\d+-dev\.\d+$/u.test(release.tag_name) &&
+                release.prerelease === (channel === 'dev') &&
+                tagPattern.test(release.tag_name) &&
                 matrix.every(os => release.assets?.some((asset: { name: string }) => asset.name === platforms[os][0])),
         )
-        if (!release) throw new Error('No dev release found with manifests for every selected platform')
+
+        if (!release) {
+            throw new Error(`No ${channel} release found with manifests for every selected platform`)
+        }
+
         tag = release.tag_name
     } else {
         const baseVersion = JSON.parse(fs.readFileSync('packages/desktop-core/package.json', 'utf8')).version.split('-')[0]
