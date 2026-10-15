@@ -52,6 +52,8 @@ pub enum LayoutKind {
 fn default_app_executable_name() -> &'static str {
     if cfg!(windows) {
         "PulseSync.exe"
+    } else if cfg!(target_os = "linux") {
+        "pulsesync"
     } else {
         "PulseSync"
     }
