@@ -9,6 +9,7 @@ import { resolveAddonCanonicalId, resolveAddonDirectoryKey, resolveAddonPublicat
 import { getAddonsRoot, resolveExistingFileInsideBase } from './addonPaths'
 import { classifyAddonRuntime } from './addonRuntime'
 import { formatSizeUnits, getFolderSize } from './appUtils'
+import { recoverStoreAddonIdentities } from './storeAddonIdentity'
 
 import type Addon from '@entities/addon/model/addon.interface'
 
@@ -173,12 +174,7 @@ async function loadAddonsInternal(): Promise<Addon[]> {
                     metadataChanged = true
                 }
 
-                const resolvedId =
-                    metadata.name === 'Default'
-                        ? 'default'
-                        : resolvedInstallSource === 'store' && metadata.type !== 'web-addon'
-                          ? resolveAddonCanonicalId(metadata, metadata.id)
-                          : resolveAddonStableId(metadata, metadata.id)
+                const resolvedId = resolveAddonStableId(metadata, metadata.id)
                 if (metadata.id !== resolvedId) {
                     metadata.id = resolvedId
                     metadataChanged = true
@@ -310,6 +306,9 @@ async function loadAddonsInternal(): Promise<Addon[]> {
             logger.main.warn(`Addons: failed to remove duplicate ${reason} folder ${shadowedAddon.directoryName}: ${String(error)}`)
         }
     }
+
+    await recoverStoreAddonIdentities(availableAddons)
+    availableAddons.forEach(addon => setAlias(addon.id, addon.directoryName))
 
     const dedupedByCanonicalId = new Map<string, Addon>()
     for (const addon of availableAddons) {
