@@ -258,7 +258,7 @@ export type MainWindowStartupHandle = {
 }
 
 export async function createWindow(
-    options: { bootstrapUi?: BootstrapUiController; bootstrapWindow?: BrowserWindow } = {},
+    options: { bootstrapUi?: BootstrapUiController; bootstrapWindow?: BrowserWindow; startHidden?: boolean } = {},
 ): Promise<MainWindowStartupHandle> {
     const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
     const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
@@ -346,7 +346,7 @@ export async function createWindow(
         if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) {
             options.bootstrapWindow.destroy()
         }
-        if (!State.get('settings.autoStartInTray')) {
+        if (!options.startHidden) {
             mainWindow.show()
             mainWindow.moveTop()
         }

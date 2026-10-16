@@ -1,6 +1,5 @@
-import { BrowserWindow } from 'electron'
-
 import logger from '../shared/logger'
+import { mainWindow } from './createWindow'
 import { queueAddonOpen } from './events'
 import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
 import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporter'
@@ -31,13 +30,13 @@ async function handlePextFile(filePath: string): Promise<void> {
 
 export async function createApplicationLaunchRequestHandler(): Promise<(request: LaunchRequestEnvelopeV1) => Promise<void>> {
     const deeplinkCommandsHandler = await createDeeplinkCommandsHandler()
-    const startInTray = Boolean(getState().get('settings.autoStartInTray'))
     let initialLaunchHandled = false
 
     return async request => {
-        const window = BrowserWindow.getAllWindows().find(candidate => !candidate.isDestroyed())
+        const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined
         const deepLinkArg = findDeepLinkArg(request.argv)
         const pextPath = findPextArg(request.argv)
+        const startInTray = Boolean(getState().get('settings.autoStartInTray'))
         const keepInTray = !initialLaunchHandled && startInTray && !deepLinkArg && !pextPath
         initialLaunchHandled = true
 
@@ -55,6 +54,7 @@ export async function createApplicationLaunchRequestHandler(): Promise<(request:
         }
         if (window) {
             window.show()
+            window.focus()
             logger.main.info('Show window for launch request', { id: request.id, kind: request.kind })
         }
     }

@@ -16,6 +16,7 @@ import { applyHardwareAccelerationPreference } from './bootstrap/hardwareAcceler
 import { LaunchInbox } from './bootstrap/launchInbox'
 import { createLaunchRequestInput, createLocalLaunchEnvelope, LaunchQueue } from './bootstrap/launchQueue'
 import { type ApplicationBootstrapRuntime, type ApplicationStartupHandle, StartupCoordinator } from './bootstrap/startupCoordinator'
+import { shouldHideStartupWindow } from './bootstrap/startupVisibility'
 import { repairWindowsShortcuts } from './bootstrap/windowsShortcuts'
 import {
     canonicalStartSucceeded,
@@ -52,6 +53,13 @@ handleUncaughtException()
 const launchQueue = new LaunchQueue()
 const allowSecondInstance = !app.isPackaged && process.env.PULSESYNC_ALLOW_SECOND_INSTANCE === '1'
 const enableDevUpdater = process.env.PULSESYNC_ENABLE_DEV_UPDATER === '1'
+let startupRevealRequested = false
+let revealStartupWindow = (): void => {}
+
+function revealStartup(): void {
+    startupRevealRequested = true
+    revealStartupWindow()
+}
 
 launchQueue.enqueue(
     createLaunchRequestInput({
@@ -63,17 +71,20 @@ launchQueue.enqueue(
 
 app.on('open-url', (event, url) => {
     event.preventDefault()
+    revealStartup()
     launchQueue.enqueue(createLaunchRequestInput({ argv: [url], kind: 'arguments' }))
 })
 
 app.on('open-file', (event, filePath) => {
     event.preventDefault()
+    revealStartup()
     launchQueue.enqueue(createLaunchRequestInput({ argv: [filePath], kind: 'arguments' }))
 })
 
 function registerSecondInstanceDelivery(): void {
     app.on('second-instance', (_event, commandLine, workingDirectory, additionalData) => {
         const argv = normalizeSecondInstanceArgv(commandLine, app.isPackaged)
+        revealStartup()
         launchQueue.enqueue(
             createLaunchRequestInput({
                 additionalData,
@@ -248,7 +259,9 @@ async function startPackagedBootstrap(): Promise<void> {
         return
     }
 
-    const bootstrapWindow = await createBootstrapWindow()
+    const bootstrapWindow = await createBootstrapWindow({ startHidden: shouldHideStartupWindow() && !startupRevealRequested })
+    revealStartupWindow = () => bootstrapWindow.show()
+    if (startupRevealRequested) bootstrapWindow.show()
     let claim
     try {
         claim = await claimActiveApp({
