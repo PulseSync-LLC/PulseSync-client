@@ -208,6 +208,12 @@ export default function ExtensionPage() {
     const [storeChannelReleases, setStoreChannelReleases] = useState<Partial<Record<'stable' | 'dev', StoreAddon>>>({})
     const [storeChannelLoading, setStoreChannelLoading] = useState(false)
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
+    const [relationStoreAddons, setRelationStoreAddons] = useState<StoreAddon[]>([])
+    const [relationsLoading, setRelationsLoading] = useState(false)
+    const [relationsLoadFailed, setRelationsLoadFailed] = useState(false)
+    const [relationsRefreshVersion, setRelationsRefreshVersion] = useState(0)
+    const [dependencyInstallBusy, setDependencyInstallBusy] = useState(false)
+    const dependencyInstallBusyRef = useRef(false)
     const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
     const [publicationBusy, setPublicationBusy] = useState(false)
@@ -229,6 +235,13 @@ export default function ExtensionPage() {
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
     const loadedRef = useRef(false)
+
+    useEffect(() => {
+        const next = normalizeAddonOrganization(addonOrganization, addons)
+        if (JSON.stringify(next) === JSON.stringify(addonOrganization)) return
+        addonOrganizationRef.current = next
+        setAddonOrganization(next)
+    }, [addonOrganization, addons])
 
     const commitAddonOrganization = useCallback(
         (update: (current: DesktopAddonOrganization) => DesktopAddonOrganization) => {
@@ -407,7 +420,7 @@ export default function ExtensionPage() {
                 setAddons(filtered)
                 setCurrentTheme(String(snapshot.addons.theme || 'Default'))
                 setEnabledScripts(readEnabledScriptsState(snapshot.addons.scripts))
-                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization)
+                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization, filtered)
                 addonOrganizationRef.current = nextOrganization
                 setAddonOrganization(nextOrganization)
                 return filtered
@@ -440,15 +453,15 @@ export default function ExtensionPage() {
             })
         })
 
-        storeCatalog.forEach(addon => {
-            const storeId = String(addon.id || '').trim()
-            if (storeId && !labels[storeId]) {
-                labels[storeId] = addon.name
-            }
+        relationStoreAddons.concat(storeCatalog).forEach(addon => {
+            const ids = [addon.id, addon.currentRelease?.metadataId].map(id => String(id || '').trim()).filter(Boolean)
+            ids.forEach(id => {
+                if (!labels[id]) labels[id] = addon.name
+            })
         })
 
         return labels
-    }, [addons, storeCatalog])
+    }, [addons, relationStoreAddons, storeCatalog])
 
     const installedRelationAddons = useMemo(() => {
         const entries = new Map<string, Addon>()
@@ -848,6 +861,85 @@ export default function ExtensionPage() {
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
     const selectedStoreAddonId = selectedAddon?.installSource === 'store' ? selectedAddon.storeAddonId?.trim() : undefined
+    const relationIdsKey = JSON.stringify(
+        addonRelationsEnabled
+            ? Array.from(
+                  new Set([...(selectedAddon?.dependencies || []), ...(selectedAddon?.conflictsWith || [])].map(id => id.trim()).filter(Boolean)),
+              ).sort()
+            : [],
+    )
+    const relationReleaseChannel = selectedAddon?.storeReleaseChannel ?? 'stable'
+
+    useEffect(() => {
+        const ids = JSON.parse(relationIdsKey) as string[]
+        setRelationStoreAddons([])
+        setRelationsLoadFailed(false)
+        if (!ids.length || !user?.id || user.id === '-1') {
+            setRelationsLoading(false)
+            return
+        }
+
+        let active = true
+        setRelationsLoading(true)
+        void fetchStoreAddonUpdates(ids, relationReleaseChannel, false, { force: relationsRefreshVersion > 0, resolveMetadataIds: true })
+            .then(result => {
+                if (active) setRelationStoreAddons(result)
+            })
+            .catch(error => {
+                console.error('[ExtensionPage] failed to load addon relations', error)
+                if (active) setRelationsLoadFailed(true)
+            })
+            .finally(() => {
+                if (active) setRelationsLoading(false)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [relationIdsKey, relationReleaseChannel, relationsRefreshVersion, user?.id])
+
+    const installableDependencies = Array.from(new Set((selectedAddon?.dependencies || []).map(id => id.trim()).filter(Boolean)))
+        .filter(id => !installedRelationAddons.has(id))
+        .map(id => relationStoreAddons.find(item => item.id === id) || relationStoreAddons.find(item => item.currentRelease?.metadataId === id))
+        .filter((item): item is StoreAddon => item?.currentRelease?.status === 'accepted' && Boolean(item.currentRelease.downloadUrl))
+
+    const handleInstallDependencies = async (dependencyId?: string) => {
+        if (dependencyInstallBusyRef.current || relationsLoading) return
+        const targets = Array.from(
+            new Map(
+                installableDependencies
+                    .filter(item => !dependencyId || item.id === dependencyId || item.currentRelease?.metadataId === dependencyId)
+                    .map(item => [item.id, item]),
+            ).values(),
+        )
+        if (!targets.length) return
+
+        dependencyInstallBusyRef.current = true
+        setDependencyInstallBusy(true)
+        const toastId = toast.custom('loading', t('extensions.relations.installDependencies'), t('common.pleaseWait'))
+        let installingName = ''
+        try {
+            for (const target of targets) {
+                installingName = target.name
+                const result = (await desktopApi.addons.installStore({
+                    id: target.id,
+                    title: target.name,
+                    openAfterInstall: false,
+                    releaseChannel: relationReleaseChannel,
+                    legacyAddonRestrictionsOverrideGroup: localOverrides[CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions]?.group,
+                })) as { success?: boolean; reason?: string }
+                if (!result?.success) throw new Error(result?.reason || 'INSTALL_FAILED')
+                await loadAddons(true)
+            }
+            toast.custom('success', t('common.doneTitle'), t('extensions.relations.installComplete'), { id: toastId })
+        } catch (error) {
+            console.error('[ExtensionPage] failed to install dependency', error)
+            toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: installingName }), { id: toastId })
+        } finally {
+            dependencyInstallBusyRef.current = false
+            setDependencyInstallBusy(false)
+        }
+    }
 
     useEffect(() => {
         setStoreChannelReleases({})
@@ -1485,6 +1577,13 @@ export default function ExtensionPage() {
                                     addonRelationsEnabled={addonRelationsEnabled}
                                     enableBlockedReason={!isSelectedAddonEnabled ? selectedAddonEnableBlockedReason : null}
                                     relationLabels={relationLabels}
+                                    relationStoreAddons={relationStoreAddons}
+                                    relationsLoading={relationsLoading}
+                                    relationsLoadFailed={relationsLoadFailed}
+                                    dependencyInstallBusy={dependencyInstallBusy}
+                                    onInstallDependency={id => void handleInstallDependencies(id)}
+                                    onInstallDependencies={installableDependencies.length ? () => void handleInstallDependencies() : undefined}
+                                    onRetryRelations={() => setRelationsRefreshVersion(value => value + 1)}
                                     hasStoreUpdate={!!selectedStoreUpdate}
                                     storeUpdateBusy={storeUpdateBusy}
                                     storeChannelLoading={storeChannelLoading}

@@ -31,6 +31,8 @@ interface Props {
     addon: AddonInterface
     isEnabled: boolean
     enableBlockedReason?: string | null
+    dependencyInstallBusy?: boolean
+    onInstallDependencies?: () => void
     hasStoreUpdate?: boolean
     storeUpdateBusy?: boolean
     storeChannelLoading?: boolean
@@ -116,6 +118,8 @@ const ThemeInfo: React.FC<Props> = ({
     addon,
     isEnabled,
     enableBlockedReason = null,
+    dependencyInstallBusy = false,
+    onInstallDependencies,
     hasStoreUpdate = false,
     storeUpdateBusy = false,
     storeChannelLoading = false,
@@ -287,16 +291,25 @@ const ThemeInfo: React.FC<Props> = ({
                         </Button>
                     ) : (
                         <Button
-                            className={cn(s.toggleButton, isEnabled ? s.enabledState : s.disabledState)}
-                            disabled={!isEnabled && !!enableBlockedReason}
+                            className={cn(
+                                s.toggleButton,
+                                isEnabled ? s.enabledState : s.disabledState,
+                                !isEnabled && enableBlockedReason && s.dependencyInstallButton,
+                            )}
+                            disabled={dependencyInstallBusy || (!isEnabled && !!enableBlockedReason && !onInstallDependencies)}
                             title={!isEnabled && enableBlockedReason ? enableBlockedReason : undefined}
-                            onClick={() => onToggleEnabled(!isEnabled)}
+                            onClick={() => {
+                                if (!isEnabled && enableBlockedReason && onInstallDependencies) onInstallDependencies()
+                                else onToggleEnabled(!isEnabled)
+                            }}
                         >
-                            {isEnabled
-                                ? t('extensions.disableAction')
-                                : enableBlockedReason
-                                  ? t('extensions.relations.enableBlockedButtonLabel')
-                                  : t('common.enable')}
+                            {dependencyInstallBusy
+                                ? t('common.importing')
+                                : isEnabled
+                                  ? t('extensions.disableAction')
+                                  : enableBlockedReason
+                                    ? t('extensions.relations.installDependencies')
+                                    : t('common.enable')}
                         </Button>
                     )}
 

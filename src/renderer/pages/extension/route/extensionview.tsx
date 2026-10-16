@@ -23,6 +23,13 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
     isEnabled,
     addonRelationsEnabled = false,
     relationLabels,
+    relationStoreAddons,
+    relationsLoading,
+    relationsLoadFailed,
+    dependencyInstallBusy,
+    onInstallDependency,
+    onInstallDependencies,
+    onRetryRelations,
     enableBlockedReason,
     hasStoreUpdate,
     storeUpdateBusy,
@@ -119,6 +126,8 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                     addon={addon}
                     isEnabled={isEnabled}
                     enableBlockedReason={enableBlockedReason}
+                    dependencyInstallBusy={dependencyInstallBusy}
+                    onInstallDependencies={onInstallDependencies}
                     hasStoreUpdate={hasStoreUpdate}
                     storeUpdateBusy={storeUpdateBusy}
                     storeChannelLoading={storeChannelLoading}
@@ -163,6 +172,12 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
                             addon={addon}
                             addonRelationsEnabled={addonRelationsEnabled}
                             relationLabels={relationLabels}
+                            relationStoreAddons={relationStoreAddons}
+                            relationsLoading={relationsLoading}
+                            relationsLoadFailed={relationsLoadFailed}
+                            dependencyInstallBusy={dependencyInstallBusy}
+                            onInstallDependency={onInstallDependency}
+                            onRetryRelations={onRetryRelations}
                             canEditMetadata={canEditMetadata}
                             publicationReleases={publicationReleases}
                         />

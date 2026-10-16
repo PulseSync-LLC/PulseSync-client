@@ -231,7 +231,7 @@
 .relationsCardList {
     display: grid;
 
-    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    grid-template-columns: minmax(0, 1fr);
 
     gap: 12px;
 }
@@ -255,29 +255,9 @@
     box-shadow: inset 0 1px 0 var(--hover);
 }
 
-.relationCardButton {
-    text-align: left;
-
-    cursor: pointer;
-
-    transition:
-        transform 0.16s ease,
-        border-color 0.16s ease,
-        background 0.16s ease;
-
-    &:hover {
-        background: var(--surface-tertiary);
-        border-color: color-mix(in srgb, var(--text-secondary) 28%, transparent);
-
-        transform: translateY(-1px);
-    }
-}
-
-.relationCardStatic {
-    opacity: 0.94;
-}
-
 .relationCardIcon {
+    position: relative;
+
     display: flex;
 
     flex: 0 0 auto;
@@ -292,6 +272,59 @@
 
     background: color-mix(in srgb, var(--text-secondary) 14%, transparent);
     border-radius: 12px;
+}
+
+.relationCardImage {
+    position: absolute;
+    inset: 0;
+
+    width: 100%;
+    height: 100%;
+
+    object-fit: cover;
+
+    border-radius: inherit;
+}
+
+.relationCardTitleButton {
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+
+    min-width: 0;
+
+    padding: 0;
+
+    font: inherit;
+    font-size: 14px;
+    font-weight: 800;
+
+    color: var(--text-primary);
+
+    text-align: left;
+    overflow-wrap: anywhere;
+
+    cursor: pointer;
+
+    background: none;
+    border: 0;
+
+    &:hover {
+        color: var(--accent);
+    }
+
+    svg {
+        flex-shrink: 0;
+    }
+}
+
+.relationCardActions {
+    display: flex;
+
+    align-items: center;
+    justify-content: flex-end;
 }
 
 .relationCardIconDanger {
@@ -423,12 +456,6 @@
     overflow-wrap: anywhere;
 }
 
-.relationCardChevron {
-    flex: 0 0 auto;
-
-    color: var(--text-disabled);
-}
-
 @media (width <= 640px) {
     .relationsCardList {
         grid-template-columns: 1fr;
@@ -438,8 +465,10 @@
         grid-template-columns: auto minmax(0, 1fr);
     }
 
-    .relationCardChevron {
-        display: none;
+    .relationCardActions {
+        grid-column: 2;
+
+        justify-content: flex-start;
     }
 
     .relationCardTopRow {
