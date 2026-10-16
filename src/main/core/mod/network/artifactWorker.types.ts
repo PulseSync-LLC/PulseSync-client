@@ -1,6 +1,7 @@
 export type ArtifactWorkerStage = 'read' | 'checksum' | 'decompress' | 'write' | 'extract' | 'backup' | 'install' | 'cleanup' | 'restore'
 
 export type InstallUnpackedArtifactRequest = {
+    asarPath?: string
     mode: 'installUnpacked'
     sourceKind?: 'archive' | 'directory'
     archivePath: string
@@ -28,7 +29,17 @@ export type HashArtifactRequest = {
     filePath: string
 }
 
-export type ArtifactWorkerRequest = InstallUnpackedArtifactRequest | PrepareAsarArtifactRequest | HashArtifactRequest
+export type ValidateUnpackedArtifactRequest = {
+    mode: 'validateUnpacked'
+    asarPath: string
+    unpackedPath: string
+}
+
+export type ArtifactWorkerRequest =
+    | InstallUnpackedArtifactRequest
+    | PrepareAsarArtifactRequest
+    | HashArtifactRequest
+    | ValidateUnpackedArtifactRequest
 
 export type ArtifactWorkerRequestMessage = {
     id: number
@@ -71,7 +82,19 @@ export type ArtifactWorkerFailure = {
     message: string
 }
 
-export type ArtifactWorkerResponse = InstallUnpackedArtifactSuccess | PrepareAsarArtifactSuccess | HashArtifactSuccess | ArtifactWorkerFailure
+export type ValidateUnpackedArtifactSuccess = {
+    ok: true
+    mode: 'validateUnpacked'
+    durations: Record<string, number>
+    warnings: ArtifactWorkerWarning[]
+}
+
+export type ArtifactWorkerResponse =
+    | InstallUnpackedArtifactSuccess
+    | PrepareAsarArtifactSuccess
+    | HashArtifactSuccess
+    | ValidateUnpackedArtifactSuccess
+    | ArtifactWorkerFailure
 
 export type ArtifactWorkerResponseMessage = {
     id: number

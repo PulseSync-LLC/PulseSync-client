@@ -17,7 +17,13 @@ import {
     unlinkIfExists,
 } from '../download.helpers'
 import { installPreparedAsarAndPatchBundle, isCompressedArchiveLink } from '../mod-files'
-import { ArtifactWorkerError, hashArtifactInWorker, installUnpackedArtifactInWorker, prepareAsarArtifactInWorker } from './artifactWorkerClient'
+import {
+    ArtifactWorkerError,
+    hashArtifactInWorker,
+    installUnpackedArtifactInWorker,
+    prepareAsarArtifactInWorker,
+    validateUnpackedArtifactInWorker,
+} from './artifactWorkerClient'
 import {
     ensureDir,
     isCachedArchiveValid,
@@ -226,16 +232,23 @@ export async function downloadAndExtractUnpacked(
     const artifactName = 'app.asar.unpacked'
     const preflightStartedAt = Date.now()
     try {
+        const asarPath = path.join(path.dirname(targetPath), 'app.asar')
         const markerStartedAt = Date.now()
         if (checksum && fs.existsSync(targetPath)) {
             const installed = readUnpackedMarker(targetPath)
             if (installed && installed === checksum) {
-                logger.modManager.info('app.asar.unpacked hash matches, skipping')
-                reportArtifactProgress(window, completedProgress, artifactName)
-                if (progress?.resetOnComplete ?? true) {
-                    resetProgress(window)
+                try {
+                    await validateUnpackedArtifactInWorker({ asarPath, unpackedPath: targetPath })
+                    logger.modManager.info('app.asar.unpacked matches ASAR, skipping')
+                    reportArtifactProgress(window, completedProgress, artifactName)
+                    if (progress?.resetOnComplete ?? true) {
+                        resetProgress(window)
+                    }
+                    return true
+                } catch (error) {
+                    if (!(error instanceof ArtifactWorkerError) || error.code !== 'UNPACKED_ASAR_MISMATCH') throw error
+                    logger.modManager.warn('Installed unpacked files do not match ASAR, reinstalling:', error.message)
                 }
-                return true
             }
             if (installed && installed !== checksum) {
                 logger.modManager.info(`app.asar.unpacked hash mismatch, reinstalling`)
@@ -346,6 +359,7 @@ export async function downloadAndExtractUnpacked(
         reportArtifactProgress(window, progressBase + networkProgressScale, artifactName)
         const processArchive = () =>
             installUnpackedArtifactInWorker({
+                asarPath,
                 sourceKind,
                 archivePath,
                 archiveExtension,

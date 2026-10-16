@@ -13,6 +13,7 @@ import type {
     HashArtifactRequest,
     InstallUnpackedArtifactRequest,
     PrepareAsarArtifactRequest,
+    ValidateUnpackedArtifactRequest,
 } from './artifactWorker.types'
 
 const durationFields: Array<[keyof NativeArtifactDurations, string]> = [
@@ -72,7 +73,17 @@ async function prepareAsarArtifact(request: PrepareAsarArtifactRequest): Promise
 }
 
 async function installUnpackedArtifact(request: InstallUnpackedArtifactRequest): Promise<ArtifactWorkerResponse> {
-    const result = requirePulseSyncNative().installUnpackedArtifact({
+    const addon = requirePulseSyncNative()
+    if (request.asarPath && typeof addon.validateAsarUnpacked !== 'function') {
+        return {
+            ok: false,
+            stage: 'checksum',
+            code: 'NATIVE_MODULE_UPDATE_REQUIRED',
+            message: 'Update pulsesyncNative to validate ASAR unpacked files',
+        }
+    }
+    const result = addon.installUnpackedArtifact({
+        asarPath: request.asarPath,
         sourceKind: request.sourceKind ?? 'archive',
         archivePath: request.archivePath,
         archiveExtension: request.archiveExtension,
@@ -89,6 +100,21 @@ async function installUnpackedArtifact(request: InstallUnpackedArtifactRequest):
         durations: mapDurations(result.durations),
         warnings: mapWarnings(result),
     }
+}
+
+async function validateUnpackedArtifact(request: ValidateUnpackedArtifactRequest): Promise<ArtifactWorkerResponse> {
+    const addon = requirePulseSyncNative()
+    if (typeof addon.validateAsarUnpacked !== 'function') {
+        return {
+            ok: false,
+            stage: 'checksum',
+            code: 'NATIVE_MODULE_UPDATE_REQUIRED',
+            message: 'Update pulsesyncNative to validate ASAR unpacked files',
+        }
+    }
+    const result = addon.validateAsarUnpacked(request.asarPath, request.unpackedPath)
+    if (!result.ok) return mapFailure(result, 'checksum')
+    return { ok: true, mode: 'validateUnpacked', durations: mapDurations(result.durations), warnings: mapWarnings(result) }
 }
 
 async function hashArtifact(request: HashArtifactRequest): Promise<ArtifactWorkerResponse> {
@@ -114,6 +140,7 @@ async function hashArtifact(request: HashArtifactRequest): Promise<ArtifactWorke
 async function processArtifact(request: ArtifactWorkerRequest): Promise<ArtifactWorkerResponse> {
     if (request.mode === 'prepareAsar') return await prepareAsarArtifact(request)
     if (request.mode === 'hashFile') return await hashArtifact(request)
+    if (request.mode === 'validateUnpacked') return await validateUnpackedArtifact(request)
     return await installUnpackedArtifact(request)
 }
 

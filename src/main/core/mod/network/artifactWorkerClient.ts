@@ -14,6 +14,7 @@ import type {
     HashArtifactRequest,
     InstallUnpackedArtifactRequest,
     PrepareAsarArtifactRequest,
+    ValidateUnpackedArtifactRequest,
 } from './artifactWorker.types'
 
 const ARTIFACT_WORKER_TIMEOUT_MS = 5 * 60 * 1000
@@ -156,6 +157,11 @@ export async function installUnpackedArtifactInWorker(
     const { response, workerThreadId } = await runArtifactWorker({ ...request, mode: 'installUnpacked' })
     if (!response.ok || response.mode !== 'installUnpacked') throw new Error('Artifact worker returned an unexpected response')
     return { durations: response.durations, warnings: formatWarnings(response), workerThreadId }
+}
+
+export async function validateUnpackedArtifactInWorker(request: Omit<ValidateUnpackedArtifactRequest, 'mode'>): Promise<void> {
+    const { response } = await runArtifactWorker({ ...request, mode: 'validateUnpacked' })
+    if (!response.ok || response.mode !== 'validateUnpacked') throw new Error('Artifact worker returned an unexpected response')
 }
 
 export async function prepareAsarArtifactInWorker(
