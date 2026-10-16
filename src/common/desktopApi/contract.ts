@@ -198,6 +198,8 @@ export interface PulseSyncDesktopApi {
         getSource(): Promise<string>
         setSource(source: string | null): Promise<unknown>
         getClientChangelog(): Promise<unknown>
+        getSeenAppPatchNotes(): string[]
+        markAppPatchNotesSeen(ids: string[]): Promise<void>
         getModChangelog(): Promise<unknown>
         needModalUpdate(): Promise<boolean>
         onCheck(listener: (payload: unknown) => void): DesktopUnsubscribe
