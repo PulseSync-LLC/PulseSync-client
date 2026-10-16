@@ -264,19 +264,28 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
 
                 const sortedAppInfos = [...nextAppUpdates].sort((a, b) => b.createdAt - a.createdAt)
                 setAppUpdatesInfo(sortedAppInfos)
-                appUpdatesLoadedRef.current = true
-                const storedIds = window.localStorage.getItem('seenAppPatchNotes')
-                let seenIds = new Set<string>()
-                if (storedIds) {
-                    try {
+                const seenIds = new Set(desktopApi.updates.getSeenAppPatchNotes())
+                try {
+                    const storedIds = window.localStorage.getItem('seenAppPatchNotes')
+                    if (storedIds) {
                         const parsed = JSON.parse(storedIds)
-                        if (Array.isArray(parsed)) seenIds = new Set(parsed.filter((value): value is string => typeof value === 'string'))
-                    } catch {
-                        seenIds = new Set<string>()
+                        if (Array.isArray(parsed)) {
+                            parsed.filter((value): value is string => typeof value === 'string').forEach(id => seenIds.add(id))
+                        }
                     }
+                } catch (error) {
+                    console.warn('Failed to read legacy patch note history:', error)
                 }
                 const hasNewPost = sortedAppInfos.some(info => !seenIds.has(info.id))
-                window.localStorage.setItem('seenAppPatchNotes', JSON.stringify([...new Set([...seenIds, ...sortedAppInfos.map(info => info.id)])]))
+                const nextSeenIds = [...new Set([...seenIds, ...sortedAppInfos.map(info => info.id)])]
+                await desktopApi.updates.markAppPatchNotesSeen(nextSeenIds)
+                if (!active) return
+                appUpdatesLoadedRef.current = true
+                try {
+                    window.localStorage.setItem('seenAppPatchNotes', JSON.stringify(nextSeenIds))
+                } catch (error) {
+                    console.warn('Failed to mirror patch note history:', error)
+                }
                 if (hasNewPost) {
                     openAppChangelogModal()
                 }

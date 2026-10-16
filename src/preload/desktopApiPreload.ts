@@ -196,6 +196,13 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         getClientChangelog: () => ipcRenderer.invoke(MainEvents.GET_CLIENT_CHANGELOG),
 
+        getSeenAppPatchNotes: () => {
+            const ids: unknown = ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'app.seenAppPatchNotes')
+            return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+        },
+
+        markAppPatchNotesSeen: ids => ipcRenderer.invoke(MainEvents.MARK_APP_PATCH_NOTES_SEEN, ids),
+
         getModChangelog: () => ipcRenderer.invoke(MainEvents.GET_MOD_CHANGELOG),
 
         needModalUpdate: () => ipcRenderer.invoke(MainEvents.NEED_MODAL_UPDATE),

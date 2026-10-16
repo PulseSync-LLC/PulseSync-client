@@ -40,6 +40,8 @@ export const desktopApi = {
         getSource: () => requireDesktopApi().updates.getSource(),
         setSource: (source: string | null) => requireDesktopApi().updates.setSource(source),
         getClientChangelog: () => requireDesktopApi().updates.getClientChangelog(),
+        getSeenAppPatchNotes: () => requireDesktopApi().updates.getSeenAppPatchNotes(),
+        markAppPatchNotesSeen: (ids: string[]) => requireDesktopApi().updates.markAppPatchNotesSeen(ids),
         getModChangelog: () => requireDesktopApi().updates.getModChangelog(),
         needModalUpdate: () => requireDesktopApi().updates.needModalUpdate(),
         onCheck: (listener: (payload: unknown) => void) => requireDesktopApi().updates.onCheck(listener),
