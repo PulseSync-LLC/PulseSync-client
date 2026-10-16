@@ -4,6 +4,7 @@ import logger from '../shared/logger'
 import { queueAddonOpen } from './events'
 import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
 import { importPextFile, isPextFilePath, normalizePextPath } from './pextImporter'
+import { getState } from './state'
 
 import type { LaunchRequestEnvelopeV1 } from '../shared/bootstrapper/contracts'
 
@@ -30,11 +31,17 @@ async function handlePextFile(filePath: string): Promise<void> {
 
 export async function createApplicationLaunchRequestHandler(): Promise<(request: LaunchRequestEnvelopeV1) => Promise<void>> {
     const deeplinkCommandsHandler = await createDeeplinkCommandsHandler()
+    const startInTray = Boolean(getState().get('settings.autoStartInTray'))
+    let initialLaunchHandled = false
 
     return async request => {
         const window = BrowserWindow.getAllWindows().find(candidate => !candidate.isDestroyed())
         const deepLinkArg = findDeepLinkArg(request.argv)
         const pextPath = findPextArg(request.argv)
+        const keepInTray = !initialLaunchHandled && startInTray && !deepLinkArg && !pextPath
+        initialLaunchHandled = true
+
+        if (keepInTray) return
 
         if (window?.isMinimized()) {
             window.restore()
