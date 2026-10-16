@@ -11,6 +11,7 @@ import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import { CACHE_DIR, TEMP_DIR } from '../constants/paths'
 import { nativeRenameFile } from '../nativeModules'
+import { requirePulseSyncNative } from '../nativeModules/pulsesyncNative'
 import { getState } from '../state'
 import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../utils/appUtils'
 import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../utils/appUtils/elevation'
@@ -364,6 +365,13 @@ export const modManager = (window: BrowserWindow): void => {
                 },
                 onFailure?: (failure: ModDownloadFailure) => void,
             ): Promise<boolean> => {
+                if (releaseData.unpackLink && typeof requirePulseSyncNative().validateAsarUnpacked !== 'function') {
+                    logger.modManager.error('NATIVE_MODULE_UPDATE_REQUIRED: update pulsesyncNative before installing ASAR/unpacked artifacts')
+                    const failure = { error: t('main.modNetwork.patchError'), type: 'native_module_update_required' }
+                    if (onFailure) onFailure(failure)
+                    else sendFailure(window, failure)
+                    return false
+                }
                 const releaseChecksum = normalizeAsarChecksum(releaseData.checksum)
                 if (!releaseChecksum) {
                     const failure = { error: t('main.modNetwork.integrityError'), type: 'checksum_missing' }

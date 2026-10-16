@@ -1,5 +1,6 @@
 use crate::file_ops::{copy_path, delete_path};
 use crate::fs_transaction::{DirectoryTransaction, unique_sibling};
+use crate::integrity::read_asar_header_string;
 use flate2::read::GzDecoder;
 use napi_derive::napi;
 use sha2::{Digest, Sha256};
@@ -82,6 +83,7 @@ pub struct InstallUnpackedArtifactRequest {
     pub prepared_directory_marker: Option<PreparedDirectoryMarker>,
     pub staging_path: String,
     pub target_path: String,
+    pub asar_path: Option<String>,
 }
 
 struct ArtifactError {
@@ -413,6 +415,73 @@ fn write_prepared_cache(
         .map_err(|error| ArtifactError::from_io("cache", error))
 }
 
+fn validate_unpacked_files(node: &serde_json::Value, root: &Path) -> Result<(), String> {
+    if let Some(files) = node.get("files").and_then(serde_json::Value::as_object) {
+        for (name, entry) in files {
+            if name.is_empty()
+                || name == "."
+                || name == ".."
+                || name.contains(['/', '\\', ':'])
+            {
+                return Err(format!("Invalid ASAR entry name: {name}"));
+            }
+            validate_unpacked_files(entry, &root.join(name))?;
+        }
+    } else if node.get("unpacked").and_then(serde_json::Value::as_bool) == Some(true)
+        && node.get("link").is_none()
+    {
+        let metadata = fs::metadata(root)
+            .map_err(|error| format!("Unable to read unpacked file '{}': {error}", root.display()))?;
+        if !metadata.is_file()
+            || node.get("size").and_then(serde_json::Value::as_u64) != Some(metadata.len())
+        {
+            return Err(format!("Unpacked file size does not match ASAR: {}", root.display()));
+        }
+        if let Some(integrity) = node.get("integrity") {
+            if integrity
+                .get("algorithm")
+                .and_then(serde_json::Value::as_str)
+                != Some("SHA256")
+            {
+                return Err(format!("Unsupported ASAR integrity algorithm: {}", root.display()));
+            }
+            let actual = hash_file_impl(root).map_err(|error| error.to_string())?;
+            if integrity.get("hash").and_then(serde_json::Value::as_str) != Some(actual.as_str()) {
+                return Err(format!("Unpacked file checksum does not match ASAR: {}", root.display()));
+            }
+        }
+    }
+    Ok(())
+}
+
+fn validate_asar_unpacked_impl(asar_path: &Path, unpacked_path: &Path) -> Result<(), ArtifactError> {
+    let result = (|| {
+        let header = read_asar_header_string(asar_path)?;
+        let node: serde_json::Value = serde_json::from_slice(&header).map_err(|error| error.to_string())?;
+        if !node.get("files").is_some_and(serde_json::Value::is_object) {
+            return Err("Invalid ASAR file tree".to_owned());
+        }
+        validate_unpacked_files(&node, unpacked_path)
+    })();
+    result.map_err(|message| ArtifactError {
+        stage: "checksum",
+        code: Some("UNPACKED_ASAR_MISMATCH".to_owned()),
+        message,
+    })
+}
+
+#[napi]
+pub fn validate_asar_unpacked(asar_path: String, unpacked_path: String) -> NativeArtifactResult {
+    let mut durations = NativeArtifactDurations::default();
+    let started_at = Instant::now();
+    let result = validate_asar_unpacked_impl(Path::new(&asar_path), Path::new(&unpacked_path));
+    durations.checksum_ms = elapsed_ms(started_at);
+    match result {
+        Ok(()) => success(None, durations, Vec::new()),
+        Err(error) => failure(error, durations, Vec::new()),
+    }
+}
+
 fn run_unpacked_install(
     request: &InstallUnpackedArtifactRequest,
     durations: &mut NativeArtifactDurations,
@@ -468,6 +537,12 @@ fn run_unpacked_install(
         extract_result?;
         resolve_extracted_root(&staging_path, &target_path)
     };
+
+    if let Some(asar_path) = request.asar_path.as_deref() {
+        let started_at = Instant::now();
+        validate_asar_unpacked_impl(Path::new(asar_path), &extracted_root)?;
+        durations.checksum_ms += elapsed_ms(started_at);
+    }
 
     if let (Some(prepared_path), Some(marker)) = (
         request.prepared_directory_path.as_deref(),

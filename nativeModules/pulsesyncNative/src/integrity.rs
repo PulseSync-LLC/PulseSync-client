@@ -91,7 +91,7 @@ fn read_asar_header(file: &mut File) -> std::result::Result<AsarHeader, String> 
     })
 }
 
-fn read_asar_header_string(path: &Path) -> std::result::Result<Vec<u8>, String> {
+pub(crate) fn read_asar_header_string(path: &Path) -> std::result::Result<Vec<u8>, String> {
     let mut file = File::open(path)
         .map_err(|error| format!("Failed to open ASAR '{}': {error}", path.display()))?;
     read_asar_header(&mut file).map(|header| header.json)

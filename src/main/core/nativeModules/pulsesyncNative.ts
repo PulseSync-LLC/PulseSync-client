@@ -42,6 +42,7 @@ export type NativePrepareAsarArtifactRequest = {
 }
 
 export type NativeInstallUnpackedArtifactRequest = {
+    asarPath?: string
     sourceKind: 'archive' | 'directory'
     archivePath: string
     archiveExtension: string
@@ -68,6 +69,7 @@ export interface PulseSyncNativeAddon {
     hashFile(target: string): string
     prepareAsarArtifact(request: NativePrepareAsarArtifactRequest): NativeArtifactResult
     installUnpackedArtifact(request: NativeInstallUnpackedArtifactRequest): NativeArtifactResult
+    validateAsarUnpacked(asarPath: string, unpackedPath: string): NativeArtifactResult
     calculateAsarHeaderHash(target: string): string
     readAsarVersion(target: string): string
     patchWindowsIntegrity(exePath: string, asarPath: string): string
