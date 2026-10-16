@@ -13,6 +13,7 @@ const WINDOW_SIZE = { width: 250, height: 271 }
 export type BootstrapWindowController = {
     destroy(): void
     publish(state: BootstrapUiStateV1): void
+    show(): void
     setActionHandlers(handlers: { continue?: () => Promise<boolean>; retry?: () => Promise<boolean> }): void
     window: BrowserWindow
 }
@@ -35,7 +36,7 @@ async function loadBootstrapRenderer(window: BrowserWindow): Promise<void> {
     await window.loadFile(candidates.find(candidate => fs.existsSync(candidate)) ?? candidates[0])
 }
 
-export async function createBootstrapWindow(): Promise<BootstrapWindowController> {
+export async function createBootstrapWindow(options: { startHidden?: boolean } = {}): Promise<BootstrapWindowController> {
     const workArea = screen.getPrimaryDisplay().workArea
     const window = new BrowserWindow({
         x: Math.floor(workArea.x + (workArea.width - WINDOW_SIZE.width) / 2),
@@ -62,6 +63,13 @@ export async function createBootstrapWindow(): Promise<BootstrapWindowController
     let currentState = INITIAL_STATE
     let retryHandler: (() => Promise<boolean>) | undefined
     let continueHandler: (() => Promise<boolean>) | undefined
+    let readyToShow = false
+    let shouldShow = !options.startHidden
+
+    const show = (): void => {
+        shouldShow = true
+        if (readyToShow && !window.isDestroyed()) window.show()
+    }
 
     const sendState = (): void => {
         if (!window.isDestroyed() && !window.webContents.isDestroyed()) {
@@ -85,14 +93,19 @@ export async function createBootstrapWindow(): Promise<BootstrapWindowController
         return event.sender.id === window.webContents.id && continueHandler ? await continueHandler() : false
     })
     window.once('closed', cleanup)
-    window.once('ready-to-show', () => window.show())
+    window.once('ready-to-show', () => {
+        readyToShow = true
+        if (shouldShow) show()
+    })
     await loadBootstrapRenderer(window)
 
     return {
         window,
+        show,
         publish(state) {
             currentState = state
             sendState()
+            if (state.phase === 'error' || state.phase === 'blocked') show()
         },
         setActionHandlers(handlers) {
             retryHandler = handlers.retry

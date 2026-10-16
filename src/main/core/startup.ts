@@ -117,7 +117,8 @@ export async function startMainApplication(context: ApplicationStartupContext = 
                 })
             }
         }
-        const windowStartup = await createWindow({ bootstrapUi: context.bootstrapUi, bootstrapWindow: context.bootstrapWindow })
+        const startHidden = Boolean(State.get('settings.autoStartInTray'))
+        const windowStartup = await createWindow({ bootstrapUi: context.bootstrapUi, bootstrapWindow: context.bootstrapWindow, startHidden })
         handleEvents(mainWindow)
         const handleLaunchRequest = await createApplicationLaunchRequestHandler()
         const legacyCompletedLaunchRequestIds = State.get('app.completedLaunchRequestIds')
