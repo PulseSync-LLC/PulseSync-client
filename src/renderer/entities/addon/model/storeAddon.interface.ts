@@ -4,6 +4,7 @@ export type StoreAddonVisibility = 'public' | 'dev' | 'developer'
 
 export interface StoreAddonRelease {
     id: string
+    metadataId?: string | null
     version: string
     releaseChannels?: ('stable' | 'dev')[]
     visibility?: StoreAddonVisibility
