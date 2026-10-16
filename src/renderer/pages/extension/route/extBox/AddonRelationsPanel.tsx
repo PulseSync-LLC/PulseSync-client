@@ -6,12 +6,15 @@ import { MdChevronRight, MdExtension, MdIntegrationInstructions, MdInvertColors 
 import { useNavigate } from 'react-router'
 
 import UserContext from '@entities/user/model/context'
+import Button from '@shared/ui/buttonV2'
 
 import * as s from '@pages/extension/route/extensionview.module.scss'
 
 import type AddonInterface from '@entities/addon/model/addon.interface'
+import type { StoreAddon } from '@entities/addon/model/storeAddon.interface'
+import type { AddonRelationsProps } from '@pages/extension/route/extBox/types'
 
-interface Props {
+interface Props extends AddonRelationsProps {
     addon: AddonInterface
     relationLabels?: Record<string, string>
 }
@@ -27,9 +30,19 @@ type RelationItem = {
     addonType?: AddonInterface['type']
     installSource?: AddonInterface['installSource']
     directoryName?: string
+    storeAddon?: StoreAddon
 }
 
-const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) => {
+const AddonRelationsPanel: React.FC<Props> = ({
+    addon,
+    relationLabels = {},
+    relationStoreAddons = [],
+    relationsLoading = false,
+    relationsLoadFailed = false,
+    dependencyInstallBusy = false,
+    onInstallDependency,
+    onRetryRelations,
+}) => {
     const { t } = useTranslation()
     const navigate = useNavigate()
     const { addons } = useContext(UserContext)
@@ -46,27 +59,33 @@ const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) =>
     }, [addons])
 
     const buildRelationItems = (ids: string[] | undefined, kind: RelationKind): RelationItem[] =>
-        (ids || []).map(value => {
+        Array.from(new Set((ids || []).map(value => value.trim()).filter(Boolean))).map(value => {
             const id = String(value || '').trim()
             const installedAddon = installedAddonMap.get(id) || null
+            const storeAddon =
+                relationStoreAddons.find(item => item.id === id) || relationStoreAddons.find(item => item.currentRelease?.metadataId === id)
 
             return {
                 id,
                 kind,
-                label: relationLabels[id] || installedAddon?.name || id,
+                label: installedAddon?.name || storeAddon?.name || relationLabels[id] || t('extensions.relations.unknownAddon'),
                 isInstalled: !!installedAddon,
                 isEnabled: !!installedAddon?.enabled,
-                addonType: installedAddon?.type,
+                addonType: installedAddon?.type || storeAddon?.type,
                 installSource: installedAddon?.installSource,
                 directoryName: installedAddon?.directoryName,
+                storeAddon,
             }
         })
 
     const dependencyItems = useMemo(
         () => buildRelationItems(addon.dependencies, 'dependency'),
-        [addon.dependencies, installedAddonMap, relationLabels],
+        [addon.dependencies, installedAddonMap, relationLabels, relationStoreAddons, t],
     )
-    const conflictItems = useMemo(() => buildRelationItems(addon.conflictsWith, 'conflict'), [addon.conflictsWith, installedAddonMap, relationLabels])
+    const conflictItems = useMemo(
+        () => buildRelationItems(addon.conflictsWith, 'conflict'),
+        [addon.conflictsWith, installedAddonMap, relationLabels, relationStoreAddons, t],
+    )
 
     if (!dependencyItems.length && !conflictItems.length) {
         return null
@@ -100,7 +119,21 @@ const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) =>
                     ? s.relationCardStatusNeutral
                     : s.relationCardStatusMuted
 
-        const sourceText = item.isInstalled ? (item.installSource === 'store' ? t('extensions.source.store') : t('extensions.source.local')) : item.id
+        const sourceText = item.isInstalled
+            ? t(item.installSource === 'store' ? 'extensions.source.store' : 'extensions.source.local')
+            : item.storeAddon
+              ? item.storeAddon.currentRelease?.authors.join(', ') || t('extensions.source.store')
+              : relationsLoading
+                ? t('extensions.relations.loading')
+                : relationsLoadFailed
+                  ? t('extensions.relations.loadFailed')
+                  : t('extensions.relations.unavailable')
+        const canInstall =
+            item.kind === 'dependency' &&
+            !item.isInstalled &&
+            item.storeAddon?.currentRelease?.status === 'accepted' &&
+            !!item.storeAddon.currentRelease.downloadUrl &&
+            !!onInstallDependency
 
         const icon =
             item.addonType === 'theme' ? (
@@ -111,47 +144,76 @@ const AddonRelationsPanel: React.FC<Props> = ({ addon, relationLabels = {} }) =>
                 <MdExtension size={18} />
             )
 
-        const isInteractive = !!item.directoryName
+        const openAddon = () => {
+            if (item.directoryName) navigate(`/${encodeURIComponent(item.directoryName)}`)
+            else if (item.storeAddon) navigate('/store', { state: { openAddon: item.storeAddon } })
+        }
+        const isInteractive = !!item.directoryName || !!item.storeAddon
+        const avatarUrl = item.storeAddon?.currentRelease?.avatarUrl
 
         const content = (
             <>
-                <div className={cn(s.relationCardIcon, isConflictActive && s.relationCardIconDanger)}>{icon}</div>
+                <div className={cn(s.relationCardIcon, isConflictActive && s.relationCardIconDanger)}>
+                    {icon}
+                    {avatarUrl && (
+                        <img
+                            className={s.relationCardImage}
+                            src={avatarUrl}
+                            alt=""
+                            onError={event => {
+                                event.currentTarget.hidden = true
+                            }}
+                        />
+                    )}
+                </div>
                 <div className={s.relationCardBody}>
                     <div className={s.relationCardTopRow}>
-                        <div className={s.relationCardTitle}>{item.label}</div>
-                        <div className={cn(s.relationCardStatus, statusToneClass)}>{statusText}</div>
+                        {isInteractive ? (
+                            <button type="button" className={s.relationCardTitleButton} onClick={openAddon}>
+                                {item.label}
+                                <MdChevronRight size={18} />
+                            </button>
+                        ) : (
+                            <div className={s.relationCardTitle}>{item.label}</div>
+                        )}
                     </div>
                     <div className={s.relationCardMetaRow}>
                         {item.addonType && <span className={s.relationCardType}>{t(`store.kind.${item.addonType}`)}</span>}
                         <span className={s.relationCardMeta}>{sourceText}</span>
                     </div>
+                    {!item.isInstalled && !item.storeAddon && !relationsLoading && (
+                        <div className={s.relationCardMeta} title={item.id}>
+                            ID: {item.id}
+                        </div>
+                    )}
                 </div>
-                {isInteractive && <MdChevronRight className={s.relationCardChevron} size={18} />}
+                <div className={s.relationCardActions}>
+                    {canInstall ? (
+                        <Button disabled={dependencyInstallBusy || relationsLoading} onClick={() => onInstallDependency?.(item.id)}>
+                            {dependencyInstallBusy ? t('common.importing') : t('extensions.relations.install')}
+                        </Button>
+                    ) : (
+                        <span className={cn(s.relationCardStatus, statusToneClass)}>{statusText}</span>
+                    )}
+                </div>
             </>
         )
 
-        if (!isInteractive) {
-            return (
-                <div key={`${item.kind}-${item.id}`} className={cn(s.relationCard, s.relationCardStatic)}>
-                    {content}
-                </div>
-            )
-        }
-
         return (
-            <button
-                key={`${item.kind}-${item.id}`}
-                type="button"
-                className={cn(s.relationCard, s.relationCardButton)}
-                onClick={() => navigate(`/${encodeURIComponent(item.directoryName || '')}`)}
-            >
+            <div key={`${item.kind}-${item.id}`} className={s.relationCard}>
                 {content}
-            </button>
+            </div>
         )
     }
 
     return (
         <section className={s.relationsLayout}>
+            {relationsLoadFailed && (
+                <div className={s.relationsSectionHeader}>
+                    <div className={s.relationsSectionText}>{t('extensions.relations.loadFailed')}</div>
+                    <Button onClick={onRetryRelations}>{t('extensions.relations.retry')}</Button>
+                </div>
+            )}
             {dependencyItems.length > 0 && (
                 <div className={s.relationsSection}>
                     <div className={s.relationsSectionHeader}>
