@@ -6,7 +6,7 @@ import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdKeyboardArrowDown, MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import { MdEdit, MdKeyboardArrowDown, MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
 import { useNavigate } from 'react-router'
 
 import config from '@common/appConfig'
@@ -29,6 +29,7 @@ import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/sto
 
 interface Props {
     addon: AddonInterface
+    onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
     isEnabled: boolean
     enableBlockedReason?: string | null
     dependencyInstallBusy?: boolean
@@ -116,6 +117,7 @@ function normalizeAuthorNames(author: AddonInterface['author']): string[] {
 
 const ThemeInfo: React.FC<Props> = ({
     addon,
+    onEditProject,
     isEnabled,
     enableBlockedReason = null,
     dependencyInstallBusy = false,
@@ -325,6 +327,14 @@ const ThemeInfo: React.FC<Props> = ({
                 <h1>{addon.name}</h1>
                 {addon.description ? <p>{addon.description}</p> : null}
             </div>
+
+            {addon.type === 'web-addon' && isAddonAuthor(addon, user) && onEditProject && (
+                <section className={s.section}>
+                    <Button className={s.linkButton} onClick={() => void onEditProject()}>
+                        <MdEdit size={16} /> {t('extensions.project.editProject')}
+                    </Button>
+                </section>
+            )}
 
             <div className={s.meta}>
                 <div className={s.metaItem}>

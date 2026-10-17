@@ -27,8 +27,10 @@ import {
     normalizeAddonOrganization,
     setAddonFavorite,
 } from '@pages/extension/model/addonOrganization'
+import { resetMetadataPreference } from '@pages/extension/model/addonProjectPreferences'
 import { clearAddonFilesCache } from '@pages/extension/route/extBox/hooks'
 import ExtensionView from '@pages/extension/route/extensionview'
+import AddonProjectEditor from '@pages/extension/ui/AddonProjectEditor'
 import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
 import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
 import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
@@ -56,11 +58,13 @@ import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvent
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { compareVersions } from '@shared/lib/utils'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
+import type { AddonProject } from '@common/addons/project'
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
@@ -195,6 +199,75 @@ export default function ExtensionPage() {
     const debouncedSearchQuery = useDebouncedValue(searchQuery.toLowerCase(), 250)
 
     const [selectedAddonId, setSelectedAddonId] = useState<string | null>(null)
+    const [project, setProject] = useState<(AddonProject & { addonDirectoryName?: string }) | null>(null)
+    const [projectDirty, setProjectDirty] = useState(false)
+    const [projectSaving, setProjectSaving] = useState(false)
+    const [pendingProjectClose, setPendingProjectClose] = useState<{ directoryName?: string; resetLink?: boolean } | null>(null)
+    const closeProject = useCallback(
+        async (directoryName?: string, resetLink = false) => {
+            if (project && resetLink) {
+                setProjectSaving(true)
+                try {
+                    await desktopApi.addons.projects.resetLink(project.id)
+                    if (project.addonDirectoryName) resetMetadataPreference(project.addonDirectoryName)
+                } catch (error) {
+                    console.error('[AddonProject] failed to reset project link', error)
+                    toast.custom('error', t('common.errorTitle'), t('extensions.project.resetLinkError'))
+                    setProjectSaving(false)
+                    setPendingProjectClose(null)
+                    return
+                }
+            }
+            if (project) void desktopApi.addons.projects.close(project.id).catch(() => undefined)
+            setProject(null)
+            setProjectDirty(false)
+            setProjectSaving(false)
+            setPendingProjectClose(null)
+            if (directoryName) setSelectedAddonId(directoryName)
+        },
+        [project, t],
+    )
+    const requestCloseProject = useCallback(
+        (directoryName?: string, resetLink = false) => {
+            if (projectSaving) return
+            if (projectDirty) setPendingProjectClose({ directoryName, resetLink })
+            else void closeProject(directoryName, resetLink)
+        },
+        [closeProject, projectDirty, projectSaving],
+    )
+    const openingProject = useRef(false)
+    const handleOpenProject = async (addon?: Addon, linkedOnly = false): Promise<boolean> => {
+        if (openingProject.current) return false
+        if (project) return true
+        openingProject.current = true
+        try {
+            const opened = await desktopApi.addons.projects.open(addon ? { directoryName: addon.directoryName, linkedOnly } : undefined)
+            if (opened) {
+                const manifest = JSON.parse(await desktopApi.addons.projects.readText(opened.id, 'manifest'))
+                const matchingAddon = addon ?? addons.find(candidate => candidate.id === manifest.id)
+                setProject({ ...opened, addonDirectoryName: matchingAddon?.directoryName })
+                if (matchingAddon) setSelectedAddonId(matchingAddon.directoryName)
+                return true
+            }
+            return false
+        } catch (error) {
+            console.error('[AddonProject] failed to open project', error)
+            toast.custom(
+                'error',
+                t('common.errorTitle'),
+                t(
+                    String(error).includes('ADDON_PROJECT_ID_MISMATCH')
+                        ? 'extensions.project.wrongAddon'
+                        : String(error).includes('UNSUPPORTED_ADDON_PROJECT_CONFIG')
+                          ? 'extensions.project.unsupportedConfig'
+                          : 'extensions.project.openError',
+                ),
+            )
+            return false
+        } finally {
+            openingProject.current = false
+        }
+    }
     const [isLoaded, setIsLoaded] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
@@ -775,7 +848,16 @@ export default function ExtensionPage() {
         }
     }, [mergedAddons, requestedAddonExists, requestedAddonId, selectedAddonId])
 
-    const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
+    const handleAddonClick = useCallback(
+        (addon: Addon) => {
+            if (project && project.addonDirectoryName !== addon.directoryName) {
+                requestCloseProject(addon.directoryName)
+                return
+            }
+            setSelectedAddonId(addon.directoryName)
+        },
+        [project, requestCloseProject],
+    )
 
     const getImagePath = useCallback((addon: Addon) => buildAddonImagePath(addon, fallbackAddonImage), [fallbackAddonImage])
 
@@ -1499,6 +1581,19 @@ export default function ExtensionPage() {
             title={t('extensions.pageTitle')}
             titleDetail={selectedAddon ? { label: selectedAddon.name, icon: getImagePath(selectedAddon) } : undefined}
         >
+            <CustomModalPS
+                isOpen={pendingProjectClose !== null}
+                onClose={() => setPendingProjectClose(null)}
+                title={t('changes.unsavedWarning')}
+                buttons={[
+                    { text: t('common.cancel'), onClick: () => setPendingProjectClose(null), variant: 'secondary' },
+                    {
+                        text: t('extensions.project.discard'),
+                        onClick: () => void closeProject(pendingProjectClose?.directoryName, pendingProjectClose?.resetLink),
+                        variant: 'danger',
+                    },
+                ]}
+            />
             <EnableAddonModal
                 addon={modalAddon}
                 isOpen={modalOpen}
@@ -1529,6 +1624,7 @@ export default function ExtensionPage() {
                     getImagePath={getImagePath}
                     onAddonClick={handleAddonClick}
                     onCreateNewAddon={handleCreateNewAddon}
+                    onOpenProject={() => void handleOpenProject()}
                     onCreateCategory={handleCreateCategory}
                     onDeleteCategory={handleDeleteCategory}
                     onDisableAddon={addon => handleCheckboxChange(addon, false, true)}
@@ -1561,7 +1657,15 @@ export default function ExtensionPage() {
                     uniqueTags={uniqueTags}
                 />
                 <div className={extensionStylesV2.rightSide}>
-                    {!isLoaded ? (
+                    {project && !project.addonDirectoryName ? (
+                        <AddonProjectEditor
+                            key={project.id}
+                            project={project}
+                            onResetLink={() => requestCloseProject(undefined, true)}
+                            onDirtyChange={setProjectDirty}
+                            onSavingChange={setProjectSaving}
+                        />
+                    ) : !isLoaded ? (
                         <Loader variant="extension" />
                     ) : selectedAddon ? (
                         (() => {
@@ -1573,6 +1677,11 @@ export default function ExtensionPage() {
                             return (
                                 <ExtensionView
                                     addon={selectedAddon}
+                                    onEditProject={linkedOnly => handleOpenProject(selectedAddon, linkedOnly)}
+                                    project={project?.addonDirectoryName === selectedAddon.directoryName ? project : null}
+                                    onResetProjectLink={() => requestCloseProject(undefined, true)}
+                                    onProjectDirtyChange={setProjectDirty}
+                                    onProjectSavingChange={setProjectSaving}
                                     isEnabled={isSelectedAddonEnabled}
                                     addonRelationsEnabled={addonRelationsEnabled}
                                     enableBlockedReason={!isSelectedAddonEnabled ? selectedAddonEnableBlockedReason : null}

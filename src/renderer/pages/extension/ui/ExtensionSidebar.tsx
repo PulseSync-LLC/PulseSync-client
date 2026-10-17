@@ -35,6 +35,7 @@ type Props = {
     onAssignAddonCategory: (addon: Addon, categoryId: string | null) => void
     onCreateCategory: (name: string) => boolean
     onCreateNewAddon: () => void
+    onOpenProject: () => void
     onDeleteCategory: (categoryId: string, categoryName: string) => void
     onDisableAddon: (addon: Addon) => void
     onEnableAddon: (addon: Addon) => void
@@ -83,6 +84,7 @@ export default function ExtensionSidebar({
     onAssignAddonCategory,
     onCreateCategory,
     onCreateNewAddon,
+    onOpenProject,
     onDeleteCategory,
     onDisableAddon,
     onEnableAddon,
@@ -368,6 +370,7 @@ export default function ExtensionSidebar({
                         onReloadAddons={onReloadAddons}
                         onOpenAddonsDirectory={onOpenAddonsDirectory}
                         onCreateNewAddon={onCreateNewAddon}
+                        onOpenProject={onOpenProject}
                         onCreateCategory={() => setCreateCategoryOpen(true)}
                         onDeleteCategory={onDeleteCategory}
                         categories={addonOrganization.categories}
