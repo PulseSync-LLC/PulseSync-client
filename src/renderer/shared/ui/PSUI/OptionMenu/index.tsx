@@ -11,6 +11,7 @@ interface OptionMenuProps {
     onReloadAddons: () => void
     onOpenAddonsDirectory: () => void
     onCreateNewAddon: () => void
+    onOpenProject?: () => void
     onCreateCategory?: () => void
     onDeleteCategory?: (categoryId: string, categoryName: string) => void
     categories?: DesktopAddonOrganizationCategory[]
@@ -22,6 +23,7 @@ export default function OptionMenu({
     onReloadAddons,
     onOpenAddonsDirectory,
     onCreateNewAddon,
+    onOpenProject,
     onCreateCategory,
     onDeleteCategory,
     categories = [],
@@ -33,6 +35,7 @@ export default function OptionMenu({
         { key: 'reload', label: t('options.reloadAddons'), icon: <MdRefresh />, onClick: onReloadAddons },
         { key: 'directory', label: t('options.addonsDirectory'), icon: <MdFolderOpen />, onClick: onOpenAddonsDirectory },
         { key: 'create-addon', label: t('options.createAddon'), icon: <MdCreateNewFolder />, onClick: onCreateNewAddon, divider: true },
+        ...(onOpenProject ? [{ key: 'open-project', label: t('extensions.project.open'), icon: <MdFolderOpen />, onClick: onOpenProject }] : []),
         ...(onCreateCategory
             ? [
                   {

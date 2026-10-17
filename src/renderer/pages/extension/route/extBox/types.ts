@@ -26,6 +26,11 @@ export interface AddonRelationsProps {
 
 export interface ExtensionViewProps extends AddonRelationsProps {
     addon: AddonInterface
+    onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
+    project?: AddonProject | null
+    onResetProjectLink?: () => void
+    onProjectDirtyChange?: (dirty: boolean) => void
+    onProjectSavingChange?: (saving: boolean) => void
     isEnabled: boolean
     addonRelationsEnabled?: boolean
     relationLabels?: Record<string, string>
@@ -67,3 +72,4 @@ export interface ExtensionViewProps extends AddonRelationsProps {
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
+import type { AddonProject } from '@common/addons/project'
