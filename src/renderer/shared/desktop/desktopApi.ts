@@ -150,6 +150,17 @@ export const desktopApi = {
         openRootDirectory: () => requireDesktopApi().addons.openRootDirectory(),
         refreshClients: () => requireDesktopApi().addons.refreshClients(),
         createNew: () => requireDesktopApi().addons.createNew(),
+        projects: {
+            open: (...args: Parameters<PulseSyncDesktopApi['addons']['projects']['open']>) => requireDesktopApi().addons.projects.open(...args),
+            close: (id: string) => requireDesktopApi().addons.projects.close(id),
+            resetLink: (id: string) => requireDesktopApi().addons.projects.resetLink(id),
+            readText: (...args: Parameters<PulseSyncDesktopApi['addons']['projects']['readText']>) =>
+                requireDesktopApi().addons.projects.readText(...args),
+            writeText: (...args: Parameters<PulseSyncDesktopApi['addons']['projects']['writeText']>) =>
+                requireDesktopApi().addons.projects.writeText(...args),
+            pickImage: (id: string, name: string) => requireDesktopApi().addons.projects.pickImage(id, name),
+            imageDataUrl: (id: string, relativePath: string) => requireDesktopApi().addons.projects.imageDataUrl(id, relativePath),
+        },
         files: {
             exists: (path: string) => requireDesktopApi().addons.files.exists(path),
             readText: (path: string, encoding?: string) => requireDesktopApi().addons.files.readText(path, encoding),
