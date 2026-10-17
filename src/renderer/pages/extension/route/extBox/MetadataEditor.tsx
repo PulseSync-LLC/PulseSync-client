@@ -54,6 +54,9 @@ type Props = {
     addonPath: string
     addonRelationsEnabled?: boolean
     filePreviewSrc?: (rel: string) => string
+    projectId?: string
+    onDirtyChange?: (dirty: boolean) => void
+    onSavingChange?: (saving: boolean) => void
 }
 
 type StoreAddonsQuery = {
@@ -241,13 +244,14 @@ const MetadataSkeleton: React.FC = () => (
     </div>
 )
 
-const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) => {
+const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled, projectId, onDirtyChange, onSavingChange }) => {
     const { t } = useTranslation()
     const { setAddons, user } = useContext(UserContext)
     const { isExperimentEnabled } = useExperiments()
     const relationsEnabled = addonRelationsEnabled ?? isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [draft, setDraft] = useState<Metadata>(DEFAULT_META)
     const baseRef = useRef<Metadata>(DEFAULT_META)
+    const sourceRef = useRef('')
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [saving, setSaving] = useState(false)
@@ -273,6 +277,20 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
     const selfAuthorSlug = useMemo(() => getProfileSlug(user), [user])
 
     const open = useMemo(() => !deepEqual(draft, baseRef.current), [draft])
+    useEffect(() => onDirtyChange?.(open), [onDirtyChange, open])
+    useEffect(() => onSavingChange?.(saving), [onSavingChange, saving])
+    const loadProjectPreview = useCallback((relativePath: string) => desktopApi.addons.projects.imageDataUrl(projectId!, relativePath), [projectId])
+    const pickProjectImage = useCallback(
+        async (name: string) => {
+            try {
+                return await desktopApi.addons.projects.pickImage(projectId!, name)
+            } catch {
+                setError(t('metadata.saveError'))
+                return null
+            }
+        },
+        [projectId, t],
+    )
     const valid = useMemo(() => {
         const version = draft.version.trim()
         if (!draft.name.trim()) return false
@@ -291,8 +309,10 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             setLoading(true)
             try {
                 const file = path.join(addonPath, 'metadata.json')
-                const raw = await desktopApi.addons.files.readText(file)
-                const parsed = JSON.parse(raw ?? '{}')
+                const raw = projectId
+                    ? await desktopApi.addons.projects.readText(projectId, 'manifest')
+                    : await desktopApi.addons.files.readText(file)
+                const parsed = JSON.parse((raw ?? '{}').replace(/^\uFEFF/, ''))
                 const meta: Metadata = {
                     ...DEFAULT_META,
                     ...parsed,
@@ -302,11 +322,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                     conflictsWith: Array.isArray(parsed?.conflictsWith) ? parsed.conflictsWith : [],
                     allowedUrls: Array.isArray(parsed?.allowedUrls) ? parsed.allowedUrls : [],
                     supportedVersions: Array.isArray(parsed?.supportedVersions) ? parsed.supportedVersions : [],
-                    type: parsed?.type ?? 'theme',
+                    type: projectId ? 'web-addon' : (parsed?.type ?? 'theme'),
                 }
                 if (!cancelled) {
                     setDraft(meta)
                     baseRef.current = meta
+                    sourceRef.current = raw ?? ''
                 }
             } catch (loadMetadataError) {
                 console.error(loadMetadataError)
@@ -319,7 +340,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
         return () => {
             cancelled = true
         }
-    }, [addonPath, t])
+    }, [addonPath, projectId, t])
 
     useEffect(() => {
         if (!relationsEnabled) {
@@ -690,22 +711,48 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             const next: Metadata = { ...draft }
             next.author = await resolvePulseAuthorsField(next.author)
 
-            if (draft.image) next.image = await resolveRelIfNeeded(draft.image, 'image', '.png')
-            if (draft.banner) next.banner = await resolveRelIfNeeded(draft.banner, 'banner', '.png')
-            if (draft.libraryLogo) next.libraryLogo = await resolveRelIfNeeded(draft.libraryLogo, 'libraryLogo', '.png')
-            if (draft.css) next.css = await resolveRelIfNeeded(draft.css, 'style', '.css')
-            if (draft.script) next.script = await resolveRelIfNeeded(draft.script, 'script', '.js')
+            if (!projectId) {
+                if (draft.image) next.image = await resolveRelIfNeeded(draft.image, 'image', '.png')
+                if (draft.banner) next.banner = await resolveRelIfNeeded(draft.banner, 'banner', '.png')
+                if (draft.libraryLogo) next.libraryLogo = await resolveRelIfNeeded(draft.libraryLogo, 'libraryLogo', '.png')
+                if (draft.css) next.css = await resolveRelIfNeeded(draft.css, 'style', '.css')
+                if (draft.script) next.script = await resolveRelIfNeeded(draft.script, 'script', '.js')
+            }
 
             const metadataToSave: MetadataFileShape = {
                 ...next,
                 author: serializeAuthorField(next.author),
             }
 
-            const file = path.join(addonPath, 'metadata.json')
-            await desktopApi.addons.files.writeText(file, JSON.stringify(metadataToSave, null, 2))
+            if (projectId) {
+                const manifest = JSON.parse(sourceRef.current.replace(/^\uFEFF/, ''))
+                for (const key of [
+                    'name',
+                    'description',
+                    'version',
+                    'author',
+                    'image',
+                    'banner',
+                    'libraryLogo',
+                    'tags',
+                    'dependencies',
+                    'allowedUrls',
+                    'supportedVersions',
+                ] as const) {
+                    manifest[key] = metadataToSave[key]
+                }
+                const content = `${JSON.stringify(manifest, null, 4)}\n`
+                await desktopApi.addons.projects.writeText(projectId, 'manifest', content, sourceRef.current)
+                sourceRef.current = content
+            } else {
+                const file = path.join(addonPath, 'metadata.json')
+                const result = await desktopApi.addons.files.writeText(file, JSON.stringify(metadataToSave, null, 2))
+                if (!result.success) throw new Error(result.error || 'ADDON_FILE_WRITE_FAILED')
+            }
 
             baseRef.current = next
             setDraft(next)
+            if (projectId) return
 
             try {
                 desktopApi.music.refreshModInfo()
@@ -720,11 +767,12 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
             }
         } catch (saveMetadataError) {
             console.error(saveMetadataError)
-            setError(t('metadata.saveError'))
+            setError(t(String(saveMetadataError).includes('ADDON_PROJECT_CHANGED') ? 'extensions.project.changed' : 'metadata.saveError'))
+            return false
         } finally {
             setSaving(false)
         }
-    }, [addonPath, draft, open, resolvePulseAuthorsField, resolveRelIfNeeded, saving, setAddons, t, valid])
+    }, [addonPath, draft, open, projectId, resolvePulseAuthorsField, resolveRelIfNeeded, saving, setAddons, t, valid])
 
     const onReset = useCallback(() => {
         setDraft(baseRef.current)
@@ -909,13 +957,15 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                         </div>
 
                         <div className={css.metaSideRow}>
-                            <SelectInput
-                                className={css.metadataField}
-                                label={t('metadata.labels.type')}
-                                value={draft.type}
-                                options={ADDON_TYPES.map(type => ({ value: type, label: type }))}
-                                onChange={value => setField('type', value as Metadata['type'])}
-                            />
+                            {!projectId && (
+                                <SelectInput
+                                    className={css.metadataField}
+                                    label={t('metadata.labels.type')}
+                                    value={draft.type}
+                                    options={ADDON_TYPES.map(type => ({ value: type, label: type }))}
+                                    onChange={value => setField('type', value as Metadata['type'])}
+                                />
+                            )}
 
                             <TextInput
                                 className={css.metadataField}
@@ -953,6 +1003,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             metadata
                             addonPath={addonPath}
                             preferredBaseName="image"
+                            pickFile={projectId ? () => pickProjectImage('image') : undefined}
+                            loadPreview={projectId ? loadProjectPreview : undefined}
                             accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
                         />
                     </div>
@@ -967,6 +1019,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             metadata
                             addonPath={addonPath}
                             preferredBaseName="banner"
+                            pickFile={projectId ? () => pickProjectImage('banner') : undefined}
+                            loadPreview={projectId ? loadProjectPreview : undefined}
                             accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
                         />
                     </div>
@@ -981,33 +1035,39 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             metadata
                             addonPath={addonPath}
                             preferredBaseName="libraryLogo"
+                            pickFile={projectId ? () => pickProjectImage('libraryLogo') : undefined}
+                            loadPreview={projectId ? loadProjectPreview : undefined}
                             accept=".png,.jpg,.jpeg,.webp,.gif,.svg"
                         />
                     </div>
 
-                    <FileInput
-                        className={css.metadataField}
-                        label={t('metadata.labels.css')}
-                        value={draft.css}
-                        onChange={value => setField('css', value)}
-                        placeholder={t('metadata.placeholders.cssPath')}
-                        metadata
-                        addonPath={addonPath}
-                        preferredBaseName="style"
-                        accept=".css"
-                    />
+                    {!projectId && (
+                        <FileInput
+                            className={css.metadataField}
+                            label={t('metadata.labels.css')}
+                            value={draft.css}
+                            onChange={value => setField('css', value)}
+                            placeholder={t('metadata.placeholders.cssPath')}
+                            metadata
+                            addonPath={addonPath}
+                            preferredBaseName="style"
+                            accept=".css"
+                        />
+                    )}
 
-                    <FileInput
-                        className={`${css.metadataField} ${css.assetWide}`}
-                        label={t('metadata.labels.script')}
-                        value={draft.script}
-                        onChange={value => setField('script', value)}
-                        placeholder={t('metadata.placeholders.scriptPath')}
-                        metadata
-                        addonPath={addonPath}
-                        preferredBaseName="script"
-                        accept=".js"
-                    />
+                    {!projectId && (
+                        <FileInput
+                            className={`${css.metadataField} ${css.assetWide}`}
+                            label={t('metadata.labels.script')}
+                            value={draft.script}
+                            onChange={value => setField('script', value)}
+                            placeholder={t('metadata.placeholders.scriptPath')}
+                            metadata
+                            addonPath={addonPath}
+                            preferredBaseName="script"
+                            accept=".js"
+                        />
+                    )}
                 </div>
 
                 {relationsEnabled && (
@@ -1032,14 +1092,16 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                                 </div>
                             </div>
 
-                            <div className={css.listSummaryMeta}>
-                                <div className={css.listSummaryLabel}>{t('metadata.labels.conflictsWith')}</div>
-                                <div className={css.listSummaryValue}>
-                                    {draft.conflictsWith.length
-                                        ? t('metadata.relationsEditor.conflictsSummary', { count: draft.conflictsWith.length })
-                                        : t('metadata.relationsEditor.previewEmpty')}
+                            {!projectId && (
+                                <div className={css.listSummaryMeta}>
+                                    <div className={css.listSummaryLabel}>{t('metadata.labels.conflictsWith')}</div>
+                                    <div className={css.listSummaryValue}>
+                                        {draft.conflictsWith.length
+                                            ? t('metadata.relationsEditor.conflictsSummary', { count: draft.conflictsWith.length })
+                                            : t('metadata.relationsEditor.previewEmpty')}
+                                    </div>
                                 </div>
-                            </div>
+                            )}
                         </div>
                     </div>
                 )}
@@ -1145,44 +1207,50 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled }) =
                             )}
                         </div>
 
-                        <div className={css.listEditorSection}>
-                            <div className={css.listEditorSectionHeader}>
-                                <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.conflictsTitle')}</div>
-                                <div className={css.listEditorHint}>{t('metadata.relationsEditor.conflictsHint')}</div>
-                            </div>
-
-                            <div className={css.listEditorComposer}>
-                                <SelectInput
-                                    className={css.listEditorSelect}
-                                    label={t('metadata.relationsEditor.conflictsSelectLabel')}
-                                    value={modalConflictSelection}
-                                    options={relationOptions}
-                                    onChange={value => setModalConflictSelection(String(value))}
-                                    placeholder={t('metadata.relationsEditor.conflictsPlaceholder')}
-                                    searchable
-                                    searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
-                                />
-                                <ButtonV2 className={css.listEditorAddButton} onClick={addConflict} disabled={!modalConflictSelection.trim()}>
-                                    <MdAdd size={18} />
-                                    <span>{t('metadata.relationsEditor.add')}</span>
-                                </ButtonV2>
-                            </div>
-
-                            {modalConflictsDraft.length ? (
-                                <div className={css.listEditorItems}>
-                                    {modalConflictsDraft.map(conflictId => (
-                                        <div key={conflictId} className={css.listEditorRow}>
-                                            <div className={css.listEditorRowValue}>{relationLabelMap.get(conflictId) || conflictId}</div>
-                                            <button type="button" className={css.listEditorRemoveButton} onClick={() => removeConflict(conflictId)}>
-                                                <MdClose size={16} />
-                                            </button>
-                                        </div>
-                                    ))}
+                        {!projectId && (
+                            <div className={css.listEditorSection}>
+                                <div className={css.listEditorSectionHeader}>
+                                    <div className={css.listEditorFieldLabel}>{t('metadata.relationsEditor.conflictsTitle')}</div>
+                                    <div className={css.listEditorHint}>{t('metadata.relationsEditor.conflictsHint')}</div>
                                 </div>
-                            ) : (
-                                <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
-                            )}
-                        </div>
+
+                                <div className={css.listEditorComposer}>
+                                    <SelectInput
+                                        className={css.listEditorSelect}
+                                        label={t('metadata.relationsEditor.conflictsSelectLabel')}
+                                        value={modalConflictSelection}
+                                        options={relationOptions}
+                                        onChange={value => setModalConflictSelection(String(value))}
+                                        placeholder={t('metadata.relationsEditor.conflictsPlaceholder')}
+                                        searchable
+                                        searchPlaceholder={t('metadata.relationsEditor.searchPlaceholder')}
+                                    />
+                                    <ButtonV2 className={css.listEditorAddButton} onClick={addConflict} disabled={!modalConflictSelection.trim()}>
+                                        <MdAdd size={18} />
+                                        <span>{t('metadata.relationsEditor.add')}</span>
+                                    </ButtonV2>
+                                </div>
+
+                                {modalConflictsDraft.length ? (
+                                    <div className={css.listEditorItems}>
+                                        {modalConflictsDraft.map(conflictId => (
+                                            <div key={conflictId} className={css.listEditorRow}>
+                                                <div className={css.listEditorRowValue}>{relationLabelMap.get(conflictId) || conflictId}</div>
+                                                <button
+                                                    type="button"
+                                                    className={css.listEditorRemoveButton}
+                                                    onClick={() => removeConflict(conflictId)}
+                                                >
+                                                    <MdClose size={16} />
+                                                </button>
+                                            </div>
+                                        ))}
+                                    </div>
+                                ) : (
+                                    <div className={css.listEditorEmpty}>{t('metadata.relationsEditor.previewEmpty')}</div>
+                                )}
+                            </div>
+                        )}
                     </div>
                 </CustomModalPS>
             )}

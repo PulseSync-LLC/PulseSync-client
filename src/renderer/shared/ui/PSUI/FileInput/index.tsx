@@ -27,6 +27,8 @@ type Props = {
     metadata?: boolean
     addonPath?: string
     preferredBaseName?: string
+    pickFile?: () => Promise<string | null>
+    loadPreview?: (relativePath: string) => Promise<string | null>
 }
 
 const IMAGE_EXTS = new Set(['.png', '.jpg', '.jpeg', '.gif', '.webp', '.bmp', '.svg'])
@@ -118,6 +120,8 @@ const FileInput: React.FC<Props> = ({
     metadata = false,
     addonPath,
     preferredBaseName,
+    pickFile,
+    loadPreview,
 }) => {
     const { t } = useTranslation()
     const inputRef = useRef<HTMLInputElement>(null)
@@ -155,6 +159,11 @@ const FileInput: React.FC<Props> = ({
         setImgLoading(true)
 
         const load = async () => {
+            if (loadPreview) {
+                const url = await loadPreview(value).catch(() => null)
+                if (alive) setDataPreview(url)
+                return
+            }
             if (isAbsPath(value)) {
                 const url = await getDataUrlSafe(value)
                 setDataPreview(typeof url === 'string' ? url : null)
@@ -180,7 +189,7 @@ const FileInput: React.FC<Props> = ({
             alive = false
         }
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [value, metadata, addonPath, rev])
+    }, [value, metadata, addonPath, rev, loadPreview])
 
     useEffect(
         () => () => {
@@ -201,6 +210,14 @@ const FileInput: React.FC<Props> = ({
 
     const openPicker = async () => {
         if (disabled) return
+        if (pickFile) {
+            const selected = await pickFile()
+            if (selected) {
+                commitManual(selected)
+                setRev(current => current + 1)
+            }
+            return
+        }
         const filters = toFilters(accept)
         let defaultPath: string | undefined = undefined
 

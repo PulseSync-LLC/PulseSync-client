@@ -1,0 +1,150 @@
+.root {
+    min-width: 0;
+
+    container-type: inline-size;
+
+    overflow: hidden;
+
+    border: 1px solid var(--border);
+    border-radius: 12px;
+}
+
+.toolbar {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 10px;
+
+    align-items: center;
+    justify-content: space-between;
+
+    padding: 8px;
+
+    border-bottom: 1px solid var(--border);
+}
+
+.tools,
+.modes {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 2px;
+
+    button {
+        display: inline-flex;
+
+        align-items: center;
+        justify-content: center;
+
+        min-width: 30px;
+        height: 30px;
+
+        padding: 0 7px;
+
+        font: inherit;
+        font-size: 12px;
+
+        color: var(--text-secondary);
+
+        cursor: pointer;
+
+        background: transparent;
+        border: 0;
+        border-radius: 6px;
+
+        &:hover,
+        &[aria-pressed='true'] {
+            color: var(--text-primary);
+
+            background: var(--hover);
+        }
+
+        &:focus-visible {
+            outline: 2px solid var(--accent);
+        }
+
+        &:disabled {
+            cursor: default;
+
+            opacity: 0.35;
+        }
+    }
+}
+
+.panes {
+    display: grid;
+
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+
+    &[data-mode='edit'],
+    &[data-mode='preview'] {
+        grid-template-columns: minmax(0, 1fr);
+    }
+}
+
+.source,
+.preview {
+    min-width: 0;
+
+    &[hidden] {
+        display: none;
+    }
+}
+
+.panes[data-mode='split'] .preview {
+    border-left: 1px solid var(--border);
+}
+
+.paneLabel {
+    padding: 9px 16px;
+
+    font-size: 11px;
+
+    color: var(--text-secondary);
+
+    border-bottom: 1px solid var(--border);
+}
+
+.editor,
+.previewContent {
+    height: clamp(360px, 55vh, 720px);
+}
+
+.previewContent {
+    box-sizing: border-box;
+
+    padding: 16px 20px;
+
+    overflow: auto;
+
+    overflow-wrap: anywhere;
+}
+
+.empty {
+    display: grid;
+
+    place-items: center;
+
+    height: 100%;
+
+    margin: 0;
+
+    font-size: 13px;
+
+    color: var(--text-muted);
+
+    text-align: center;
+}
+
+@container (width <= 700px) {
+    .panes[data-mode='split'] {
+        grid-template-columns: minmax(0, 1fr);
+
+        .preview {
+            border-top: 1px solid var(--border);
+            border-left: 0;
+        }
+    }
+}

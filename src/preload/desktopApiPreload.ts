@@ -196,6 +196,13 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         getClientChangelog: () => ipcRenderer.invoke(MainEvents.GET_CLIENT_CHANGELOG),
 
+        getSeenAppPatchNotes: () => {
+            const ids: unknown = ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'app.seenAppPatchNotes')
+            return Array.isArray(ids) ? ids.filter((id): id is string => typeof id === 'string') : []
+        },
+
+        markAppPatchNotesSeen: ids => ipcRenderer.invoke(MainEvents.MARK_APP_PATCH_NOTES_SEEN, ids),
+
         getModChangelog: () => ipcRenderer.invoke(MainEvents.GET_MOD_CHANGELOG),
 
         needModalUpdate: () => ipcRenderer.invoke(MainEvents.NEED_MODAL_UPDATE),
@@ -440,6 +447,17 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
         refreshClients: () => ipcRenderer.send(MainEvents.REFRESH_EXTENSIONS),
 
         createNew: () => ipcRenderer.invoke(MainEvents.CREATE_NEW_EXTENSION),
+
+        projects: {
+            open: request => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_OPEN, request),
+            close: id => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_CLOSE, id),
+            resetLink: id => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_RESET_LINK, id),
+            readText: (id, document) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_READ_TEXT, id, document),
+            writeText: (id, document, content, expectedContent) =>
+                ipcRenderer.invoke(MainEvents.ADDON_PROJECT_WRITE_TEXT, id, document, content, expectedContent),
+            pickImage: (id, name) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_PICK_IMAGE, id, name),
+            imageDataUrl: (id, relativePath) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_IMAGE_DATA_URL, id, relativePath),
+        },
 
         files: {
             exists: targetPath => ipcRenderer.invoke(MainEvents.ADDON_FILE_EXISTS, targetPath),

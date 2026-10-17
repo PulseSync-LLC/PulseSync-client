@@ -25,6 +25,7 @@ interface Props {
     hasPublicationChangelog?: boolean
     hasRelations?: boolean
     showMetadataTab?: boolean
+    showSettingsTab?: boolean
 }
 
 const TabNavigation: React.FC<Props> = ({
@@ -34,6 +35,7 @@ const TabNavigation: React.FC<Props> = ({
     hasPublicationChangelog = false,
     hasRelations = false,
     showMetadataTab = false,
+    showSettingsTab = true,
 }) => {
     const { t } = useTranslation()
     const rootRef = useRef<HTMLDivElement>(null)
@@ -50,7 +52,7 @@ const TabNavigation: React.FC<Props> = ({
 
     const tabs: TabItem[] = [
         { title: t('extensions.tabs.description'), value: DESCRIPTION_TAB, icon: <img src={bookIcon} alt="" /> },
-        { title: t('extensions.tabs.settings'), value: 'Settings', icon: <img src={settingsIcon} alt="" /> },
+        ...(showSettingsTab ? [{ title: t('extensions.tabs.settings'), value: 'Settings', icon: <img src={settingsIcon} alt="" /> }] : []),
         ...(licenseDoc ? [{ title: licenseTitle, value: LICENSE_TAB, icon: <img src={bookIcon} alt="" /> }] : []),
         ...(changelogDoc
             ? [{ title: changelogDoc.title, value: changelogDoc.value || changelogDoc.title, icon: <img src={bookIcon} alt="" /> }]

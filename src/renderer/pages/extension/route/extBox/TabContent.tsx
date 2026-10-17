@@ -19,9 +19,9 @@ import * as styles from '@pages/extension/route/extensionview.module.scss'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddonRelease } from '@entities/addon/model/storeAddon.interface'
 import type { AddonConfig } from '@features/configurationSettings/types'
-import type { ActiveTab, DocTab } from '@pages/extension/route/extBox/types'
+import type { ActiveTab, AddonRelationsProps, DocTab } from '@pages/extension/route/extBox/types'
 
-interface Props {
+interface Props extends AddonRelationsProps {
     active: ActiveTab
     docs: DocTab[]
     configExists: boolean | null
@@ -227,6 +227,12 @@ const TabContent: React.FC<Props> = ({
     addon,
     addonRelationsEnabled = false,
     relationLabels,
+    relationStoreAddons,
+    relationsLoading,
+    relationsLoadFailed,
+    dependencyInstallBusy,
+    onInstallDependency,
+    onRetryRelations,
     canEditMetadata = false,
     publicationReleases = [],
 }) => {
@@ -318,7 +324,16 @@ const TabContent: React.FC<Props> = ({
     if (active === RELATIONS_TAB && addonRelationsEnabled) {
         return (
             <div className={styles.galleryContainer}>
-                <AddonRelationsPanel addon={addon} relationLabels={relationLabels} />
+                <AddonRelationsPanel
+                    addon={addon}
+                    relationLabels={relationLabels}
+                    relationStoreAddons={relationStoreAddons}
+                    relationsLoading={relationsLoading}
+                    relationsLoadFailed={relationsLoadFailed}
+                    dependencyInstallBusy={dependencyInstallBusy}
+                    onInstallDependency={onInstallDependency}
+                    onRetryRelations={onRetryRelations}
+                />
             </div>
         )
     }

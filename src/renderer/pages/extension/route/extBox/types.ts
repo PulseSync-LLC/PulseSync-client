@@ -15,12 +15,27 @@ export interface DocTab {
 
 export type ActiveTab = string
 
-export interface ExtensionViewProps {
+export interface AddonRelationsProps {
+    relationStoreAddons?: StoreAddon[]
+    relationsLoading?: boolean
+    relationsLoadFailed?: boolean
+    dependencyInstallBusy?: boolean
+    onInstallDependency?: (id: string) => void
+    onRetryRelations?: () => void
+}
+
+export interface ExtensionViewProps extends AddonRelationsProps {
     addon: AddonInterface
+    onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
+    project?: AddonProject | null
+    onResetProjectLink?: () => void
+    onProjectDirtyChange?: (dirty: boolean) => void
+    onProjectSavingChange?: (saving: boolean) => void
     isEnabled: boolean
     addonRelationsEnabled?: boolean
     relationLabels?: Record<string, string>
     enableBlockedReason?: string | null
+    onInstallDependencies?: () => void
     canEditMetadata?: boolean
     onToggleEnabled: (enabled: boolean) => void
     hasStoreUpdate?: boolean
@@ -57,3 +72,4 @@ export interface ExtensionViewProps {
     setSelectedTags?: React.Dispatch<React.SetStateAction<Set<string>>>
     setShowFilters?: (show: boolean) => void
 }
+import type { AddonProject } from '@common/addons/project'

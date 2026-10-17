@@ -1,4 +1,5 @@
 import type { DesktopAddonOrganization, DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
+import type Addon from '@entities/addon/model/addon.interface'
 
 export const EMPTY_ADDON_ORGANIZATION: DesktopAddonOrganization = {
     version: 1,
@@ -14,11 +15,15 @@ const readId = (value: unknown) => (typeof value === 'string' ? value.trim() : '
 
 const readCategoryName = (value: unknown) => (typeof value === 'string' ? value.trim().slice(0, 80) : '')
 
-export function normalizeAddonOrganization(value: unknown): DesktopAddonOrganization {
+export function normalizeAddonOrganization(value: unknown, addons: Pick<Addon, 'id' | 'storeAddonId'>[] = []): DesktopAddonOrganization {
     const source = readRecord(value)
     if (!source) return EMPTY_ADDON_ORGANIZATION
 
-    const favoriteAddonIds = Array.from(new Set((Array.isArray(source.favoriteAddonIds) ? source.favoriteAddonIds : []).map(readId).filter(Boolean)))
+    const storeIdAliases = new Map(addons.filter(addon => addon.storeAddonId).map(addon => [addon.storeAddonId!, addon.id]))
+    const readAddonId = (value: unknown): string => storeIdAliases.get(readId(value)) || readId(value)
+    const favoriteAddonIds = Array.from(
+        new Set((Array.isArray(source.favoriteAddonIds) ? source.favoriteAddonIds : []).map(readAddonId).filter(Boolean)),
+    )
     const seenCategoryIds = new Set<string>()
     const categories: DesktopAddonOrganizationCategory[] = []
 
@@ -35,9 +40,9 @@ export function normalizeAddonOrganization(value: unknown): DesktopAddonOrganiza
     const rawAssignments = readRecord(source.categoryByAddonId)
     if (rawAssignments) {
         for (const [rawAddonId, rawCategoryId] of Object.entries(rawAssignments)) {
-            const addonId = readId(rawAddonId)
+            const addonId = readAddonId(rawAddonId)
             const categoryId = readId(rawCategoryId)
-            if (addonId && seenCategoryIds.has(categoryId)) {
+            if (addonId && seenCategoryIds.has(categoryId) && (!categoryByAddonId[addonId] || readId(rawAddonId) === addonId)) {
                 categoryByAddonId[addonId] = categoryId
             }
         }

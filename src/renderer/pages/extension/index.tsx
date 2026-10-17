@@ -27,8 +27,10 @@ import {
     normalizeAddonOrganization,
     setAddonFavorite,
 } from '@pages/extension/model/addonOrganization'
+import { resetMetadataPreference } from '@pages/extension/model/addonProjectPreferences'
 import { clearAddonFilesCache } from '@pages/extension/route/extBox/hooks'
 import ExtensionView from '@pages/extension/route/extensionview'
+import AddonProjectEditor from '@pages/extension/ui/AddonProjectEditor'
 import EnableAddonModal from '@pages/extension/ui/EnableAddonModal'
 import ExtensionSidebar from '@pages/extension/ui/ExtensionSidebar'
 import ThemeNotFound from '@pages/extension/ui/ThemeNotFound'
@@ -56,11 +58,13 @@ import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvent
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { compareVersions } from '@shared/lib/utils'
+import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import Loader from '@shared/ui/PSUI/Loader'
 import toast from '@shared/ui/toast'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
+import type { AddonProject } from '@common/addons/project'
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonWhitelistItem } from '@entities/addon/model/addonWhitelist.interface'
@@ -195,6 +199,75 @@ export default function ExtensionPage() {
     const debouncedSearchQuery = useDebouncedValue(searchQuery.toLowerCase(), 250)
 
     const [selectedAddonId, setSelectedAddonId] = useState<string | null>(null)
+    const [project, setProject] = useState<(AddonProject & { addonDirectoryName?: string }) | null>(null)
+    const [projectDirty, setProjectDirty] = useState(false)
+    const [projectSaving, setProjectSaving] = useState(false)
+    const [pendingProjectClose, setPendingProjectClose] = useState<{ directoryName?: string; resetLink?: boolean } | null>(null)
+    const closeProject = useCallback(
+        async (directoryName?: string, resetLink = false) => {
+            if (project && resetLink) {
+                setProjectSaving(true)
+                try {
+                    await desktopApi.addons.projects.resetLink(project.id)
+                    if (project.addonDirectoryName) resetMetadataPreference(project.addonDirectoryName)
+                } catch (error) {
+                    console.error('[AddonProject] failed to reset project link', error)
+                    toast.custom('error', t('common.errorTitle'), t('extensions.project.resetLinkError'))
+                    setProjectSaving(false)
+                    setPendingProjectClose(null)
+                    return
+                }
+            }
+            if (project) void desktopApi.addons.projects.close(project.id).catch(() => undefined)
+            setProject(null)
+            setProjectDirty(false)
+            setProjectSaving(false)
+            setPendingProjectClose(null)
+            if (directoryName) setSelectedAddonId(directoryName)
+        },
+        [project, t],
+    )
+    const requestCloseProject = useCallback(
+        (directoryName?: string, resetLink = false) => {
+            if (projectSaving) return
+            if (projectDirty) setPendingProjectClose({ directoryName, resetLink })
+            else void closeProject(directoryName, resetLink)
+        },
+        [closeProject, projectDirty, projectSaving],
+    )
+    const openingProject = useRef(false)
+    const handleOpenProject = async (addon?: Addon, linkedOnly = false): Promise<boolean> => {
+        if (openingProject.current) return false
+        if (project) return true
+        openingProject.current = true
+        try {
+            const opened = await desktopApi.addons.projects.open(addon ? { directoryName: addon.directoryName, linkedOnly } : undefined)
+            if (opened) {
+                const manifest = JSON.parse(await desktopApi.addons.projects.readText(opened.id, 'manifest'))
+                const matchingAddon = addon ?? addons.find(candidate => candidate.id === manifest.id)
+                setProject({ ...opened, addonDirectoryName: matchingAddon?.directoryName })
+                if (matchingAddon) setSelectedAddonId(matchingAddon.directoryName)
+                return true
+            }
+            return false
+        } catch (error) {
+            console.error('[AddonProject] failed to open project', error)
+            toast.custom(
+                'error',
+                t('common.errorTitle'),
+                t(
+                    String(error).includes('ADDON_PROJECT_ID_MISMATCH')
+                        ? 'extensions.project.wrongAddon'
+                        : String(error).includes('UNSUPPORTED_ADDON_PROJECT_CONFIG')
+                          ? 'extensions.project.unsupportedConfig'
+                          : 'extensions.project.openError',
+                ),
+            )
+            return false
+        } finally {
+            openingProject.current = false
+        }
+    }
     const [isLoaded, setIsLoaded] = useState(false)
     const [modalOpen, setModalOpen] = useState(false)
     const [modalAddon, setModalAddon] = useState<Addon | null>(null)
@@ -208,6 +281,12 @@ export default function ExtensionPage() {
     const [storeChannelReleases, setStoreChannelReleases] = useState<Partial<Record<'stable' | 'dev', StoreAddon>>>({})
     const [storeChannelLoading, setStoreChannelLoading] = useState(false)
     const [storeCatalog, setStoreCatalog] = useState<StoreAddon[]>([])
+    const [relationStoreAddons, setRelationStoreAddons] = useState<StoreAddon[]>([])
+    const [relationsLoading, setRelationsLoading] = useState(false)
+    const [relationsLoadFailed, setRelationsLoadFailed] = useState(false)
+    const [relationsRefreshVersion, setRelationsRefreshVersion] = useState(0)
+    const [dependencyInstallBusy, setDependencyInstallBusy] = useState(false)
+    const dependencyInstallBusyRef = useRef(false)
     const addonRelationsEnabled = isExperimentEnabled(CLIENT_EXPERIMENTS.ClientAddonRelations, false)
     const [storeCatalogLoaded, setStoreCatalogLoaded] = useState(false)
     const [publicationBusy, setPublicationBusy] = useState(false)
@@ -229,6 +308,13 @@ export default function ExtensionPage() {
     const [selectedCreators, setSelectedCreators] = useState<Set<string>>(new Set())
     const fallbackAddonImage = staticAsset('assets/images/no_themeImage.png')
     const loadedRef = useRef(false)
+
+    useEffect(() => {
+        const next = normalizeAddonOrganization(addonOrganization, addons)
+        if (JSON.stringify(next) === JSON.stringify(addonOrganization)) return
+        addonOrganizationRef.current = next
+        setAddonOrganization(next)
+    }, [addonOrganization, addons])
 
     const commitAddonOrganization = useCallback(
         (update: (current: DesktopAddonOrganization) => DesktopAddonOrganization) => {
@@ -407,7 +493,7 @@ export default function ExtensionPage() {
                 setAddons(filtered)
                 setCurrentTheme(String(snapshot.addons.theme || 'Default'))
                 setEnabledScripts(readEnabledScriptsState(snapshot.addons.scripts))
-                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization)
+                const nextOrganization = normalizeAddonOrganization(snapshot.addons.organization, filtered)
                 addonOrganizationRef.current = nextOrganization
                 setAddonOrganization(nextOrganization)
                 return filtered
@@ -440,15 +526,15 @@ export default function ExtensionPage() {
             })
         })
 
-        storeCatalog.forEach(addon => {
-            const storeId = String(addon.id || '').trim()
-            if (storeId && !labels[storeId]) {
-                labels[storeId] = addon.name
-            }
+        relationStoreAddons.concat(storeCatalog).forEach(addon => {
+            const ids = [addon.id, addon.currentRelease?.metadataId].map(id => String(id || '').trim()).filter(Boolean)
+            ids.forEach(id => {
+                if (!labels[id]) labels[id] = addon.name
+            })
         })
 
         return labels
-    }, [addons, storeCatalog])
+    }, [addons, relationStoreAddons, storeCatalog])
 
     const installedRelationAddons = useMemo(() => {
         const entries = new Map<string, Addon>()
@@ -762,7 +848,16 @@ export default function ExtensionPage() {
         }
     }, [mergedAddons, requestedAddonExists, requestedAddonId, selectedAddonId])
 
-    const handleAddonClick = useCallback((addon: Addon) => setSelectedAddonId(addon.directoryName), [])
+    const handleAddonClick = useCallback(
+        (addon: Addon) => {
+            if (project && project.addonDirectoryName !== addon.directoryName) {
+                requestCloseProject(addon.directoryName)
+                return
+            }
+            setSelectedAddonId(addon.directoryName)
+        },
+        [project, requestCloseProject],
+    )
 
     const getImagePath = useCallback((addon: Addon) => buildAddonImagePath(addon, fallbackAddonImage), [fallbackAddonImage])
 
@@ -848,6 +943,85 @@ export default function ExtensionPage() {
 
     const selectedAddon = useMemo(() => mergedAddons.find(a => a.directoryName === selectedAddonId) || null, [mergedAddons, selectedAddonId])
     const selectedStoreAddonId = selectedAddon?.installSource === 'store' ? selectedAddon.storeAddonId?.trim() : undefined
+    const relationIdsKey = JSON.stringify(
+        addonRelationsEnabled
+            ? Array.from(
+                  new Set([...(selectedAddon?.dependencies || []), ...(selectedAddon?.conflictsWith || [])].map(id => id.trim()).filter(Boolean)),
+              ).sort()
+            : [],
+    )
+    const relationReleaseChannel = selectedAddon?.storeReleaseChannel ?? 'stable'
+
+    useEffect(() => {
+        const ids = JSON.parse(relationIdsKey) as string[]
+        setRelationStoreAddons([])
+        setRelationsLoadFailed(false)
+        if (!ids.length || !user?.id || user.id === '-1') {
+            setRelationsLoading(false)
+            return
+        }
+
+        let active = true
+        setRelationsLoading(true)
+        void fetchStoreAddonUpdates(ids, relationReleaseChannel, false, { force: relationsRefreshVersion > 0, resolveMetadataIds: true })
+            .then(result => {
+                if (active) setRelationStoreAddons(result)
+            })
+            .catch(error => {
+                console.error('[ExtensionPage] failed to load addon relations', error)
+                if (active) setRelationsLoadFailed(true)
+            })
+            .finally(() => {
+                if (active) setRelationsLoading(false)
+            })
+
+        return () => {
+            active = false
+        }
+    }, [relationIdsKey, relationReleaseChannel, relationsRefreshVersion, user?.id])
+
+    const installableDependencies = Array.from(new Set((selectedAddon?.dependencies || []).map(id => id.trim()).filter(Boolean)))
+        .filter(id => !installedRelationAddons.has(id))
+        .map(id => relationStoreAddons.find(item => item.id === id) || relationStoreAddons.find(item => item.currentRelease?.metadataId === id))
+        .filter((item): item is StoreAddon => item?.currentRelease?.status === 'accepted' && Boolean(item.currentRelease.downloadUrl))
+
+    const handleInstallDependencies = async (dependencyId?: string) => {
+        if (dependencyInstallBusyRef.current || relationsLoading) return
+        const targets = Array.from(
+            new Map(
+                installableDependencies
+                    .filter(item => !dependencyId || item.id === dependencyId || item.currentRelease?.metadataId === dependencyId)
+                    .map(item => [item.id, item]),
+            ).values(),
+        )
+        if (!targets.length) return
+
+        dependencyInstallBusyRef.current = true
+        setDependencyInstallBusy(true)
+        const toastId = toast.custom('loading', t('extensions.relations.installDependencies'), t('common.pleaseWait'))
+        let installingName = ''
+        try {
+            for (const target of targets) {
+                installingName = target.name
+                const result = (await desktopApi.addons.installStore({
+                    id: target.id,
+                    title: target.name,
+                    openAfterInstall: false,
+                    releaseChannel: relationReleaseChannel,
+                    legacyAddonRestrictionsOverrideGroup: localOverrides[CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions]?.group,
+                })) as { success?: boolean; reason?: string }
+                if (!result?.success) throw new Error(result?.reason || 'INSTALL_FAILED')
+                await loadAddons(true)
+            }
+            toast.custom('success', t('common.doneTitle'), t('extensions.relations.installComplete'), { id: toastId })
+        } catch (error) {
+            console.error('[ExtensionPage] failed to install dependency', error)
+            toast.custom('error', t('common.errorTitle'), t('store.installFailed', { title: installingName }), { id: toastId })
+        } finally {
+            dependencyInstallBusyRef.current = false
+            setDependencyInstallBusy(false)
+        }
+    }
 
     useEffect(() => {
         setStoreChannelReleases({})
@@ -1407,6 +1581,19 @@ export default function ExtensionPage() {
             title={t('extensions.pageTitle')}
             titleDetail={selectedAddon ? { label: selectedAddon.name, icon: getImagePath(selectedAddon) } : undefined}
         >
+            <CustomModalPS
+                isOpen={pendingProjectClose !== null}
+                onClose={() => setPendingProjectClose(null)}
+                title={t('changes.unsavedWarning')}
+                buttons={[
+                    { text: t('common.cancel'), onClick: () => setPendingProjectClose(null), variant: 'secondary' },
+                    {
+                        text: t('extensions.project.discard'),
+                        onClick: () => void closeProject(pendingProjectClose?.directoryName, pendingProjectClose?.resetLink),
+                        variant: 'danger',
+                    },
+                ]}
+            />
             <EnableAddonModal
                 addon={modalAddon}
                 isOpen={modalOpen}
@@ -1437,6 +1624,7 @@ export default function ExtensionPage() {
                     getImagePath={getImagePath}
                     onAddonClick={handleAddonClick}
                     onCreateNewAddon={handleCreateNewAddon}
+                    onOpenProject={() => void handleOpenProject()}
                     onCreateCategory={handleCreateCategory}
                     onDeleteCategory={handleDeleteCategory}
                     onDisableAddon={addon => handleCheckboxChange(addon, false, true)}
@@ -1469,7 +1657,15 @@ export default function ExtensionPage() {
                     uniqueTags={uniqueTags}
                 />
                 <div className={extensionStylesV2.rightSide}>
-                    {!isLoaded ? (
+                    {project && !project.addonDirectoryName ? (
+                        <AddonProjectEditor
+                            key={project.id}
+                            project={project}
+                            onResetLink={() => requestCloseProject(undefined, true)}
+                            onDirtyChange={setProjectDirty}
+                            onSavingChange={setProjectSaving}
+                        />
+                    ) : !isLoaded ? (
                         <Loader variant="extension" />
                     ) : selectedAddon ? (
                         (() => {
@@ -1481,10 +1677,22 @@ export default function ExtensionPage() {
                             return (
                                 <ExtensionView
                                     addon={selectedAddon}
+                                    onEditProject={linkedOnly => handleOpenProject(selectedAddon, linkedOnly)}
+                                    project={project?.addonDirectoryName === selectedAddon.directoryName ? project : null}
+                                    onResetProjectLink={() => requestCloseProject(undefined, true)}
+                                    onProjectDirtyChange={setProjectDirty}
+                                    onProjectSavingChange={setProjectSaving}
                                     isEnabled={isSelectedAddonEnabled}
                                     addonRelationsEnabled={addonRelationsEnabled}
                                     enableBlockedReason={!isSelectedAddonEnabled ? selectedAddonEnableBlockedReason : null}
                                     relationLabels={relationLabels}
+                                    relationStoreAddons={relationStoreAddons}
+                                    relationsLoading={relationsLoading}
+                                    relationsLoadFailed={relationsLoadFailed}
+                                    dependencyInstallBusy={dependencyInstallBusy}
+                                    onInstallDependency={id => void handleInstallDependencies(id)}
+                                    onInstallDependencies={installableDependencies.length ? () => void handleInstallDependencies() : undefined}
+                                    onRetryRelations={() => setRelationsRefreshVersion(value => value + 1)}
                                     hasStoreUpdate={!!selectedStoreUpdate}
                                     storeUpdateBusy={storeUpdateBusy}
                                     storeChannelLoading={storeChannelLoading}

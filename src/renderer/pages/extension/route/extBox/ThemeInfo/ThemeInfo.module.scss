@@ -129,6 +129,14 @@
     min-width: 140px;
 
     padding: 0 20px;
+
+    white-space: nowrap;
+}
+
+.dependencyInstallButton {
+    padding: 0 12px;
+
+    font-size: 13px;
 }
 
 .miniButton {

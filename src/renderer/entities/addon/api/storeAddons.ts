@@ -17,7 +17,7 @@ type StoreAddonUpdatesResponse = {
     ok?: boolean
 }
 
-type StoreAddonReadOptions = { force?: boolean }
+type StoreAddonReadOptions = { force?: boolean; resolveMetadataIds?: boolean }
 
 const MAX_STORE_READ_REQUESTS = 32
 const storeReadRequests = new Map<string, Promise<StoreAddon[]>>()
@@ -211,14 +211,19 @@ export async function fetchStoreAddonUpdates(
     }
 
     return requestStoreAddons(
-        JSON.stringify(['updates', normalizedIds, releaseChannel, includeRatings]),
+        JSON.stringify(['updates', normalizedIds, releaseChannel, includeRatings, options?.resolveMetadataIds === true]),
         async authToken => {
             const response = await rendererHttpClient.post<StoreAddonUpdatesResponse>('/extensions/updates', {
                 authToken,
                 headers: {
                     Accept: 'application/json',
                 },
-                body: { ids: normalizedIds, releaseChannel, ...(includeRatings ? { includeRatings: true } : {}) },
+                body: {
+                    ids: normalizedIds,
+                    releaseChannel,
+                    ...(includeRatings ? { includeRatings: true } : {}),
+                    ...(options?.resolveMetadataIds ? { resolveMetadataIds: true } : {}),
+                },
             })
 
             const payload = response.data ?? null

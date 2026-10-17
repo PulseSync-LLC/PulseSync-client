@@ -310,7 +310,7 @@ export const registerAddonPackageEvents = ({
                 return { success: false, reason: 'IMPORT_FAILED' }
             }
 
-            queueAddonOpen(addonName)
+            if (payload.openAfterInstall !== false) queueAddonOpen(addonName)
             return { success: true, addonName }
         } catch (error: any) {
             logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)

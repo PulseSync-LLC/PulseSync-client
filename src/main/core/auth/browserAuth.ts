@@ -89,10 +89,13 @@ export const exchangeBrowserAuthCode = async (code: string): Promise<BrowserAuth
 }
 
 const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: BrowserAuthClientLike | null): void => {
-    window?.show()
-    window?.focus()
-    window?.moveTop()
-    window?.webContents.send(RendererEvents.AUTH_SUCCESS)
+    if (window && !window.isDestroyed()) {
+        if (window.isMinimized()) window.restore()
+        window.show()
+        window.moveTop()
+        window.focus()
+        window.webContents.send(RendererEvents.AUTH_SUCCESS)
+    }
     client?.send(RendererEvents.AUTH_SUCCESS)
 }
 

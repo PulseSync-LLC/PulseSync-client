@@ -9,7 +9,7 @@ type Props = {
     open: boolean
     text?: string
     onReset?: () => void
-    onSave?: () => void | Promise<void>
+    onSave?: () => void | boolean | Promise<void | boolean>
     saving?: boolean
     durationMs?: number
     disabledSave?: boolean
@@ -49,8 +49,8 @@ const ChangesBar: React.FC<Props> = ({ open, text, onReset, onSave, saving: savi
         if (!onSave || saving || disabledSave) return
         try {
             setSavingInt(true)
-            await onSave()
-            if (open) setPhase('hide')
+            const result = await onSave()
+            if (result !== false && open) setPhase('hide')
         } finally {
             setSavingInt(false)
         }

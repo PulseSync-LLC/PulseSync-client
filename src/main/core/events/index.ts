@@ -294,6 +294,12 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (_event, key) => {
         State.delete(key)
     })
+    ipcMain.handle(MainEvents.MARK_APP_PATCH_NOTES_SEEN, (_event, ids: unknown) => {
+        if (!Array.isArray(ids) || !ids.every((id): id is string => typeof id === 'string')) throw new Error('Invalid patch note IDs')
+        const storedIds: unknown = State.get('app.seenAppPatchNotes')
+        const seenIds = Array.isArray(storedIds) ? storedIds.filter((id): id is string => typeof id === 'string') : []
+        State.set('app.seenAppPatchNotes', [...new Set([...seenIds, ...ids])])
+    })
     ipcMain.handle(MainEvents.SET_STORE_RELEASE_CHANNEL, (_event, channel: unknown) => {
         if (channel !== 'stable' && channel !== 'dev') throw new Error('Invalid store release channel')
         State.set('settings.storeReleaseChannel', channel)

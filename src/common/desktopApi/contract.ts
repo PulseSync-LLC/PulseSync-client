@@ -1,3 +1,4 @@
+import type { AddonProject, AddonProjectDocument, AddonProjectOpenRequest } from '../addons/project'
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
@@ -92,6 +93,7 @@ export interface DesktopInstallModRequest {
 }
 
 export interface DesktopInstallStoreAddonRequest {
+    openAfterInstall?: boolean
     legacyAddonRestrictionsOverrideGroup?: string
     releaseChannel?: 'stable' | 'dev'
     reviewReleaseId?: string
@@ -197,6 +199,8 @@ export interface PulseSyncDesktopApi {
         getSource(): Promise<string>
         setSource(source: string | null): Promise<unknown>
         getClientChangelog(): Promise<unknown>
+        getSeenAppPatchNotes(): string[]
+        markAppPatchNotesSeen(ids: string[]): Promise<void>
         getModChangelog(): Promise<unknown>
         needModalUpdate(): Promise<boolean>
         onCheck(listener: (payload: unknown) => void): DesktopUnsubscribe
@@ -298,6 +302,15 @@ export interface PulseSyncDesktopApi {
         openRootDirectory(): void
         refreshClients(): void
         createNew(): Promise<unknown>
+        projects: {
+            open(request?: AddonProjectOpenRequest): Promise<AddonProject | null>
+            close(id: string): Promise<void>
+            resetLink(id: string): Promise<void>
+            readText(id: string, document: AddonProjectDocument): Promise<string>
+            writeText(id: string, document: AddonProjectDocument, content: string, expectedContent: string): Promise<void>
+            pickImage(id: string, name: string): Promise<string | null>
+            imageDataUrl(id: string, relativePath: string): Promise<string | null>
+        }
         files: {
             exists(path: string): Promise<boolean>
             readText(path: string, encoding?: string): Promise<string | null>
