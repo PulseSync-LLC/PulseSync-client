@@ -167,7 +167,7 @@ jobs:
           rustup default 1.88.0
           if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: ./.github/actions/cache-build-deps
+      - uses: $/.github/actions/cache-build-deps
 
       - name: Create environment
         shell: bash
