@@ -13,6 +13,7 @@ import logger from '../../shared/logger'
 import { sendAddonSettings, sendAllAddonSettings } from '../httpServer'
 import { getAddonsRoot, resolveExistingDirectoryInsideBase, resolveExistingPathInsideBase, resolvePathInsideBase } from '../utils/addonPaths'
 import { readBufResilient } from '../utils/readBufResilient'
+import { registerAddonProjectEvents } from './addonProjectEvents'
 
 const mimeByExt: Record<string, string> = {
     '.png': 'image/png',
@@ -145,6 +146,7 @@ const emitAddonSettingsWriteIfNeeded = (writtenPath: string): void => {
 }
 
 export function registerFileEvents(): void {
+    registerAddonProjectEvents()
     ipcMain.handle(MainEvents.FILE_EVENT, async (_event, eventType, filePath: string) => {
         if (eventType !== RendererEvents.CHECK_FILE_EXISTS) {
             logger?.main?.error?.('[file-event] Unknown eventType:', eventType)

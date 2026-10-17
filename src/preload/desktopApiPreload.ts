@@ -448,6 +448,17 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         createNew: () => ipcRenderer.invoke(MainEvents.CREATE_NEW_EXTENSION),
 
+        projects: {
+            open: request => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_OPEN, request),
+            close: id => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_CLOSE, id),
+            resetLink: id => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_RESET_LINK, id),
+            readText: (id, document) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_READ_TEXT, id, document),
+            writeText: (id, document, content, expectedContent) =>
+                ipcRenderer.invoke(MainEvents.ADDON_PROJECT_WRITE_TEXT, id, document, content, expectedContent),
+            pickImage: (id, name) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_PICK_IMAGE, id, name),
+            imageDataUrl: (id, relativePath) => ipcRenderer.invoke(MainEvents.ADDON_PROJECT_IMAGE_DATA_URL, id, relativePath),
+        },
+
         files: {
             exists: targetPath => ipcRenderer.invoke(MainEvents.ADDON_FILE_EXISTS, targetPath),
 
