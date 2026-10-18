@@ -109,7 +109,7 @@ export type EffectiveManifestSourceV1 = {
     effective: RequestedManifestSource
     url: string
     fallbackUsed: boolean
-    fallbackReason: 'health-unavailable' | 'requested-github' | null
+    fallbackReason: 'health-unavailable' | 'manifest-unavailable' | 'requested-github' | null
 }
 
 export type DeliveryKindTelemetryV1 = {
@@ -387,7 +387,10 @@ function isEffectiveSource(value: unknown): value is EffectiveManifestSourceV1 {
         isRequestedSource(value.effective) &&
         isNonEmptyString(value.url) &&
         isBoolean(value.fallbackUsed) &&
-        (value.fallbackReason === null || value.fallbackReason === 'health-unavailable' || value.fallbackReason === 'requested-github')
+        (value.fallbackReason === null ||
+            value.fallbackReason === 'health-unavailable' ||
+            value.fallbackReason === 'manifest-unavailable' ||
+            value.fallbackReason === 'requested-github')
     )
 }
 
