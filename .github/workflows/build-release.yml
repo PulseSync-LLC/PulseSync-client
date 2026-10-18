@@ -263,7 +263,8 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          prerelease: ${{ contains(needs.tag.outputs.version, '-') }}
+          prerelease: ${{ needs.tag.outputs.channel == 'dev' }}
+          make_latest: ${{ needs.tag.outputs.channel == 'beta' && 'true' || 'false' }}
           generate_release_notes: true
           overwrite_files: true
           fail_on_unmatched_files: true
