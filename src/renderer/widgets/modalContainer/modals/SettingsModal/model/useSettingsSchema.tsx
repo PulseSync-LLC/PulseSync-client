@@ -150,6 +150,15 @@ export function useSettingsSchema({
                                         onChange: checked => actions.toggleSetting('autoTray', checked),
                                     },
                                     {
+                                        id: 'open-window-on-manual-launch',
+                                        kind: 'toggle',
+                                        label: t('contextMenu.traySettings.openWindowOnManualLaunch'),
+                                        description: t('contextMenu.traySettings.openWindowOnManualLaunchDescription'),
+                                        checked: app.settings.openWindowOnManualLaunch,
+                                        disabled: !app.settings.autoStartInTray,
+                                        onChange: checked => actions.toggleSetting('openWindowOnManualLaunch', checked),
+                                    },
+                                    {
                                         id: 'close-to-tray',
                                         kind: 'toggle',
                                         label: t('contextMenu.traySettings.hideOnClose'),

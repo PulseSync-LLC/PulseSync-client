@@ -169,6 +169,7 @@
                 "askSavePath": "Ask for a save path when exporting",
                 "autoStartApp": "Automatically start the app on system login",
                 "autoStartInTray": "Start the app minimized to tray on system startup",
+                "openWindowOnManualLaunch": "Show the window when the app is started manually",
                 "autoStartMusic": "Automatically start music playback when the app starts",
                 "closeAppInTray": "Minimize to tray instead of quitting when closing",
                 "deletePextAfterImport": "Delete temporary Pext files after import",

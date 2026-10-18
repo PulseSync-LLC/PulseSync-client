@@ -231,6 +231,8 @@
         },
         "traySettings": {
             "autoTray": "Start app in tray",
+            "openWindowOnManualLaunch": "Show window on manual launch",
+            "openWindowOnManualLaunchDescription": "The app starts in the tray when you sign in and shows its window when launched from a shortcut.",
             "hideOnClose": "Close button minimizes to tray",
             "title": "Tray behavior"
         },
@@ -1162,6 +1164,7 @@
             "autoStartMusic": "Option \"Auto-start music\" {{status}}",
             "autoUpdateStoreAddons": "Option \"Auto-update store add-ons\" {{status}}",
             "autoTray": "Option \"Auto-start in tray\" {{status}}",
+            "openWindowOnManualLaunch": "Option \"Show window on manual launch\" {{status}}",
             "closeAppInTray": "Option \"Close app to tray\" {{status}}",
             "deletePextAfterImport": "Enabled deletion of .pext after theme import",
             "saveAsMp3": "Option \"Save as mp3\" {{status}}",

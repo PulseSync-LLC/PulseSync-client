@@ -10,6 +10,7 @@ import { ERROR_TRACKING_ENABLED } from '@common/errorTracking'
 
 import { type BootstrapperRuntimePaths, getBootstrapperRuntimePaths } from '../shared/bootstrapper/paths'
 import { captureMainException, flushErrorTracking, initMainErrorTracking } from '../shared/errorTracking'
+import { getStartupArguments } from '../shared/startupVisibility'
 import { getDesktopUpdateManifestRequest } from '../shared/updater/desktopManifestSource'
 import { type BootstrapWindowController, createBootstrapWindow } from './bootstrap/bootstrapWindow'
 import { applyHardwareAccelerationPreference } from './bootstrap/hardwareAcceleration'
@@ -168,7 +169,7 @@ async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths
             appExecutableName: runtimePaths.appExecutableName,
             hostBundle: runtimePaths.hostBundle,
             launcher,
-            passthrough: process.argv.slice(1),
+            passthrough: getStartupArguments(),
             stateRoot: runtimePaths.stateRoot,
         })
         if (canonicalStartSucceeded(result)) {

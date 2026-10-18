@@ -30,6 +30,7 @@ import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/ne
 import { nativeGetHardwareIdentity } from '../nativeModules'
 import { obsWidgetManager } from '../obsWidget/obsWidgetManager'
 import { checkRendererUpdate, installRendererUpdate } from '../rendererUpdate'
+import { setAutoStartEnabled } from '../startup/loginItem'
 import { updated } from '../startup/runtimeState'
 import { getState } from '../state'
 import { isUiReady, markUiReady } from '../uiReady'
@@ -322,9 +323,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
 
 const registerAutoStartEvent = (): void => {
     ipcMain.on(MainEvents.AUTO_START_APP, (_event, enabled: boolean) => {
-        if (isAppDev) return
-        if (isLinux()) return
-        app.setLoginItemSettings({ openAtLogin: enabled, path: app.getPath('exe') })
+        setAutoStartEnabled(enabled)
     })
 }
 

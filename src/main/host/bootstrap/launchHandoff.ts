@@ -2,6 +2,7 @@ import { app } from 'electron'
 
 import { captureMainException, flushErrorTracking } from '../../shared/errorTracking'
 import logger from '../../shared/logger'
+import { getStartupArguments } from '../../shared/startupVisibility'
 import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
 import { claimActiveApp } from '../bootstrapper/runtimeCommands'
 import { recordUpdateHandoff } from '../updater/updateTelemetry'
@@ -53,7 +54,7 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
             stateRoot: runtime.runtimePaths.stateRoot,
             hostBundle: runtime.runtimePaths.hostBundle,
             launcher,
-            passthrough: process.argv.slice(1),
+            passthrough: getStartupArguments(),
             waitForPid: process.pid,
             onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
         })

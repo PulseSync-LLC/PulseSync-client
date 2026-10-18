@@ -7,6 +7,7 @@ import RendererEvents from '../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../shared/handlers/handleErrorsElectron'
 import { initMainI18n, t } from '../shared/i18n'
 import logger from '../shared/logger'
+import { shouldStartInTray } from '../shared/startupVisibility'
 import isAppDev from '../shared/utils/isAppDev'
 import { createApplicationMenu } from './applicationMenu'
 import { processBrowserAuth } from './auth/browserAuth'
@@ -25,6 +26,7 @@ import {
     createApplicationLaunchRequestHandler,
     setIsFirstInstance,
 } from './singleInstance'
+import { refreshAutoStartRegistration } from './startup/loginItem'
 import { prestartCheck } from './startup/prestartCheck'
 import { setMusicPath, setUpdated } from './startup/runtimeState'
 import { getState } from './state'
@@ -118,7 +120,8 @@ export async function startMainApplication(context: ApplicationStartupContext = 
                 })
             }
         }
-        const startHidden = Boolean(State.get('settings.autoStartInTray'))
+        refreshAutoStartRegistration()
+        const startHidden = shouldStartInTray(State.get('settings'))
         const windowStartup = await createWindow({ bootstrapUi: context.bootstrapUi, bootstrapWindow: context.bootstrapWindow, startHidden })
         handleEvents(mainWindow)
         const handleLaunchRequest = await createApplicationLaunchRequestHandler()

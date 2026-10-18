@@ -3,6 +3,7 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 const settingsInitials: SettingsInterface = {
     settings: {
         autoStartInTray: false,
+        openWindowOnManualLaunch: false,
         saveWindowPositionOnRestart: true,
         saveWindowDimensionsOnRestart: true,
         autoStartMusic: false,
