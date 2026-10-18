@@ -4,9 +4,8 @@ import { isDevmark } from '@common/appConfig'
 
 import { t } from '../shared/i18n'
 import isAppDev from '../shared/utils/isAppDev'
-import { mainWindow, showMainWindow } from './createWindow'
-import { createDeeplinkCommandsHandler, navigateToDeeplink } from './handleDeeplinks'
-import { checkForUpdates, openAddonsDirectory, openDiscord } from './menuActions'
+import { showMainWindow } from './createWindow'
+import { checkForUpdates, openAddonsDirectory, openDiscord, openSettings } from './menuActions'
 import { isMac } from './utils/appUtils'
 
 export function createApplicationMenu(): void {
@@ -37,11 +36,7 @@ export function createApplicationMenu(): void {
                     {
                         label: t('main.menu.settings'),
                         accelerator: 'Command+,',
-                        click: async () => {
-                            if (!showMainWindow()) return
-                            const handler = await createDeeplinkCommandsHandler()
-                            await navigateToDeeplink('pulsesync://settings', handler, mainWindow)
-                        },
+                        click: openSettings,
                     },
                     { label: t('main.tray.addonsDirectory'), click: openAddonsDirectory },
                     {

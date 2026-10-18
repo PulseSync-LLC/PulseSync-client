@@ -2,7 +2,7 @@ import { app, Menu, MenuItem, Tray } from 'electron'
 
 import { t } from '../shared/i18n'
 import { showMainWindow } from './createWindow'
-import { checkForUpdates, openAddonsDirectory, openDiscord } from './menuActions'
+import { checkForUpdates, openAddonsDirectory, openDiscord, openSettings } from './menuActions'
 import { isMac, isWindows } from './utils/appUtils'
 import { getNativeImg } from './utils/electronNative'
 
@@ -25,18 +25,22 @@ function createTray() {
 
     menu = new Menu()
 
-    if (isMac()) {
+    if (isMac() || isWindows()) {
         menu.append(new MenuItem({ label: t('main.tray.open'), click: showMainWindow }))
         menu.append(new MenuItem({ type: 'separator' }))
     }
 
-    menu.append(
-        new MenuItem({
-            label: t('main.tray.openDiscord'),
-            icon: dsIcon,
-            click: openDiscord,
-        }),
-    )
+    const discordItem = new MenuItem({
+        label: t('main.tray.openDiscord'),
+        icon: dsIcon,
+        click: openDiscord,
+    })
+
+    if (isWindows()) {
+        menu.append(new MenuItem({ label: t('main.menu.settings'), click: openSettings }))
+    } else {
+        menu.append(discordItem)
+    }
 
     menu.append(
         new MenuItem({
@@ -48,9 +52,19 @@ function createTray() {
     menu.append(
         new MenuItem({
             label: t('main.tray.checkUpdates'),
-            click: checkForUpdates,
+            click: isWindows()
+                ? async () => {
+                      if (!showMainWindow()) return
+                      await checkForUpdates()
+                  }
+                : checkForUpdates,
         }),
     )
+
+    if (isWindows()) {
+        menu.append(new MenuItem({ type: 'separator' }))
+        menu.append(discordItem)
+    }
 
     menu.append(new MenuItem({ type: 'separator' }))
 

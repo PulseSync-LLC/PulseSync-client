@@ -3,8 +3,15 @@ import { app, shell } from 'electron'
 import path from 'path'
 
 import RendererEvents from '../../common/types/rendererEvents'
-import { mainWindow } from './createWindow'
+import { mainWindow, showMainWindow } from './createWindow'
 import { checkOrFindUpdate } from './events'
+import { createDeeplinkCommandsHandler, navigateToDeeplink } from './handleDeeplinks'
+
+export async function openSettings(): Promise<void> {
+    if (!showMainWindow()) return
+    const handler = await createDeeplinkCommandsHandler()
+    await navigateToDeeplink('pulsesync://settings', handler, mainWindow)
+}
 
 export async function openDiscord(): Promise<void> {
     await shell.openExternal('https://discord.gg/qy42uGTzRy')
