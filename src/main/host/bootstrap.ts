@@ -341,13 +341,14 @@ async function startPackagedBootstrap(): Promise<void> {
         inbox,
         lease: claim.lease,
         loadApplicationMain: (window, bootstrapRuntime, activeRuntime) => loadApplicationMain(window, bootstrapRuntime, activeRuntime),
+        onStartupFailure: handleBootstrapFailure,
         queue: launchQueue,
         runtimePaths,
     })
     await (skipStartupUpdate ? coordinator.runWithoutUpdate() : coordinator.run())
 }
 
-void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevelopmentApplication()).catch(async error => {
+async function handleBootstrapFailure(error: unknown): Promise<void> {
     console.error('PulseSync bootstrap failed', error)
     if (!app.isPackaged && !enableDevUpdater) {
         app.quit()
@@ -364,4 +365,6 @@ void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevel
         await flushErrorTracking()
         app.quit()
     }
-})
+}
+
+void (app.isPackaged || enableDevUpdater ? startPackagedBootstrap() : startDevelopmentApplication()).catch(handleBootstrapFailure)
