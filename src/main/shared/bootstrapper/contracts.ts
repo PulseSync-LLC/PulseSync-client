@@ -25,6 +25,16 @@ export type RustHandoffArmedEventV1 = {
     rustPid: number
 }
 
+export type BootstrapperIoDiagnostic = {
+    operation: string
+    path?: string | null
+    destination?: string | null
+    pid?: number | null
+    workingDirectory?: string | null
+    osCode: number | null
+    errorKind: string
+}
+
 export type UpdateErrorV1 = {
     schemaVersion: 1
     command: string
@@ -46,6 +56,7 @@ export type UpdateErrorV1 = {
         message: string
         retryable: boolean
         safeToContinue: boolean
+        diagnostic?: BootstrapperIoDiagnostic
     }
 }
 
@@ -301,6 +312,17 @@ export function parseHandoffArmedProgress(value: unknown): RustHandoffArmedEvent
     return value as RustHandoffArmedEventV1
 }
 
+function isBootstrapperIoDiagnostic(value: unknown): value is BootstrapperIoDiagnostic {
+    return (
+        isRecord(value) &&
+        isNonEmptyString(value.operation) &&
+        isNonEmptyString(value.errorKind) &&
+        (value.osCode === null || (typeof value.osCode === 'number' && Number.isSafeInteger(value.osCode))) &&
+        (value.pid == null || isPositiveInteger(value.pid)) &&
+        ['path', 'destination', 'workingDirectory'].every(key => value[key] == null || typeof value[key] === 'string')
+    )
+}
+
 export function isUpdateErrorV1(value: unknown): value is UpdateErrorV1 {
     return (
         isRecord(value) &&
@@ -312,7 +334,8 @@ export function isUpdateErrorV1(value: unknown): value is UpdateErrorV1 {
         UPDATE_ERROR_PHASES.includes(value.error.phase as UpdateErrorV1['error']['phase']) &&
         typeof value.error.message === 'string' &&
         isBoolean(value.error.retryable) &&
-        isBoolean(value.error.safeToContinue)
+        isBoolean(value.error.safeToContinue) &&
+        (value.error.diagnostic === undefined || isBootstrapperIoDiagnostic(value.error.diagnostic))
     )
 }
 

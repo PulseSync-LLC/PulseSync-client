@@ -3,7 +3,7 @@ use crate::core::{
         ActiveAppLease, ProcessIdentity, mark_handoff_consumed, process_identity_is_live,
         transfer_allows_reclaim, write_json_atomic,
     },
-    error::Result,
+    error::{IoOperationError, Result},
     layout::assert_inside,
 };
 use serde::{Deserialize, Serialize};
@@ -120,7 +120,8 @@ pub fn enqueue_request(
 ) -> Result<LaunchRequestEnvelope> {
     validate_input(&input)?;
     let inbox_dir = inbox_dir(install_root, &lease.inbox_id)?;
-    fs::create_dir_all(&inbox_dir)?;
+    fs::create_dir_all(&inbox_dir)
+        .map_err(|error| IoOperationError::path("create-launch-inbox", &inbox_dir, error))?;
     let mut state = load_or_create_state(&inbox_dir, lease)?;
     if state.active_lease_id != lease.lease_id {
         return Err(format!(
@@ -225,7 +226,9 @@ pub fn ack_request(
         .to_string();
     let inbox_dir = inbox_dir(install_root, &lease.inbox_id)?;
     let acked_dir = inbox_dir.join(ACKED_DIR);
-    fs::create_dir_all(&acked_dir)?;
+    fs::create_dir_all(&acked_dir).map_err(|error| {
+        IoOperationError::path("create-launch-inbox-acked-directory", &acked_dir, error)
+    })?;
     let acked_path = acked_dir.join(format!("{request_id}.json"));
     if acked_path.is_file() {
         return Ok("already-acked");
@@ -240,7 +243,9 @@ pub fn ack_request(
         {
             return Err("launch request is not claimed by this lease".into());
         }
-        fs::rename(path, &acked_path)?;
+        fs::rename(&path, &acked_path).map_err(|error| {
+            IoOperationError::path("ack-launch-request", &path, error).with_destination(&acked_path)
+        })?;
         prune_ack_tombstones(&acked_dir)?;
         maybe_mark_transfer_consumed(install_root, lease, &inbox_dir)?;
         return Ok("acked");
@@ -270,7 +275,8 @@ fn maybe_mark_transfer_consumed(
 
 pub fn bind_inbox_to_lease(install_root: &Path, lease: &ActiveAppLease) -> Result<()> {
     let inbox_dir = inbox_dir(install_root, &lease.inbox_id)?;
-    fs::create_dir_all(&inbox_dir)?;
+    fs::create_dir_all(&inbox_dir)
+        .map_err(|error| IoOperationError::path("create-launch-inbox", &inbox_dir, error))?;
     let mut state = load_or_create_state(&inbox_dir, lease)?;
     if state.inbox_id != lease.inbox_id || state.generation != lease.inbox_generation {
         return Err("cannot bind lease to a different inbox generation".into());
@@ -308,7 +314,10 @@ fn is_allowed_scalar(value: &Value) -> bool {
 fn load_or_create_state(inbox_dir: &Path, lease: &ActiveAppLease) -> Result<LaunchInboxState> {
     let state_path = inbox_dir.join(INBOX_STATE_FILE);
     if state_path.is_file() {
-        let state: LaunchInboxState = serde_json::from_slice(&fs::read(&state_path)?)?;
+        let state: LaunchInboxState =
+            serde_json::from_slice(&fs::read(&state_path).map_err(|error| {
+                IoOperationError::path("read-launch-inbox-state", &state_path, error)
+            })?)?;
         if state.schema_version != 1
             || state.inbox_id != lease.inbox_id
             || state.generation != lease.inbox_generation
@@ -347,8 +356,11 @@ fn read_request_records(inbox_dir: &Path) -> Result<Vec<(PathBuf, LaunchRequestE
         return Ok(Vec::new());
     }
     let mut records = Vec::new();
-    for entry in fs::read_dir(inbox_dir)? {
-        let entry = entry?;
+    for entry in fs::read_dir(inbox_dir)
+        .map_err(|error| IoOperationError::path("list-launch-inbox", inbox_dir, error))?
+    {
+        let entry = entry
+            .map_err(|error| IoOperationError::path("read-launch-inbox-entry", inbox_dir, error))?;
         let path = entry.path();
         if !path.is_file()
             || path.file_name().and_then(|name| name.to_str()) == Some(INBOX_STATE_FILE)
@@ -358,7 +370,10 @@ fn read_request_records(inbox_dir: &Path) -> Result<Vec<(PathBuf, LaunchRequestE
         if path.extension().and_then(|value| value.to_str()) != Some("json") {
             continue;
         }
-        let request: LaunchRequestEnvelope = serde_json::from_slice(&fs::read(&path)?)?;
+        let request: LaunchRequestEnvelope = serde_json::from_slice(
+            &fs::read(&path)
+                .map_err(|error| IoOperationError::path("read-launch-request", &path, error))?,
+        )?;
         records.push((path, request));
     }
     Ok(records)
@@ -380,7 +395,10 @@ fn claimed_process_is_live(request: &LaunchRequestEnvelope) -> Result<bool> {
 }
 
 fn prune_ack_tombstones(acked_dir: &Path) -> Result<()> {
-    let mut entries = fs::read_dir(acked_dir)?
+    let mut entries = fs::read_dir(acked_dir)
+        .map_err(|error| {
+            IoOperationError::path("list-launch-inbox-acked-directory", acked_dir, error)
+        })?
         .filter_map(|entry| entry.ok())
         .filter(|entry| entry.path().is_file())
         .collect::<Vec<_>>();
@@ -392,7 +410,9 @@ fn prune_ack_tombstones(acked_dir: &Path) -> Result<()> {
     });
     let remove_count = entries.len().saturating_sub(MAX_ACK_TOMBSTONES);
     for entry in entries.into_iter().take(remove_count) {
-        fs::remove_file(entry.path())?;
+        fs::remove_file(entry.path()).map_err(|error| {
+            IoOperationError::path("remove-launch-inbox-ack", &entry.path(), error)
+        })?;
     }
     Ok(())
 }

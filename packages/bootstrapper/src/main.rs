@@ -24,7 +24,7 @@ use crate::{
         start::start,
     },
     core::{
-        error::Result,
+        error::{IoOperationError, Result},
         layout::canonical_install_root,
         operation_lock::UpdateLock,
         self_update::{SelfUpdateMutationGate, reconcile_self_update_mutation},
@@ -39,7 +39,7 @@ use std::{
     time::Duration,
 };
 
-fn generic_error_envelope(command: &str, error: &dyn std::error::Error) -> Value {
+fn generic_error_envelope(command: &str, error: &(dyn std::error::Error + 'static)) -> Value {
     let message = error.to_string();
     let lower = message.to_ascii_lowercase();
     let is_lock = lower.contains("lock is busy") || lower.contains("lock is busy after");
@@ -65,7 +65,7 @@ fn generic_error_envelope(command: &str, error: &dyn std::error::Error) -> Value
             _ => "validate-input",
         }
     };
-    UpdateWorkflowError::new(
+    let mut envelope = UpdateWorkflowError::new(
         command.to_string(),
         if is_lock {
             "lock-busy"
@@ -81,7 +81,11 @@ fn generic_error_envelope(command: &str, error: &dyn std::error::Error) -> Value
         is_lock || is_timeout,
         false,
     )
-    .envelope()
+    .envelope();
+    if let Some(error) = error.downcast_ref::<IoOperationError>() {
+        envelope["error"]["diagnostic"] = error.diagnostic();
+    }
+    envelope
 }
 
 fn raw_command_name() -> String {
