@@ -7,6 +7,7 @@ import path from 'path'
 import config from '@common/appConfig'
 import { isDevmark } from '@common/appConfig'
 
+import { addMainBreadcrumb, captureMainException } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
 import { queueAddonOpen, updateAvailable } from './events'
@@ -223,13 +224,18 @@ const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: Ma
     let sourceIndex = 0
 
     for await (const source of sources) {
+        let stage = 'cache'
         try {
             if (isAppDev) {
                 await window.webContents.session.clearCache()
             }
+            stage = 'localization'
             await refreshRemoteLocalization(source)
+            stage = 'response-headers'
             registerRemoteRendererResponseHeaders(window, source.origin)
+            stage = 'navigation'
             await window.loadURL(source.url)
+            stage = 'preload'
             await assertRemotePreloadSurface(window)
             if (sourceIndex > 0) {
                 logger.main.warn('Remote renderer fallback selected', {
@@ -242,6 +248,14 @@ const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: Ma
             lastError = error
             logger.main.warn('Failed to load remote renderer candidate', {
                 url: source.url,
+                message: error instanceof Error ? error.message : String(error),
+            })
+            addMainBreadcrumb('pulsesync.renderer.load', 'Remote renderer candidate failed', {
+                stage,
+                url: source.url,
+                localizationUrl: source.manifest.localizationUrl,
+                buildNumber: source.manifest.buildNumber,
+                requiresDesktopApi: source.manifest.requiresDesktopApi,
                 message: error instanceof Error ? error.message : String(error),
             })
             sourceIndex += 1
@@ -355,6 +369,7 @@ export async function createWindow(
     let mainRendererSource: MainRendererSource | null = null
     let rendererRetryTimer: NodeJS.Timeout | null = null
     let rendererLoading = false
+    const reportedRendererErrors = new Set<string>()
     const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
         const previousSource = mainRendererSource
         try {
@@ -387,6 +402,12 @@ export async function createWindow(
         } catch (error) {
             logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
             if (!rendererWindow.isDestroyed()) {
+                const normalizedError = error instanceof Error ? error : new Error(String(error))
+                const signature = `${normalizedError.name}:${normalizedError.message}`
+                if (!reportedRendererErrors.has(signature)) {
+                    reportedRendererErrors.add(signature)
+                    captureMainException(normalizedError, 'renderer/load')
+                }
                 options.bootstrapUi?.publish({
                     schemaVersion: 1,
                     phase: 'error',
