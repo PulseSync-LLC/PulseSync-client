@@ -1,6 +1,6 @@
 import { app } from 'electron'
 
-import { flushErrorTracking } from '../../shared/errorTracking'
+import { captureMainException, flushErrorTracking } from '../../shared/errorTracking'
 import logger from '../../shared/logger'
 import { relaunchThroughBootstrapper } from '../bootstrapper/relaunch'
 import { claimActiveApp } from '../bootstrapper/runtimeCommands'
@@ -43,9 +43,9 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
         return false
     }
 
-    runtime.inbox.freeze()
-    await runtime.queue.flush()
     try {
+        runtime.inbox.freeze()
+        await runtime.queue.flush()
         const armed = await relaunchThroughBootstrapper({
             activeLeaseId: runtime.lease.leaseId,
             appExecutable: runtime.runtimePaths.appExecutable,
@@ -66,7 +66,11 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
     } catch (error) {
         recordUpdateHandoff('failed', Math.max(0, Date.now() - startedAt))
         logger.updater.error('Bootstrapper handoff failed before arming', error)
-        await runtime.inbox.unfreeze().catch(recoveryError => logger.updater.error('Failed to resume launch inbox', recoveryError))
+        captureMainException(error, 'bootstrap/handoff')
+        await runtime.inbox.unfreeze().catch(recoveryError => {
+            logger.updater.error('Failed to resume launch inbox', recoveryError)
+            captureMainException(recoveryError, 'bootstrap/handoff-recovery')
+        })
         return false
     }
 }
