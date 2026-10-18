@@ -37,6 +37,15 @@ export let mainWindow: BrowserWindow
 export let inSleepMode = false
 let isAppQuitting = false
 
+export function showMainWindow(): boolean {
+    if (!mainWindow || mainWindow.isDestroyed()) return false
+    if (mainWindow.isMinimized()) mainWindow.restore()
+    mainWindow.show()
+    mainWindow.moveTop()
+    mainWindow.focus()
+    return true
+}
+
 const defaultMain = { width: 1280, height: 760 }
 const minMain = { width: 1100, height: 600 }
 

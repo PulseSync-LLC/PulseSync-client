@@ -1,11 +1,8 @@
-import { app, Menu, MenuItem, shell, Tray } from 'electron'
+import { app, Menu, MenuItem, Tray } from 'electron'
 
-import path from 'path'
-
-import RendererEvents from '../../common/types/rendererEvents'
 import { t } from '../shared/i18n'
-import { mainWindow } from './createWindow'
-import { checkOrFindUpdate } from './events'
+import { showMainWindow } from './createWindow'
+import { checkForUpdates, openAddonsDirectory, openDiscord } from './menuActions'
 import { isMac, isWindows } from './utils/appUtils'
 import { getNativeImg } from './utils/electronNative'
 
@@ -28,33 +25,30 @@ function createTray() {
 
     menu = new Menu()
 
+    if (isMac()) {
+        menu.append(new MenuItem({ label: t('main.tray.open'), click: showMainWindow }))
+        menu.append(new MenuItem({ type: 'separator' }))
+    }
+
     menu.append(
         new MenuItem({
             label: t('main.tray.openDiscord'),
             icon: dsIcon,
-            click: async () => {
-                await shell.openExternal('https://discord.gg/qy42uGTzRy')
-            },
+            click: openDiscord,
         }),
     )
 
     menu.append(
         new MenuItem({
             label: t('main.tray.addonsDirectory'),
-            click: async () => {
-                const themesFolderPath = path.join(app.getPath('appData'), 'PulseSync', 'addons')
-                await shell.openPath(themesFolderPath)
-            },
+            click: openAddonsDirectory,
         }),
     )
 
     menu.append(
         new MenuItem({
             label: t('main.tray.checkUpdates'),
-            click: async () => {
-                await checkOrFindUpdate(undefined, true)
-                mainWindow.webContents.send(RendererEvents.CHECK_MOD_UPDATE, { manual: true })
-            },
+            click: checkForUpdates,
         }),
     )
 
@@ -70,9 +64,7 @@ function createTray() {
 
     tray.setToolTip('PulseSync')
     tray.setContextMenu(menu)
-    tray.on('click', () => {
-        mainWindow.show()
-    })
+    tray.on('click', showMainWindow)
 }
 
 export default createTray

@@ -191,7 +191,21 @@
                 "token": "Основной токен сессии"
             }
         },
+        "menu": {
+            "about": "О PulseSync",
+            "settings": "Настройки…",
+            "edit": "Правка",
+            "window": "Окно",
+            "showWindow": "Показать окно",
+            "developer": "Разработка",
+            "reload": "Перезагрузить окно",
+            "forceReload": "Перезагрузить без кэша",
+            "devTools": "Инструменты разработчика",
+            "help": "Помощь",
+            "website": "Сайт PulseSync"
+        },
         "tray": {
+            "open": "Открыть",
             "addonsDirectory": "Директория аддонов",
             "checkUpdates": "Проверить обновления",
             "close": "Закрыть",

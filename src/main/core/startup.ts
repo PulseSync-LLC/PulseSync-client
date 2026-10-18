@@ -8,9 +8,10 @@ import { HandleErrorsElectron } from '../shared/handlers/handleErrorsElectron'
 import { initMainI18n, t } from '../shared/i18n'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
+import { createApplicationMenu } from './applicationMenu'
 import { processBrowserAuth } from './auth/browserAuth'
 import { migrateCompletedLaunchRequestIds, writeCompletedLaunchRequestIds } from './bootstrap/launchCompletionStore'
-import { createWindow, mainWindow } from './createWindow'
+import { createWindow, mainWindow, showMainWindow } from './createWindow'
 import { handleEvents } from './events'
 import { registerAddonEvents } from './events/addonEvents'
 import { registerFileEvents } from './events/fileEvents'
@@ -165,12 +166,14 @@ export async function startMainApplication(context: ApplicationStartupContext = 
             await checkOldYandexMusic()
         }
         modManager(mainWindow)
+        createApplicationMenu()
         createTray()
         void sendAppStartupTelemetry()
         app.on('window-all-closed', () => {
             if (process.platform !== 'darwin') app.quit()
         })
         app.on('activate', () => {
+            if (showMainWindow()) return
             if (BrowserWindow.getAllWindows().length === 0) void createWindow()
         })
         return { ready: windowStartup.ready, deliverLaunchRequest }

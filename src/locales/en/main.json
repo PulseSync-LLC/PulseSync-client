@@ -192,7 +192,21 @@
                 "token": "Primary session token"
             }
         },
+        "menu": {
+            "about": "About PulseSync",
+            "settings": "Settings…",
+            "edit": "Edit",
+            "window": "Window",
+            "showWindow": "Show window",
+            "developer": "Developer",
+            "reload": "Reload window",
+            "forceReload": "Reload without cache",
+            "devTools": "Developer tools",
+            "help": "Help",
+            "website": "PulseSync website"
+        },
         "tray": {
+            "open": "Open",
             "addonsDirectory": "Addons directory",
             "checkUpdates": "Check updates",
             "close": "Close",

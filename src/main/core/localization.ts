@@ -64,7 +64,8 @@ const parseCatalog = (value: unknown): RemoteLocalizationCatalog | null => {
 const applyCatalog = (catalog: RemoteLocalizationCatalog | null): void => {
     for (const language of SUPPORTED_LANGUAGES) {
         i18next.removeResourceBundle(language, 'translation')
-        i18next.addResourceBundle(language, 'translation', catalog?.resources[language].main ?? fallbackMainResources[language], true, true)
+        i18next.addResourceBundle(language, 'translation', fallbackMainResources[language], true, true)
+        if (catalog) i18next.addResourceBundle(language, 'translation', catalog.resources[language].main, true, true)
     }
 
     rendererSnapshot = catalog
