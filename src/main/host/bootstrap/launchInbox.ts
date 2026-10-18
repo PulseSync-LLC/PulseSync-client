@@ -59,9 +59,13 @@ export class LaunchInbox {
     public reconcile(): Promise<void> {
         if (!this.delivery || this.frozen) return Promise.resolve()
         if (this.reconcilePromise) return this.reconcilePromise
-        this.reconcilePromise = this.reconcileAll().finally(() => {
-            this.reconcilePromise = null
-        })
+        this.reconcilePromise = this.reconcileAll()
+            .then(() => {
+                this.reportedBackgroundError = null
+            })
+            .finally(() => {
+                this.reconcilePromise = null
+            })
         return this.reconcilePromise
     }
 
@@ -101,19 +105,15 @@ export class LaunchInbox {
     }
 
     private runInBackground(task: () => Promise<void>): void {
-        void task()
-            .then(() => {
-                this.reportedBackgroundError = null
-            })
-            .catch(error => {
-                const normalizedError = error instanceof Error ? error : new Error(String(error))
-                const signature = `${normalizedError.name}:${normalizedError.message}`
-                if (signature === this.reportedBackgroundError) return
+        void task().catch(error => {
+            const normalizedError = error instanceof Error ? error : new Error(String(error))
+            const signature = `${normalizedError.name}:${normalizedError.message}`
+            if (signature === this.reportedBackgroundError) return
 
-                this.reportedBackgroundError = signature
-                logger.main.error('Launch inbox background reconciliation failed', normalizedError)
-                captureMainException(normalizedError, 'LaunchInbox/background-reconcile')
-            })
+            this.reportedBackgroundError = signature
+            logger.main.error('Launch inbox background reconciliation failed', normalizedError)
+            captureMainException(normalizedError, 'LaunchInbox/background-reconcile')
+        })
     }
 
     private poll(inboxDir: string): Promise<void> {
