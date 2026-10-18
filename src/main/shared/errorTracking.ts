@@ -148,7 +148,7 @@ export const captureMainException = (error: unknown, source: string): void => {
             if (error instanceof BootstrapperCommandError) {
                 const result = isUpdateErrorV1(error.result) ? error.result : null
                 const operation = result?.command ?? error.invocation.operation
-                const errorCode = result?.error.code ?? `exit-${error.exitCode ?? 'unknown'}`
+                const errorCode = result?.error.code ?? error.code
                 const phase = result?.error.phase ?? 'unknown'
                 scope.setFingerprint(['bootstrapper-command', operation, errorCode, phase])
                 scope.setTags({
@@ -165,6 +165,9 @@ export const captureMainException = (error: unknown, source: string): void => {
                     safeToContinue: result?.error.safeToContinue,
                     errorMessage: result ? sanitizeErrorTrackingText(result.error.message).slice(0, 1_000) : undefined,
                     diagnostics: error.diagnostics.slice(0, 8).map(line => line.slice(0, 1_000)),
+                    causeMessage:
+                        error.originalCause instanceof Error ? sanitizeErrorTrackingText(error.originalCause.message).slice(0, 1_000) : undefined,
+                    output: error.output ? sanitizeErrorTrackingText(error.output) : undefined,
                 })
             }
             Sentry.captureException(error instanceof Error ? error : new Error(String(error)))
