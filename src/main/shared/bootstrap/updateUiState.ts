@@ -43,6 +43,7 @@ export function bootstrapUiStateFromProgress(event: RustUpdateProgressEventV1, p
             phase: modules ? 'downloading-modules' : 'downloading-app',
             statusKey: modules ? 'downloading-modules' : 'downloading-client',
             progress: progressFor(event),
+            ...(event.bytesPerSecond !== undefined ? { bytesPerSecond: event.bytesPerSecond } : {}),
             actions: [],
         }
     }

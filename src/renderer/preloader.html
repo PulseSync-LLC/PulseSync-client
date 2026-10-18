@@ -8,6 +8,8 @@
         />
         <meta name="viewport" content="width=device-width, initial-scale=1" />
         <title>Запуск PulseSync</title>
+        <link rel="stylesheet" href="/src/styles/globals.css" />
+        <link rel="stylesheet" href="/src/styles/preloader.css" />
     </head>
 
     <body>
@@ -29,8 +31,11 @@
             <section class="progress" aria-label="Ход запуска">
                 <progress id="bootstrap-progress" max="1"></progress>
                 <span id="bootstrap-progress-text" class="progress__text">
-                    <span id="bootstrap-progress-percent">Подождите немного</span>
-                    <span id="bootstrap-progress-bytes"></span>
+                    <span class="progress__summary">
+                        <span id="bootstrap-progress-percent">Подождите немного</span>
+                        <span id="bootstrap-progress-bytes"></span>
+                    </span>
+                    <span id="bootstrap-progress-speed" class="progress__speed" hidden></span>
                 </span>
             </section>
         </main>

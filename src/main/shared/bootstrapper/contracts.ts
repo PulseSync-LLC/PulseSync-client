@@ -12,6 +12,7 @@ export type RustUpdateProgressEventV1 = {
     artifactCount?: number
     bytesRead?: number
     bytesTotal?: number
+    bytesPerSecond?: number
     path?: string
 }
 
@@ -274,6 +275,9 @@ export function parseRustUpdateProgress(value: unknown): RustUpdateProgressEvent
             !isNonNegativeInteger(value.bytesRead) ||
             (value.bytesTotal !== undefined && !isNonNegativeInteger(value.bytesTotal)))
     ) {
+        return null
+    }
+    if (value.bytesPerSecond !== undefined && (value.event !== 'artifact-progress' || !isNonNegativeInteger(value.bytesPerSecond))) {
         return null
     }
     if (value.path !== undefined && typeof value.path !== 'string') {

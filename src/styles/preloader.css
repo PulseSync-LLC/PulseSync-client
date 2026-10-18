@@ -121,6 +121,8 @@ body {
     box-sizing: border-box;
     display: flex;
 
+    gap: 6px;
+
     justify-content: space-between;
 
     width: 100%;
@@ -132,10 +134,32 @@ body {
     line-height: 14px;
 
     color: #8f94a8;
+
+    white-space: nowrap;
 }
 
 .bootstrap[data-progress='indeterminate'] .progress__text {
     justify-content: center;
+}
+
+.progress__summary {
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+}
+
+.progress__speed {
+    flex-shrink: 0;
+
+    color: #d2e5f1;
+}
+
+.progress__speed::before {
+    margin-right: 3px;
+
+    content: '↓';
 }
 
 .bootstrap[data-progress='indeterminate'] #bootstrap-progress-percent {
