@@ -340,6 +340,7 @@ export async function createWindow(
     })
     registerRemoteMainWindowSecurity(mainWindow)
     const rendererWindow = mainWindow
+    rendererWindow.on('focus', () => rendererWindow.flashFrame(false))
     const fitNormalWindowToDisplay = (): void => {
         if (rendererWindow.isDestroyed() || rendererWindow.isMaximized() || rendererWindow.isFullScreen() || rendererWindow.isMinimized()) return
         const bounds = rendererWindow.getBounds()

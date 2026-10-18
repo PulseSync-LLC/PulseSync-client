@@ -348,10 +348,10 @@ const registerUpdateEvents = (): void => {
             updaterStartListenerBound = true
             updater.onUpdate(version => {
                 mainWindow.webContents.send(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version })
-                mainWindow.flashFrame(true)
                 updateAvailable = true
             })
         }
+        if (updater.getStatus() === UpdateStatus.DOWNLOADED) await updater.check(true)
     })
 }
 

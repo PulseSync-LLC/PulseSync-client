@@ -29,6 +29,7 @@ export function configureUpdaterBootstrapRuntime(runtime: UpdaterBootstrapRuntim
 }
 
 class Updater {
+    private lastCheckAt: number | null = null
     private latestAvailableVersion: string | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
     private preparedTransactionId: string | null = null
@@ -69,14 +70,16 @@ class Updater {
         const win = this.getWindow()
         if (!win) return
         try {
-            win.flashFrame(value)
+            win.flashFrame(value && !win.isFocused())
         } catch (error) {
             logger.updater.error('Failed to flash frame', error)
         }
     }
 
     private notifyAvailable(version: string): void {
+        if (this.latestAvailableVersion === version) return
         this.latestAvailableVersion = version
+        this.flashFrame(true)
         for (const listener of this.onUpdateListeners) {
             try {
                 listener(version)
@@ -109,10 +112,10 @@ class Updater {
             if (!options?.suppressUpToDateEvent) this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: false, manual })
             return null
         }
+        this.lastCheckAt = Date.now()
         if (this.updateStatus !== UpdateStatus.IDLE) {
-            if (this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
+            if (manual && this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
                 this.safeSend(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version: this.latestAvailableVersion })
-                this.flashFrame(true)
             }
             return this.updateStatus
         }
@@ -150,9 +153,12 @@ class Updater {
             this.preparedTransactionId = null
             this.updateStatus = UpdateStatus.IDLE
             this.setProgressBar(-1)
+            this.flashFrame(false)
             logger.updater.error('Error checking for updates', error)
             this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
             return this.updateStatus
+        } finally {
+            this.lastCheckAt = Date.now()
         }
     }
 
@@ -177,13 +183,11 @@ class Updater {
             return this.updateStatus
         }
 
-        this.latestAvailableVersion = result.decision.targetVersion
         this.preparedTransactionId = result.transaction.id
         this.updateStatus = UpdateStatus.DOWNLOADED
         this.safeSend(RendererEvents.CHECK_UPDATE, { updateAvailable: true, manual })
         this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FINISHED)
         this.setProgressBar(-1)
-        this.flashFrame(true)
         this.notifyAvailable(result.decision.targetVersion)
         logger.updater.info('Bootstrapper update prepared', {
             channel: result.decision.channel,
@@ -202,7 +206,7 @@ class Updater {
 
     public start(): void {
         if (!this.isRuntimeUpdateEnabled() || this.updaterId) return
-        const freshAt = bootstrapRuntime?.getLastCheckAt() ?? null
+        const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? null
         const delay = freshAt === null ? 0 : Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
         this.updaterId = setTimeout(() => {
             this.updaterId = null
