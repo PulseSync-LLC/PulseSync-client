@@ -8,12 +8,15 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
+import { CACHE_DIR } from '../constants/paths'
+import { requirePulseSyncNative } from '../nativeModules/pulsesyncNative'
 import { getState } from '../state'
 import { isLinuxAccessError } from '../utils/appUtils/elevation'
 import { sendToRenderer } from './download.helpers'
 import { beginInstalledModMutation, readInstalledAsarChecksum } from './integrity'
 import { ensureBackup, ensureLinuxModPath, installPreparedAsarAndPatchBundle, resolveBasePaths } from './mod-files'
 import { closeMusicIfRunning, persistInstalledModState, sendSuccessAfterLaunch } from './mod-manager.helpers'
+import { downloadAndExtractUnpacked } from './network'
 import { prepareAsarArtifactInWorker } from './network/artifactWorkerClient'
 import { resolveInstallModMatch } from './network/modCatalog'
 
@@ -59,8 +62,7 @@ const toAsarPathCandidate = (rawValue: string): string | null => {
         normalized = path.normalize(decodeMaybe(raw))
     }
 
-    const ext = path.extname(normalized.split(/[?#]/)[0] || '').toLowerCase()
-    return ext === '.asar' ? normalized : null
+    return /\.asar(?:\.zst)?$/iu.test(normalized.split(/[?#]/)[0] || '') ? normalized : null
 }
 
 const parseInstallCandidate = (raw: string): string | null => {
@@ -168,7 +170,7 @@ export const installModUpdateFromAsar = async (
 
     const asarPath = toAsarPathCandidate(rawPath)
     if (!asarPath) {
-        const error = 'Invalid .asar path'
+        const error = 'Invalid mod archive path'
         logger.modManager.warn(`[INSTALL_MOD_UPDATE_FROM:${source}] ${error}`, rawPath)
         sendInstallFailure(window, { error, type: 'invalid_path' })
         return { success: false, type: 'invalid_path', error }
@@ -193,6 +195,15 @@ export const installModUpdateFromAsar = async (
             return { success: false, type: 'unknown_checksum', error }
         }
 
+        if (matchedMod.channel === 'branch' && (!window || !matchedMod.downloadUnpackedUrl || !matchedMod.unpackedChecksum)) {
+            throw new Error('Branch update requires a window and verified unpacked artifact')
+        }
+        if (matchedMod.channel === 'branch' && typeof requirePulseSyncNative().validateAsarUnpacked !== 'function') {
+            const error = t('main.modNetwork.patchError')
+            sendInstallFailure(window, { error, type: 'native_module_update_required' })
+            return { success: false, type: 'native_module_update_required', error }
+        }
+
         const paths = await ensureLinuxModPath(await resolveBasePaths())
         wasClosed = await closeMusicIfRunning(window)
         await ensureBackup(paths)
@@ -202,7 +213,7 @@ export const installModUpdateFromAsar = async (
         try {
             const prepared = await prepareAsarArtifactInWorker({
                 archivePath: asarPath,
-                archiveExtension: '.asar',
+                archiveExtension: path.extname(asarPath).toLowerCase(),
                 expectedChecksum: incomingChecksum,
                 outputPath: preparedAsarPath,
             })
@@ -215,6 +226,19 @@ export const installModUpdateFromAsar = async (
             const error = t('main.modNetwork.patchError')
             sendInstallFailure(window, { error, type: 'patch_error' })
             return { success: false, type: 'patch_error', error }
+        }
+
+        if (matchedMod.channel === 'branch' && matchedMod.downloadUnpackedUrl && window) {
+            const unpackedOk = await downloadAndExtractUnpacked(
+                window,
+                matchedMod.downloadUnpackedUrl,
+                path.join(os.tmpdir(), `pulsesync-unpacked-${process.pid}-${Date.now()}.zip`),
+                path.join(os.tmpdir(), `pulsesync-unpacked-${process.pid}-${Date.now()}`),
+                path.join(path.dirname(paths.modAsar), 'app.asar.unpacked'),
+                matchedMod.unpackedChecksum,
+                CACHE_DIR,
+            )
+            if (!unpackedOk) return { success: false, type: 'unpacked_install_error' }
         }
 
         const resolvedChecksum = await readInstalledAsarChecksum(paths.modAsar)

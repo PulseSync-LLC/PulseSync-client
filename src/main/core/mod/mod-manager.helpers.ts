@@ -164,7 +164,10 @@ export async function persistInstalledModState(paths: Paths, matchedMod: RemoteM
         name: matchedMod.name,
         installed: true,
         checksum: resolvedChecksum,
-        unpackedChecksum: '',
+        unpackedChecksum: matchedMod.channel === 'branch' ? (matchedMod.unpackedChecksum ?? '') : '',
+        sourceType: matchedMod.channel === 'branch' ? 'branch' : 'stable',
+        branch: matchedMod.channel === 'branch' ? (matchedMod.branch ?? '') : '',
+        commit: matchedMod.channel === 'branch' ? (matchedMod.commit ?? '') : '',
     })
 
     const targetMusicVersion = matchedMod.realMusicVersion || matchedMod.musicVersion
