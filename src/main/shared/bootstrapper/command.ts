@@ -9,6 +9,7 @@ const MAX_STDOUT_BYTES = 1024 * 1024
 const MAX_STDERR_LINE_BYTES = 256 * 1024
 const MAX_STDIN_BYTES = 64 * 1024
 const MAX_DIAGNOSTICS = 64
+const MAX_ERROR_OUTPUT_CHARS = 4096
 
 export type BootstrapperCommandInvocation = {
     args: string[]
@@ -31,26 +32,39 @@ export type RunBootstrapperCommandOptions<TResult, TProgress = never> = {
 }
 
 export class BootstrapperCommandError<TResult = unknown> extends Error {
+    public readonly code: string
     public readonly diagnostics: readonly string[]
     public readonly exitCode: number | null
     public readonly invocation: BootstrapperCommandInvocation
     public readonly originalCause: unknown
+    public readonly output: string | undefined
     public readonly result: TResult | undefined
 
     public constructor(options: {
         cause?: unknown
+        code?: string
         diagnostics: readonly string[]
         exitCode: number | null
         invocation: BootstrapperCommandInvocation
         message: string
+        output?: string
         result?: TResult
     }) {
-        super(options.message)
+        super(options.message, { cause: options.cause })
         this.name = 'BootstrapperCommandError'
+        this.code = options.code ?? (isUpdateErrorV1(options.result) ? options.result.error.code : `exit-${options.exitCode ?? 'unknown'}`)
         this.diagnostics = options.diagnostics
         this.exitCode = options.exitCode
         this.invocation = options.invocation
         this.originalCause = options.cause
+        const outputSeparator = '\n...[truncated]...\n'
+        const outputPrefixLength = MAX_ERROR_OUTPUT_CHARS / 2
+        this.output =
+            options.output && options.output.length > MAX_ERROR_OUTPUT_CHARS
+                ? `${options.output.slice(0, outputPrefixLength)}${outputSeparator}${options.output.slice(
+                      -(MAX_ERROR_OUTPUT_CHARS - outputPrefixLength - outputSeparator.length),
+                  )}`
+                : options.output
         this.result = options.result
     }
 }
@@ -222,6 +236,8 @@ export async function runBootstrapperCommand<TResult, TProgress = never>(
                         exitCode: code,
                         invocation,
                         message: 'Bootstrapper returned malformed final JSON',
+                        code: 'malformed-final-json',
+                        output,
                     }),
                 )
                 return
@@ -237,6 +253,8 @@ export async function runBootstrapperCommand<TResult, TProgress = never>(
                         exitCode: code,
                         invocation,
                         message: 'Bootstrapper returned an invalid result contract',
+                        code: 'invalid-result-contract',
+                        output,
                     }),
                 )
                 return

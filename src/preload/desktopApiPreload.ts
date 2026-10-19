@@ -68,6 +68,7 @@ const getParentPath = (value: string): string => {
 
 const SETTINGS_KEYS = [
     'autoStartInTray',
+    'openWindowOnManualLaunch',
     'autoStartMusic',
     'autoStartApp',
     'hardwareAcceleration',

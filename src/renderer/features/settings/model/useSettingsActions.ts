@@ -202,6 +202,7 @@ export function useSettingsActions(enabled: boolean) {
         const statusLabel = status ? t('common.enabled') : t('common.disabled')
         const preferenceByType: Record<string, Record<string, boolean>> = {
             autoTray: { autoStartInTray: status },
+            openWindowOnManualLaunch: { openWindowOnManualLaunch: status },
             autoStart: { autoStartApp: status },
             autoStartMusic: { autoStartMusic: status },
             askSavePath: { askSavePath: status },
@@ -221,6 +222,7 @@ export function useSettingsActions(enabled: boolean) {
 
         const toastKeyByType: Record<string, string> = {
             autoTray: 'settings.toggles.autoTray',
+            openWindowOnManualLaunch: 'settings.toggles.openWindowOnManualLaunch',
             autoStart: 'settings.toggles.autoStartApp',
             autoStartMusic: 'settings.toggles.autoStartMusic',
             askSavePath: 'settings.toggles.askSavePath',

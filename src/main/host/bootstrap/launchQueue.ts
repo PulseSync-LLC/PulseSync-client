@@ -1,5 +1,8 @@
 import { randomUUID } from 'node:crypto'
 
+import { captureMainException } from '../../shared/errorTracking'
+import logger from '../../shared/logger'
+
 import type { LaunchRequestEnvelopeV1, LaunchRequestInputV1 } from '../../shared/bootstrapper/contracts'
 
 const MAX_ARGUMENTS = 64
@@ -61,27 +64,32 @@ export class LaunchQueue {
     private sink: LaunchRequestSink | null = null
 
     public enqueue(input: LaunchRequestInputV1): void {
-        if (!this.sink) {
-            this.pending.push(input)
-            return
-        }
-        this.appendToSerial(input, this.sink)
+        this.pending.push(input)
+        if (!this.sink) return
+        void this.drain(this.sink).catch(error => {
+            logger.main.error('Failed to deliver launch request', error)
+            captureMainException(error, 'LaunchQueue/delivery')
+        })
     }
 
     public bindSink(sink: LaunchRequestSink): Promise<void> {
         this.sink = sink
-        const pending = this.pending.splice(0)
-        for (const request of pending) {
-            this.appendToSerial(request, sink)
-        }
-        return this.serial
+        return this.flush()
     }
 
     public flush(): Promise<void> {
-        return this.serial
+        return this.sink && this.pending.length > 0 ? this.drain(this.sink) : this.serial
     }
 
-    private appendToSerial(request: LaunchRequestInputV1, sink: LaunchRequestSink): void {
-        this.serial = this.serial.then(() => sink(request))
+    private drain(sink: LaunchRequestSink): Promise<void> {
+        this.serial = this.serial
+            .catch(() => {})
+            .then(async () => {
+                while (this.pending.length > 0) {
+                    await sink(this.pending[0])
+                    this.pending.shift()
+                }
+            })
+        return this.serial
     }
 }

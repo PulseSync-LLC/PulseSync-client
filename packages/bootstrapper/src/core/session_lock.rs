@@ -1,4 +1,7 @@
-use crate::core::{error::Result, layout::canonical_install_root};
+use crate::core::{
+    error::{IoOperationError, Result},
+    layout::canonical_install_root,
+};
 use fs2::FileExt;
 use std::{
     fs::{self, File, OpenOptions},
@@ -18,14 +21,17 @@ impl SessionLock {
     pub fn acquire(install_root: &Path, timeout: Duration) -> Result<Self> {
         let path = canonical_install_root(install_root)?.join(SESSION_LOCK_RELATIVE_PATH);
         if let Some(parent) = path.parent() {
-            fs::create_dir_all(parent)?;
+            fs::create_dir_all(parent).map_err(|error| {
+                IoOperationError::path("create-session-lock-directory", parent, error)
+            })?;
         }
         let file = OpenOptions::new()
             .create(true)
             .read(true)
             .truncate(false)
             .write(true)
-            .open(&path)?;
+            .open(&path)
+            .map_err(|error| IoOperationError::path("open-session-lock", &path, error))?;
         let started = Instant::now();
 
         loop {
@@ -42,7 +48,9 @@ impl SessionLock {
                     }
                     thread::sleep(Duration::from_millis(25));
                 }
-                Err(error) => return Err(error.into()),
+                Err(error) => {
+                    return Err(IoOperationError::path("acquire-session-lock", &path, error).into());
+                }
             }
         }
     }

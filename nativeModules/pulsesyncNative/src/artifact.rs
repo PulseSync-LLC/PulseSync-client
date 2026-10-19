@@ -340,7 +340,13 @@ fn extract_zip(zip_path: &Path, destination: &Path) -> Result<(), ArtifactError>
             .by_index(index)
             .map_err(|error| ArtifactError::new("extract", error.to_string()))?;
         let enclosed = entry.enclosed_name().ok_or_else(|| {
-            ArtifactError::new("extract", format!("Unsafe ZIP entry: {}", entry.name()))
+            ArtifactError::new(
+                "extract",
+                format!(
+                    "Unsafe ZIP entry: {}",
+                    String::from_utf8_lossy(entry.name_raw())
+                ),
+            )
         })?;
         let output_path = destination.join(enclosed);
 
@@ -418,11 +424,7 @@ fn write_prepared_cache(
 fn validate_unpacked_files(node: &serde_json::Value, root: &Path) -> Result<(), String> {
     if let Some(files) = node.get("files").and_then(serde_json::Value::as_object) {
         for (name, entry) in files {
-            if name.is_empty()
-                || name == "."
-                || name == ".."
-                || name.contains(['/', '\\', ':'])
-            {
+            if name.is_empty() || name == "." || name == ".." || name.contains(['/', '\\', ':']) {
                 return Err(format!("Invalid ASAR entry name: {name}"));
             }
             validate_unpacked_files(entry, &root.join(name))?;
@@ -430,12 +432,16 @@ fn validate_unpacked_files(node: &serde_json::Value, root: &Path) -> Result<(), 
     } else if node.get("unpacked").and_then(serde_json::Value::as_bool) == Some(true)
         && node.get("link").is_none()
     {
-        let metadata = fs::metadata(root)
-            .map_err(|error| format!("Unable to read unpacked file '{}': {error}", root.display()))?;
+        let metadata = fs::metadata(root).map_err(|error| {
+            format!("Unable to read unpacked file '{}': {error}", root.display())
+        })?;
         if !metadata.is_file()
             || node.get("size").and_then(serde_json::Value::as_u64) != Some(metadata.len())
         {
-            return Err(format!("Unpacked file size does not match ASAR: {}", root.display()));
+            return Err(format!(
+                "Unpacked file size does not match ASAR: {}",
+                root.display()
+            ));
         }
         if let Some(integrity) = node.get("integrity") {
             if integrity
@@ -443,21 +449,31 @@ fn validate_unpacked_files(node: &serde_json::Value, root: &Path) -> Result<(), 
                 .and_then(serde_json::Value::as_str)
                 != Some("SHA256")
             {
-                return Err(format!("Unsupported ASAR integrity algorithm: {}", root.display()));
+                return Err(format!(
+                    "Unsupported ASAR integrity algorithm: {}",
+                    root.display()
+                ));
             }
             let actual = hash_file_impl(root).map_err(|error| error.to_string())?;
             if integrity.get("hash").and_then(serde_json::Value::as_str) != Some(actual.as_str()) {
-                return Err(format!("Unpacked file checksum does not match ASAR: {}", root.display()));
+                return Err(format!(
+                    "Unpacked file checksum does not match ASAR: {}",
+                    root.display()
+                ));
             }
         }
     }
     Ok(())
 }
 
-fn validate_asar_unpacked_impl(asar_path: &Path, unpacked_path: &Path) -> Result<(), ArtifactError> {
+fn validate_asar_unpacked_impl(
+    asar_path: &Path,
+    unpacked_path: &Path,
+) -> Result<(), ArtifactError> {
     let result = (|| {
         let header = read_asar_header_string(asar_path)?;
-        let node: serde_json::Value = serde_json::from_slice(&header).map_err(|error| error.to_string())?;
+        let node: serde_json::Value =
+            serde_json::from_slice(&header).map_err(|error| error.to_string())?;
         if !node.get("files").is_some_and(serde_json::Value::is_object) {
             return Err("Invalid ASAR file tree".to_owned());
         }

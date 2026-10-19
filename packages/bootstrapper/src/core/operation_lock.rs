@@ -1,4 +1,7 @@
-use crate::core::{error::Result, layout::canonical_install_root};
+use crate::core::{
+    error::{IoOperationError, Result},
+    layout::canonical_install_root,
+};
 use fs2::FileExt;
 use std::{
     fs::{self, File, OpenOptions},
@@ -29,14 +32,17 @@ impl Drop for UpdateLock {
 
 fn acquire_lock(path: PathBuf, timeout: Duration, label: &str) -> Result<UpdateLock> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
+        fs::create_dir_all(parent).map_err(|error| {
+            IoOperationError::path("create-update-lock-directory", parent, error)
+        })?;
     }
     let file = OpenOptions::new()
         .create(true)
         .read(true)
         .truncate(false)
         .write(true)
-        .open(&path)?;
+        .open(&path)
+        .map_err(|error| IoOperationError::path("open-update-lock", &path, error))?;
     let started = Instant::now();
 
     loop {
@@ -53,7 +59,9 @@ fn acquire_lock(path: PathBuf, timeout: Duration, label: &str) -> Result<UpdateL
                 }
                 thread::sleep(Duration::from_millis(25));
             }
-            Err(error) => return Err(error.into()),
+            Err(error) => {
+                return Err(IoOperationError::path("acquire-update-lock", &path, error).into());
+            }
         }
     }
 }

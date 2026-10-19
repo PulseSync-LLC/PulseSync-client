@@ -1,4 +1,5 @@
 import logger from '../shared/logger'
+import { shouldStartInTray } from '../shared/startupVisibility'
 import { mainWindow } from './createWindow'
 import { queueAddonOpen } from './events'
 import { createDeeplinkCommandsHandler, findDeepLinkArg, navigateToDeeplink } from './handleDeeplinks'
@@ -36,7 +37,7 @@ export async function createApplicationLaunchRequestHandler(): Promise<(request:
         const window = mainWindow && !mainWindow.isDestroyed() ? mainWindow : undefined
         const deepLinkArg = findDeepLinkArg(request.argv)
         const pextPath = findPextArg(request.argv)
-        const startInTray = Boolean(getState().get('settings.autoStartInTray'))
+        const startInTray = shouldStartInTray(getState().get('settings'), request.argv)
         const keepInTray = !initialLaunchHandled && startInTray && !deepLinkArg && !pextPath
         initialLaunchHandled = true
 

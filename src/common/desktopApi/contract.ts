@@ -39,6 +39,7 @@ export interface DesktopAddonOrganization {
 
 export interface DesktopSettingsPatch {
     autoStartInTray?: boolean
+    openWindowOnManualLaunch?: boolean
     autoStartMusic?: boolean
     autoStartApp?: boolean
     hardwareAcceleration?: boolean

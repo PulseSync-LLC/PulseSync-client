@@ -6,7 +6,10 @@ use super::{
         remove_if_exists, same_path, write_json_atomic,
     },
 };
-use crate::core::{error::Result, host_contract::assert_runtime_executable};
+use crate::core::{
+    error::{IoOperationError, Result},
+    host_contract::assert_runtime_executable,
+};
 use std::{
     path::{Path, PathBuf},
     thread,
@@ -122,7 +125,7 @@ fn process_start_is_live_platform(pid: u32, process_start_id: &str) -> Result<bo
         let error = std::io::Error::last_os_error();
         return match error.raw_os_error() {
             Some(87) | Some(1168) => Ok(false),
-            _ => Err(error.into()),
+            _ => Err(IoOperationError::process("OpenProcess", pid, error).into()),
         };
     }
     let result = (|| -> Result<bool> {
@@ -138,7 +141,12 @@ fn process_start_is_live_platform(pid: u32, process_start_id: &str) -> Result<bo
         let mut user = FILETIME::default();
         if unsafe { GetProcessTimes(handle, &mut creation, &mut exit, &mut kernel, &mut user) } == 0
         {
-            return Err(std::io::Error::last_os_error().into());
+            return Err(IoOperationError::process(
+                "GetProcessTimes",
+                pid,
+                std::io::Error::last_os_error(),
+            )
+            .into());
         }
         let start_id = ((creation.dwHighDateTime as u64) << 32) | creation.dwLowDateTime as u64;
         Ok(start_id.to_string() == process_start_id)
@@ -205,7 +213,9 @@ fn process_start_is_live_platform(pid: u32, process_start_id: &str) -> Result<bo
 }
 
 pub fn current_process_identity() -> Result<ProcessIdentity> {
-    let executable = std::env::current_exe()?;
+    let executable = std::env::current_exe().map_err(|error| {
+        IoOperationError::process("resolve-bootstrapper-executable", std::process::id(), error)
+    })?;
     inspect_process_with_retry(std::process::id(), &executable, Duration::from_secs(1))
 }
 
@@ -224,7 +234,7 @@ fn inspect_process(pid: u32, expected_executable: &Path) -> Result<Option<Proces
         let error = std::io::Error::last_os_error();
         return match error.raw_os_error() {
             Some(87) | Some(1168) => Ok(None),
-            _ => Err(error.into()),
+            _ => Err(IoOperationError::process("OpenProcess", pid, error).into()),
         };
     }
 
@@ -242,13 +252,23 @@ fn inspect_process(pid: u32, expected_executable: &Path) -> Result<Option<Proces
         let mut user = FILETIME::default();
         if unsafe { GetProcessTimes(handle, &mut creation, &mut exit, &mut kernel, &mut user) } == 0
         {
-            return Err(std::io::Error::last_os_error().into());
+            return Err(IoOperationError::process(
+                "GetProcessTimes",
+                pid,
+                std::io::Error::last_os_error(),
+            )
+            .into());
         }
 
         let mut buffer = vec![0_u16; 32_768];
         let mut length = buffer.len() as u32;
         if unsafe { QueryFullProcessImageNameW(handle, 0, buffer.as_mut_ptr(), &mut length) } == 0 {
-            return Err(std::io::Error::last_os_error().into());
+            return Err(IoOperationError::process(
+                "QueryFullProcessImageNameW",
+                pid,
+                std::io::Error::last_os_error(),
+            )
+            .into());
         }
         buffer.truncate(length as usize);
         let executable = PathBuf::from(String::from_utf16(&buffer)?);

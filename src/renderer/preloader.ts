@@ -1,6 +1,3 @@
-import '../styles/globals.css'
-import '../styles/preloader.css'
-
 import type { BootstrapAction, BootstrapStatusKey, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const STATUS_TEXT: Record<BootstrapStatusKey, string> = {
@@ -25,8 +22,10 @@ const progress = document.querySelector<HTMLProgressElement>('#bootstrap-progres
 const progressText = document.querySelector<HTMLElement>('#bootstrap-progress-text')
 const progressPercent = document.querySelector<HTMLElement>('#bootstrap-progress-percent')
 const progressBytes = document.querySelector<HTMLElement>('#bootstrap-progress-bytes')
+const progressSpeed = document.querySelector<HTMLElement>('#bootstrap-progress-speed')
 
 let currentState: BootstrapUiStateV1 | undefined
+let speedTimeout: number | undefined
 let actionPending = false
 let actions: HTMLElement | undefined
 let retryButton: HTMLButtonElement | undefined
@@ -96,6 +95,16 @@ function renderState(state: BootstrapUiStateV1): void {
     if (status) {
         status.textContent = STATUS_TEXT[state.statusKey]
     }
+    window.clearTimeout(speedTimeout)
+    if (progressSpeed) {
+        progressSpeed.hidden = state.bytesPerSecond === undefined
+        progressSpeed.textContent = state.bytesPerSecond === undefined ? '' : `${formatBytes(state.bytesPerSecond)}/с`
+        if (state.bytesPerSecond !== undefined) {
+            speedTimeout = window.setTimeout(() => {
+                progressSpeed.textContent = '0 Б/с'
+            }, 2000)
+        }
+    }
     if (progress && progressText && progressPercent && progressBytes) {
         if (state.progress.kind === 'bytes') {
             progress.max = state.progress.total
@@ -103,7 +112,7 @@ function renderState(state: BootstrapUiStateV1): void {
             const percent = Math.min(100, Math.floor((state.progress.read / state.progress.total) * 100))
             progressText.hidden = false
             progressPercent.textContent = `${percent}%`
-            progressBytes.textContent = `${formatBytes(state.progress.read)} из ${formatBytes(state.progress.total)}`
+            progressBytes.textContent = formatDownloadBytes(state.progress.read, state.progress.total)
         } else {
             progress.removeAttribute('value')
             progress.max = 1
@@ -132,6 +141,13 @@ function formatBytes(bytes: number): string {
         unit = units[index]
     }
     return `${value >= 10 ? value.toFixed(0) : value.toFixed(1)} ${unit}`
+}
+
+function formatDownloadBytes(read: number, total: number): string {
+    const readText = formatBytes(read)
+    const totalText = formatBytes(total)
+    const unit = totalText.slice(totalText.lastIndexOf(' '))
+    return `${readText.endsWith(unit) ? readText.slice(0, -unit.length) : readText} из ${totalText}`
 }
 
 async function requestAction(action: BootstrapAction): Promise<void> {

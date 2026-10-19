@@ -19,6 +19,8 @@ pub struct InstallWorkflowEvent {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub bytes_total: Option<u64>,
     #[serde(skip_serializing_if = "Option::is_none")]
+    pub bytes_per_second: Option<u64>,
+    #[serde(skip_serializing_if = "Option::is_none")]
     pub path: Option<PathBuf>,
 }
 
@@ -35,6 +37,7 @@ impl InstallWorkflowEvent {
             artifact_count: None,
             bytes_read: None,
             bytes_total: None,
+            bytes_per_second: None,
             path: None,
         }
     }
@@ -60,6 +63,7 @@ impl InstallWorkflowEvent {
             artifact_count: Some(artifact_count),
             bytes_read: Some(bytes_read),
             bytes_total,
+            bytes_per_second: None,
             path,
         }
     }

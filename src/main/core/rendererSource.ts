@@ -5,6 +5,7 @@ import { isDevmark } from '@common/appConfig'
 import { DESKTOP_API_VERSION } from '@common/desktopApi/contract'
 
 import { readBootstrapSettings } from '../shared/bootstrap/bootstrapSettings'
+import { addMainBreadcrumb } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import { getEffectiveUpdateChannel } from '../shared/updater/updateChannel'
 import { getUpdateSource } from '../shared/updater/updateSource'
@@ -49,6 +50,7 @@ function getGithubRendererManifestUrl(channel: PublicRendererChannel): string {
 }
 
 function rejectRemoteRenderer(message: string, details?: Record<string, unknown>): never {
+    addMainBreadcrumb('pulsesync.renderer.validation', message, details)
     if (details) {
         logger.main.warn(message, details)
     } else {
@@ -173,6 +175,13 @@ export async function* resolveMainRendererSources(): AsyncGenerator<MainRenderer
             yield source
         } catch (error) {
             lastError = error
+            addMainBreadcrumb('pulsesync.renderer.manifest', 'Remote renderer manifest failed', {
+                manifestUrl,
+                fallbackAvailable: index < manifestUrls.length - 1,
+                message: error instanceof Error ? error.message : String(error),
+                errorCode: axios.isAxiosError(error) ? error.code : undefined,
+                httpStatus: axios.isAxiosError(error) ? error.response?.status : undefined,
+            })
             logger.main.warn('Remote renderer source unavailable', {
                 fallbackAvailable: index < manifestUrls.length - 1,
                 manifestUrl,

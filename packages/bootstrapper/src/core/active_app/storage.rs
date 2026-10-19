@@ -1,4 +1,7 @@
-use crate::core::{error::Result, layout::assert_inside};
+use crate::core::{
+    error::{IoOperationError, Result},
+    layout::assert_inside,
+};
 use serde::{Deserialize, Serialize};
 use std::{
     fs,
@@ -37,21 +40,28 @@ where
     if !path.is_file() {
         return Ok(None);
     }
-    Ok(Some(serde_json::from_slice(&fs::read(path)?)?))
+    Ok(Some(serde_json::from_slice(&fs::read(path).map_err(
+        |error| IoOperationError::path("read-runtime-state", path, error),
+    )?)?))
 }
 
 pub fn write_json_atomic<T: Serialize>(path: &Path, value: &T) -> Result<()> {
     if let Some(parent) = path.parent() {
-        fs::create_dir_all(parent)?;
+        fs::create_dir_all(parent).map_err(|error| {
+            IoOperationError::path("create-runtime-state-directory", parent, error)
+        })?;
     }
     let temp = path.with_extension(format!("tmp-{}-{}", std::process::id(), Uuid::new_v4()));
     let write_result = (|| -> Result<()> {
         let mut file = fs::OpenOptions::new()
             .create_new(true)
             .write(true)
-            .open(&temp)?;
-        file.write_all(format!("{}\n", serde_json::to_string_pretty(value)?).as_bytes())?;
-        file.sync_all()?;
+            .open(&temp)
+            .map_err(|error| IoOperationError::path("create-runtime-state-file", &temp, error))?;
+        file.write_all(format!("{}\n", serde_json::to_string_pretty(value)?).as_bytes())
+            .map_err(|error| IoOperationError::path("write-runtime-state", &temp, error))?;
+        file.sync_all()
+            .map_err(|error| IoOperationError::path("sync-runtime-state", &temp, error))?;
         Ok(())
     })();
     if let Err(error) = write_result {
@@ -69,7 +79,12 @@ pub fn write_json_atomic<T: Serialize>(path: &Path, value: &T) -> Result<()> {
 #[cfg(unix)]
 fn sync_parent_directory(path: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
-        fs::File::open(parent)?.sync_all()?;
+        fs::File::open(parent)
+            .map_err(|error| IoOperationError::path("open-runtime-state-directory", parent, error))?
+            .sync_all()
+            .map_err(|error| {
+                IoOperationError::path("sync-runtime-state-directory", parent, error)
+            })?;
     }
     Ok(())
 }
@@ -85,32 +100,40 @@ fn replace_file(source: &Path, target: &Path) -> Result<()> {
     use windows_sys::Win32::Storage::FileSystem::{
         MOVEFILE_REPLACE_EXISTING, MOVEFILE_WRITE_THROUGH, MoveFileExW,
     };
-    let source = source
+    let source_wide = source
         .as_os_str()
         .encode_wide()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
-    let target = target
+    let target_wide = target
         .as_os_str()
         .encode_wide()
         .chain(std::iter::once(0))
         .collect::<Vec<_>>();
     if unsafe {
         MoveFileExW(
-            source.as_ptr(),
-            target.as_ptr(),
+            source_wide.as_ptr(),
+            target_wide.as_ptr(),
             MOVEFILE_REPLACE_EXISTING | MOVEFILE_WRITE_THROUGH,
         )
     } == 0
     {
-        return Err(std::io::Error::last_os_error().into());
+        return Err(IoOperationError::path(
+            "replace-runtime-state",
+            source,
+            std::io::Error::last_os_error(),
+        )
+        .with_destination(target)
+        .into());
     }
     Ok(())
 }
 
 #[cfg(not(windows))]
 fn replace_file(source: &Path, target: &Path) -> Result<()> {
-    fs::rename(source, target)?;
+    fs::rename(source, target).map_err(|error| {
+        IoOperationError::path("replace-runtime-state", source, error).with_destination(target)
+    })?;
     Ok(())
 }
 
@@ -118,7 +141,7 @@ pub(super) fn remove_if_exists(path: &Path) -> Result<()> {
     match fs::remove_file(path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error.into()),
+        Err(error) => Err(IoOperationError::path("remove-runtime-state", path, error).into()),
     }
 }
 

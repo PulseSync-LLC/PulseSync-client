@@ -1,4 +1,4 @@
-use crate::core::error::Result;
+use crate::core::error::{IoOperationError, Result};
 use std::{
     ffi::OsString,
     fs::{self, File, OpenOptions},
@@ -15,10 +15,16 @@ fn successor_error_log_needs_reset(log_path: &Path, now: SystemTime) -> Result<b
     let file = match File::open(log_path) {
         Ok(file) => file,
         Err(error) if error.kind() == ErrorKind::NotFound => return Ok(true),
-        Err(error) => return Err(error.into()),
+        Err(error) => {
+            return Err(IoOperationError::path("read-successor-error-log", log_path, error).into());
+        }
     };
     let mut header = String::new();
-    BufReader::new(file).read_line(&mut header)?;
+    BufReader::new(file)
+        .read_line(&mut header)
+        .map_err(|error| {
+            IoOperationError::path("read-successor-error-log-header", log_path, error)
+        })?;
     let Some(started_at) = header
         .trim_end()
         .strip_prefix(SUCCESSOR_ERROR_LOG_HEADER)
@@ -40,10 +46,14 @@ fn open_successor_error_log(log_path: &Path) -> Result<File> {
     } else {
         options.append(true);
     }
-    let mut log = options.open(log_path)?;
+    let mut log = options
+        .open(log_path)
+        .map_err(|error| IoOperationError::path("open-successor-error-log", log_path, error))?;
     if reset {
         let started_at = now.duration_since(UNIX_EPOCH)?.as_secs();
-        writeln!(log, "{SUCCESSOR_ERROR_LOG_HEADER}{started_at}")?;
+        writeln!(log, "{SUCCESSOR_ERROR_LOG_HEADER}{started_at}").map_err(|error| {
+            IoOperationError::path("write-successor-error-log-header", log_path, error)
+        })?;
     }
     Ok(log)
 }
@@ -77,7 +87,13 @@ pub fn launch_app_with_env(
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let child = command.spawn()?;
+    let child = command.spawn().map_err(|error| {
+        let error = IoOperationError::path("spawn-app", app_executable, error);
+        match working_directory {
+            Some(directory) => error.with_working_directory(directory),
+            None => error,
+        }
+    })?;
     Ok(child.id())
 }
 
@@ -89,28 +105,65 @@ pub fn launch_app_with_env_and_log(
     error_log_path: &Path,
     working_directory: &Path,
 ) -> Result<u32> {
-    if let Some(parent) = log_path.parent() {
-        fs::create_dir_all(parent)?;
-    }
-    let stdout = OpenOptions::new()
-        .create(true)
-        .write(true)
-        .truncate(true)
-        .open(log_path)?;
-    let stderr = open_successor_error_log(error_log_path)?;
+    let stdout = (|| -> Result<File> {
+        if let Some(parent) = log_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                IoOperationError::path("create-successor-log-directory", parent, error)
+            })?;
+        }
+        Ok(OpenOptions::new()
+            .create(true)
+            .write(true)
+            .truncate(true)
+            .open(log_path)
+            .map_err(|error| {
+                IoOperationError::path("open-successor-stdout-log", log_path, error)
+            })?)
+    })();
+    let stdout = match stdout {
+        Ok(file) => Stdio::from(file),
+        Err(error) => {
+            eprintln!(
+                "successor stdout log unavailable ({}): {error}",
+                log_path.display()
+            );
+            Stdio::null()
+        }
+    };
+    let stderr = (|| -> Result<File> {
+        if let Some(parent) = error_log_path.parent() {
+            fs::create_dir_all(parent).map_err(|error| {
+                IoOperationError::path("create-successor-log-directory", parent, error)
+            })?;
+        }
+        open_successor_error_log(error_log_path)
+    })();
+    let stderr = match stderr {
+        Ok(file) => Stdio::from(file),
+        Err(error) => {
+            eprintln!(
+                "successor stderr log unavailable ({}): {error}",
+                error_log_path.display()
+            );
+            Stdio::null()
+        }
+    };
     let mut command = Command::new(app_executable);
     command
         .current_dir(working_directory)
         .args(args)
         .envs(env.iter().cloned())
         .stdin(Stdio::null())
-        .stdout(Stdio::from(stdout))
-        .stderr(Stdio::from(stderr));
+        .stdout(stdout)
+        .stderr(stderr);
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         command.creation_flags(0x08000000);
     }
-    let child = command.spawn()?;
+    let child = command.spawn().map_err(|error| {
+        IoOperationError::path("spawn-successor", app_executable, error)
+            .with_working_directory(working_directory)
+    })?;
     Ok(child.id())
 }

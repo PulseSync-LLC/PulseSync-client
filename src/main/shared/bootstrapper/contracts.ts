@@ -12,6 +12,7 @@ export type RustUpdateProgressEventV1 = {
     artifactCount?: number
     bytesRead?: number
     bytesTotal?: number
+    bytesPerSecond?: number
     path?: string
 }
 
@@ -22,6 +23,16 @@ export type RustHandoffArmedEventV1 = {
     activeLeaseId: string
     waitingForPid: number
     rustPid: number
+}
+
+export type BootstrapperIoDiagnostic = {
+    operation: string
+    path?: string | null
+    destination?: string | null
+    pid?: number | null
+    workingDirectory?: string | null
+    osCode: number | null
+    errorKind: string
 }
 
 export type UpdateErrorV1 = {
@@ -45,6 +56,7 @@ export type UpdateErrorV1 = {
         message: string
         retryable: boolean
         safeToContinue: boolean
+        diagnostic?: BootstrapperIoDiagnostic
     }
 }
 
@@ -108,7 +120,7 @@ export type EffectiveManifestSourceV1 = {
     effective: RequestedManifestSource
     url: string
     fallbackUsed: boolean
-    fallbackReason: 'health-unavailable' | 'requested-github' | null
+    fallbackReason: 'health-unavailable' | 'manifest-unavailable' | 'requested-github' | null
 }
 
 export type DeliveryKindTelemetryV1 = {
@@ -276,6 +288,9 @@ export function parseRustUpdateProgress(value: unknown): RustUpdateProgressEvent
     ) {
         return null
     }
+    if (value.bytesPerSecond !== undefined && (value.event !== 'artifact-progress' || !isNonNegativeInteger(value.bytesPerSecond))) {
+        return null
+    }
     if (value.path !== undefined && typeof value.path !== 'string') {
         return null
     }
@@ -297,6 +312,17 @@ export function parseHandoffArmedProgress(value: unknown): RustHandoffArmedEvent
     return value as RustHandoffArmedEventV1
 }
 
+function isBootstrapperIoDiagnostic(value: unknown): value is BootstrapperIoDiagnostic {
+    return (
+        isRecord(value) &&
+        isNonEmptyString(value.operation) &&
+        isNonEmptyString(value.errorKind) &&
+        (value.osCode === null || (typeof value.osCode === 'number' && Number.isSafeInteger(value.osCode))) &&
+        (value.pid == null || isPositiveInteger(value.pid)) &&
+        ['path', 'destination', 'workingDirectory'].every(key => value[key] == null || typeof value[key] === 'string')
+    )
+}
+
 export function isUpdateErrorV1(value: unknown): value is UpdateErrorV1 {
     return (
         isRecord(value) &&
@@ -308,7 +334,8 @@ export function isUpdateErrorV1(value: unknown): value is UpdateErrorV1 {
         UPDATE_ERROR_PHASES.includes(value.error.phase as UpdateErrorV1['error']['phase']) &&
         typeof value.error.message === 'string' &&
         isBoolean(value.error.retryable) &&
-        isBoolean(value.error.safeToContinue)
+        isBoolean(value.error.safeToContinue) &&
+        (value.error.diagnostic === undefined || isBootstrapperIoDiagnostic(value.error.diagnostic))
     )
 }
 
@@ -383,7 +410,10 @@ function isEffectiveSource(value: unknown): value is EffectiveManifestSourceV1 {
         isRequestedSource(value.effective) &&
         isNonEmptyString(value.url) &&
         isBoolean(value.fallbackUsed) &&
-        (value.fallbackReason === null || value.fallbackReason === 'health-unavailable' || value.fallbackReason === 'requested-github')
+        (value.fallbackReason === null ||
+            value.fallbackReason === 'health-unavailable' ||
+            value.fallbackReason === 'manifest-unavailable' ||
+            value.fallbackReason === 'requested-github')
     )
 }
 

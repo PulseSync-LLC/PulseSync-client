@@ -35,6 +35,11 @@ const schema = {
                 description: t('main.storage.settings.autoStartInTray'),
                 default: false,
             },
+            openWindowOnManualLaunch: {
+                type: 'boolean',
+                description: t('main.storage.settings.openWindowOnManualLaunch'),
+                default: false,
+            },
             autoStartMusic: {
                 type: 'boolean',
                 description: t('main.storage.settings.autoStartMusic'),
@@ -160,6 +165,7 @@ const schema = {
             'saveWindowDimensionsOnRestart',
             'saveWindowPositionOnRestart',
             'autoStartInTray',
+            'openWindowOnManualLaunch',
             'autoStartMusic',
             'autoStartApp',
             'hardwareAcceleration',
@@ -184,6 +190,7 @@ const schema = {
             saveWindowDimensionsOnRestart: true,
             saveWindowPositionOnRestart: true,
             autoStartInTray: false,
+            openWindowOnManualLaunch: false,
             autoStartMusic: false,
             autoStartApp: false,
             hardwareAcceleration: true,

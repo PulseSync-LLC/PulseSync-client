@@ -204,7 +204,7 @@ pub fn extract_zip_to(source: &Path, target: &Path) -> Result<()> {
     fs::create_dir_all(target)?;
     for index in 0..archive.len() {
         let mut file = archive.by_index(index)?;
-        let name = file.name().to_string();
+        let name = file.name()?.into_owned();
         if !zip_entry_is_safe(&name) {
             return Err(format!("archive contains unsafe entry path: {name}").into());
         }

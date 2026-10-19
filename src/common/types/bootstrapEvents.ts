@@ -45,6 +45,7 @@ export type BootstrapUiStateV1 = {
     progress: BootstrapUiProgress
     actions: BootstrapAction[]
     diagnostic?: BootstrapUiDiagnostic
+    bytesPerSecond?: number
 }
 
 export type BootstrapUiController = {
@@ -84,6 +85,7 @@ export function isBootstrapUiStateV1(value: unknown): value is BootstrapUiStateV
     if (!isRecord(value)) return false
     const stateKeys = ['schemaVersion', 'phase', 'statusKey', 'progress', 'actions']
     if (value.diagnostic !== undefined) stateKeys.push('diagnostic')
+    if (value.bytesPerSecond !== undefined) stateKeys.push('bytesPerSecond')
     if (!hasExactKeys(value, stateKeys)) return false
     if (
         value.schemaVersion !== 1 ||
@@ -92,6 +94,12 @@ export function isBootstrapUiStateV1(value: unknown): value is BootstrapUiStateV
         !Array.isArray(value.actions) ||
         value.actions.some(action => !BOOTSTRAP_ACTIONS.includes(action as BootstrapAction)) ||
         new Set(value.actions).size !== value.actions.length
+    ) {
+        return false
+    }
+    if (
+        value.bytesPerSecond !== undefined &&
+        (!isFiniteNonNegativeNumber(value.bytesPerSecond) || (value.phase !== 'downloading-app' && value.phase !== 'downloading-modules'))
     ) {
         return false
     }

@@ -43,25 +43,30 @@ class RendererUpdateController {
 
         this.checkInFlight = true
         try {
-            const activeSource = options.getActiveSource()
             const nextSource = await resolveMainRendererSource()
+            if (this.options !== options || options.window.isDestroyed()) return false
+            const activeSource = options.getActiveSource()
             if (!activeSource || isSameRendererSource(activeSource, nextSource)) {
+                if (this.pendingSource) options.window.flashFrame(false)
                 this.pendingSource = null
                 return false
             }
 
+            const alreadyNotified = isSameRendererSource(this.pendingSource, nextSource)
             this.pendingSource = nextSource
-            this.notifyAvailable(nextSource)
-            logger.main.info('Renderer update available', {
-                currentBuildNumber: activeSource.manifest.buildNumber,
-                nextBuildNumber: nextSource.manifest.buildNumber,
-            })
+            if (!alreadyNotified) {
+                this.notifyAvailable(nextSource)
+                logger.main.info('Renderer update available', {
+                    currentBuildNumber: activeSource.manifest.buildNumber,
+                    nextBuildNumber: nextSource.manifest.buildNumber,
+                })
+            }
             return true
         } catch (error) {
             logger.main.warn('Renderer update check failed', error)
             return false
         } finally {
-            this.checkInFlight = false
+            if (this.options === options) this.checkInFlight = false
         }
     }
 
@@ -71,6 +76,7 @@ class RendererUpdateController {
 
         try {
             const latestSource = await resolveMainRendererSource()
+            if (this.options !== options || options.window.isDestroyed()) return false
             if (isSameRendererSource(options.getActiveSource(), latestSource)) {
                 this.pendingSource = null
                 options.window.flashFrame(false)
@@ -78,11 +84,13 @@ class RendererUpdateController {
             }
 
             await options.activate(latestSource)
+            if (this.options !== options || options.window.isDestroyed()) return true
             this.pendingSource = null
             options.window.flashFrame(false)
             logger.main.info('Renderer update applied', { buildNumber: latestSource.manifest.buildNumber })
             return true
         } catch (error) {
+            if (this.options !== options || options.window.isDestroyed()) return false
             logger.main.error('Failed to apply renderer update', error)
             if (this.pendingSource) this.notifyAvailable(this.pendingSource)
             return false
@@ -96,14 +104,17 @@ class RendererUpdateController {
             kind: 'renderer',
             version: source.manifest.buildNumber,
         })
-        options.window.flashFrame(true)
+        options.window.flashFrame(!options.window.isFocused())
     }
 
     private scheduleNextCheck(): void {
+        const options = this.options
+        if (!options || options.window.isDestroyed()) return
         this.timer = setTimeout(() => {
+            if (this.options !== options) return
             this.timer = null
             void this.check().finally(() => {
-                if (this.options) this.scheduleNextCheck()
+                if (this.options === options) this.scheduleNextCheck()
             })
         }, RENDERER_UPDATE_INTERVAL_MS)
         this.timer.unref()

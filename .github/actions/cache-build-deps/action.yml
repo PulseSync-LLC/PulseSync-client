@@ -10,9 +10,9 @@ runs:
         path: |
           ~/.cargo/registry
           ~/.cargo/git
-        key: cargo-registry-${{ runner.os }}-${{ runner.arch }}-rust188-${{ hashFiles('nativeModules/**/Cargo.lock', 'packages/bootstrapper/Cargo.lock') }}
+        key: cargo-registry-${{ runner.os }}-${{ runner.arch }}-rust1991-${{ hashFiles('nativeModules/**/Cargo.lock', 'packages/bootstrapper/Cargo.lock') }}
         restore-keys: |
-          cargo-registry-${{ runner.os }}-${{ runner.arch }}-rust188-
+          cargo-registry-${{ runner.os }}-${{ runner.arch }}-rust1991-
 
     - name: Cache native module builds
       uses: actions/cache@v6
@@ -21,14 +21,14 @@ runs:
           nativeModules/**/node_modules
           nativeModules/**/build
           nativeModules/**/target
-        key: native-build-${{ runner.os }}-${{ runner.arch }}-node24-rust188-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/scripts/**', 'nativeModules/**/*.rs') }}-input-stamps-v2
+        key: native-build-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-${{ hashFiles('nativeModules/**/package.json', 'nativeModules/**/Cargo.toml', 'nativeModules/**/Cargo.lock', 'nativeModules/**/build.rs', 'nativeModules/**/scripts/**', 'nativeModules/**/*.rs') }}-input-stamps-v2
         restore-keys: |
-          native-build-${{ runner.os }}-${{ runner.arch }}-node24-rust188-
+          native-build-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-
 
     - name: Cache bootstrapper build
       uses: actions/cache@v6
       with:
         path: packages/bootstrapper/target
-        key: bootstrapper-build-${{ runner.os }}-${{ runner.arch }}-rust188-${{ hashFiles('packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/build.rs', 'packages/bootstrapper/src/**/*.rs', 'scripts/bootstrapper/build.ts') }}-input-stamps-v2
+        key: bootstrapper-build-${{ runner.os }}-${{ runner.arch }}-rust1991-${{ hashFiles('packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/build.rs', 'packages/bootstrapper/src/**/*.rs', 'scripts/bootstrapper/build.ts') }}-input-stamps-v2
         restore-keys: |
-          bootstrapper-build-${{ runner.os }}-${{ runner.arch }}-rust188-
+          bootstrapper-build-${{ runner.os }}-${{ runner.arch }}-rust1991-

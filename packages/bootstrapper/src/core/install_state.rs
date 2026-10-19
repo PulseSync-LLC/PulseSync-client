@@ -1,6 +1,6 @@
 use crate::core::{
     active_app::write_json_atomic,
-    error::Result,
+    error::{IoOperationError, Result},
     fs_ops::{sha256_directory, sha256_file},
     layout::{assert_inside, canonical_install_root},
 };
@@ -454,7 +454,10 @@ fn validate_lifecycle(state: &InstallStateV3) -> Result<()> {
 pub fn read_install_state_metadata(state_root: &Path) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let state_path = install_state_path(&state_root);
-    let state: InstallStateV3 = serde_json::from_slice(&fs::read(&state_path)?)?;
+    let state: InstallStateV3 = serde_json::from_slice(
+        &fs::read(&state_path)
+            .map_err(|error| IoOperationError::path("read-install-state", &state_path, error))?,
+    )?;
     if !matches!(state.schema_version, 3 | 4) {
         return Err(format!(
             "install-state schemaVersion must be 3 or 4: {}",

@@ -2,6 +2,7 @@ pub mod active_app;
 pub mod error;
 pub mod fs_ops;
 pub mod host_contract;
+pub mod http;
 pub mod install_state;
 pub mod layout;
 pub mod operation_lock;

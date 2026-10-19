@@ -49,6 +49,7 @@ export class StartupCoordinator {
             inbox: LaunchInbox
             lease: ActiveAppLeaseV1
             loadApplicationMain: ApplicationMainLoader
+            onStartupFailure(error: unknown): Promise<void>
             queue: LaunchQueue
             runtimePaths: BootstrapperRuntimePaths
         },
@@ -75,8 +76,13 @@ export class StartupCoordinator {
             },
             continue: async () => {
                 if (this.applicationHandle) return false
-                await this.startApplication()
-                return true
+                try {
+                    await this.startApplication()
+                    return true
+                } catch (error) {
+                    await options.onStartupFailure(error)
+                    return false
+                }
             },
         })
         setLaunchHandoffRuntime({
@@ -92,14 +98,16 @@ export class StartupCoordinator {
     }
 
     public runWithoutUpdate(): Promise<void> {
-        return this.startApplicationAfterFailure()
+        return this.startApplicationAfterFailure().catch(error => this.options.onStartupFailure(error))
     }
 
     private runGate(): Promise<void> {
         if (this.gatePromise) return this.gatePromise
-        const operation = this.executeGate().finally(() => {
-            if (this.gatePromise === operation) this.gatePromise = null
-        })
+        const operation = this.executeGate()
+            .catch(error => this.options.onStartupFailure(error))
+            .finally(() => {
+                if (this.gatePromise === operation) this.gatePromise = null
+            })
         this.gatePromise = operation
         return operation
     }
@@ -108,8 +116,9 @@ export class StartupCoordinator {
         const launcher = this.options.runtimePaths.launcher
         if (!launcher) throw new Error('Bootstrapper launcher was not found')
         const request = getDesktopUpdateManifestRequest({ source: getUpdateSource() })
+        let result: PrepareUpdateResultV1
         try {
-            const result = await updateCoordinator.run({
+            result = await updateCoordinator.run({
                 activeLeaseId: this.options.lease.leaseId,
                 appExecutableName: this.options.runtimePaths.appExecutableName,
                 channel: request.channel,
@@ -125,13 +134,14 @@ export class StartupCoordinator {
                 serverHealthUrl: request.serverHealthUrl,
                 onDiagnostic: line => logger.updater.warn('Bootstrapper diagnostic', line),
             })
-            await this.handleResult(result)
         } catch (error) {
             logger.updater.error('Bootstrap update gate failed', error)
             if (this.isSafeToContinue(error)) {
                 await this.startApplicationAfterFailure()
             }
+            return
         }
+        await this.handleResult(result)
     }
 
     private async handleResult(result: PrepareUpdateResultV1): Promise<void> {

@@ -1,6 +1,6 @@
 use crate::core::{
     active_app::{ActiveAppLease, ProcessIdentity, process_identity_is_live, write_json_atomic},
-    error::Result,
+    error::{IoOperationError, Result},
     layout::assert_inside,
 };
 use serde::{Deserialize, Serialize};
@@ -73,7 +73,10 @@ pub fn read_self_update_reservation(
     if !path.is_file() {
         return Ok(None);
     }
-    let reservation: SelfUpdateHandoffReservation = serde_json::from_slice(&fs::read(&path)?)?;
+    let reservation: SelfUpdateHandoffReservation =
+        serde_json::from_slice(&fs::read(&path).map_err(|error| {
+            IoOperationError::path("read-self-update-reservation", &path, error)
+        })?)?;
     validate_self_update_reservation(install_root, &reservation)?;
     Ok(Some(reservation))
 }
@@ -87,10 +90,13 @@ pub fn write_self_update_reservation(
 }
 
 pub fn remove_self_update_reservation(install_root: &Path) -> Result<()> {
-    match fs::remove_file(self_update_reservation_path(install_root)) {
+    let path = self_update_reservation_path(install_root);
+    match fs::remove_file(&path) {
         Ok(()) => Ok(()),
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(()),
-        Err(error) => Err(error.into()),
+        Err(error) => {
+            Err(IoOperationError::path("remove-self-update-reservation", &path, error).into())
+        }
     }
 }
 

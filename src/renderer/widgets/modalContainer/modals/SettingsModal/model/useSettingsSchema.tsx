@@ -150,6 +150,15 @@ export function useSettingsSchema({
                                         onChange: checked => actions.toggleSetting('autoTray', checked),
                                     },
                                     {
+                                        id: 'open-window-on-manual-launch',
+                                        kind: 'toggle',
+                                        label: t('contextMenu.traySettings.openWindowOnManualLaunch'),
+                                        description: t('contextMenu.traySettings.openWindowOnManualLaunchDescription'),
+                                        checked: app.settings.openWindowOnManualLaunch,
+                                        disabled: !app.settings.autoStartInTray,
+                                        onChange: checked => actions.toggleSetting('openWindowOnManualLaunch', checked),
+                                    },
+                                    {
                                         id: 'close-to-tray',
                                         kind: 'toggle',
                                         label: t('contextMenu.traySettings.hideOnClose'),
@@ -206,43 +215,6 @@ export function useSettingsSchema({
                                               label: t('contextMenu.boostyUrl'),
                                               onClick: actions.openBoostyUrl,
                                           },
-                                ],
-                            },
-                            {
-                                id: 'obs-widget',
-                                title: t('contextMenu.obsWidget.title'),
-                                meta: t(actions.widgetInstalled ? 'settingsModal.status.installed' : 'settingsModal.status.notInstalled'),
-                                items: [
-                                    {
-                                        id: 'download-obs-widget',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.download', {
-                                            status: t(actions.widgetInstalled ? 'contextMenu.status.installed' : 'contextMenu.status.notInstalled'),
-                                        }),
-                                        disabled: actions.widgetInstalled,
-                                        onClick: actions.downloadObsWidget,
-                                    },
-                                    {
-                                        id: 'open-obs-widget-directory',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.openFolder'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: actions.openObsWidgetDirectory,
-                                    },
-                                    {
-                                        id: 'copy-obs-widget-path',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.copyPath'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: () => void actions.copyWidgetPath(),
-                                    },
-                                    {
-                                        id: 'remove-obs-widget',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.remove'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: actions.removeObsWidget,
-                                    },
                                 ],
                             },
                             {
@@ -320,6 +292,43 @@ export function useSettingsSchema({
                                         label: t('contextMenu.mod.showChangelog'),
                                         checked: app.settings.showModModalAfterInstall,
                                         onChange: checked => actions.toggleSetting('showModModalAfterInstall', checked),
+                                    },
+                                ],
+                            },
+                            {
+                                id: 'obs-widget',
+                                title: t('contextMenu.obsWidget.title'),
+                                meta: t(actions.widgetInstalled ? 'settingsModal.status.installed' : 'settingsModal.status.notInstalled'),
+                                items: [
+                                    {
+                                        id: 'download-obs-widget',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.download', {
+                                            status: t(actions.widgetInstalled ? 'contextMenu.status.installed' : 'contextMenu.status.notInstalled'),
+                                        }),
+                                        disabled: actions.widgetInstalled,
+                                        onClick: actions.downloadObsWidget,
+                                    },
+                                    {
+                                        id: 'open-obs-widget-directory',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.openFolder'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: actions.openObsWidgetDirectory,
+                                    },
+                                    {
+                                        id: 'copy-obs-widget-path',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.copyPath'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: () => void actions.copyWidgetPath(),
+                                    },
+                                    {
+                                        id: 'remove-obs-widget',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.remove'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: actions.removeObsWidget,
                                     },
                                 ],
                             },

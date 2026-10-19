@@ -389,24 +389,24 @@ fn materialize_http_artifact(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(10))
-        .timeout_read(Duration::from_secs(30))
-        .build()
+    let response = crate::core::http::http_agent(Duration::from_secs(10), Duration::from_secs(30))
         .get(&artifact.url)
-        .set("Accept", "application/octet-stream")
-        .set("Cache-Control", "no-cache")
-        .set("Pragma", "no-cache")
+        .header("Accept", "application/octet-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Pragma", "no-cache")
         .call()?;
     let bytes_total = response
-        .header("Content-Length")
+        .headers()
+        .get("Content-Length")
+        .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok())
         .or(artifact.size);
-    let mut reader = response.into_reader();
+    let mut reader = response.into_body().into_reader();
     let mut file = fs::File::create(target_path)?;
     let mut buffer = [0_u8; 64 * 1024];
     let mut bytes_read = 0_u64;
-    let mut next_report_at = 0_u64;
+    let mut reported_bytes = 0_u64;
+    let mut reported_at = Instant::now();
 
     loop {
         let read = reader.read(&mut buffer)?;
@@ -416,8 +416,9 @@ fn materialize_http_artifact(
         file.write_all(&buffer[..read])?;
         bytes_read += read as u64;
 
-        if bytes_read >= next_report_at {
-            reporter.emit(InstallWorkflowEvent::artifact_progress(
+        let elapsed = reported_at.elapsed();
+        if elapsed >= Duration::from_millis(250) {
+            let mut event = InstallWorkflowEvent::artifact_progress(
                 "downloading",
                 "Downloading artifact",
                 key.as_str(),
@@ -426,8 +427,12 @@ fn materialize_http_artifact(
                 bytes_read,
                 bytes_total,
                 Some(target_path.to_path_buf()),
-            ));
-            next_report_at = bytes_read.saturating_add(1024 * 1024);
+            );
+            event.bytes_per_second =
+                Some(((bytes_read - reported_bytes) as f64 / elapsed.as_secs_f64()) as u64);
+            reporter.emit(event);
+            reported_bytes = bytes_read;
+            reported_at = Instant::now();
         }
     }
     file.flush()?;

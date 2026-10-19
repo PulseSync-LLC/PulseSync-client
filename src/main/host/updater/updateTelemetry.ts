@@ -16,7 +16,8 @@ function baseAttributes(context: UpdateTelemetryContext): Record<string, string 
 }
 
 function updateErrorCode(error: unknown): string {
-    if (!(error instanceof BootstrapperCommandError) || !isUpdateErrorV1(error.result)) return 'unknown'
+    if (!(error instanceof BootstrapperCommandError)) return 'unknown'
+    if (!isUpdateErrorV1(error.result)) return error.code
     return error.result.error.code || `exit-${error.exitCode ?? 'unknown'}`
 }
 
@@ -83,6 +84,8 @@ export function recordUpdatePrepareFailure(error: unknown, context: UpdateTeleme
         ...attributes,
         durationMs,
         error_message: error instanceof Error ? error.message : String(error),
+        error_cause: error instanceof BootstrapperCommandError && error.originalCause instanceof Error ? error.originalCause.message : undefined,
+        bootstrapper_output: error instanceof BootstrapperCommandError ? error.output : undefined,
     })
     addMainBreadcrumb('pulsesync.updater.prepare', 'Update preparation failed', {
         ...attributes,

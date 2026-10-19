@@ -28,6 +28,18 @@ jobs:
           ref: ${{ github.sha }}
           fetch-depth: 50
 
+      - name: Verify workflow dependency lockfile
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh extension install github/gh-actions-lock --pin v0.2.0
+          gh actions-lock --verify \
+            .github/workflows/build-dev.yml \
+            .github/workflows/desktop-tests.yml \
+            .github/workflows/publish-component.yml \
+            .github/workflows/desktop-s3-cleanup.yml \
+            .github/workflows/publish-renderer.yml
+
       - uses: dorny/paths-filter@v4.0.3
         id: filter
         with:
@@ -69,6 +81,7 @@ jobs:
               - 'graphql.config.yml'
               - 'schema.graphql'
               - '.github/actions/cache-build-deps/**'
+              - '.github/workflows/actions.lock'
               - '.github/workflows/build-dev.yml'
               - '.github/workflows/desktop-tests.yml'
             desktop_core:
@@ -88,6 +101,7 @@ jobs:
               - 'src/styles/**'
               - 'static/**'
               - 'scripts/renderer/**'
+              - '.github/workflows/actions.lock'
               - '.github/workflows/publish-renderer.yml'
               - '.yarnrc.yml'
               - 'vite.renderer.config.ts'
@@ -214,11 +228,11 @@ jobs:
       - name: Set up Rust
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --no-self-update
+          rustup default 1.99.1
           if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
-      - uses: ./.github/actions/cache-build-deps
+      - uses: $/.github/actions/cache-build-deps
 
       - name: Create .env
         shell: bash

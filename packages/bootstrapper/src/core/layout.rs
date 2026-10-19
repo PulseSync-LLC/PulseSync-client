@@ -1,5 +1,5 @@
 use crate::core::{
-    error::Result,
+    error::{IoOperationError, Result},
     install_state::{install_state_path, read_install_state_metadata},
 };
 use serde::Serialize;
@@ -75,8 +75,11 @@ fn absolute_path(path: &Path) -> PathBuf {
 
 pub fn canonical_install_root(path: &Path) -> Result<PathBuf> {
     let absolute = absolute_path(path);
-    fs::create_dir_all(&absolute)?;
-    Ok(absolute.canonicalize()?)
+    fs::create_dir_all(&absolute)
+        .map_err(|error| IoOperationError::path("create-state-root", &absolute, error))?;
+    Ok(absolute
+        .canonicalize()
+        .map_err(|error| IoOperationError::path("resolve-state-root", &absolute, error))?)
 }
 
 fn normalize_lexical(path: &Path) -> PathBuf {

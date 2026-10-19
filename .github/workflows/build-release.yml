@@ -58,8 +58,8 @@ jobs:
       - name: Set up Rust
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --no-self-update
+          rustup default 1.99.1
           if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
       - uses: ./.github/actions/cache-build-deps
@@ -263,7 +263,8 @@ jobs:
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
-          prerelease: ${{ contains(needs.tag.outputs.version, '-') }}
+          prerelease: ${{ needs.tag.outputs.channel == 'dev' }}
+          make_latest: ${{ needs.tag.outputs.channel == 'beta' && 'true' || 'false' }}
           generate_release_notes: true
           overwrite_files: true
           fail_on_unmatched_files: true

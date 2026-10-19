@@ -1,5 +1,9 @@
 use crate::{
-    core::{active_app::write_json_atomic, error::Result, layout::is_inside},
+    core::{
+        active_app::write_json_atomic,
+        error::{IoOperationError, Result},
+        layout::is_inside,
+    },
     domain::transactions::model::{TransactionArtifact, TransactionCandidate, TransactionRecord},
 };
 use serde_json::Value;
@@ -31,10 +35,14 @@ fn collect_transaction_files(
     if !directory.exists() {
         return Ok(());
     }
-    for entry in fs::read_dir(directory)? {
-        let entry = entry?;
+    for entry in fs::read_dir(directory)
+        .map_err(|error| IoOperationError::path("list-transactions", directory, error))?
+    {
+        let entry = entry
+            .map_err(|error| IoOperationError::path("read-transaction-entry", directory, error))?;
         let path = entry.path();
-        let metadata = fs::symlink_metadata(&path)?;
+        let metadata = fs::symlink_metadata(&path)
+            .map_err(|error| IoOperationError::path("inspect-transaction-path", &path, error))?;
         if metadata_is_link(&metadata) {
             return Err(format!(
                 "transaction root contains a symbolic link: {}",
@@ -65,18 +73,24 @@ pub fn transaction_records(root: &Path) -> Result<Vec<TransactionRecord>> {
     if !root.exists() {
         return Ok(Vec::new());
     }
-    let root = root.canonicalize()?;
+    let root = root
+        .canonicalize()
+        .map_err(|error| IoOperationError::path("resolve-transaction-root", root, error))?;
     let mut files = Vec::new();
     collect_transaction_files(&root, &root, &mut files)?;
     let mut records = Vec::with_capacity(files.len());
     for path in files {
-        let value: Value = serde_json::from_slice(&fs::read(&path)?)?;
+        let value: Value = serde_json::from_slice(
+            &fs::read(&path)
+                .map_err(|error| IoOperationError::path("read-transaction", &path, error))?,
+        )?;
         let state = value
             .get("state")
             .and_then(Value::as_str)
             .ok_or_else(|| format!("transaction is missing state: {}", path.display()))?
             .to_string();
-        let modified = fs::metadata(&path)?
+        let modified = fs::metadata(&path)
+            .map_err(|error| IoOperationError::path("inspect-transaction", &path, error))?
             .modified()
             .unwrap_or(SystemTime::UNIX_EPOCH);
         records.push(TransactionRecord {
@@ -128,7 +142,10 @@ pub fn transaction_is_stale(modified: SystemTime, max_age: Duration) -> bool {
 }
 
 pub fn expire_prepared_transaction(transaction_file: &Path, reason: &str) -> Result<Value> {
-    let mut value: Value = serde_json::from_slice(&fs::read(transaction_file)?)?;
+    let mut value: Value =
+        serde_json::from_slice(&fs::read(transaction_file).map_err(|error| {
+            IoOperationError::path("read-transaction", transaction_file, error)
+        })?)?;
     if value.get("state").and_then(Value::as_str) != Some("prepared") {
         return Err("transaction state must be prepared before expiration".into());
     }

@@ -231,6 +231,8 @@
         },
         "traySettings": {
             "autoTray": "Запускать приложение в трее",
+            "openWindowOnManualLaunch": "Открывать окно при ручном запуске",
+            "openWindowOnManualLaunchDescription": "При входе в систему приложение запускается в трее. При запуске по ярлыку открывается окно.",
             "hideOnClose": "При закрытии сворачивать в трей",
             "title": "Поведение в трее"
         },
@@ -1162,6 +1164,7 @@
             "autoStartMusic": "Опция \"Автозапуск музыки\" {{status}}",
             "autoUpdateStoreAddons": "Опция \"Автообновление аддонов из каталога\" {{status}}",
             "autoTray": "Опция \"Автозапуск в трее\" {{status}}",
+            "openWindowOnManualLaunch": "Опция \"Открывать окно при ручном запуске\" {{status}}",
             "closeAppInTray": "Опция \"Закрытие приложения в трее\" {{status}}",
             "deletePextAfterImport": "Включена функция удаления .pext после импорта темы",
             "saveAsMp3": "Опция \"Сохранять в формате mp3\" {{status}}",

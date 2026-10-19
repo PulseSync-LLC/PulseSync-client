@@ -1,5 +1,5 @@
 use crate::{
-    core::error::Result,
+    core::{error::Result, http::http_agent},
     domain::manifest::{BootstrapperUpdateManifest, validation::validate_manifest},
 };
 use serde_json::Value;
@@ -8,13 +8,6 @@ use std::{fs, path::PathBuf, time::Duration};
 pub const DEFAULT_GITHUB_OWNER: &str = "PulseSync-LLC";
 pub const DEFAULT_GITHUB_REPO: &str = "PulseSync-client";
 const GITHUB_API_BASE_URL: &str = "https://api.github.com";
-
-fn http_agent(connect_timeout: Duration, read_timeout: Duration) -> ureq::Agent {
-    ureq::AgentBuilder::new()
-        .timeout_connect(connect_timeout)
-        .timeout_read(read_timeout)
-        .build()
-}
 
 #[derive(Clone, Debug)]
 pub struct GitHubManifestFallback {
@@ -64,12 +57,14 @@ pub fn read_source(source: &str) -> Result<Vec<u8>> {
     if source.starts_with("http://") || source.starts_with("https://") {
         let response = http_agent(Duration::from_secs(5), Duration::from_secs(15))
             .get(source)
-            .set("Accept", "application/json")
-            .set("Cache-Control", "no-cache")
-            .set("Pragma", "no-cache")
-            .timeout(Duration::from_secs(30))
+            .header("Accept", "application/json")
+            .header("Cache-Control", "no-cache")
+            .header("Pragma", "no-cache")
+            .config()
+            .timeout_global(Some(Duration::from_secs(30)))
+            .build()
             .call()?;
-        let mut reader = response.into_reader();
+        let mut reader = response.into_body().into_reader();
         let mut bytes = Vec::new();
         std::io::copy(&mut reader, &mut bytes)?;
         return Ok(bytes);
@@ -80,18 +75,19 @@ pub fn read_source(source: &str) -> Result<Vec<u8>> {
 pub fn is_manifest_fetch_unavailable(error: &(dyn std::error::Error + 'static)) -> bool {
     if let Some(error) = error.downcast_ref::<ureq::Error>() {
         return match error {
-            ureq::Error::Status(status, _) => {
+            ureq::Error::StatusCode(status) => {
                 matches!(status, 404 | 408 | 429 | 500..=599)
             }
-            ureq::Error::Transport(error) => matches!(
-                error.kind(),
-                ureq::ErrorKind::Dns
-                    | ureq::ErrorKind::ConnectionFailed
-                    | ureq::ErrorKind::Io
-                    | ureq::ErrorKind::ProxyConnect
-                    | ureq::ErrorKind::BadStatus
-                    | ureq::ErrorKind::BadHeader
-            ),
+            ureq::Error::HostNotFound
+            | ureq::Error::ConnectionFailed
+            | ureq::Error::Io(_)
+            | ureq::Error::Timeout(_)
+            | ureq::Error::ConnectProxyFailed(_)
+            | ureq::Error::Protocol(_)
+            | ureq::Error::LargeResponseHeader(_, _)
+            | ureq::Error::Tls(_)
+            | ureq::Error::Rustls(_) => true,
+            _ => false,
         };
     }
     // For an HTTP source this is a failure while reading the response body.
@@ -109,10 +105,12 @@ pub fn health_check_available(health_url: &str) -> bool {
 
     http_agent(Duration::from_secs(3), Duration::from_secs(3))
         .get(health_url)
-        .set("Accept", "application/json")
-        .timeout(Duration::from_secs(3))
+        .header("Accept", "application/json")
+        .config()
+        .timeout_global(Some(Duration::from_secs(3)))
+        .build()
         .call()
-        .map(|response| (200..300).contains(&response.status()))
+        .map(|response| response.status().is_success())
         .unwrap_or(false)
 }
 
@@ -133,11 +131,13 @@ pub fn github_manifest_url(fallback: &GitHubManifestFallback) -> Result<String> 
         );
         let response = agent
             .get(&api_url)
-            .set("Accept", "application/vnd.github+json")
-            .set("User-Agent", "PulseSyncBootstrapper")
-            .timeout(Duration::from_secs(15))
+            .header("Accept", "application/vnd.github+json")
+            .header("User-Agent", "PulseSyncBootstrapper")
+            .config()
+            .timeout_global(Some(Duration::from_secs(15)))
+            .build()
             .call()?;
-        let releases: Value = serde_json::from_reader(response.into_reader())?;
+        let releases: Value = serde_json::from_reader(response.into_body().into_reader())?;
         let releases = releases
             .as_array()
             .ok_or("GitHub releases response must be an array")?;

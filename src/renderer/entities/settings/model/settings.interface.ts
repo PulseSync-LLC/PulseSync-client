@@ -4,6 +4,7 @@ export interface Settings {
     saveWindowDimensionsOnRestart: boolean
     saveWindowPositionOnRestart: boolean
     autoStartInTray: boolean
+    openWindowOnManualLaunch: boolean
     autoStartMusic: boolean
     autoStartApp: boolean
     hardwareAcceleration: boolean
