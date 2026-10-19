@@ -9,8 +9,7 @@ import { useModalContext } from '@app/providers/modal'
 import { getUserGridMetrics, SORT_FIELDS, sortUsers, USER_CARD_HEIGHT, USER_CARD_MIN_WIDTH } from '@pages/users/model/userList'
 import UsersVirtualGrid from '@pages/users/ui/UsersVirtualGrid'
 import PageLayout from '@widgets/layout/PageLayout'
-import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
-import apolloClient from '@shared/api/apolloClient'
+import { getUsersPage } from '@entities/user/api/getUsersPage'
 import { getBannerMediaUrls } from '@shared/lib/mediaVariants'
 import { Banner } from '@shared/ui/PSUI/Image'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
@@ -31,6 +30,7 @@ export default function UsersPage() {
     const [users, setUsers] = useState<UserInterface[]>([])
     const [page, setPage] = useState(1)
     const [maxPages, setMaxPages] = useState(1)
+    const [hasMore, setHasMore] = useState(false)
     const [sorting, setSorting] = useState<SortState>([{ id: 'level', desc: true }])
     const [search, setSearch] = useState('')
     const [debouncedSearch, setDebouncedSearch] = useState('')
@@ -47,6 +47,8 @@ export default function UsersPage() {
     const sortRefs = useRef<(HTMLDivElement | null)[]>(Array.from({ length: 4 }, () => null))
     const queryKeyRef = useRef(0)
     const nextPagePendingRef = useRef(false)
+    const endCursorRef = useRef<string | null>(null)
+    const legacyPaginationRef = useRef(false)
     const animationsEnabledRef = useRef(false)
     const scrollDirectionRef = useRef<'up' | 'down'>('down')
     const lastScrollTopRef = useRef(0)
@@ -137,21 +139,25 @@ export default function UsersPage() {
             }
 
             try {
-                const result = await apolloClient.query({
-                    query: GetAllUsersQuery,
-                    variables: { perPage: perPage_, page: page_, sorting: sorting_, search: search_ },
-                    fetchPolicy: 'no-cache',
+                const useCursor = mode === 'append' && sorting_.length === 1 && sorting_[0].id === 'createdAt' && sorting_[0].desc
+                const { payload, legacy } = await getUsersPage({
+                    page: page_,
+                    perPage: perPage_,
+                    sorting: sorting_,
+                    search: search_,
+                    after: useCursor ? endCursorRef.current : null,
+                    includeTotalPages: mode === 'replace',
+                    legacy: legacyPaginationRef.current,
                 })
 
                 if (queryKey !== queryKeyRef.current) return
-
-                const data: any = result.data || {}
-                const payload = data.getUsersWithPagination || null
+                legacyPaginationRef.current = legacy
 
                 if (payload) {
                     const raw: UserInterface[] = Array.isArray(payload.users) ? payload.users : []
-                    const totalPages: number = payload.totalPages || 1
                     const nextUsers = sortUsers(raw, sorting_)
+                    endCursorRef.current = payload.endCursor ?? null
+                    setHasMore(typeof payload.hasMore === 'boolean' ? payload.hasMore : page_ < (payload.totalPages || 1))
 
                     setUsers(prevUsers => {
                         if (mode !== 'append') return nextUsers
@@ -159,12 +165,14 @@ export default function UsersPage() {
                         const knownIds = new Set(prevUsers.map(user => user.id))
                         return [...prevUsers, ...nextUsers.filter(user => !knownIds.has(user.id))]
                     })
-                    setMaxPages(totalPages)
+                    setMaxPages(previous => Math.max(page_, payload.totalPages ?? previous))
                     setPage(page_)
                     if (mode === 'append') setHasLoadMoreError(false)
                 } else {
                     if (mode !== 'append') setUsers([])
                     setMaxPages(1)
+                    setHasMore(false)
+                    endCursorRef.current = null
                 }
             } catch (e) {
                 if (queryKey !== queryKeyRef.current) return
@@ -280,6 +288,8 @@ export default function UsersPage() {
 
         setPage(1)
         setMaxPages(1)
+        setHasMore(false)
+        endCursorRef.current = null
         setUsers([])
         setLoading(true)
         setIsFetchingMore(false)
@@ -328,7 +338,7 @@ export default function UsersPage() {
         const root = containerRef.current
         const target = loadMoreRef.current
 
-        if (!root || !target || loading || isFetchingMore || hasLoadMoreError || page >= maxPages) return
+        if (!root || !target || loading || isFetchingMore || hasLoadMoreError || !hasMore) return
 
         const queryKey = queryKeyRef.current
         let active = true
@@ -355,7 +365,7 @@ export default function UsersPage() {
             active = false
             observer.disconnect()
         }
-    }, [effectiveGridMetrics.prefetchOffsetPx, fetchUsers, hasLoadMoreError, isFetchingMore, loading, maxPages, page])
+    }, [effectiveGridMetrics.prefetchOffsetPx, fetchUsers, hasLoadMoreError, hasMore, isFetchingMore, loading, page])
 
     const handleSort = useCallback((field: string) => {
         setSorting(prev => (prev[0].id === field ? [{ id: field as any, desc: !prev[0].desc }] : [{ id: field as any, desc: true }]))

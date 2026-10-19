@@ -8,7 +8,7 @@ import semver from 'semver'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
 import GetStoreAddonsQuery from '@entities/addon/api/getStoreAddons.query'
 import FindUserByNameQuery from '@entities/user/api/findUserByName.query'
-import GetAllUsersQuery from '@entities/user/api/getAllUsers.query'
+import SearchUsersQuery from '@entities/user/api/searchUsers.query'
 import UserContext from '@entities/user/model/context'
 import apolloClient from '@shared/api/apolloClient'
 import { desktopApi } from '@shared/desktop/desktopApi'
@@ -388,13 +388,8 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled, pro
 
             try {
                 const response = await apolloClient.query<PulseUsersSearchQuery>({
-                    query: GetAllUsersQuery,
-                    variables: {
-                        page: 1,
-                        perPage: 20,
-                        sorting: [{ id: 'username', desc: false }],
-                        search: trimmedQuery,
-                    },
+                    query: SearchUsersQuery,
+                    variables: { search: trimmedQuery },
                     fetchPolicy: 'no-cache',
                 })
 
