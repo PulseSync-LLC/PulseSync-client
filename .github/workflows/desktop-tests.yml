@@ -42,8 +42,8 @@ jobs:
       - name: Set up Rust
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --component rustfmt --no-self-update
+          rustup default 1.99.1
 
       - uses: actions/cache@v6
         with:
@@ -51,7 +51,7 @@ jobs:
             packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Install deps
         run: yarn install --frozen-lockfile
@@ -100,8 +100,8 @@ jobs:
       - name: Set up Rust
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --no-self-update
+          rustup default 1.99.1
 
       - uses: actions/cache@v6
         with:
@@ -109,10 +109,10 @@ jobs:
             packages/bootstrapper/target
             ~/.cargo/registry
             ~/.cargo/git
-          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-dev-opt1-debug0-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
+          key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-dev-opt1-debug0-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
           restore-keys: |
-            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-dev-opt1-debug0-
-            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust188-
+            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-dev-opt1-debug0-
+            desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-
 
       - name: Install deps
         run: yarn install --frozen-lockfile

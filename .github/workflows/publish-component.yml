@@ -116,8 +116,8 @@ jobs:
         if: ${{ inputs.component == 'bootstrapper' }}
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --component rustfmt --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --component rustfmt --no-self-update
+          rustup default 1.99.1
 
       - name: Validate bootstrapper
         if: ${{ inputs.component == 'bootstrapper' }}
@@ -163,8 +163,8 @@ jobs:
       - name: Set up Rust
         shell: bash
         run: |
-          rustup toolchain install 1.88.0 --profile minimal --no-self-update
-          rustup default 1.88.0
+          rustup toolchain install 1.99.1 --profile minimal --no-self-update
+          rustup default 1.99.1
           if [ "$RUNNER_OS" = "macOS" ]; then rustup target add x86_64-apple-darwin aarch64-apple-darwin; fi
 
       - uses: $/.github/actions/cache-build-deps

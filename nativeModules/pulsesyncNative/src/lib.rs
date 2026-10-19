@@ -7,7 +7,9 @@ mod watcher;
 
 use napi_derive::napi;
 
-pub use artifact::{hash_file, install_unpacked_artifact, prepare_asar_artifact, validate_asar_unpacked};
+pub use artifact::{
+    hash_file, install_unpacked_artifact, prepare_asar_artifact, validate_asar_unpacked,
+};
 pub use file_ops::{copy_file, delete_file, file_exists, move_file, read_file, rename_file};
 pub use hardware_identity::get_hardware_identity;
 pub use integrity::{

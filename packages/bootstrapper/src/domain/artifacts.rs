@@ -389,20 +389,19 @@ fn materialize_http_artifact(
         fs::create_dir_all(parent)?;
     }
 
-    let response = ureq::AgentBuilder::new()
-        .timeout_connect(Duration::from_secs(10))
-        .timeout_read(Duration::from_secs(30))
-        .build()
+    let response = crate::core::http::http_agent(Duration::from_secs(10), Duration::from_secs(30))
         .get(&artifact.url)
-        .set("Accept", "application/octet-stream")
-        .set("Cache-Control", "no-cache")
-        .set("Pragma", "no-cache")
+        .header("Accept", "application/octet-stream")
+        .header("Cache-Control", "no-cache")
+        .header("Pragma", "no-cache")
         .call()?;
     let bytes_total = response
-        .header("Content-Length")
+        .headers()
+        .get("Content-Length")
+        .and_then(|value| value.to_str().ok())
         .and_then(|value| value.parse::<u64>().ok())
         .or(artifact.size);
-    let mut reader = response.into_reader();
+    let mut reader = response.into_body().into_reader();
     let mut file = fs::File::create(target_path)?;
     let mut buffer = [0_u8; 64 * 1024];
     let mut bytes_read = 0_u64;
