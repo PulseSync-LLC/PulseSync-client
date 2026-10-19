@@ -218,43 +218,6 @@ export function useSettingsSchema({
                                 ],
                             },
                             {
-                                id: 'obs-widget',
-                                title: t('contextMenu.obsWidget.title'),
-                                meta: t(actions.widgetInstalled ? 'settingsModal.status.installed' : 'settingsModal.status.notInstalled'),
-                                items: [
-                                    {
-                                        id: 'download-obs-widget',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.download', {
-                                            status: t(actions.widgetInstalled ? 'contextMenu.status.installed' : 'contextMenu.status.notInstalled'),
-                                        }),
-                                        disabled: actions.widgetInstalled,
-                                        onClick: actions.downloadObsWidget,
-                                    },
-                                    {
-                                        id: 'open-obs-widget-directory',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.openFolder'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: actions.openObsWidgetDirectory,
-                                    },
-                                    {
-                                        id: 'copy-obs-widget-path',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.copyPath'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: () => void actions.copyWidgetPath(),
-                                    },
-                                    {
-                                        id: 'remove-obs-widget',
-                                        kind: 'action',
-                                        label: t('contextMenu.obsWidget.remove'),
-                                        disabled: !actions.widgetInstalled,
-                                        onClick: actions.removeObsWidget,
-                                    },
-                                ],
-                            },
-                            {
                                 id: 'mod-version',
                                 title: t('contextMenu.mod.version'),
                                 items: [
@@ -329,6 +292,43 @@ export function useSettingsSchema({
                                         label: t('contextMenu.mod.showChangelog'),
                                         checked: app.settings.showModModalAfterInstall,
                                         onChange: checked => actions.toggleSetting('showModModalAfterInstall', checked),
+                                    },
+                                ],
+                            },
+                            {
+                                id: 'obs-widget',
+                                title: t('contextMenu.obsWidget.title'),
+                                meta: t(actions.widgetInstalled ? 'settingsModal.status.installed' : 'settingsModal.status.notInstalled'),
+                                items: [
+                                    {
+                                        id: 'download-obs-widget',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.download', {
+                                            status: t(actions.widgetInstalled ? 'contextMenu.status.installed' : 'contextMenu.status.notInstalled'),
+                                        }),
+                                        disabled: actions.widgetInstalled,
+                                        onClick: actions.downloadObsWidget,
+                                    },
+                                    {
+                                        id: 'open-obs-widget-directory',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.openFolder'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: actions.openObsWidgetDirectory,
+                                    },
+                                    {
+                                        id: 'copy-obs-widget-path',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.copyPath'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: () => void actions.copyWidgetPath(),
+                                    },
+                                    {
+                                        id: 'remove-obs-widget',
+                                        kind: 'action',
+                                        label: t('contextMenu.obsWidget.remove'),
+                                        disabled: !actions.widgetInstalled,
+                                        onClick: actions.removeObsWidget,
                                     },
                                 ],
                             },
