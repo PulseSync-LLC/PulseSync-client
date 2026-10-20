@@ -96,7 +96,10 @@ export class LaunchInbox {
         this.closeWatcher()
         const inboxDir = path.join(this.options.stateRoot, 'runtime', 'launch-inbox', this.options.lease.inboxId)
         try {
-            this.watcher = fs.watch(inboxDir, () => this.runInBackground(() => this.reconcile()))
+            this.watcher = fs.watch(inboxDir, (_eventType, filename) => {
+                if (filename && (filename === 'state.json' || !filename.endsWith('.json'))) return
+                this.runInBackground(() => this.poll(inboxDir))
+            })
         } catch {
             this.watcher = null
         }
@@ -128,7 +131,26 @@ export class LaunchInbox {
     private async reconcileIfPending(inboxDir: string): Promise<void> {
         try {
             const entries = await fs.promises.readdir(inboxDir, { withFileTypes: true })
-            const hasPendingRequest = entries.some(entry => entry.isFile() && entry.name !== 'state.json' && entry.name.endsWith('.json'))
+            let hasPendingRequest = false
+            for (const entry of entries) {
+                if (!entry.isFile() || entry.name === 'state.json' || !entry.name.endsWith('.json')) continue
+                const request: Partial<LaunchRequestEnvelopeV1> | null = JSON.parse(
+                    await fs.promises.readFile(path.join(inboxDir, entry.name), 'utf8'),
+                )
+                // Only the owning lease or its handoff successor can reclaim a claimed request.
+                // The bootstrapper remains responsible for validating every candidate and its ownership.
+                if (
+                    request?.state === 'claimed' &&
+                    typeof request.claimedByLeaseId === 'string' &&
+                    request.claimedByLeaseId.length > 0 &&
+                    request.claimedByLeaseId !== this.options.lease.leaseId &&
+                    request.claimedByLeaseId !== this.options.lease.inheritedFromLeaseId
+                ) {
+                    continue
+                }
+                hasPendingRequest = true
+                break
+            }
             if (!hasPendingRequest) return
         } catch {
             // Let the authoritative bootstrapper validate or recreate the inbox when the cheap local check fails.
