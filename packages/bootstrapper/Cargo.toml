@@ -1,6 +1,6 @@
 [package]
 name = "pulsesync-bootstrapper"
-version = "0.3.44"
+version = "0.3.45"
 edition = "2024"
 rust-version = "1.89"
 publish = false

@@ -141,6 +141,12 @@ const forgeConfig: ForgeConfig = {
             fs.rmSync(path.join(buildPath, '.vite', 'worker'), { force: true, recursive: true })
             fs.rmSync(path.join(buildPath, '.vite', 'renderer', 'assets'), { force: true, recursive: true })
             const resourcesPath = path.resolve(buildPath, '..')
+            if (platform === 'win32') {
+                const werHelperPath = path.resolve(resourcesPath, '..', 'electron_wer.dll')
+                if (fs.existsSync(werHelperPath)) {
+                    fs.renameSync(werHelperPath, path.resolve(resourcesPath, '..', 'PulseSync_wer.dll'))
+                }
+            }
             const iconSource = path.resolve(__dirname, 'static', 'assets', 'icon')
             const iconDestination = path.join(resourcesPath, 'assets', 'icon')
             fs.mkdirSync(iconDestination, { recursive: true })

@@ -70,21 +70,45 @@ export async function prepareDesktopUpdate(options: PrepareDesktopUpdateOptions)
     pushArg(args, '--github-repo', options.githubRepo)
     pushArg(args, '--staging-dir', options.stagingDir)
 
-    return unwrapSemanticResult(
-        await runBootstrapperCommand({
-            launcher: options.launcher,
-            command: 'prepare-update',
-            args,
-            progressJson: true,
-            parseProgress: parseRustUpdateProgress,
-            onDiagnostic: options.onDiagnostic,
-            onProgress: event => {
-                previousUiState = bootstrapUiStateFromProgress(event, previousUiState)
-                options.onProgress?.(event, previousUiState)
-            },
-            parseResult: parsePrepareResult,
-        }),
+    const prepare = async (): Promise<PrepareUpdateResultV1> =>
+        unwrapSemanticResult(
+            await runBootstrapperCommand({
+                launcher: options.launcher,
+                command: 'prepare-update',
+                args,
+                progressJson: true,
+                parseProgress: parseRustUpdateProgress,
+                onDiagnostic: options.onDiagnostic,
+                onProgress: event => {
+                    previousUiState = bootstrapUiStateFromProgress(event, previousUiState)
+                    options.onProgress?.(event, previousUiState)
+                },
+                parseResult: parsePrepareResult,
+            }),
+        )
+
+    const result = await prepare()
+    if (result.state !== 'blocked' || result.block.code !== 'pending-transaction-exists' || !result.block.retryable || !result.block.safeToContinue) {
+        return result
+    }
+    const transactionIds = (result.block.checkIds ?? []).map(
+        id => /^pending-transaction:([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})$/iu.exec(id)?.[1],
     )
+    if (transactionIds.length === 0 || transactionIds.some(id => !id)) return result
+
+    for (const transactionId of new Set(transactionIds)) {
+        if (!transactionId) continue
+        options.onDiagnostic?.(`Recovering superseded prepared update transaction: ${transactionId}`)
+        const discarded = await discardPreparedUpdate({
+            hostBundle: options.hostBundle,
+            launcher: options.launcher,
+            reason: 'manual-reset',
+            stateRoot: options.stateRoot,
+            transactionId,
+        })
+        if (discarded.state === 'blocked') return result
+    }
+    return prepare()
 }
 
 export async function discardPreparedUpdate(options: {
