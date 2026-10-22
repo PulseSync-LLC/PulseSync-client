@@ -43,6 +43,7 @@ type UploadHeaders = {
 
 type UploadFileOptions = {
     skipIfUnchanged?: boolean
+    metadata?: Record<string, string>
 }
 
 export type RemoteRendererPublishPlan = {
@@ -476,12 +477,14 @@ async function hasMatchingS3Object(
     size: number,
     sha256: string,
     headers: UploadHeaders,
+    metadata: Record<string, string> = {},
 ): Promise<boolean> {
     try {
         const object = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: key }))
         return (
             object.ContentLength === size &&
             object.Metadata?.sha256?.toLowerCase() === sha256 &&
+            Object.entries(metadata).every(([name, value]) => object.Metadata?.[name] === value) &&
             (headers.CacheControl === undefined || object.CacheControl === headers.CacheControl) &&
             (headers.ContentType === undefined || object.ContentType === headers.ContentType)
         )
@@ -516,11 +519,11 @@ async function uploadFileToS3(
         ...headers,
     }
     const sha256 = options?.skipIfUnchanged ? await hashFileSha256(filePath) : null
-    if (sha256 && (await hasMatchingS3Object(client, bucket, key, size, sha256, uploadHeaders))) {
+    if (sha256 && (await hasMatchingS3Object(client, bucket, key, size, sha256, uploadHeaders, options?.metadata))) {
         log(LogLevel.INFO, `Skipped unchanged ${key}`)
         return
     }
-    const metadata = sha256 ? { Metadata: { sha256 } } : {}
+    const metadata = sha256 ? { Metadata: { ...options?.metadata, sha256 } } : {}
 
     if (size < threshold) {
         await client.send(
@@ -632,10 +635,11 @@ async function copyUploadedFileInS3(
     targetKey: string,
     filePath: string,
     headers: UploadHeaders,
+    metadata: Record<string, string> = {},
 ): Promise<void> {
     const { size } = await fs.promises.stat(filePath)
     const sha256 = await hashFileSha256(filePath)
-    if (await hasMatchingS3Object(client, bucket, targetKey, size, sha256, headers)) {
+    if (await hasMatchingS3Object(client, bucket, targetKey, size, sha256, headers, metadata)) {
         log(LogLevel.INFO, `Skipped unchanged ${targetKey}`)
         return
     }
@@ -649,14 +653,17 @@ async function copyUploadedFileInS3(
                 CopySource: copySource,
                 ACL: 'public-read',
                 MetadataDirective: 'REPLACE',
-                Metadata: { sha256 },
+                Metadata: { ...metadata, sha256 },
                 ...headers,
             }),
         )
         log(LogLevel.INFO, `Copied ${sourceKey} -> ${targetKey} (${Math.ceil(size / 1024)} KiB, server-side)`)
     } catch {
         log(LogLevel.WARN, `Server-side copy failed for ${targetKey}; falling back to upload`)
-        await uploadFileToS3(client, bucket, targetKey, filePath, headers, { skipIfUnchanged: true })
+        await uploadFileToS3(client, bucket, targetKey, filePath, headers, { skipIfUnchanged: true, metadata })
+    }
+    if (!(await hasMatchingS3Object(client, bucket, targetKey, size, sha256, headers, metadata))) {
+        throw new Error(`Copied S3 object failed size, SHA-256 metadata or header verification: ${targetKey}`)
     }
 }
 
@@ -823,7 +830,7 @@ export async function publishToS3(
     const legacyUpdateBridge = opts?.legacyUpdateBridge === true
     const client = createS3Client()
 
-    let files = fs
+    const files = fs
         .readdirSync(dir)
         .map(name => path.join(dir, name))
         .filter(filePath => fs.statSync(filePath).isFile())
@@ -838,13 +845,49 @@ export async function publishToS3(
         )
 
     const isMutableUpdatePointer = (filePath: string) => isDesktopReleaseManifestFile(filePath) || isLegacyUpdateBridgeMetadata(filePath)
-    files = [...files.filter(filePath => !isMutableUpdatePointer(filePath)), ...files.filter(isMutableUpdatePointer)]
+    const artifacts = files.filter(filePath => !isMutableUpdatePointer(filePath))
+    const pointers = files.filter(isMutableUpdatePointer)
 
     await preflightDesktopManifests(client, bucket, `${prefix}/${branch}`, branch, files, opts?.requireBaseline === true)
 
     log(LogLevel.INFO, `Publishing ${files.length} files to s3://${bucket}/${prefix}/${branch}/`)
 
-    for (const filePath of files) {
+    const artifactKeys = new Map<string, string>()
+    for (const filePath of artifacts) {
+        const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
+        artifactKeys.set(filePath, key)
+        await uploadFileToS3(client, bucket, key, filePath, undefined, { skipIfUnchanged: true })
+        const { size } = await fs.promises.stat(filePath)
+        const sha256 = await hashFileSha256(filePath)
+        if (!(await hasMatchingS3Object(client, bucket, key, size, sha256, {}))) {
+            throw new Error(`Uploaded S3 artifact failed size or SHA-256 metadata verification: ${key}`)
+        }
+    }
+
+    for (const [filePath, key] of artifactKeys) {
+        const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
+        if (latestAliasPath) {
+            await copyUploadedFileInS3(
+                client,
+                bucket,
+                key,
+                `${prefix}/${branch}/${latestAliasPath}`,
+                filePath,
+                getLatestAliasUploadHeaders(filePath),
+                { 'download-key': key },
+            )
+        }
+        if (legacyUpdateBridge && version) {
+            const escapedVersion = escapeRegExp(version)
+            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.(?:exe|deb)$`, 'iu').test(path.basename(filePath))) {
+                await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
+                    CacheControl: 'public, max-age=31536000, immutable',
+                })
+            }
+        }
+    }
+
+    for (const filePath of pointers) {
         const key = `${prefix}/${branch}/${await resolveStructuredPublishPath(filePath, version)}`
         if (isDesktopReleaseManifestFile(filePath)) {
             await archiveStoredDesktopManifest(client, bucket, key, `${prefix}/${branch}/manifests`)
@@ -866,20 +909,8 @@ export async function publishToS3(
             )
         }
         await uploadFileToS3(client, bucket, key, filePath, getDesktopUpdateUploadHeaders(filePath), {
-            skipIfUnchanged: !isMutableUpdatePointer(filePath),
+            skipIfUnchanged: false,
         })
-        const latestAliasPath = resolveLatestAliasPublishPath(filePath, version)
-        if (latestAliasPath) {
-            await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${latestAliasPath}`, filePath, getLatestAliasUploadHeaders(filePath))
-        }
-        if (legacyUpdateBridge && version) {
-            const escapedVersion = escapeRegExp(version)
-            if (new RegExp(`^pulsesync-app-${escapedVersion}-[a-z0-9_-]+\\.(?:exe|deb)$`, 'iu').test(path.basename(filePath))) {
-                await copyUploadedFileInS3(client, bucket, key, `${prefix}/${branch}/${path.basename(filePath)}`, filePath, {
-                    CacheControl: 'public, max-age=31536000, immutable',
-                })
-            }
-        }
     }
 
     log(LogLevel.SUCCESS, 'Publish to S3 completed')

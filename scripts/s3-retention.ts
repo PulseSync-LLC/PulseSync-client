@@ -1,6 +1,6 @@
 import 'dotenv/config'
 
-import { DeleteObjectsCommand, GetObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
+import { DeleteObjectsCommand, GetObjectCommand, HeadObjectCommand, ListObjectsV2Command, S3Client } from '@aws-sdk/client-s3'
 import chalk from 'chalk'
 import path from 'path'
 import semver from 'semver'
@@ -286,6 +286,16 @@ export async function pruneUnreferencedDesktopArtifacts(
     const keptLegacyVersionSet = new Set(keptLegacyVersions)
     for (const entry of topLevelVersionedObjects) {
         if (keptLegacyVersionSet.has(entry.descriptor.version)) keepKeys.add(entry.object.key)
+    }
+
+    for (const object of objects.filter(object => object.key.startsWith(`${branchPrefix}latest/`))) {
+        const alias = await client.send(new HeadObjectCommand({ Bucket: bucket, Key: object.key }))
+        const target = alias.Metadata?.['download-key']
+        if (!target) continue
+        if (!target.startsWith(`${branchPrefix}setups/`) || !existingKeys.has(target)) {
+            throw new Error(`Latest installer references a missing or invalid immutable artifact: ${object.key}`)
+        }
+        keepKeys.add(target)
     }
 
     const managedRoots = new Set(['bundles', 'components', 'hosts', 'manifests', 'setups', 'versions'])
