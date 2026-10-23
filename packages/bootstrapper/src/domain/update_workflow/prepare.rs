@@ -31,7 +31,9 @@ use crate::{
             ArtifactLayout, BootstrapperUpdateManifest, UpdatePlanAction, UpdatePlanDelivery,
             decide_component_update, decide_update, validate_manifest,
         },
-        transactions::{prepare_transaction_file_at, prepared_transactions},
+        transactions::{
+            expire_prepared_transaction, prepare_transaction_file_at, prepared_transactions,
+        },
     },
 };
 use serde_json::Value;
@@ -414,18 +416,42 @@ pub fn prepare_update(
                 None,
             ));
         }
-        return Ok(PrepareUpdateResult::blocked(
-            None,
-            None,
-            "pending-transaction-exists",
-            true,
-            safe_to_continue,
-            pending
-                .iter()
-                .filter_map(|record| record.value.get("transactionId").and_then(Value::as_str))
-                .map(|id| format!("pending-transaction:{id}"))
-                .collect(),
-        ));
+        if !active_lease_matches(&layout, &options.active_lease_id).map_err(|error| {
+            workflow_error(
+                PREPARE_COMMAND,
+                "session-lock-failed",
+                "lock",
+                error,
+                true,
+                safe_to_continue,
+            )
+        })? {
+            return Ok(PrepareUpdateResult::blocked(
+                None,
+                None,
+                "active-lease-mismatch",
+                true,
+                safe_to_continue,
+                vec!["active-lease-before-expire".to_string()],
+            ));
+        }
+        for record in pending {
+            expire_prepared_transaction(&record.candidate.path, "prepared-transaction-superseded")
+                .map_err(|error| {
+                    workflow_error(
+                        PREPARE_COMMAND,
+                        "transaction-expire-failed",
+                        "prepare",
+                        error,
+                        true,
+                        safe_to_continue,
+                    )
+                })?;
+            reporter.emit(InstallWorkflowEvent::stage(
+                "preparing",
+                "Expired a superseded prepared update transaction",
+            ));
+        }
     }
 
     let artifact_keys =

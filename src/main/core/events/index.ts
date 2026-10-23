@@ -10,7 +10,7 @@ import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
-import { setMainErrorTrackingUser } from '../../shared/errorTracking'
+import { addMainBreadcrumb, captureMainException, setMainErrorTrackingUser } from '../../shared/errorTracking'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import {
@@ -30,6 +30,7 @@ import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/ne
 import { nativeGetHardwareIdentity } from '../nativeModules'
 import { obsWidgetManager } from '../obsWidget/obsWidgetManager'
 import { checkRendererUpdate, installRendererUpdate } from '../rendererUpdate'
+import { isAllowedRemoteRendererUrl } from '../security/remoteRendererPolicy'
 import { setAutoStartEnabled } from '../startup/loginItem'
 import { updated } from '../startup/runtimeState'
 import { getState } from '../state'
@@ -105,15 +106,62 @@ function isRemoteRendererCacheMiss(details: Electron.OnErrorOccurredListenerDeta
     }
 }
 
+function getRemoteRendererResourceUrl(rawUrl: string): string | null {
+    if (!isAllowedRemoteRendererUrl(rawUrl, false)) return null
+    const url = new URL(rawUrl)
+    if (!/\/versions\/\d+\/assets\/.*\.(?:css|js)$/u.test(url.pathname)) return null
+    return `${url.origin}${url.pathname}`
+}
+
 async function registerAppReadyEvents(): Promise<void> {
-    const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*'] }
+    const filter = { urls: ['*://pulsesync.dev/*', '*://*.pulsesync.dev/*', 'https://pulsesync-llc.github.io/PulseSync-renderer/app/*'] }
     session.defaultSession.webRequest.onErrorOccurred(filter, details => {
+        const resourceUrl = getRemoteRendererResourceUrl(details.url)
+        if (resourceUrl) {
+            addMainBreadcrumb('pulsesync.renderer.resource', 'Remote renderer resource request failed', {
+                url: resourceUrl,
+                requestId: details.id,
+                resourceType: details.resourceType,
+                error: details.error,
+                fromCache: details.fromCache,
+            })
+            if (details.resourceType === 'stylesheet' && details.error !== 'net::ERR_ABORTED') {
+                captureMainException(
+                    new Error(`Remote renderer stylesheet request failed (${details.error}): ${resourceUrl}`),
+                    'renderer/stylesheet',
+                )
+            }
+        }
         if (isRemoteRendererCacheMiss(details)) {
             logger.http.debug(`HTTP CACHE MISS: ${details.method} ${details.url} (from ${details.webContentsId})`)
             return
         }
 
         logger.http.error(`HTTP ERROR: ${details.error} — ${details.method} ${details.url} (from ${details.webContentsId})`)
+    })
+    session.defaultSession.webRequest.onCompleted(filter, details => {
+        const resourceUrl = getRemoteRendererResourceUrl(details.url)
+        if (!resourceUrl || (details.resourceType !== 'stylesheet' && details.statusCode < 400)) return
+        const headers = Object.fromEntries(
+            Object.entries(details.responseHeaders ?? {}).map(([name, values]) => [name.toLowerCase(), values.join(', ')]),
+        )
+        addMainBreadcrumb('pulsesync.renderer.resource', 'Remote renderer resource response', {
+            url: resourceUrl,
+            requestId: details.id,
+            resourceType: details.resourceType,
+            statusCode: details.statusCode,
+            fromCache: details.fromCache,
+            contentType: headers['content-type'],
+            contentEncoding: headers['content-encoding'],
+            contentLength: headers['content-length'],
+            rayId: headers['cf-ray'],
+        })
+        if (details.resourceType === 'stylesheet' && details.statusCode >= 400) {
+            captureMainException(
+                new Error(`Remote renderer stylesheet request failed (HTTP ${details.statusCode}): ${resourceUrl}`),
+                'renderer/stylesheet',
+            )
+        }
     })
     if (isAppDev) {
         try {

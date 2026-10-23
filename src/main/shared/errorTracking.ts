@@ -1,3 +1,5 @@
+import { crashReporter } from 'electron'
+
 import * as Sentry from '@sentry/electron/main'
 
 import {
@@ -18,6 +20,7 @@ import { isUpdateErrorV1 } from './bootstrapper/contracts'
 import logger from './logger'
 
 const INITIALIZED_KEY = Symbol.for('pulsesync.errorTracking.initialized')
+const MAX_NATIVE_CRASH_METADATA_BYTES = 20320
 const errorTrackingRuntime = globalThis as typeof globalThis & { [INITIALIZED_KEY]?: boolean }
 type MainErrorTrackingIdentity = { version: string; commit: string }
 
@@ -27,6 +30,39 @@ let currentIdentity: MainErrorTrackingIdentity = {
 }
 
 const isInitialized = (): boolean => errorTrackingRuntime[INITIALIZED_KEY] === true
+
+const createNativeCrashIntegration = (): ReturnType<typeof Sentry.electronMinidumpIntegration> => {
+    const integration = Sentry.electronMinidumpIntegration()
+    return {
+        ...integration,
+        setup(client) {
+            integration.setup?.(client)
+            const scopes = [Sentry.getGlobalScope(), Sentry.getIsolationScope(), Sentry.getCurrentScope()]
+            let lastMetadata = ''
+            const updateMetadata = (): void => {
+                const tags: Record<string, unknown> = Object.assign({}, ...scopes.map(scope => scope.getScopeData().tags), {
+                    'event.environment': 'native',
+                })
+                const metadata = {
+                    release: getDesktopErrorTrackingRelease(currentIdentity.version, currentIdentity.commit),
+                    environment: ERROR_TRACKING_ENVIRONMENT,
+                    tags,
+                }
+                let serialized = JSON.stringify(metadata)
+                for (const key of Object.keys(tags)) {
+                    if (Buffer.byteLength(serialized, 'utf8') <= MAX_NATIVE_CRASH_METADATA_BYTES) break
+                    delete tags[key]
+                    serialized = JSON.stringify(metadata)
+                }
+                if (serialized === lastMetadata) return
+                crashReporter.addExtraParameter('sentry', serialized)
+                lastMetadata = serialized
+            }
+            for (const scope of scopes) scope.addScopeListener(updateMetadata)
+            updateMetadata()
+        },
+    }
+}
 
 const applyMainErrorTrackingIdentity = (identity: MainErrorTrackingIdentity): void => {
     currentIdentity = identity
@@ -66,14 +102,18 @@ export const initMainErrorTracking = (identity: MainErrorTrackingIdentity): void
             traceLifecycle: 'static',
             attachScreenshot: false,
             includeLocalVariables: false,
-            integrations: defaults =>
-                defaults.filter(
+            integrations: defaults => [
+                ...defaults.filter(
                     integration =>
-                        !['OnUncaughtException', 'OnUnhandledRejection', 'PreloadInjection', 'MainProcessSession'].includes(integration.name),
+                        !['OnUncaughtException', 'OnUnhandledRejection', 'PreloadInjection', 'MainProcessSession', 'SentryMinidump'].includes(
+                            integration.name,
+                        ),
                 ),
+                createNativeCrashIntegration(),
+            ],
             beforeBreadcrumb: breadcrumb => (breadcrumb.category?.startsWith('pulsesync.') ? breadcrumb : null),
             beforeSend: event => {
-                event.platform = 'javascript'
+                event.platform ??= 'javascript'
                 event.release = getDesktopErrorTrackingRelease(currentIdentity.version, currentIdentity.commit)
                 return addErrorTrackingDebugIds(addErrorTrackingRuntimeTags(sanitizeErrorTrackingEvent(event)))
             },

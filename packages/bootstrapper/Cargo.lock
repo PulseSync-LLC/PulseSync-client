@@ -453,7 +453,7 @@ dependencies = [
 
 [[package]]
 name = "pulsesync-bootstrapper"
-version = "0.3.44"
+version = "0.3.45"
 dependencies = [
  "fs2",
  "hex",
