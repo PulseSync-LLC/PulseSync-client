@@ -1,5 +1,6 @@
+import { getUpdateSource } from '../../../shared/updater/updateSource'
 import { hashArtifactInWorker } from './artifactWorkerClient'
-import { fetchBackendModReleases, fetchGithubBranchBuilds, type ModReleaseEntry } from './releaseCatalog'
+import { fetchGithubBranchBuilds, getModReleasesForSource, type ModReleaseEntry } from './releaseCatalog'
 
 export type RemoteModInfo = Pick<ModReleaseEntry, 'modVersion' | 'musicVersion' | 'realMusicVersion' | 'name' | 'checksum' | 'checksum_v2'> &
     Partial<Pick<ModReleaseEntry, 'branch' | 'channel' | 'commit' | 'downloadUnpackedUrl' | 'unpackedChecksum'>>
@@ -10,7 +11,7 @@ export type ResolvedInstallModMatch = {
 }
 
 const findRemoteModByChecksum = async (checksum: string, branchBuild: boolean): Promise<RemoteModInfo | null> => {
-    const mods = await (branchBuild ? fetchGithubBranchBuilds() : fetchBackendModReleases())
+    const mods = await (branchBuild ? fetchGithubBranchBuilds() : getModReleasesForSource(getUpdateSource()))
     return (
         mods.find(mod => {
             const checksumV2 = typeof mod.checksum_v2 === 'string' ? mod.checksum_v2.trim().toLowerCase() : ''

@@ -323,7 +323,7 @@ export async function getModReleaseForSelection(selection: ModSourceSelection, s
 }
 
 export async function getModReleasesForSource(source: UpdateSource): Promise<ModReleaseEntry[]> {
-    if (source === 'github') {
+    if (source === 'github' || !resolveTokenHeader().Authorization) {
         return fetchGithubModReleases()
     }
 
