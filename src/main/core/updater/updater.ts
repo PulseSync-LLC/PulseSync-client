@@ -220,8 +220,8 @@ class Updater {
 
     public start(): void {
         if (!this.isRuntimeUpdateEnabled() || this.updaterId) return
-        const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? null
-        const delay = freshAt === null ? 0 : Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
+        const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? Date.now()
+        const delay = Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
         this.updaterId = setTimeout(() => {
             this.updaterId = null
             void this.check(false).finally(() => this.start())
