@@ -5,7 +5,7 @@ import path from 'path'
 import { createServer, type Plugin, type ViteDevServer } from 'vite'
 
 import { DESKTOP_API_VERSION } from '../src/common/desktopApi/version.js'
-import { remoteRendererDevConfig } from './dev-remote-config.js'
+import { remoteRendererDevConfig } from './dev-remote.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..')
