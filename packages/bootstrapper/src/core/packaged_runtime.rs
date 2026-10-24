@@ -434,6 +434,22 @@ fn repair_macos_bootstrapper_seed(
 }
 
 pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Result<InstallStateV3> {
+    ensure_macos_hybrid_state_inner(state_root, host_bundle, None)
+}
+
+pub(crate) fn ensure_macos_hybrid_state_for_update(
+    state_root: &Path,
+    host_bundle: &Path,
+    metadata_version: u64,
+) -> Result<InstallStateV3> {
+    ensure_macos_hybrid_state_inner(state_root, host_bundle, Some(metadata_version))
+}
+
+fn ensure_macos_hybrid_state_inner(
+    state_root: &Path,
+    host_bundle: &Path,
+    target_metadata_version: Option<u64>,
+) -> Result<InstallStateV3> {
     let state_root = canonical_install_root(state_root)?;
     let host_bundle = host_bundle
         .canonicalize()
@@ -497,6 +513,13 @@ pub fn ensure_macos_hybrid_state(state_root: &Path, host_bundle: &Path) -> Resul
             .parse::<u64>()
             .map_err(|_| "packaged runtime bundleVersion must be an integer")?,
     );
+    // A signed host may be reused by a later component release. During a
+    // prepared update the owning transaction supplies the release metadata;
+    // normal launches still reconcile against the packaged descriptor alone.
+    if target_metadata_version.is_some_and(|target| target < metadata_version) {
+        return Err("target metadataVersion predates the packaged host".into());
+    }
+    let metadata_version = target_metadata_version.unwrap_or(metadata_version);
     if existing_state
         .as_ref()
         .is_some_and(|existing| metadata_version <= existing.latest.metadata_version)

@@ -1273,6 +1273,10 @@
         }
     },
     "updates": {
+        "installingTitle": "Installing update",
+        "installError": "Could not install the update. Check for updates and try again.",
+        "prepareError": "Could not prepare the update. Check for updates again.",
+        "checkError": "Could not check for updates. Please try again.",
         "checkingTitle": "Checking for updates",
         "downloadError": "Download error",
         "downloaded": "Update downloaded",

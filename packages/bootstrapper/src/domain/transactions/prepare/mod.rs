@@ -313,6 +313,7 @@ fn prepare_transaction_file_inner(
     transaction_id: Option<String>,
     apply_deferred_by_lease_id: Option<&str>,
     require_exact_transaction_dir: bool,
+    transaction_file_name: &str,
 ) -> Result<Value> {
     let plan_file = plan_file
         .canonicalize()
@@ -342,7 +343,7 @@ fn prepare_transaction_file_inner(
         transaction_dir.unwrap_or(resolve_default_transaction_dir(&plan, &transaction_id)?);
     let transaction_root = transaction_root.unwrap_or(&default_transaction_root);
     let prepared_dir = transaction_dir.join("prepared");
-    let transaction_path = transaction_dir.join("transaction.json");
+    let transaction_path = transaction_dir.join(transaction_file_name);
     let mut checks = Vec::new();
 
     checks.push(if plan.executable {
@@ -531,5 +532,26 @@ pub fn prepare_transaction_file_at(
         Some(transaction_id),
         Some(apply_deferred_by_lease_id),
         true,
+        "transaction.json",
+    )
+}
+
+// This child journal belongs to a macOS bundle transaction. It must not be
+// discovered as a separately launchable transaction by the global scanner.
+pub(crate) fn prepare_runtime_transaction_file_at(
+    plan_file: &Path,
+    transaction_root: &Path,
+    transaction_dir: PathBuf,
+    transaction_id: String,
+    lease_id: &str,
+) -> Result<Value> {
+    prepare_transaction_file_inner(
+        plan_file,
+        Some(transaction_dir),
+        Some(transaction_root),
+        Some(transaction_id),
+        Some(lease_id),
+        true,
+        "runtime-update.json",
     )
 }

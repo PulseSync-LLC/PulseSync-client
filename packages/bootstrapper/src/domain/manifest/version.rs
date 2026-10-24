@@ -612,9 +612,12 @@ pub fn decide_component_update(
     let host_changed = host_version_changed || host_abi_changed;
     if host_changed {
         selected_artifacts.push("host".to_string());
-        if target.layout == ArtifactLayout::VersionedComponents {
-            // A Windows/Linux host directory is one runtime slot. Never carry a
-            // component path forward from another app-* directory.
+        if matches!(
+            target.layout,
+            ArtifactLayout::VersionedComponents | ArtifactLayout::MacosHybrid
+        ) {
+            // A host archive may predate separately published components. Stage the
+            // target components explicitly instead of assuming the bundle contains them.
             selected_artifacts.extend(
                 target
                     .components
@@ -739,9 +742,9 @@ pub fn decide_component_update(
         decision.plan = target_plan(target, &[], Some(installed));
         return decision;
     }
-    if !bundle_replaces_runtime
-        && let Some(bootstrapper) = target.bootstrapper.as_ref()
-        && (!same_channel
+    if let Some(bootstrapper) = target.bootstrapper.as_ref()
+        && (bundle_replaces_runtime
+            || !same_channel
             || installed
                 .latest
                 .components

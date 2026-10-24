@@ -9,7 +9,7 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const AppUpdateDialog: React.FC = () => {
     const { t } = useTranslation()
-    const { updateAvailable, setUpdate } = useContext(UserContext)
+    const { updateAvailable } = useContext(UserContext)
     const { Modals, openModal, closeModal, isModalOpen } = useModalContext()
     const [isDismissed, setIsDismissed] = useState(false)
 
@@ -33,7 +33,7 @@ const AppUpdateDialog: React.FC = () => {
     }
 
     const handleInstall = () => {
-        setUpdate(false)
+        setIsDismissed(true)
         closeModal(Modals.APP_UPDATE_DIALOG)
         desktopApi.updates.install()
     }
