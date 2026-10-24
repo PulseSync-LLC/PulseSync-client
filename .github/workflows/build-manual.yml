@@ -78,7 +78,6 @@ jobs:
     uses: ./.github/workflows/desktop-tests.yml
     with:
       checkout_ref: ${{ inputs.target }}
-      build_os: ${{ inputs.build_os }}
 
   build:
     needs: tests

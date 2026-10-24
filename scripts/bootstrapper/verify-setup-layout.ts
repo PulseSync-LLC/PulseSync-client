@@ -4,6 +4,19 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { readRuntimeComponentMetadata } from '../component-layout.js'
+import {
+    appExecutableName,
+    hasFiles,
+    nativeExecutableName as bootstrapperExecutableName,
+    readArgValue,
+    readTargetPlatform,
+    rejectPath,
+    requireExecutableBit,
+    requirePath,
+    resolveInsideProject,
+} from './verify-package-layout.js'
+
+import type { TargetPlatform } from './verify-package-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
@@ -28,63 +41,12 @@ type VerifiedBootstrapperSetupConfig = {
     serverHealthUrl: string
 }
 
-type TargetPlatform = 'darwin' | 'linux' | 'win32'
-
-function readArgValue(args: string[], name: string): string | null {
-    const index = args.indexOf(name)
-    if (index === -1) return null
-    return args[index + 1] ?? null
-}
-
-function readTargetPlatform(args: string[]): TargetPlatform {
-    const rawPlatform = readArgValue(args, '--platform') ?? process.platform
-    if (rawPlatform === 'win32' || rawPlatform === 'darwin' || rawPlatform === 'linux') {
-        return rawPlatform
-    }
-
-    throw new Error(`Unsupported target platform: ${rawPlatform}`)
-}
-
 function readTargetArch(args: string[]): string {
     const rawArch = readArgValue(args, '--arch') ?? process.arch
     if (!/^[a-z0-9_-]+$/iu.test(rawArch)) {
         throw new Error(`Unsupported target arch: ${rawArch}`)
     }
     return rawArch
-}
-
-function resolveInsideProject(targetPath: string): string {
-    const resolvedPath = path.resolve(projectRoot, targetPath)
-    const relativePath = path.relative(projectRoot, resolvedPath)
-    if (relativePath.startsWith('..') || path.isAbsolute(relativePath)) {
-        throw new Error(`Path must stay inside the project: ${targetPath}`)
-    }
-    return resolvedPath
-}
-
-function requirePath(targetPath: string, kind: 'directory' | 'file'): string {
-    const stat = fs.statSync(targetPath)
-    if (kind === 'directory' && !stat.isDirectory()) {
-        throw new Error(`Expected directory: ${targetPath}`)
-    }
-    if (kind === 'file' && !stat.isFile()) {
-        throw new Error(`Expected file: ${targetPath}`)
-    }
-    return targetPath
-}
-
-function rejectPath(targetPath: string): void {
-    if (fs.existsSync(targetPath)) {
-        throw new Error(`Expected path to be absent: ${targetPath}`)
-    }
-}
-
-function hasFiles(directoryPath: string): boolean {
-    if (!fs.existsSync(directoryPath) || !fs.statSync(directoryPath).isDirectory()) return false
-    return fs.readdirSync(directoryPath, { withFileTypes: true }).some(entry => {
-        const entryPath = path.join(directoryPath, entry.name)
-        return entry.isFile() || (entry.isDirectory() && hasFiles(entryPath))
-    })
 }
 
 function bootstrapperResourcesDir(installRoot: string, platform: TargetPlatform): string {
@@ -115,17 +77,6 @@ function readBootstrapperConfig(configPath: string): VerifiedBootstrapperSetupCo
     }
 }
 
-function requireExecutableBit(targetPath: string): void {
-    if (process.platform === 'win32') {
-        return
-    }
-
-    const mode = fs.statSync(targetPath).mode
-    if ((mode & 0o111) === 0) {
-        throw new Error(`Expected executable file mode: ${targetPath}`)
-    }
-}
-
 function requireBootstrapperEntrypointScript(targetPath: string): void {
     const script = fs.readFileSync(targetPath, 'utf-8')
     const expectedLaunchLine = 'exec "${BOOTSTRAPPER}" start --state-root "${STATE_DIR}" --seed-root "${APP_DIR}" -- "$@"'
@@ -142,20 +93,6 @@ function requireBootstrapperEntrypointScript(targetPath: string): void {
     if (!script.includes('STATE_DIR="${XDG_DATA_HOME:-${HOME}/.local/share}/PulseSync"')) {
         throw new Error(`Expected Linux entrypoint to use per-user runtime state: ${targetPath}`)
     }
-}
-
-function bootstrapperExecutableName(platform: TargetPlatform): string {
-    return platform === 'win32' ? 'pulsesync-bootstrapper.exe' : 'pulsesync-bootstrapper'
-}
-
-function appExecutableName(platform: TargetPlatform): string {
-    if (platform === 'win32') {
-        return 'PulseSync.exe'
-    }
-    if (platform === 'darwin') {
-        return path.join('MacOS', 'PulseSync')
-    }
-    return 'pulsesync'
 }
 
 function expectedDist(platform: TargetPlatform, arch: string): string {

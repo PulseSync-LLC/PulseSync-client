@@ -5,17 +5,12 @@ import path from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 import { findVersionedComponentContainer, readRuntimeComponentMetadata } from '../component-layout.js'
+import { readArgValue } from './verify-package-layout.js'
+
+import type { TargetPlatform } from './verify-package-layout.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const projectRoot = path.resolve(__dirname, '..', '..')
-
-type TargetPlatform = 'darwin' | 'linux' | 'win32'
-
-function readArgValue(args: string[], name: string): string | null {
-    const index = args.indexOf(name)
-    if (index === -1) return null
-    return args[index + 1] ?? null
-}
 
 function getTargetPlatform(args: string[]): TargetPlatform {
     const platform = readArgValue(args, '--platform') ?? os.platform()
