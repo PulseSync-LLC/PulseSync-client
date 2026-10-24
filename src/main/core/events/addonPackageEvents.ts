@@ -25,16 +25,53 @@ import type { DesktopInstallStoreAddonRequest } from '@common/desktopApi/contrac
 const State = getState()
 const ADDON_TEMPLATE_DOWNLOAD_URL = 'https://codeload.github.com/PulseSync-LLC/PulseSync-ExampleAddon/zip/refs/heads/main'
 const ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME = 'PulseSync-ExampleAddon'
+const EXCLUDED_ADDON_ARCHIVE_DIRECTORIES = new Set(['node_modules', 'bower_components', '__MACOSX'])
+const EXCLUDED_ADDON_ARCHIVE_FILES = new Set([
+    'package-lock.json',
+    'npm-shrinkwrap.json',
+    'yarn.lock',
+    'pnpm-lock.yaml',
+    'bun.lock',
+    'bun.lockb',
+    'Thumbs.db',
+    'desktop.ini',
+    HANDLE_EVENTS_SETTINGS_FILENAME,
+])
 
 const shouldIncludeAddonArchiveEntry = (relativePath: string): boolean => {
     if (!relativePath) return true
 
-    const parts = relativePath.split(path.sep)
-    if (parts.some(part => part.startsWith('.'))) {
+    const parts = relativePath.split(/[\\/]/)
+    if (parts.some(part => part.startsWith('.') || EXCLUDED_ADDON_ARCHIVE_DIRECTORIES.has(part))) {
         return false
     }
 
-    return path.basename(relativePath) !== HANDLE_EVENTS_SETTINGS_FILENAME
+    const fileName = parts[parts.length - 1]
+    return !EXCLUDED_ADDON_ARCHIVE_FILES.has(fileName) && !fileName.endsWith('.tsbuildinfo')
+}
+
+const createAddonArchive = async (addonPath: string): Promise<AdmZip> => {
+    const zip = new AdmZip()
+    const directories = ['']
+
+    while (directories.length) {
+        const directory = directories.pop()!
+        const entries = await fsp.readdir(path.join(addonPath, directory), { withFileTypes: true })
+        for (const entry of entries) {
+            const relativePath = path.join(directory, entry.name)
+            if (!shouldIncludeAddonArchiveEntry(relativePath) || entry.isSymbolicLink()) continue
+
+            const archivePath = relativePath.split(path.sep).join('/')
+            if (entry.isDirectory()) {
+                zip.addFile(`${archivePath}/`, Buffer.alloc(0))
+                directories.push(relativePath)
+            } else if (entry.isFile()) {
+                zip.addLocalFile(path.join(addonPath, relativePath), path.posix.dirname(archivePath))
+            }
+        }
+    }
+
+    return zip
 }
 
 const getSuggestedAddonTemplatePath = (parentPath = app.getPath('documents')): string => {
@@ -165,9 +202,7 @@ export const registerAddonPackageEvents = ({
                 logger.main.error(t('main.events.folderNotFound'))
             }
 
-            const zip = new AdmZip()
-
-            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
+            const zip = await createAddonArchive(data.path)
 
             const exportsDir = path.join(app.getPath('userData'), 'exports')
             if (!fs.existsSync(exportsDir)) fs.mkdirSync(exportsDir, { recursive: true })
@@ -210,8 +245,7 @@ export const registerAddonPackageEvents = ({
                 return { success: false, reason: 'ADDON_PATH_NOT_FOUND' }
             }
 
-            const zip = new AdmZip()
-            zip.addLocalFolder(data.path, '', shouldIncludeAddonArchiveEntry)
+            const zip = await createAddonArchive(data.path)
 
             return {
                 success: true,

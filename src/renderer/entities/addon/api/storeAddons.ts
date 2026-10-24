@@ -107,7 +107,7 @@ function normalizeAddonStoreErrorCode(raw: string | undefined): string {
     return normalized
 }
 
-function pickErrorCode(payload: AddonStoreErrorPayload | null): { code: string; availableAt?: string; message?: string } {
+function pickErrorCode(payload: AddonStoreErrorPayload | null, statusCode?: number): { code: string; availableAt?: string; message?: string } {
     const messageValue = payload?.message
     const errorValue = payload?.error
 
@@ -124,8 +124,11 @@ function pickErrorCode(payload: AddonStoreErrorPayload | null): { code: string; 
         typeof errorValue === 'string' && !GENERIC_HTTP_ERROR_LABELS.has(errorValue.trim()) && errorValue.trim() ? errorValue : undefined
 
     const code =
+        ((statusCode ?? payload?.statusCode) === 413 ? 'ARCHIVE_FILE_TOO_LARGE' : '') ||
         normalizeAddonStoreErrorCode(messageObject?.error) ||
         normalizeAddonStoreErrorCode(errorObject?.error) ||
+        normalizeAddonStoreErrorCode(messageObject?.message) ||
+        normalizeAddonStoreErrorCode(errorObject?.message) ||
         normalizeAddonStoreErrorCode(messageString) ||
         normalizeAddonStoreErrorCode(errorString) ||
         'ADDON_UPLOAD_FAILED'
@@ -394,7 +397,7 @@ export async function submitAddonArchiveForStore(options: {
 
     const payload = response.data ?? null
     if (!response.ok || payload?.ok === false) {
-        const resolvedError = pickErrorCode(payload)
+        const resolvedError = pickErrorCode(payload, response.status)
         throw new AddonStoreSubmitError(resolvedError.code, {
             message: resolvedError.message,
             availableAt: resolvedError.availableAt,
