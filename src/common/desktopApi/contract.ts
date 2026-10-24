@@ -78,6 +78,11 @@ export interface DesktopUpdateAvailablePayload {
     version: string
 }
 
+export interface DesktopUpdateFailurePayload {
+    phase: 'check' | 'download' | 'prepare' | 'install'
+    code?: string
+}
+
 export interface DesktopInstallModRequest {
     branch?: string
     channel?: ModReleaseChannel
@@ -208,7 +213,7 @@ export interface PulseSyncDesktopApi {
         onAvailable(listener: (payload: DesktopUpdateAvailablePayload) => void): DesktopUnsubscribe
         onDownloadProgress(listener: (progress: unknown) => void): DesktopUnsubscribe
         onDownloadFinished(listener: () => void): DesktopUnsubscribe
-        onDownloadFailed(listener: () => void): DesktopUnsubscribe
+        onDownloadFailed(listener: (failure?: DesktopUpdateFailurePayload) => void): DesktopUnsubscribe
     }
     settings: {
         getSnapshot(): Promise<DesktopStateSnapshot>

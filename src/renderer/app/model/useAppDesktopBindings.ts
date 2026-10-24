@@ -5,7 +5,7 @@ import { desktopApi } from '@shared/desktop/desktopApi'
 import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
 import toast from '@shared/ui/toast'
 
-import type { DesktopInstallModRequest, DesktopUpdateAvailablePayload } from '@common/desktopApi/contract'
+import type { DesktopInstallModRequest, DesktopUpdateAvailablePayload, DesktopUpdateFailurePayload } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 
@@ -166,38 +166,46 @@ export function useAppDesktopBindings({
 
         const onDownloadProgress = (value: unknown) => {
             manualUpdateCheckPendingRef.current = false
-            const preparing = value !== null && typeof value === 'object' && 'phase' in value && (value as { phase?: unknown }).phase === 'preparing'
+            const phase = value !== null && typeof value === 'object' && 'phase' in value ? (value as { phase?: unknown }).phase : undefined
+            const preparing = phase === 'preparing'
+            const installing = phase === 'installing'
+            const title = installing ? t('updates.installingTitle') : preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle')
+            const message = installing ? t('common.pleaseWait') : preparing ? t('updates.preparingLabel') : t('updates.downloadingLabel')
             if (!toastReference.current) {
-                toastReference.current = toast.custom(
-                    'loading',
-                    preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
-                    preparing ? t('updates.preparingLabel') : t('common.pleaseWait'),
-                    {
-                        id: CLIENT_UPDATE_TOAST_ID,
-                        duration: Infinity,
-                    },
-                )
+                toastReference.current = toast.custom('loading', title, installing || preparing ? message : t('common.pleaseWait'), {
+                    id: CLIENT_UPDATE_TOAST_ID,
+                    duration: Infinity,
+                })
             }
             toast.update(toastReference.current, {
                 kind: 'loading',
-                title: preparing ? t('updates.preparingTitle') : t('updates.downloadingTitle'),
-                msg: preparing ? t('updates.preparingLabel') : t('updates.downloadingLabel'),
-                value: preparing ? undefined : Number(value) || 0,
+                title,
+                msg: message,
+                value: preparing || installing ? undefined : Number(value) || 0,
             })
         }
 
-        const onDownloadFailed = () => {
+        const onDownloadFailed = (failure?: DesktopUpdateFailurePayload) => {
+            const errorKey =
+                failure?.phase === 'install'
+                    ? 'updates.installError'
+                    : failure?.phase === 'prepare'
+                      ? 'updates.prepareError'
+                      : failure?.phase === 'check'
+                        ? 'updates.checkError'
+                        : 'updates.downloadError'
+            const message = t(errorKey)
             manualUpdateCheckPendingRef.current = false
             setUpdate(rendererUpdateAvailableRef.current)
             if (toastReference.current) {
                 toast.update(toastReference.current, {
                     kind: 'error',
                     title: t('common.errorTitle'),
-                    msg: t('updates.downloadError'),
+                    msg: message,
                     sticky: false,
                 })
             } else {
-                toast.custom('error', t('common.errorTitle'), t('updates.downloadError'))
+                toast.custom('error', t('common.errorTitle'), message)
             }
             toastReference.current = null
         }

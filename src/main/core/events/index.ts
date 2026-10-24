@@ -381,7 +381,9 @@ const registerUpdateEvents = (): void => {
             await updater.install()
             return
         }
-        await installRendererUpdate()
+        if (!(await installRendererUpdate()) && mainWindow && !mainWindow.isDestroyed()) {
+            mainWindow.webContents.send(RendererEvents.DOWNLOAD_UPDATE_FAILED, { phase: 'install', code: 'renderer-install-failed' })
+        }
     })
 
     ipcMain.on(MainEvents.CHECK_UPDATE, async (_event, args: { hard?: boolean; manual?: boolean }) => {

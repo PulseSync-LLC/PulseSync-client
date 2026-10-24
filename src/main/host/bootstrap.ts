@@ -54,6 +54,7 @@ handleUncaughtException()
 const launchQueue = new LaunchQueue()
 const allowSecondInstance = !app.isPackaged && process.env.PULSESYNC_ALLOW_SECOND_INSTANCE === '1'
 const enableDevUpdater = process.env.PULSESYNC_ENABLE_DEV_UPDATER === '1'
+let currentBootstrapWindow: BootstrapWindowController | null = null
 let startupRevealRequested = false
 let revealStartupWindow = (): void => {}
 
@@ -142,16 +143,29 @@ async function showBootstrapFailure(
     statusKey: Extract<BootstrapStatusKey, 'bootstrapper-missing' | 'launch-blocked' | 'launch-failed'>,
     diagnostic?: BootstrapUiDiagnostic,
 ): Promise<void> {
+    currentBootstrapWindow = window
+    let retryRequested = false
+    window.setActionHandlers({
+        retry: async () => {
+            if (retryRequested) return false
+            retryRequested = true
+            // Relaunch through the normal entry point, without consumed launch proofs.
+            delete process.env.PULSESYNC_LAUNCH_RESERVATION_ID
+            delete process.env.PULSESYNC_HANDOFF_ID
+            app.relaunch()
+            app.quit()
+            return true
+        },
+    })
     window.publish({
         schemaVersion: 1,
         phase: 'error',
         statusKey,
         progress: { kind: 'indeterminate' },
-        actions: [],
+        actions: ['retry'],
         ...(diagnostic ? { diagnostic } : {}),
     })
-    await Promise.all([new Promise(resolve => setTimeout(resolve, 4_000)), flushErrorTracking()])
-    app.quit()
+    await flushErrorTracking().catch(error => console.warn('Failed to flush startup error diagnostics', error))
 }
 
 async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths): Promise<void> {
@@ -261,6 +275,7 @@ async function startPackagedBootstrap(): Promise<void> {
     }
 
     const bootstrapWindow = await createBootstrapWindow({ startHidden: shouldHideStartupWindow() && !startupRevealRequested })
+    currentBootstrapWindow = bootstrapWindow
     revealStartupWindow = () => bootstrapWindow.show()
     if (startupRevealRequested) bootstrapWindow.show()
     let claim
@@ -358,7 +373,8 @@ async function handleBootstrapFailure(error: unknown): Promise<void> {
     const diagnostic = captureLaunchFailure(error, 'LF-STARTUP', 'bootstrap/startup')
     try {
         await app.whenReady()
-        const bootstrapWindow = await createBootstrapWindow()
+        const bootstrapWindow =
+            currentBootstrapWindow && !currentBootstrapWindow.window.isDestroyed() ? currentBootstrapWindow : await createBootstrapWindow()
         await showBootstrapFailure(bootstrapWindow, 'launch-failed', diagnostic)
     } catch (displayError) {
         console.error('PulseSync bootstrap failure UI could not be displayed', displayError)

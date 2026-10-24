@@ -367,10 +367,12 @@ export async function createWindow(
         }
         mainWindowReadyHandled = true
         fitNormalWindowToDisplay()
+        const showWindow =
+            !options.startHidden || Boolean(options.bootstrapWindow && !options.bootstrapWindow.isDestroyed() && options.bootstrapWindow.isVisible())
         if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) {
             options.bootstrapWindow.destroy()
         }
-        if (!options.startHidden) {
+        if (showWindow) {
             mainWindow.show()
             mainWindow.moveTop()
         }

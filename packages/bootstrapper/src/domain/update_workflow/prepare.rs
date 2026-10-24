@@ -556,6 +556,8 @@ pub fn prepare_update(
             &decision,
             &staging_root,
             &options.active_lease_id,
+            &staging.artifacts,
+            retain_app_versions,
         )
         .map_err(|error| {
             let code = if error.to_string().starts_with("elevation-required:") {

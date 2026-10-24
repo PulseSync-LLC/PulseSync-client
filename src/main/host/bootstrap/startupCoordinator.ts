@@ -1,7 +1,6 @@
 import { type BrowserWindow } from 'electron'
 
-import { BootstrapperCommandError } from '../../shared/bootstrapper/command'
-import { type ActiveAppLeaseV1, isUpdateErrorV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../../shared/bootstrapper/contracts'
+import { type ActiveAppLeaseV1, type LaunchRequestEnvelopeV1, type PrepareUpdateResultV1 } from '../../shared/bootstrapper/contracts'
 import logger from '../../shared/logger'
 import { getDesktopUpdateManifestRequest } from '../../shared/updater/desktopManifestSource'
 import { getUpdateSource } from '../../shared/updater/updateSource'
@@ -55,17 +54,6 @@ export class StartupCoordinator {
         },
     ) {
         this.unsubscribeState = updateCoordinator.subscribe(state => {
-            const canStartApplication = state.actions.includes('continue')
-            if ((state.phase === 'error' || state.phase === 'blocked') && canStartApplication) {
-                options.bootstrapWindow.publish({
-                    schemaVersion: 1,
-                    phase: 'launching',
-                    statusKey: 'launching-client',
-                    progress: { kind: 'indeterminate' },
-                    actions: [],
-                })
-                return
-            }
             options.bootstrapWindow.publish(state)
         })
         options.bootstrapWindow.setActionHandlers({
@@ -77,6 +65,13 @@ export class StartupCoordinator {
             continue: async () => {
                 if (this.applicationHandle) return false
                 try {
+                    options.bootstrapWindow.publish({
+                        schemaVersion: 1,
+                        phase: 'launching',
+                        statusKey: 'launching-client',
+                        progress: { kind: 'indeterminate' },
+                        actions: [],
+                    })
                     await this.startApplication()
                     return true
                 } catch (error) {
@@ -97,8 +92,14 @@ export class StartupCoordinator {
         return this.runGate()
     }
 
-    public runWithoutUpdate(): Promise<void> {
-        return this.startApplicationAfterFailure().catch(error => this.options.onStartupFailure(error))
+    public async runWithoutUpdate(): Promise<void> {
+        this.options.bootstrapWindow.publish({
+            schemaVersion: 1,
+            phase: 'error',
+            statusKey: 'launch-failed',
+            progress: { kind: 'indeterminate' },
+            actions: ['retry', 'continue'],
+        })
     }
 
     private runGate(): Promise<void> {
@@ -136,9 +137,6 @@ export class StartupCoordinator {
             })
         } catch (error) {
             logger.updater.error('Bootstrap update gate failed', error)
-            if (this.isSafeToContinue(error)) {
-                await this.startApplicationAfterFailure()
-            }
             return
         }
         await this.handleResult(result)
@@ -151,7 +149,15 @@ export class StartupCoordinator {
         }
         if (result.state === 'prepared') {
             const handedOff = await handoffPreparedUpdate()
-            if (!handedOff) await this.startApplicationAfterFailure()
+            if (!handedOff) {
+                this.options.bootstrapWindow.publish({
+                    schemaVersion: 1,
+                    phase: 'error',
+                    statusKey: 'update-failed',
+                    progress: { kind: 'indeterminate' },
+                    actions: ['retry', 'continue'],
+                })
+            }
             return
         }
         logger.updater.error('Bootstrap update preparation blocked', {
@@ -159,21 +165,6 @@ export class StartupCoordinator {
             decision: result.decision,
             source: result.source,
         })
-        if (result.block.safeToContinue) {
-            await this.startApplicationAfterFailure()
-        }
-    }
-
-    private async startApplicationAfterFailure(): Promise<void> {
-        this.options.bootstrapWindow.publish({
-            schemaVersion: 1,
-            phase: 'launching',
-            statusKey: 'launching-client',
-            progress: { kind: 'indeterminate' },
-            actions: [],
-        })
-        await new Promise(resolve => setTimeout(resolve, 800))
-        await this.startApplication()
     }
 
     private async startApplication(): Promise<void> {
@@ -214,10 +205,5 @@ export class StartupCoordinator {
         }
         this.unsubscribeState?.()
         this.unsubscribeState = null
-    }
-
-    private isSafeToContinue(error: unknown): boolean {
-        if (!(error instanceof BootstrapperCommandError) || !isUpdateErrorV1(error.result)) return false
-        return error.result.error.safeToContinue
     }
 }

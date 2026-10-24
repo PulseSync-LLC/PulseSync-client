@@ -6,6 +6,7 @@ mod store;
 
 pub use apply::apply_transaction_file;
 pub use model::TransactionRecord;
+pub(crate) use prepare::prepare_runtime_transaction_file_at;
 pub use prepare::prepare_transaction_file_at;
 pub use rollback::rollback_transaction_file;
 pub use store::{

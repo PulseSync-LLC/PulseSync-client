@@ -13,8 +13,10 @@ use crate::{
         path_segment::sanitize_path_segment,
     },
     domain::{
-        artifacts::{ArtifactKey, artifact_file_name},
+        artifacts::{ArtifactKey, StagedArtifact, artifact_file_name},
+        install_plan::create_install_plan,
         manifest::{ArtifactLayout, BootstrapperUpdateDecision},
+        transactions::{expire_prepared_transaction, prepare_runtime_transaction_file_at},
         update_workflow::PreparedTransactionRef,
     },
 };
@@ -44,6 +46,8 @@ pub fn prepare_transaction(
     decision: &BootstrapperUpdateDecision,
     staging_root: &Path,
     active_lease_id: &str,
+    staged_artifacts: &[StagedArtifact],
+    retain_app_versions: usize,
 ) -> Result<PreparedTransactionRef> {
     let artifacts = decision
         .artifacts
@@ -109,7 +113,7 @@ pub fn prepare_transaction(
         sanitize_path_segment(&decision.current_version)?
     ));
     let transaction_file = dir.join("transaction.json");
-    let payload = json!({
+    let mut payload = json!({
         "schemaVersion": 1,
         "kind": MACOS_TRANSACTION_KIND,
         "transactionId": id,
@@ -121,6 +125,7 @@ pub fn prepare_transaction(
         "targetVersion": decision.target_version,
         "bundleVersion": decision.bundle_version,
         "hostBundleVersion": decision.host_bundle_version,
+        "hostVersion": decision.host_version,
         "artifactLayout": artifacts.layout,
         "requiresRuntimeAcknowledgement": artifacts.layout == ArtifactLayout::MacosHybrid,
         "stateRoot": layout.state_root,
@@ -149,6 +154,46 @@ pub fn prepare_transaction(
             "targetPath": host_bundle,
         }],
     });
+    if artifacts.layout == ArtifactLayout::MacosHybrid {
+        let mut runtime_decision = decision.clone();
+        runtime_decision
+            .selected_artifacts
+            .retain(|key| key != "host");
+        runtime_decision.plan.retain(|item| item.key != "host");
+        let runtime_id = Uuid::new_v4().to_string();
+        let runtime_dir = dir.join("runtime").join(&runtime_id);
+        let plan = create_install_plan(
+            &runtime_decision,
+            &layout.state_root,
+            staging_root,
+            None,
+            staged_artifacts
+                .iter()
+                .filter(|artifact| artifact.key != ArtifactKey::Host)
+                .cloned()
+                .collect(),
+            retain_app_versions,
+            layout.host_bundle.clone(),
+        )?;
+        if !plan.executable {
+            remove_path(&dir)?;
+            return Err("macOS target runtime plan failed preflight".into());
+        }
+        let plan_file = staging_dir.join("runtime-plan.json");
+        write_json_atomic(&plan_file, &plan)?;
+        let prepared = prepare_runtime_transaction_file_at(
+            &plan_file,
+            &dir,
+            runtime_dir.clone(),
+            runtime_id,
+            active_lease_id,
+        )?;
+        if prepared.get("state").and_then(Value::as_str) != Some("prepared") {
+            remove_path(&dir)?;
+            return Err("macOS target runtime could not be prepared".into());
+        }
+        payload["runtimeUpdateFile"] = json!(runtime_dir.join("runtime-update.json"));
+    }
     write_json_atomic(&transaction_file, &payload)?;
     Ok(PreparedTransactionRef {
         id,
@@ -262,6 +307,17 @@ pub(super) fn cleanup_old_backups(backup_dir: &Path) -> Result<Vec<PathBuf>> {
 }
 
 pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result<PathBuf> {
+    let result = arm_transaction_inner(transaction_file, current_helper);
+    if let Err(error) = &result {
+        let transaction = read_transaction(transaction_file)?;
+        if transaction.get("state").and_then(Value::as_str) == Some("prepared") {
+            expire_prepared_transaction(transaction_file, &format!("macos-arm-failed: {error}"))?;
+        }
+    }
+    result
+}
+
+fn arm_transaction_inner(transaction_file: &Path, current_helper: &Path) -> Result<PathBuf> {
     let mut transaction = read_transaction(transaction_file)?;
     if !is_macos_transaction(&transaction)
         || transaction.get("state").and_then(Value::as_str) != Some("prepared")
@@ -283,6 +339,13 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
             .and_then(Value::as_str)
             .ok_or("macOS transaction id is missing")?
     ));
+    let expected_sha = transaction
+        .get("archiveSha256")
+        .and_then(Value::as_str)
+        .ok_or("macOS host archive sha256 is missing")?;
+    if !sha256_file(&archive)?.eq_ignore_ascii_case(expected_sha) {
+        return Err("prepared macOS host archive checksum mismatch".into());
+    }
     validate_archive_entries(&archive)
         .map_err(|error| format!("macOS host archive preflight failed: {error}"))?;
     remove_path(&unpack_dir)
@@ -350,11 +413,12 @@ pub fn arm_transaction(transaction_file: &Path, current_helper: &Path) -> Result
         remove_path(&commit_slot)?;
         return Err("staged macOS runtime descriptor does not match CFBundleVersion".into());
     }
-    if packaged_desktop_version
-        != transaction
-            .get("targetVersion")
-            .and_then(Value::as_str)
-            .ok_or("targetVersion is missing")?
+    if super::runtime_update_file(&transaction)?.is_none()
+        && packaged_desktop_version
+            != transaction
+                .get("targetVersion")
+                .and_then(Value::as_str)
+                .ok_or("targetVersion is missing")?
     {
         remove_path(&commit_slot)?;
         return Err("staged macOS runtime desktopVersion does not match targetVersion".into());

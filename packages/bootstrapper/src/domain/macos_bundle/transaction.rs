@@ -1,7 +1,7 @@
 use super::{
-    bundle_fingerprint, fingerprints_match, is_macos_transaction, read_transaction,
-    recorded_fingerprint, remove_path, required_path, run_checked, staging::cleanup_old_backups,
-    write_state,
+    apply_runtime_update, bundle_fingerprint, fingerprints_match, is_macos_transaction,
+    read_transaction, recorded_fingerprint, remove_path, required_path, rollback_runtime_update,
+    run_checked, staging::cleanup_old_backups, write_state,
 };
 use crate::core::error::Result;
 use serde_json::{Value, json};
@@ -86,6 +86,10 @@ pub(super) fn exchange_transaction_with_fault(
         );
     }
     write_state(transaction_file, &mut transaction, "verified")?;
+    if let Err(error) = apply_runtime_update(&transaction) {
+        rollback_transaction(transaction_file)?;
+        return Err(error);
+    }
     Ok(transaction)
 }
 
@@ -119,6 +123,7 @@ pub fn rollback_transaction(transaction_file: &Path) -> Result<Value> {
     ) {
         return Err("macOS rollback identity mismatch; manual repair is required".into());
     }
+    rollback_runtime_update(&transaction)?;
     atomic_exchange(&host_bundle, &commit_slot)?;
     if !fingerprints_match(
         &bundle_fingerprint(&host_bundle, &relative_executable)?,
@@ -203,6 +208,7 @@ pub fn recover_transaction(transaction_file: &Path) -> Result<Value> {
             if fingerprints_match(&target, &expected_old)
                 && fingerprints_match(&slot, &expected_new)
             {
+                rollback_runtime_update(&transaction)?;
                 remove_path(&commit_slot)?;
                 write_state(transaction_file, &mut transaction, "rolled-back")?;
                 return Ok(transaction);
