@@ -44,6 +44,7 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
         return false
     }
 
+    let handoffArmed = false
     try {
         runtime.inbox.freeze()
         await runtime.queue.flush()
@@ -58,13 +59,15 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
             waitForPid: process.pid,
             onDiagnostic: line => logger.updater.warn('Bootstrapper handoff diagnostic', line),
         })
+        handoffArmed = true
         logger.updater.info('Bootstrapper handoff armed', { handoffId: armed.handoffId, rustPid: armed.rustPid })
         recordUpdateHandoff('armed', Math.max(0, Date.now() - startedAt))
-        await flushErrorTracking(500)
+        await flushErrorTracking(500).catch(error => logger.updater.warn('Failed to flush handoff diagnostics', error))
         scheduleHandoffRecovery(runtime)
         app.quit()
         return true
     } catch (error) {
+        if (handoffArmed) throw error
         recordUpdateHandoff('failed', Math.max(0, Date.now() - startedAt))
         logger.updater.error('Bootstrapper handoff failed before arming', error)
         captureMainException(error, 'bootstrap/handoff')

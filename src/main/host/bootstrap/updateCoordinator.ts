@@ -50,7 +50,7 @@ export class UpdateCoordinator {
             })
             .catch(error => {
                 recordUpdatePrepareFailure(error, options, Math.max(0, Date.now() - startedAt))
-                this.publish(bootstrapUiStateFromError(error))
+                this.publish(bootstrapUiStateFromError())
                 throw error
             })
             .finally(() => {

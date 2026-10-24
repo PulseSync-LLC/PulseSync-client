@@ -1,13 +1,15 @@
 import { fileURLToPath } from 'node:url'
 
-import { app, BrowserWindow, powerMonitor, screen, shell } from 'electron'
+import { app, BrowserWindow, ipcMain, powerMonitor, screen, shell } from 'electron'
 
 import path from 'path'
 
 import config from '@common/appConfig'
 import { isDevmark } from '@common/appConfig'
+import MainEvents from '@common/types/mainEvents'
 
-import { addMainBreadcrumb, captureMainException } from '../shared/errorTracking'
+import { captureBootstrapFailure } from '../shared/bootstrap/failureDiagnostic'
+import { addMainBreadcrumb } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
 import { queueAddonOpen, updateAvailable } from './events'
@@ -243,9 +245,43 @@ const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: Ma
             stage = 'response-headers'
             registerRemoteRendererResponseHeaders(window, source.origin)
             stage = 'navigation'
-            await window.loadURL(source.url)
-            stage = 'preload'
-            await assertRemotePreloadSurface(window)
+            const expectedUrl = new URL(source.url)
+            expectedUrl.hash = ''
+            let onUiReady!: (event: Electron.IpcMainEvent) => void
+            const uiReady = new Promise<void>(resolve => {
+                onUiReady = event => {
+                    if (window.isDestroyed() || event.sender.id !== window.webContents.id || event.senderFrame !== window.webContents.mainFrame)
+                        return
+                    try {
+                        const senderUrl = new URL(event.senderFrame.url)
+                        senderUrl.hash = ''
+                        if (senderUrl.href === expectedUrl.href) resolve()
+                    } catch {
+                        // Ignore readiness from an obsolete or incomplete navigation.
+                    }
+                }
+                ipcMain.on(MainEvents.UI_READY, onUiReady)
+            })
+            let readyTimeout!: NodeJS.Timeout
+            const timeout = new Promise<never>((_resolve, reject) => {
+                readyTimeout = setTimeout(() => reject(new Error('Remote renderer did not become ready within 20 seconds')), 20_000)
+                readyTimeout.unref()
+            })
+            try {
+                await Promise.race([
+                    (async () => {
+                        await window.loadURL(source.url)
+                        stage = 'preload'
+                        await assertRemotePreloadSurface(window)
+                        stage = 'ui-ready'
+                        await uiReady
+                    })(),
+                    timeout,
+                ])
+            } finally {
+                clearTimeout(readyTimeout)
+                ipcMain.removeListener(MainEvents.UI_READY, onUiReady)
+            }
             if (sourceIndex > 0) {
                 logger.main.warn('Remote renderer fallback selected', {
                     buildNumber: source.manifest.buildNumber,
@@ -367,10 +403,12 @@ export async function createWindow(
         }
         mainWindowReadyHandled = true
         fitNormalWindowToDisplay()
+        const showWindow =
+            !options.startHidden || Boolean(options.bootstrapWindow && !options.bootstrapWindow.isDestroyed() && options.bootstrapWindow.isVisible())
         if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) {
             options.bootstrapWindow.destroy()
         }
-        if (!options.startHidden) {
+        if (showWindow) {
             mainWindow.show()
             mainWindow.moveTop()
         }
@@ -379,7 +417,7 @@ export async function createWindow(
     let mainRendererSource: MainRendererSource | null = null
     let rendererRetryTimer: NodeJS.Timeout | null = null
     let rendererLoading = false
-    const reportedRendererErrors = new Set<string>()
+    let rendererAttempts = 0
     const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
         const previousSource = mainRendererSource
         try {
@@ -395,6 +433,7 @@ export async function createWindow(
     const loadMainRenderer = async (): Promise<void> => {
         if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
         rendererLoading = true
+        rendererAttempts += 1
         if (rendererRetryTimer) {
             clearTimeout(rendererRetryTimer)
             rendererRetryTimer = null
@@ -412,33 +451,26 @@ export async function createWindow(
         } catch (error) {
             logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
             if (!rendererWindow.isDestroyed()) {
-                const normalizedError = error instanceof Error ? error : new Error(String(error))
-                const signature = `${normalizedError.name}:${normalizedError.message}`
-                if (!reportedRendererErrors.has(signature)) {
-                    reportedRendererErrors.add(signature)
-                    captureMainException(normalizedError, 'renderer/load')
-                }
+                if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) options.bootstrapWindow.show()
+                const exhausted = rendererAttempts >= 3
                 options.bootstrapUi?.publish({
                     schemaVersion: 1,
-                    phase: 'error',
-                    statusKey: 'renderer-unavailable',
+                    phase: exhausted ? 'error' : 'launching',
+                    statusKey: exhausted ? 'renderer-unavailable' : 'launching-client',
                     progress: { kind: 'indeterminate' },
-                    actions: ['retry'],
+                    actions: [],
+                    ...(exhausted ? { diagnostic: captureBootstrapFailure(error, 'LF-RENDERER', 'renderer/load') } : {}),
                 })
-                rendererRetryTimer = setTimeout(() => void loadMainRenderer(), 5000)
-                rendererRetryTimer.unref()
+                if (!exhausted) {
+                    rendererRetryTimer = setTimeout(() => void loadMainRenderer(), rendererAttempts * 1000)
+                    rendererRetryTimer.unref()
+                }
             }
         } finally {
             rendererLoading = false
         }
     }
-    options.bootstrapUi?.setActionHandlers({
-        retry: async () => {
-            if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return false
-            void loadMainRenderer()
-            return true
-        },
-    })
+    options.bootstrapUi?.setActionHandlers({})
     void loadMainRenderer()
     rendererWindow.once('closed', () => {
         if (rendererRetryTimer) clearTimeout(rendererRetryTimer)

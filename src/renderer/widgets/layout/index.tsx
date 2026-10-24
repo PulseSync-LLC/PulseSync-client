@@ -30,7 +30,7 @@ interface LayoutProps {
 }
 
 const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack }) => {
-    const { app, setApp, updateAvailable, setUpdate, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
+    const { app, setApp, updateAvailable, modInfo, modInfoFetched, musicInstalled, setMusicInstalled, setMusicVersion, isAutonomousMode } =
         useContext(userContext)
     const { t } = useTranslation()
     const { Modals, openModal } = useModalContext()
@@ -125,7 +125,6 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                                 <TooltipButton tooltipText={t('layout.installUpdateTooltip')} as={'div'}>
                                     <button
                                         onClick={() => {
-                                            setUpdate(false)
                                             desktopApi.updates.install()
                                         }}
                                         className={pageStyles.update_download}

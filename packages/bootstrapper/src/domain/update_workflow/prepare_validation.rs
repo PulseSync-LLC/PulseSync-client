@@ -315,7 +315,9 @@ pub(super) fn transaction_matches(
         return matches!(
             artifacts.layout,
             ArtifactLayout::MacosBundle | ArtifactLayout::MacosHybrid
-        ) && value.get("schemaVersion").and_then(Value::as_u64) == Some(1)
+        ) && (artifacts.layout != ArtifactLayout::MacosHybrid
+            || macos_bundle::runtime_update_is_prepared(value).unwrap_or(false))
+            && value.get("schemaVersion").and_then(Value::as_u64) == Some(1)
             && record.candidate.state == "prepared"
             && Uuid::parse_str(transaction_id).is_ok()
             && value.get("channel").and_then(Value::as_str) == Some(decision.channel.as_str())

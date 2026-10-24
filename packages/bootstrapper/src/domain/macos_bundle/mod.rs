@@ -203,6 +203,91 @@ fn remove_path(path: &Path) -> Result<()> {
     Ok(())
 }
 
+// A hybrid host and its target components are one recoverable operation. The
+// signed .app remains untouched; components are installed into the state root.
+fn runtime_update_file(transaction: &Value) -> Result<Option<PathBuf>> {
+    let Some(path) = transaction.get("runtimeUpdateFile").and_then(Value::as_str) else {
+        return Ok(None);
+    };
+    let path = PathBuf::from(path);
+    let root = required_path(transaction, "transactionDir")?;
+    assert_inside(&root, &path, "macOS runtime update journal")?;
+    if path.file_name().and_then(|name| name.to_str()) != Some("runtime-update.json") {
+        return Err("invalid macOS runtime update journal name".into());
+    }
+    let runtime = read_transaction(&path)?;
+    if runtime.get("targetVersion") != transaction.get("targetVersion")
+        || runtime.get("hostVersion") != transaction.get("hostVersion")
+        || runtime.get("bundleVersion") != transaction.get("bundleVersion")
+        || runtime.get("hostBundle") != transaction.get("hostBundle")
+    {
+        return Err("macOS runtime update does not match its host transaction".into());
+    }
+    Ok(Some(path))
+}
+
+pub(crate) fn runtime_update_is_prepared(transaction: &Value) -> Result<bool> {
+    let Some(path) = runtime_update_file(transaction)? else {
+        return Ok(false);
+    };
+    Ok(read_transaction(&path)?
+        .get("state")
+        .and_then(Value::as_str)
+        == Some("prepared"))
+}
+
+fn apply_runtime_update(transaction: &Value) -> Result<()> {
+    let Some(path) = runtime_update_file(transaction)? else {
+        return Ok(());
+    };
+    let state_root = required_path(transaction, "stateRoot")?;
+    let host_bundle = required_path(transaction, "hostBundle")?;
+    let metadata_version = transaction
+        .get("bundleVersion")
+        .and_then(Value::as_str)
+        .ok_or("macOS target release metadata is missing")?
+        .parse::<u64>()?;
+    crate::core::packaged_runtime::ensure_macos_hybrid_state_for_update(
+        &state_root,
+        &host_bundle,
+        metadata_version,
+    )?;
+    let applied = crate::domain::transactions::apply_transaction_file(&path)?;
+    if applied.get("state").and_then(Value::as_str) != Some("applied") {
+        return Err(format!(
+            "macOS target runtime installation failed: {}",
+            applied.get("error").unwrap_or(&Value::Null)
+        )
+        .into());
+    }
+    let state =
+        crate::core::install_state::read_install_state_with_host(&state_root, Some(&host_bundle))?;
+    if state
+        .latest
+        .components
+        .get("desktopCore")
+        .map(|core| core.version.as_str())
+        != transaction.get("targetVersion").and_then(Value::as_str)
+    {
+        return Err("installed macOS runtime does not match targetVersion".into());
+    }
+    Ok(())
+}
+
+fn rollback_runtime_update(transaction: &Value) -> Result<()> {
+    let Some(path) = runtime_update_file(transaction)? else {
+        return Ok(());
+    };
+    let runtime = read_transaction(&path)?;
+    if matches!(
+        runtime.get("state").and_then(Value::as_str),
+        Some("applied" | "applying" | "failed")
+    ) {
+        crate::domain::transactions::rollback_transaction_file(&path)?;
+    }
+    Ok(())
+}
+
 pub fn transaction_state(transaction_file: &Path) -> Result<String> {
     Ok(read_transaction(transaction_file)?
         .get("state")

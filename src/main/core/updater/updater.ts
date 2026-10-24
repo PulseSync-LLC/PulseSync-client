@@ -11,6 +11,7 @@ import { getUpdateSource, type UpdateSource } from '../../shared/updater/updateS
 import { mainWindow } from '../createWindow'
 import { UpdateStatus } from './constants/updateStatus'
 
+import type { DesktopUpdateFailurePayload } from '@common/desktopApi/contract'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const UPDATE_INTERVAL_MS = 15 * 60 * 1000
@@ -29,6 +30,8 @@ export function configureUpdaterBootstrapRuntime(runtime: UpdaterBootstrapRuntim
 }
 
 class Updater {
+    private installInFlight = false
+    private preferenceChangeInFlight = false
     private lastCheckAt: number | null = null
     private latestAvailableVersion: string | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
@@ -113,13 +116,16 @@ class Updater {
             return null
         }
         this.lastCheckAt = Date.now()
-        if (this.updateStatus !== UpdateStatus.IDLE) {
-            if (manual && this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
+        if (this.preferenceChangeInFlight) return UpdateStatus.CHECKING
+        if (this.installInFlight || this.updateStatus !== UpdateStatus.IDLE) {
+            if (manual && !this.installInFlight && this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
+                this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
                 this.safeSend(RendererEvents.UPDATE_AVAILABLE, { kind: 'client', version: this.latestAvailableVersion })
             }
             return this.updateStatus
         }
 
+        let failurePhase: DesktopUpdateFailurePayload['phase'] = 'check'
         try {
             this.updateStatus = UpdateStatus.CHECKING
             this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
@@ -145,7 +151,15 @@ class Updater {
                 retainAppVersions: 2,
                 serverHealthUrl: request.serverHealthUrl,
                 onDiagnostic: line => logger.updater.warn('Bootstrapper diagnostic', line),
-                onProgress: (_event, uiState) => this.handleProgress(uiState),
+                onProgress: (_event, uiState) => {
+                    failurePhase =
+                        uiState.phase === 'preparing'
+                            ? 'prepare'
+                            : uiState.phase === 'downloading-app' || uiState.phase === 'downloading-modules'
+                              ? 'download'
+                              : 'check'
+                    this.handleProgress(uiState)
+                },
             })
             return await this.handleResult(result, manual, options?.suppressUpToDateEvent ?? false)
         } catch (error) {
@@ -155,7 +169,7 @@ class Updater {
             this.setProgressBar(-1)
             this.flashFrame(false)
             logger.updater.error('Error checking for updates', error)
-            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED, { phase: failurePhase })
             return this.updateStatus
         } finally {
             this.lastCheckAt = Date.now()
@@ -179,7 +193,7 @@ class Updater {
             this.setProgressBar(-1)
             this.flashFrame(false)
             logger.updater.error('Bootstrapper update preparation blocked', result.block)
-            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED)
+            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED, { phase: 'prepare', code: result.block.code })
             return this.updateStatus
         }
 
@@ -206,8 +220,8 @@ class Updater {
 
     public start(): void {
         if (!this.isRuntimeUpdateEnabled() || this.updaterId) return
-        const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? null
-        const delay = freshAt === null ? 0 : Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
+        const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? Date.now()
+        const delay = Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
         this.updaterId = setTimeout(() => {
             this.updaterId = null
             void this.check(false).finally(() => this.start())
@@ -226,18 +240,40 @@ class Updater {
         return this.updateStatus
     }
 
+    public isBusy(): boolean {
+        return (
+            this.preferenceChangeInFlight ||
+            this.installInFlight ||
+            this.updateStatus === UpdateStatus.CHECKING ||
+            this.updateStatus === UpdateStatus.DOWNLOADING
+        )
+    }
+
+    public async changePreferences(apply: () => void, reason: string): Promise<void> {
+        if (this.isBusy()) throw new Error('UPDATE_SOURCE_BUSY')
+        this.preferenceChangeInFlight = true
+        try {
+            if (this.updateStatus === UpdateStatus.DOWNLOADED && !(await this.clearPendingUpdate(reason))) {
+                throw new Error('UPDATE_RESET_FAILED')
+            }
+            apply()
+        } finally {
+            this.preferenceChangeInFlight = false
+        }
+    }
+
     public async clearPendingUpdate(reason = 'manual-reset'): Promise<boolean> {
         if (this.updateStatus !== UpdateStatus.DOWNLOADED || !this.preparedTransactionId) {
             return false
         }
-        const runtimePaths = getBootstrapperRuntimePaths()
-        if (!runtimePaths.launcher) return false
         const discardReason = reason.startsWith('channel-switch:')
             ? 'channel-change'
             : reason.startsWith('source-switch:')
               ? 'source-change'
               : 'manual-reset'
         try {
+            const runtimePaths = getBootstrapperRuntimePaths()
+            if (!runtimePaths.launcher) return false
             const result = await discardPreparedUpdate({
                 stateRoot: runtimePaths.stateRoot,
                 hostBundle: runtimePaths.hostBundle,
@@ -259,13 +295,27 @@ class Updater {
     }
 
     public async install(): Promise<boolean> {
-        if (!this.isRuntimeUpdateEnabled()) return false
+        if (!this.isRuntimeUpdateEnabled() || this.installInFlight || this.preferenceChangeInFlight) return false
+        this.installInFlight = true
+        this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'installing' })
         try {
             const handedOff = (await bootstrapRuntime?.handoffPreparedUpdate()) ?? false
-            return handedOff
+            if (handedOff) return true
+            throw new Error('Bootstrapper did not accept the prepared update')
         } catch (error) {
             logger.updater.error('Bootstrapper handoff failed', error)
+            // A failed handoff leaves this process alive. Release its prepared
+            // update so the next manual check can prepare a fresh transaction.
+            await this.clearPendingUpdate('install-failed')
+            this.latestAvailableVersion = null
+            this.preparedTransactionId = null
+            this.updateStatus = UpdateStatus.IDLE
+            this.setProgressBar(-1)
+            this.flashFrame(false)
+            this.safeSend(RendererEvents.DOWNLOAD_UPDATE_FAILED, { phase: 'install', code: 'handoff-failed' })
             return false
+        } finally {
+            this.installInFlight = false
         }
     }
 }

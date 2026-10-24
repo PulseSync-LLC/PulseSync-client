@@ -48,7 +48,8 @@ export const desktopApi = {
         onAvailable: (listener: Parameters<PulseSyncDesktopApi['updates']['onAvailable']>[0]) => requireDesktopApi().updates.onAvailable(listener),
         onDownloadProgress: (listener: (progress: unknown) => void) => requireDesktopApi().updates.onDownloadProgress(listener),
         onDownloadFinished: (listener: () => void) => requireDesktopApi().updates.onDownloadFinished(listener),
-        onDownloadFailed: (listener: () => void) => requireDesktopApi().updates.onDownloadFailed(listener),
+        onDownloadFailed: (listener: Parameters<PulseSyncDesktopApi['updates']['onDownloadFailed']>[0]) =>
+            requireDesktopApi().updates.onDownloadFailed(listener),
     },
     settings: {
         getSnapshot: () => requireDesktopApi().settings.getSnapshot(),

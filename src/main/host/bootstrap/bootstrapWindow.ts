@@ -87,10 +87,12 @@ export async function createBootstrapWindow(options: { startHidden?: boolean } =
 
     ipcMain.on(BOOTSTRAP_WINDOW_CHANNELS.ready, onReady)
     ipcMain.handle(BOOTSTRAP_WINDOW_CHANNELS.retry, async event => {
-        return event.sender.id === window.webContents.id && retryHandler ? await retryHandler() : false
+        return event.sender.id === window.webContents.id && currentState.actions.includes('retry') && retryHandler ? await retryHandler() : false
     })
     ipcMain.handle(BOOTSTRAP_WINDOW_CHANNELS.continue, async event => {
-        return event.sender.id === window.webContents.id && continueHandler ? await continueHandler() : false
+        return event.sender.id === window.webContents.id && currentState.actions.includes('continue') && continueHandler
+            ? await continueHandler()
+            : false
     })
     window.once('closed', cleanup)
     window.once('ready-to-show', () => {

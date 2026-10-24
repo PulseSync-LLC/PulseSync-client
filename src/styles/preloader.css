@@ -174,53 +174,7 @@ body {
     color: #d2e5f1;
 }
 
-.actions {
-    display: flex;
-
-    gap: 8px;
-
-    min-height: 30px;
-
-    margin-top: 5px;
+.bootstrap[data-phase='error'] #bootstrap-progress-percent {
+    user-select: text;
     -webkit-app-region: no-drag;
-}
-
-.actions button {
-    min-width: 88px;
-    height: 30px;
-
-    padding: 0 11px;
-
-    font: inherit;
-    font-size: 11px;
-    font-weight: 600;
-
-    color: #fff;
-
-    cursor: pointer;
-
-    background: var(--MainBG);
-    border: 1px solid var(--BorderColor);
-    border-radius: 6px;
-}
-
-.actions button:hover:not(:disabled) {
-    background: #2d3140;
-}
-
-.actions button:disabled {
-    cursor: default;
-
-    opacity: 0.55;
-}
-
-.actions .actions__primary {
-    color: var(--Main);
-
-    background: #d2e5f1;
-    border-color: #d2e5f1;
-}
-
-.actions .actions__primary:hover:not(:disabled) {
-    background: #e4f2fa;
 }

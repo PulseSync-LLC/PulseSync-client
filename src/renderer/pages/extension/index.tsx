@@ -1291,8 +1291,7 @@ export default function ExtensionPage() {
                         })
                     } else {
                         const translationKey = `extensions.publication.errors.${error.code}`
-                        const translatedMessage = t(translationKey)
-                        message = translatedMessage !== translationKey ? translatedMessage : error.message || defaultMessage
+                        message = t(translationKey, { defaultValue: defaultMessage })
                     }
                 }
 

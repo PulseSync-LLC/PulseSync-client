@@ -1,7 +1,23 @@
 import { type ChildProcess, spawn } from 'node:child_process'
 import http from 'node:http'
+import path from 'node:path'
+import { pathToFileURL } from 'node:url'
 
-import { remoteRendererDevConfig } from './dev-remote-config.js'
+const host = process.env.PULSESYNC_REMOTE_RENDERER_HOST || '127.0.0.1'
+const port = Number(process.env.PULSESYNC_REMOTE_RENDERER_PORT || 3100)
+const rendererPath = process.env.PULSESYNC_REMOTE_RENDERER_PATH || '/src/renderer/index.html'
+const origin = `http://${host}:${port}`
+const manifestPath = '/desktop/manifest.json'
+
+export const remoteRendererDevConfig = {
+    host,
+    port,
+    rendererPath,
+    origin,
+    manifestPath,
+    rendererUrl: `${origin}${rendererPath}`,
+    manifestUrl: `${origin}${manifestPath}`,
+}
 
 const { manifestUrl } = remoteRendererDevConfig
 
@@ -67,43 +83,49 @@ const stopProcess = (child: ChildProcess | null): void => {
     child.kill('SIGTERM')
 }
 
-let rendererProcess: ChildProcess | null = null
-let mainProcess: ChildProcess | null = null
+async function main(): Promise<void> {
+    let rendererProcess: ChildProcess | null = null
+    let mainProcess: ChildProcess | null = null
 
-const shutdown = (): void => {
-    stopProcess(mainProcess)
-    stopProcess(rendererProcess)
-}
-
-process.once('SIGINT', () => {
-    shutdown()
-    process.exit(130)
-})
-process.once('SIGTERM', () => {
-    shutdown()
-    process.exit(143)
-})
-
-rendererProcess = runCommand('corepack', ['yarn', 'dev:renderer'])
-rendererProcess.once('exit', code => {
-    if (!mainProcess) {
-        process.exit(code ?? 1)
+    const shutdown = (): void => {
+        stopProcess(mainProcess)
+        stopProcess(rendererProcess)
     }
-})
 
-try {
-    await waitForManifest()
-} catch (error) {
-    shutdown()
-    throw error
+    process.once('SIGINT', () => {
+        shutdown()
+        process.exit(130)
+    })
+    process.once('SIGTERM', () => {
+        shutdown()
+        process.exit(143)
+    })
+
+    rendererProcess = runCommand('corepack', ['yarn', 'dev:renderer'])
+    rendererProcess.once('exit', code => {
+        if (!mainProcess) {
+            process.exit(code ?? 1)
+        }
+    })
+
+    try {
+        await waitForManifest()
+    } catch (error) {
+        shutdown()
+        throw error
+    }
+
+    mainProcess = runCommand('corepack', ['yarn', 'dev:native'], {
+        PULSESYNC_ALLOW_SECOND_INSTANCE: '1',
+        PULSESYNC_REMOTE_RENDERER_MANIFEST_URL: manifestUrl,
+    })
+
+    mainProcess.once('exit', code => {
+        stopProcess(rendererProcess)
+        process.exit(code ?? 0)
+    })
 }
 
-mainProcess = runCommand('corepack', ['yarn', 'dev:native'], {
-    PULSESYNC_ALLOW_SECOND_INSTANCE: '1',
-    PULSESYNC_REMOTE_RENDERER_MANIFEST_URL: manifestUrl,
-})
-
-mainProcess.once('exit', code => {
-    stopProcess(rendererProcess)
-    process.exit(code ?? 0)
-})
+if (process.argv[1] && pathToFileURL(path.resolve(process.argv[1])).href === import.meta.url) {
+    await main()
+}

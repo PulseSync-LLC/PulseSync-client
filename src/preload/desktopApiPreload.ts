@@ -216,7 +216,7 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         onDownloadFinished: listener => subscribeVoid(RendererEvents.DOWNLOAD_UPDATE_FINISHED, listener),
 
-        onDownloadFailed: listener => subscribeVoid(RendererEvents.DOWNLOAD_UPDATE_FAILED, listener),
+        onDownloadFailed: listener => subscribePayload(RendererEvents.DOWNLOAD_UPDATE_FAILED, listener),
     },
 
     settings: {
