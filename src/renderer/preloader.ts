@@ -1,4 +1,4 @@
-import type { BootstrapAction, BootstrapStatusKey, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
+import type { BootstrapStatusKey, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 const STATUS_TEXT: Record<BootstrapStatusKey, string> = {
     'checking-for-updates': 'Проверяем обновления…',
@@ -24,70 +24,13 @@ const progressPercent = document.querySelector<HTMLElement>('#bootstrap-progress
 const progressBytes = document.querySelector<HTMLElement>('#bootstrap-progress-bytes')
 const progressSpeed = document.querySelector<HTMLElement>('#bootstrap-progress-speed')
 
-let currentState: BootstrapUiStateV1 | undefined
 let speedTimeout: number | undefined
-let actionPending = false
-let actions: HTMLElement | undefined
-let retryButton: HTMLButtonElement | undefined
-let continueButton: HTMLButtonElement | undefined
-
-function removeActions(): void {
-    actions?.remove()
-    actions = undefined
-    retryButton = undefined
-    continueButton = undefined
-}
-
-function ensureActions(canRetry: boolean, canContinue: boolean): void {
-    if (!root || (!canRetry && !canContinue)) {
-        removeActions()
-        return
-    }
-    if (!actions) {
-        actions = document.createElement('div')
-        actions.className = 'actions'
-        root.appendChild(actions)
-    }
-    if (canContinue && !continueButton) {
-        continueButton = document.createElement('button')
-        continueButton.type = 'button'
-        continueButton.textContent = 'Продолжить'
-        continueButton.addEventListener('click', () => void requestAction('continue'))
-        actions.appendChild(continueButton)
-    } else if (!canContinue && continueButton) {
-        continueButton.remove()
-        continueButton = undefined
-    }
-    if (canRetry && !retryButton) {
-        retryButton = document.createElement('button')
-        retryButton.type = 'button'
-        retryButton.className = 'actions__primary'
-        retryButton.textContent = 'Повторить'
-        retryButton.addEventListener('click', () => void requestAction('retry'))
-        actions.appendChild(retryButton)
-    } else if (!canRetry && retryButton) {
-        retryButton.remove()
-        retryButton = undefined
-    }
-}
-
-function setActionPending(pending: boolean): void {
-    actionPending = pending
-    if (retryButton) {
-        retryButton.disabled = pending
-    }
-    if (continueButton) {
-        continueButton.disabled = pending
-    }
-}
-
 function formatDiagnostic(state: BootstrapUiStateV1): string {
     if (state.phase !== 'error' || !state.diagnostic) return ''
     return state.diagnostic.reference ? `${state.diagnostic.code} · ${state.diagnostic.reference}` : state.diagnostic.code
 }
 
 function renderState(state: BootstrapUiStateV1): void {
-    currentState = state
     if (root) {
         root.dataset.phase = state.phase
         root.dataset.progress = state.progress.kind
@@ -123,10 +66,6 @@ function renderState(state: BootstrapUiStateV1): void {
             progressBytes.textContent = ''
         }
     }
-    const canRetry = state.actions.includes('retry')
-    const canContinue = state.actions.includes('continue')
-    ensureActions(canRetry, canContinue)
-    setActionPending(false)
 }
 
 function formatBytes(bytes: number): string {
@@ -148,24 +87,6 @@ function formatDownloadBytes(read: number, total: number): string {
     const totalText = formatBytes(total)
     const unit = totalText.slice(totalText.lastIndexOf(' '))
     return `${readText.endsWith(unit) ? readText.slice(0, -unit.length) : readText} из ${totalText}`
-}
-
-async function requestAction(action: BootstrapAction): Promise<void> {
-    if (actionPending || !currentState?.actions.includes(action)) {
-        return
-    }
-    const api = window.pulsesyncBootstrap
-    if (!api) {
-        return
-    }
-    setActionPending(true)
-    try {
-        const accepted = action === 'retry' ? await api.retry() : await api.continue()
-        if (!accepted) setActionPending(false)
-    } catch (error) {
-        console.error('Bootstrap action failed', { action, error })
-        setActionPending(false)
-    }
 }
 
 const api = window.pulsesyncBootstrap

@@ -1,14 +1,6 @@
-import { BootstrapperCommandError } from '../bootstrapper/command'
-import { isUpdateErrorV1, type PrepareUpdateResultV1, type RustUpdateProgressEventV1 } from '../bootstrapper/contracts'
+import { type PrepareUpdateResultV1, type RustUpdateProgressEventV1 } from '../bootstrapper/contracts'
 
-import type { BootstrapAction, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
-
-function actionsFor(retryable: boolean, safeToContinue: boolean): BootstrapAction[] {
-    const actions: BootstrapAction[] = []
-    if (safeToContinue) actions.push('continue')
-    if (retryable) actions.push('retry')
-    return actions
-}
+import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
 function progressFor(event: RustUpdateProgressEventV1): BootstrapUiStateV1['progress'] {
     if (
@@ -80,18 +72,16 @@ export function bootstrapUiStateFromPrepareResult(result: PrepareUpdateResultV1)
         phase: 'blocked',
         statusKey: 'update-blocked',
         progress: { kind: 'indeterminate' },
-        actions: actionsFor(result.block.retryable, result.block.safeToContinue),
+        actions: [],
     }
 }
 
-export function bootstrapUiStateFromError(error: unknown): BootstrapUiStateV1 {
-    const result = error instanceof BootstrapperCommandError ? error.result : undefined
-    const updateError = isUpdateErrorV1(result) ? result : undefined
+export function bootstrapUiStateFromError(): BootstrapUiStateV1 {
     return {
         schemaVersion: 1,
         phase: 'error',
         statusKey: 'update-failed',
         progress: { kind: 'indeterminate' },
-        actions: updateError ? actionsFor(updateError.error.retryable, updateError.error.safeToContinue) : [],
+        actions: [],
     }
 }
