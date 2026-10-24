@@ -31,6 +31,7 @@ export function configureUpdaterBootstrapRuntime(runtime: UpdaterBootstrapRuntim
 
 class Updater {
     private installInFlight = false
+    private preferenceChangeInFlight = false
     private lastCheckAt: number | null = null
     private latestAvailableVersion: string | null = null
     private onUpdateListeners: Array<(version: string) => void> = []
@@ -115,6 +116,7 @@ class Updater {
             return null
         }
         this.lastCheckAt = Date.now()
+        if (this.preferenceChangeInFlight) return UpdateStatus.CHECKING
         if (this.installInFlight || this.updateStatus !== UpdateStatus.IDLE) {
             if (manual && !this.installInFlight && this.updateStatus === UpdateStatus.DOWNLOADED && this.latestAvailableVersion) {
                 this.safeSend(RendererEvents.CHECK_UPDATE, { checking: true, manual })
@@ -238,18 +240,40 @@ class Updater {
         return this.updateStatus
     }
 
+    public isBusy(): boolean {
+        return (
+            this.preferenceChangeInFlight ||
+            this.installInFlight ||
+            this.updateStatus === UpdateStatus.CHECKING ||
+            this.updateStatus === UpdateStatus.DOWNLOADING
+        )
+    }
+
+    public async changePreferences(apply: () => void, reason: string): Promise<void> {
+        if (this.isBusy()) throw new Error('UPDATE_SOURCE_BUSY')
+        this.preferenceChangeInFlight = true
+        try {
+            if (this.updateStatus === UpdateStatus.DOWNLOADED && !(await this.clearPendingUpdate(reason))) {
+                throw new Error('UPDATE_RESET_FAILED')
+            }
+            apply()
+        } finally {
+            this.preferenceChangeInFlight = false
+        }
+    }
+
     public async clearPendingUpdate(reason = 'manual-reset'): Promise<boolean> {
         if (this.updateStatus !== UpdateStatus.DOWNLOADED || !this.preparedTransactionId) {
             return false
         }
-        const runtimePaths = getBootstrapperRuntimePaths()
-        if (!runtimePaths.launcher) return false
         const discardReason = reason.startsWith('channel-switch:')
             ? 'channel-change'
             : reason.startsWith('source-switch:')
               ? 'source-change'
               : 'manual-reset'
         try {
+            const runtimePaths = getBootstrapperRuntimePaths()
+            if (!runtimePaths.launcher) return false
             const result = await discardPreparedUpdate({
                 stateRoot: runtimePaths.stateRoot,
                 hostBundle: runtimePaths.hostBundle,
@@ -271,7 +295,7 @@ class Updater {
     }
 
     public async install(): Promise<boolean> {
-        if (!this.isRuntimeUpdateEnabled() || this.installInFlight) return false
+        if (!this.isRuntimeUpdateEnabled() || this.installInFlight || this.preferenceChangeInFlight) return false
         this.installInFlight = true
         this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'installing' })
         try {

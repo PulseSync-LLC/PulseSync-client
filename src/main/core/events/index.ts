@@ -18,8 +18,9 @@ import {
     getEffectiveUpdateChannel,
     getUpdateChannelOverride,
     setUpdateChannelOverride,
+    validateUpdateChannelOverride,
 } from '../../shared/updater/updateChannel'
-import { getUpdateSource, setUpdateSource } from '../../shared/updater/updateSource'
+import { getUpdateSource, normalizeUpdateSource, setUpdateSource } from '../../shared/updater/updateSource'
 import isAppDev from '../../shared/utils/isAppDev'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../auth/browserAuth'
 import { inSleepMode, mainWindow } from '../createWindow'
@@ -72,8 +73,7 @@ const toUnixSeconds = (dateValue: string | null | undefined): number => {
 const getCurrentUpdateStatus = () => updater.getStatus()
 
 const ensureUpdateSourceSwitchAllowed = () => {
-    const status = getCurrentUpdateStatus()
-    if (status === UpdateStatus.CHECKING || status === UpdateStatus.DOWNLOADING) {
+    if (updater.isBusy()) {
         throw new Error('UPDATE_SOURCE_BUSY')
     }
 }
@@ -294,16 +294,22 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         }))
     })
     ipcMain.handle(MainEvents.SET_UPDATE_CHANNEL_OVERRIDE, async (_event, request: DesktopSetUpdateChannelOverrideRequest | string | null) => {
+        ensureUpdateSourceSwitchAllowed()
         const isLegacyRequest = typeof request === 'string' || request === null
         const channel = isLegacyRequest ? request : request.channel
         const allowDevToBetaSwitch = !isLegacyRequest && request.allowDevToBetaSwitch === true
         const previousEffectiveChannel = getEffectiveUpdateChannel()
-        const nextOverride = setUpdateChannelOverride(channel, allowDevToBetaSwitch)
-        const nextEffectiveChannel = getEffectiveUpdateChannel()
+        const nextOverride = validateUpdateChannelOverride(channel, allowDevToBetaSwitch)
+        const nextEffectiveChannel = nextOverride ?? getBuildUpdateChannel()
 
         if (previousEffectiveChannel !== nextEffectiveChannel) {
-            await updater.clearPendingUpdate(`channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`)
+            await updater.changePreferences(
+                () => setUpdateChannelOverride(nextOverride, allowDevToBetaSwitch),
+                `channel-switch:${previousEffectiveChannel}->${nextEffectiveChannel}`,
+            )
             updateAvailable = false
+        } else {
+            setUpdateChannelOverride(nextOverride, allowDevToBetaSwitch)
         }
 
         updater.reloadFeed()
@@ -318,11 +324,13 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         ensureUpdateSourceSwitchAllowed()
 
         const previousSource = getUpdateSource()
-        const nextSource = setUpdateSource(source)
+        const nextSource = normalizeUpdateSource(source) ?? 'backend'
 
         if (previousSource !== nextSource) {
-            await updater.clearPendingUpdate(`source-switch:${previousSource}->${nextSource}`)
+            await updater.changePreferences(() => setUpdateSource(nextSource), `source-switch:${previousSource}->${nextSource}`)
             updateAvailable = false
+        } else {
+            setUpdateSource(nextSource)
         }
 
         updater.reloadFeed()
@@ -463,7 +471,11 @@ export const checkOrFindUpdate = async (hard?: boolean, manual = false) => {
     logger.updater.info('Check update')
     const status = await updater.check(manual, { suppressUpToDateEvent: true })
     if (status === UpdateStatus.DOWNLOADED) {
-        if (hard) await updater.install()
+        if (hard) {
+            await updater.install()
+            updateAvailable = updater.getStatus() === UpdateStatus.DOWNLOADED
+            return
+        }
         updateAvailable = true
     } else if (status === UpdateStatus.DOWNLOADING) {
         updateAvailable = true
