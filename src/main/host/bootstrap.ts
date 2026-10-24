@@ -150,11 +150,22 @@ async function showBootstrapFailure(
             if (retryRequested) return false
             retryRequested = true
             // Relaunch through the normal entry point, without consumed launch proofs.
+            const reservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
+            const handoffId = process.env.PULSESYNC_HANDOFF_ID
             delete process.env.PULSESYNC_LAUNCH_RESERVATION_ID
             delete process.env.PULSESYNC_HANDOFF_ID
-            app.relaunch()
-            app.quit()
-            return true
+            try {
+                app.relaunch()
+                app.quit()
+                return true
+            } catch (error) {
+                retryRequested = false
+                if (reservationId !== undefined) process.env.PULSESYNC_LAUNCH_RESERVATION_ID = reservationId
+                if (handoffId !== undefined) process.env.PULSESYNC_HANDOFF_ID = handoffId
+                console.error('Failed to retry PulseSync startup', error)
+                captureMainException(error, 'bootstrap/retry')
+                return false
+            }
         },
     })
     window.publish({

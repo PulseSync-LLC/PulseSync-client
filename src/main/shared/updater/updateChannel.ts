@@ -23,7 +23,7 @@ export function getUpdateChannelOverride(): UpdateChannel | null {
     return normalizeUpdateChannel(readBootstrapSettings().updateChannelOverride)
 }
 
-export function setUpdateChannelOverride(channel: unknown, allowDevToBetaSwitch = false): UpdateChannel | null {
+export function validateUpdateChannelOverride(channel: unknown, allowDevToBetaSwitch = false): UpdateChannel | null {
     const nextOverride = normalizeUpdateChannel(channel)
     const nextEffectiveChannel = nextOverride ?? getBuildUpdateChannel()
 
@@ -31,6 +31,11 @@ export function setUpdateChannelOverride(channel: unknown, allowDevToBetaSwitch 
         throw new Error('Switching from the dev update channel to beta is not allowed')
     }
 
+    return nextOverride
+}
+
+export function setUpdateChannelOverride(channel: unknown, allowDevToBetaSwitch = false): UpdateChannel | null {
+    const nextOverride = validateUpdateChannelOverride(channel, allowDevToBetaSwitch)
     writeBootstrapSettings({ updateChannelOverride: nextOverride ?? '' })
     return nextOverride
 }

@@ -159,8 +159,11 @@ async function requestAction(action: BootstrapAction): Promise<void> {
         return
     }
     setActionPending(true)
-    const accepted = action === 'retry' ? await api.retry() : await api.continue()
-    if (!accepted) {
+    try {
+        const accepted = action === 'retry' ? await api.retry() : await api.continue()
+        if (!accepted) setActionPending(false)
+    } catch (error) {
+        console.error('Bootstrap action failed', { action, error })
         setActionPending(false)
     }
 }
