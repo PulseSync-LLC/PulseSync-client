@@ -8,7 +8,8 @@ import config from '@common/appConfig'
 import { isDevmark } from '@common/appConfig'
 import MainEvents from '@common/types/mainEvents'
 
-import { addMainBreadcrumb, captureMainException } from '../shared/errorTracking'
+import { captureBootstrapFailure } from '../shared/bootstrap/failureDiagnostic'
+import { addMainBreadcrumb } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
 import { queueAddonOpen, updateAvailable } from './events'
@@ -416,7 +417,7 @@ export async function createWindow(
     let mainRendererSource: MainRendererSource | null = null
     let rendererRetryTimer: NodeJS.Timeout | null = null
     let rendererLoading = false
-    const reportedRendererErrors = new Set<string>()
+    let rendererAttempts = 0
     const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
         const previousSource = mainRendererSource
         try {
@@ -432,6 +433,7 @@ export async function createWindow(
     const loadMainRenderer = async (): Promise<void> => {
         if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
         rendererLoading = true
+        rendererAttempts += 1
         if (rendererRetryTimer) {
             clearTimeout(rendererRetryTimer)
             rendererRetryTimer = null
@@ -449,33 +451,26 @@ export async function createWindow(
         } catch (error) {
             logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
             if (!rendererWindow.isDestroyed()) {
-                const normalizedError = error instanceof Error ? error : new Error(String(error))
-                const signature = `${normalizedError.name}:${normalizedError.message}`
-                if (!reportedRendererErrors.has(signature)) {
-                    reportedRendererErrors.add(signature)
-                    captureMainException(normalizedError, 'renderer/load')
-                }
+                if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) options.bootstrapWindow.show()
+                const exhausted = rendererAttempts >= 3
                 options.bootstrapUi?.publish({
                     schemaVersion: 1,
-                    phase: 'error',
-                    statusKey: 'renderer-unavailable',
+                    phase: exhausted ? 'error' : 'launching',
+                    statusKey: exhausted ? 'renderer-unavailable' : 'launching-client',
                     progress: { kind: 'indeterminate' },
-                    actions: ['retry'],
+                    actions: [],
+                    ...(exhausted ? { diagnostic: captureBootstrapFailure(error, 'LF-RENDERER', 'renderer/load') } : {}),
                 })
-                rendererRetryTimer = setTimeout(() => void loadMainRenderer(), 5000)
-                rendererRetryTimer.unref()
+                if (!exhausted) {
+                    rendererRetryTimer = setTimeout(() => void loadMainRenderer(), rendererAttempts * 1000)
+                    rendererRetryTimer.unref()
+                }
             }
         } finally {
             rendererLoading = false
         }
     }
-    options.bootstrapUi?.setActionHandlers({
-        retry: async () => {
-            if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return false
-            void loadMainRenderer()
-            return true
-        },
-    })
+    options.bootstrapUi?.setActionHandlers({})
     void loadMainRenderer()
     rendererWindow.once('closed', () => {
         if (rendererRetryTimer) clearTimeout(rendererRetryTimer)

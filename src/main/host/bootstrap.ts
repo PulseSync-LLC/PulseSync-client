@@ -1,13 +1,9 @@
-import { randomBytes } from 'node:crypto'
 import fs from 'node:fs'
 import path from 'node:path'
 
 import { app } from 'electron'
 
-import * as Sentry from '@sentry/electron/main'
-
-import { ERROR_TRACKING_ENABLED } from '@common/errorTracking'
-
+import { captureBootstrapFailure as captureLaunchFailure } from '../shared/bootstrap/failureDiagnostic'
 import { type BootstrapperRuntimePaths, getBootstrapperRuntimePaths } from '../shared/bootstrapper/paths'
 import { captureMainException, flushErrorTracking, initMainErrorTracking } from '../shared/errorTracking'
 import { getStartupArguments } from '../shared/startupVisibility'
@@ -123,58 +119,25 @@ function loadApplicationMain(
     return desktopCore.startup({ bootstrapRuntime, bootstrapUi: bootstrapRuntime?.bootstrapUi, bootstrapWindow })
 }
 
-type LaunchFailureCode = 'LF-CANONICAL' | 'LF-CANONICAL-STATE' | 'LF-CLAIM' | 'LF-RUNTIME' | 'LF-STARTUP'
-
-function captureLaunchFailure(error: unknown, code: LaunchFailureCode, source: string, tags: Record<string, string> = {}): BootstrapUiDiagnostic {
-    const reference = randomBytes(4).toString('hex').toUpperCase()
-    Sentry.withScope(scope => {
-        scope.setTags({
-            ...tags,
-            'launch.failure_code': code,
-            'launch.failure_ref': reference,
-        })
-        captureMainException(error, source)
-    })
-    return ERROR_TRACKING_ENABLED ? { code, reference } : { code }
-}
-
 async function showBootstrapFailure(
     window: BootstrapWindowController,
     statusKey: Extract<BootstrapStatusKey, 'bootstrapper-missing' | 'launch-blocked' | 'launch-failed'>,
     diagnostic?: BootstrapUiDiagnostic,
 ): Promise<void> {
     currentBootstrapWindow = window
-    let retryRequested = false
-    window.setActionHandlers({
-        retry: async () => {
-            if (retryRequested) return false
-            retryRequested = true
-            // Relaunch through the normal entry point, without consumed launch proofs.
-            const reservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
-            const handoffId = process.env.PULSESYNC_HANDOFF_ID
-            delete process.env.PULSESYNC_LAUNCH_RESERVATION_ID
-            delete process.env.PULSESYNC_HANDOFF_ID
-            try {
-                app.relaunch()
-                app.quit()
-                return true
-            } catch (error) {
-                retryRequested = false
-                if (reservationId !== undefined) process.env.PULSESYNC_LAUNCH_RESERVATION_ID = reservationId
-                if (handoffId !== undefined) process.env.PULSESYNC_HANDOFF_ID = handoffId
-                console.error('Failed to retry PulseSync startup', error)
-                captureMainException(error, 'bootstrap/retry')
-                return false
-            }
-        },
-    })
+    window.setActionHandlers({})
+    diagnostic ??= captureLaunchFailure(
+        new Error(`PulseSync startup failed: ${statusKey}`),
+        statusKey === 'bootstrapper-missing' ? 'LF-BOOTSTRAPPER' : 'LF-STARTUP',
+        'bootstrap/failure',
+    )
     window.publish({
         schemaVersion: 1,
         phase: 'error',
         statusKey,
         progress: { kind: 'indeterminate' },
-        actions: ['retry'],
-        ...(diagnostic ? { diagnostic } : {}),
+        actions: [],
+        diagnostic,
     })
     await flushErrorTracking().catch(error => console.warn('Failed to flush startup error diagnostics', error))
 }
@@ -189,14 +152,24 @@ async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths
 
     app.releaseSingleInstanceLock()
     try {
-        const result = await startCanonicalApp({
-            appExecutable: runtimePaths.appExecutable,
-            appExecutableName: runtimePaths.appExecutableName,
-            hostBundle: runtimePaths.hostBundle,
-            launcher,
-            passthrough: getStartupArguments(),
-            stateRoot: runtimePaths.stateRoot,
-        })
+        const start = () =>
+            startCanonicalApp({
+                appExecutable: runtimePaths.appExecutable,
+                appExecutableName: runtimePaths.appExecutableName,
+                hostBundle: runtimePaths.hostBundle,
+                launcher,
+                passthrough: getStartupArguments(),
+                stateRoot: runtimePaths.stateRoot,
+            })
+        let result = await start()
+        for (let attempt = 1; attempt < 3 && (result.state === 'blocked' || result.state === 'busy'); attempt += 1) {
+            const block = result.block
+            const retryable = block && typeof block === 'object' && 'retryable' in block ? block.retryable === true : result.state === 'busy'
+            if (!retryable) break
+            console.warn('Retrying canonical PulseSync start', { attempt, result })
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+            result = await start()
+        }
         if (canonicalStartSucceeded(result)) {
             app.quit()
             return
@@ -204,7 +177,11 @@ async function routeThroughCanonicalStart(runtimePaths: BootstrapperRuntimePaths
         console.error('Canonical PulseSync start was blocked', result)
         if (result.state === 'blocked' || result.state === 'busy') {
             const bootstrapWindow = await createBootstrapWindow()
-            await showBootstrapFailure(bootstrapWindow, 'launch-blocked')
+            await showBootstrapFailure(
+                bootstrapWindow,
+                'launch-blocked',
+                captureLaunchFailure(new Error(`Canonical start ${result.state}`, { cause: result }), 'LF-CANONICAL', 'bootstrap/canonical-blocked'),
+            )
             return
         }
         const error = new Error(`Canonical PulseSync start returned unexpected state: ${result.state}`)
@@ -260,7 +237,8 @@ async function startPackagedBootstrap(): Promise<void> {
     registerSecondInstanceDelivery()
     await app.whenReady()
     const runtimePaths = getBootstrapperRuntimePaths()
-    if (!runtimePaths.launcher) {
+    const launcher = runtimePaths.launcher
+    if (!launcher) {
         const bootstrapWindow = await createBootstrapWindow()
         await showBootstrapFailure(bootstrapWindow, 'bootstrapper-missing')
         return
@@ -268,7 +246,7 @@ async function startPackagedBootstrap(): Promise<void> {
     repairWindowsShortcuts({
         appUserModelId: APP_ID,
         installRoot: runtimePaths.stateRoot,
-        launcher: runtimePaths.launcher.command,
+        launcher: launcher.command,
     })
 
     const launchReservationId = process.env.PULSESYNC_LAUNCH_RESERVATION_ID
@@ -291,15 +269,24 @@ async function startPackagedBootstrap(): Promise<void> {
     if (startupRevealRequested) bootstrapWindow.show()
     let claim
     try {
-        claim = await claimActiveApp({
-            stateRoot: runtimePaths.stateRoot,
-            hostBundle: runtimePaths.hostBundle,
-            appExecutable: runtimePaths.appExecutable,
-            launcher: runtimePaths.launcher,
-            launchReservationId,
-            handoffId,
-            allowUnreservedRecovery: !app.isPackaged || process.platform === 'darwin',
-        })
+        const claimOnce = () =>
+            claimActiveApp({
+                stateRoot: runtimePaths.stateRoot,
+                hostBundle: runtimePaths.hostBundle,
+                appExecutable: runtimePaths.appExecutable,
+                launcher,
+                launchReservationId,
+                handoffId,
+                allowUnreservedRecovery: !app.isPackaged || process.platform === 'darwin',
+            })
+        claim = await claimOnce()
+        for (let attempt = 1; attempt < 3 && claim.state === 'blocked' && claim.block.retryable; attempt += 1) {
+            if (claimShouldUseCanonicalStart(claim)) break
+            console.warn('Retrying PulseSync active-app claim', { attempt, block: claim.block })
+            bootstrapWindow.show()
+            await new Promise(resolve => setTimeout(resolve, attempt * 1000))
+            claim = await claimOnce()
+        }
     } catch (error) {
         console.error('PulseSync active-app claim failed', error)
         await showBootstrapFailure(bootstrapWindow, 'launch-failed', captureLaunchFailure(error, 'LF-CLAIM', 'bootstrap/active-app-claim'))
@@ -313,16 +300,20 @@ async function startPackagedBootstrap(): Promise<void> {
     }
     if (claim.state !== 'claimed') {
         console.error('PulseSync active-app claim was blocked', claim.block)
-        await showBootstrapFailure(bootstrapWindow, 'launch-blocked')
+        await showBootstrapFailure(
+            bootstrapWindow,
+            'launch-blocked',
+            captureLaunchFailure(new Error(`Active-app claim blocked: ${claim.block.code}`, { cause: claim }), 'LF-CLAIM', 'bootstrap/claim-blocked'),
+        )
         return
     }
 
-    const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher: runtimePaths.launcher, lease: claim.lease })
+    const inbox = new LaunchInbox({ stateRoot: runtimePaths.stateRoot, launcher, lease: claim.lease })
     const resolveRuntime = () =>
         resolveActiveRuntime({
             activeLeaseId: claim.lease.leaseId,
             hostBundle: runtimePaths.hostBundle,
-            launcher: runtimePaths.launcher!,
+            launcher,
             stateRoot: runtimePaths.stateRoot,
         })
     let activeRuntime: ActiveRuntimeV3
@@ -338,7 +329,7 @@ async function startPackagedBootstrap(): Promise<void> {
                 await repairActiveRuntime({
                     channel: request.channel,
                     dist: request.dist,
-                    launcher: runtimePaths.launcher,
+                    launcher,
                     manifestUrl: request.manifestUrl,
                     requestedSource: request.requestedSource,
                     serverHealthUrl: request.serverHealthUrl,
@@ -350,7 +341,7 @@ async function startPackagedBootstrap(): Promise<void> {
                 activeRuntime = await rollbackActiveRuntime({
                     activeLeaseId: claim.lease.leaseId,
                     hostBundle: runtimePaths.hostBundle,
-                    launcher: runtimePaths.launcher,
+                    launcher,
                     stateRoot: runtimePaths.stateRoot,
                 })
                 skipStartupUpdate = true
