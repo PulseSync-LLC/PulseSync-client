@@ -37,6 +37,7 @@ const defaultUserContextValue: UserContextValue = {
     modInfo: modInitials,
     modInfoFetched: false,
     preparedModUpdate: null,
+    isModUpdating: false,
     setMod: () => void 0,
     allAchievements: [],
     setAllAchievements: () => void 0,

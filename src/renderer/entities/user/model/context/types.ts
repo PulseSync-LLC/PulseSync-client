@@ -38,6 +38,7 @@ export type UserContextValue = {
     modInfo: ModInterface[]
     modInfoFetched: boolean
     preparedModUpdate: DesktopInstallModRequest | null
+    isModUpdating: boolean
     setMod: Dispatch<SetStateAction<ModInterface[]>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>

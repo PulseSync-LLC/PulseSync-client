@@ -45,6 +45,7 @@ export type AppProvidersProps = {
     modInfo: ModInterface[]
     modInfoFetched: boolean
     preparedModUpdate: DesktopInstallModRequest | null
+    isModUpdating: boolean
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     checkModUpdates: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>

@@ -964,6 +964,7 @@
         "noModInstallsAvailable": "Нет доступных модификаций для установки.",
         "noModUpdatesAvailable": "Нет доступных обновлений для установки.",
         "updateAction": "Обновить",
+        "updatingAction": "Обновление…",
         "unknownError": "Неизвестная ошибка."
     },
     "levelProgress": {

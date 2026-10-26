@@ -47,6 +47,7 @@ export default function HomePage() {
         setApp,
         modInfo,
         preparedModUpdate,
+        isModUpdating,
         musicInstalled,
         musicVersion,
         widgetInstalled,
@@ -473,6 +474,7 @@ export default function HomePage() {
             }
 
             if (componentId === 'mod') {
+                if (isModUpdating) return
                 if (preparedModUpdate) {
                     desktopApi.mods.install(preparedModUpdate)
                     return
@@ -480,7 +482,7 @@ export default function HomePage() {
                 void checkModUpdates(app, { manual: true })
             }
         },
-        [app, checkModUpdates, preparedModUpdate],
+        [app, checkModUpdates, isModUpdating, preparedModUpdate],
     )
 
     return (
@@ -497,6 +499,7 @@ export default function HomePage() {
                             isModInstalled={Boolean(app.mod.installed && app.mod.version)}
                             isModUpdateAvailable={Boolean(app.mod.installed && app.mod.version && isModReleaseUpdateAvailable(modInfo[0], app.mod))}
                             isModUpdatePrepared={Boolean(preparedModUpdate)}
+                            isModUpdating={isModUpdating}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
                             onWhatsNewClick={handleWhatsNewClick}
                             onCheckUpdatesClick={handleCheckUpdatesClick}

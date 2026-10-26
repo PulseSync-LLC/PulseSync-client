@@ -964,6 +964,7 @@
         "noModInstallsAvailable": "No mod installations available.",
         "noModUpdatesAvailable": "No updates available to install.",
         "updateAction": "Update",
+        "updatingAction": "Updating…",
         "unknownError": "Unknown error."
     },
     "levelProgress": {

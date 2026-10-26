@@ -36,6 +36,7 @@ type Props = {
     isModInstalled: boolean
     isModUpdateAvailable: boolean
     isModUpdatePrepared: boolean
+    isModUpdating: boolean
     isMusicInstalled: boolean
     onWhatsNewClick: (componentId: string) => void
     onCheckUpdatesClick: (componentId: string) => void
@@ -55,6 +56,7 @@ export default function HomePrimaryComponentsSection({
     isModInstalled,
     isModUpdateAvailable,
     isModUpdatePrepared,
+    isModUpdating,
     isMusicInstalled,
     onWhatsNewClick,
     onCheckUpdatesClick,
@@ -68,16 +70,16 @@ export default function HomePrimaryComponentsSection({
                 {items.map(item => {
                     const isModUpdateAction = item.id === 'mod' && isModUpdateAvailable
                     const isModInstallAction = item.id === 'mod' && isModUpdatePrepared
-                    const updateActionLabel = isModInstallAction
-                        ? t('layout.installPreparedUpdateAction')
-                        : isModUpdateAction
-                          ? t('layout.updateAction')
-                          : t('pages.home.checkUpdatesAction')
-                    const updateActionTooltip = isModInstallAction
-                        ? t('layout.installPreparedUpdateAction')
-                        : isModUpdateAction
-                          ? t('layout.updateAction')
-                          : t('contextMenu.misc.checkUpdates')
+                    const isModBusy = item.id === 'mod' && isModUpdating
+                    const updateActionLabel = isModBusy
+                        ? t('layout.updatingAction')
+                        : isModInstallAction
+                          ? t('layout.installPreparedUpdateAction')
+                          : isModUpdateAction
+                            ? t('layout.updateAction')
+                            : t('pages.home.checkUpdatesAction')
+                    const updateActionTooltip =
+                        isModBusy || isModInstallAction || isModUpdateAction ? updateActionLabel : t('contextMenu.misc.checkUpdates')
                     const branchPicker = item.id === 'music' ? undefined : branchPickers[item.id]
                     const branch = item.id === 'music' ? undefined : branches[item.id]
                     const branchMenuItems: DropdownMenuItem[] = branchPicker
@@ -178,7 +180,8 @@ export default function HomePrimaryComponentsSection({
                                             type="button"
                                             className={cn(styles.actionButton, styles.updateButton)}
                                             onClick={() => onCheckUpdatesClick(item.id)}
-                                            disabled={item.id === 'mod' && !isModInstalled}
+                                            disabled={item.id === 'mod' && (!isModInstalled || isModBusy)}
+                                            aria-busy={isModBusy}
                                             aria-label={updateActionTooltip}
                                         >
                                             {updateActionLabel}
