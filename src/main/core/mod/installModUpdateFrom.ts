@@ -12,7 +12,7 @@ import { CACHE_DIR } from '../constants/paths'
 import { requirePulseSyncNative } from '../nativeModules/pulsesyncNative'
 import { getState } from '../state'
 import { isLinuxAccessError } from '../utils/appUtils/elevation'
-import { sendToRenderer } from './download.helpers'
+import { resetProgress, sendToRenderer } from './download.helpers'
 import { beginInstalledModMutation, readInstalledAsarChecksum } from './integrity'
 import { ensureBackup, ensureLinuxModPath, installPreparedAsarAndPatchBundle, resolveBasePaths } from './mod-files'
 import { closeMusicIfRunning, persistInstalledModState, sendSuccessAfterLaunch } from './mod-manager.helpers'
@@ -27,6 +27,7 @@ const PATCH_TYPE_FROM_MOD = 'FROM_MOD'
 
 type InstallModUpdateFromSource = 'socket' | 'deeplink' | 'unknown'
 const State = getState()
+let installInProgress = false
 
 export interface InstallModUpdateFromResult {
     success: boolean
@@ -165,6 +166,24 @@ export const installModUpdateFromAsar = async (
     rawPath: string,
     window: BrowserWindow | null | undefined,
     source: InstallModUpdateFromSource = 'unknown',
+): Promise<InstallModUpdateFromResult> => {
+    if (installInProgress) {
+        return { success: false, type: 'install_already_running' }
+    }
+
+    installInProgress = true
+    try {
+        return await runInstallModUpdateFromAsar(rawPath, window, source)
+    } finally {
+        installInProgress = false
+        resetProgress(window)
+    }
+}
+
+const runInstallModUpdateFromAsar = async (
+    rawPath: string,
+    window: BrowserWindow | null | undefined,
+    source: InstallModUpdateFromSource,
 ): Promise<InstallModUpdateFromResult> => {
     sendInstallStarted(window)
 

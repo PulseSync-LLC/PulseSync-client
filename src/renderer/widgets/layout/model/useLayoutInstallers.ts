@@ -38,6 +38,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
     const hasInstalledMod = Boolean(app.mod.installed && app.mod.version)
 
     const downloadToastIdRef = useRef<string | null>(null)
+    const modActionActiveRef = useRef(false)
     const preparedUpdateRef = useRef<DesktopInstallModRequest | null>(null)
     const appRef = useRef(app)
     const modInfoRef = useRef(modInfo)
@@ -111,25 +112,16 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
             const isUpdate = (typeof data?.isUpdate === 'boolean' ? data.isUpdate : wasInstalled) && wasInstalled
             currentModActionRef.current = isUpdate ? 'update' : 'install'
             isApplyingPreparedUpdateRef.current = isUpdate && Boolean(data?.prepared)
+            modActionActiveRef.current = true
             setIsUpdating(true)
             setModInstallError(null)
-
-            if (downloadToastIdRef.current) {
-                toast.update(downloadToastIdRef.current, {
-                    action: undefined,
-                    kind: 'loading',
-                    title: isUpdate ? t('layout.modUpdateInstalling') : t('layout.modInstallStart'),
-                    msg: t('layout.modInstallDescription'),
-                    sticky: true,
-                })
-                return
-            }
 
             downloadToastIdRef.current = toast.custom(
                 'loading',
                 isUpdate ? t('layout.modUpdateInstalling') : t('layout.modInstallStart'),
                 t('layout.modInstallDescription'),
                 { id: MOD_DOWNLOAD_TOAST_ID, duration: Infinity },
+                0,
             )
         }
 
@@ -137,6 +129,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
             currentModActionRef.current = 'update'
             isApplyingPreparedUpdateRef.current = false
             preparedUpdateRef.current = null
+            modActionActiveRef.current = true
             setIsUpdating(true)
             setModInstallError(null)
 
@@ -147,6 +140,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
         }
 
         const handleProgress = ({ progress, name }: { progress: number; name: string }) => {
+            if (!modActionActiveRef.current) return
             const isApplyingPreparedUpdate = isApplyingPreparedUpdateRef.current
             if (downloadToastIdRef.current) {
                 toast.update(downloadToastIdRef.current, {
@@ -172,12 +166,14 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
             if (!data?.release) return
 
             preparedUpdateRef.current = data.release
+            modActionActiveRef.current = false
             setIsUpdating(false)
             const installPreparedUpdate = () => {
                 const release = preparedUpdateRef.current
                 if (!release) return
 
                 currentModActionRef.current = 'update'
+                modActionActiveRef.current = true
                 setIsUpdating(true)
                 if (downloadToastIdRef.current) {
                     toast.update(downloadToastIdRef.current, {
@@ -209,6 +205,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
         }
 
         const handleSuccess = async (data: any) => {
+            modActionActiveRef.current = false
             const installedMod = await readInstalledModSnapshot()
             setModInstallError(null)
             preparedUpdateRef.current = null
@@ -281,6 +278,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
         }
 
         const handleFailure = (error: any) => {
+            modActionActiveRef.current = false
             const errorPresentation = getModInstallErrorText(error)
             console.error('[LayoutInstallers] Mod install failed', {
                 action: currentModActionRef.current,
@@ -291,19 +289,8 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
             preparedUpdateRef.current = null
             isApplyingPreparedUpdateRef.current = false
 
-            if (downloadToastIdRef.current) {
-                toast.update(downloadToastIdRef.current, {
-                    kind: 'error',
-                    title: errorPresentation.title,
-                    msg: errorPresentation.details,
-                    sticky: false,
-                    duration: 15000,
-                    value: 0,
-                })
-                downloadToastIdRef.current = null
-            } else {
-                toast.custom('error', errorPresentation.title, errorPresentation.details, undefined, undefined, 15000)
-            }
+            toast.custom('error', errorPresentation.title, errorPresentation.details, { id: MOD_DOWNLOAD_TOAST_ID }, 0, 15000)
+            downloadToastIdRef.current = null
 
             desktopApi.getRuntimeInfo().then(runtimeInfo => {
                 if (error.type === 'linux_permissions_required' && runtimeInfo.isLinux) {
@@ -368,6 +355,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
             return
         }
 
+        modActionActiveRef.current = true
         setIsUpdating(true)
         setModInstallError(null)
         currentModActionRef.current = hasInstalledMod ? 'update' : 'install'
