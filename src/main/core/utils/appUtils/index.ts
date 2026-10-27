@@ -96,6 +96,15 @@ export async function closeYandexMusic(): Promise<void> {
         logger.main.info('Yandex Music is not running.')
         return
     }
+    if (isWindows()) {
+        try {
+            const args = [...procs.flatMap(({ pid }) => ['/PID', String(pid)]), '/T', '/F']
+            await execFileAsync('taskkill.exe', args, { windowsHide: true, timeout: 5000 })
+            return
+        } catch (error) {
+            logger.main.warn('Failed to terminate Yandex Music process trees:', error)
+        }
+    }
     for (const { pid } of procs) {
         terminateProcess(pid)
     }
@@ -408,7 +417,8 @@ export async function updateIntegrityHashInExe(exePath: string, asarPath: string
         nativePatchWindowsIntegrity(exePath, asarPath)
     } catch (err) {
         logger.main.error(t('main.appUtils.updateIntegrityError'), err)
-        await downloadYandexMusic('reinstall')
+        const message = err instanceof Error ? err.message : String(err)
+        if (!/\(os error (?:32|33)\)/u.test(message)) await downloadYandexMusic('reinstall')
         throw err
     }
 }

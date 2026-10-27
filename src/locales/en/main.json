@@ -11,6 +11,7 @@
             "localAppDataMissing": "LOCALAPPDATA is not set",
             "macPatchError": "macOS patch error: {{message}}",
             "macPatchSuccess": "macOS patch completed successfully",
+            "musicCloseTimeout": "Could not close Yandex Music. Close it manually and try installing again",
             "noWriteAccess": "No write access to app.asar",
             "patchSupportedPlatforms": "Patch is supported only on Windows and macOS",
             "permissionsRequiredMessage": "Grant write access to patch ASAR and try again.",

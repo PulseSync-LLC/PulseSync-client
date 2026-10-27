@@ -1,5 +1,8 @@
+import { setTimeout as delay } from 'node:timers/promises'
+
 import * as fs from 'original-fs'
 
+import logger from '../../shared/logger'
 import { isDeveloperAccount } from '../auth/developerAccess'
 import { getState } from '../state'
 import { resolveBasePaths } from './mod-files'
@@ -7,6 +10,8 @@ import { hashArtifactInWorker } from './network/artifactWorkerClient'
 
 const State = getState()
 const SHA256_PATTERN = /^[a-f0-9]{64}$/i
+const ASAR_CHECKSUM_ATTEMPTS = 3
+const ASAR_CHECKSUM_RETRY_DELAY_MS = 250
 let cachedChecksum: { fingerprint: string; checksum: string } | null = null
 let pendingVerification: { epoch: number; promise: Promise<ModIntegrityResult> } | null = null
 let pendingRefresh: { epoch: number; promise: Promise<Record<string, unknown>> } | null = null
@@ -56,11 +61,19 @@ async function getFileFingerprint(filePath: string): Promise<string> {
 }
 
 export async function readInstalledAsarChecksum(filePath: string): Promise<string> {
-    const before = await getFileFingerprint(filePath)
-    const { checksum } = await hashArtifactInWorker({ filePath })
-    const normalized = normalizeAsarChecksum(checksum)
-    if (!normalized || before !== (await getFileFingerprint(filePath))) throw new Error('Unable to verify installed ASAR checksum')
-    return normalized
+    const epoch = installedModMutationEpoch
+    for (let attempt = 1; attempt <= ASAR_CHECKSUM_ATTEMPTS; attempt++) {
+        const before = await getFileFingerprint(filePath)
+        const { checksum } = await hashArtifactInWorker({ filePath })
+        const normalized = normalizeAsarChecksum(checksum)
+        if (!normalized) throw new Error('Artifact worker returned an invalid ASAR checksum')
+        const after = await getFileFingerprint(filePath)
+        if (epoch !== installedModMutationEpoch) throw new Error('Installed mod changed while calculating ASAR checksum')
+        if (before === after) return normalized
+        logger.modManager.warn('Installed ASAR changed while calculating checksum', { attempt, before, after })
+        if (attempt < ASAR_CHECKSUM_ATTEMPTS) await delay(ASAR_CHECKSUM_RETRY_DELAY_MS)
+    }
+    throw new Error(`Installed ASAR did not stabilize after ${ASAR_CHECKSUM_ATTEMPTS} checksum attempts`)
 }
 
 async function verifyInstalledAsar(epoch: number): Promise<ModIntegrityResult> {

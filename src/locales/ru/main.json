@@ -11,6 +11,7 @@
             "localAppDataMissing": "LOCALAPPDATA не задан",
             "macPatchError": "Ошибка macOS-патча: {{message}}",
             "macPatchSuccess": "Патч macOS выполнен успешно",
+            "musicCloseTimeout": "Не удалось закрыть Яндекс Музыку. Закройте её вручную и повторите установку",
             "noWriteAccess": "Нет прав на запись app.asar",
             "patchSupportedPlatforms": "Патч доступен только на Windows и macOS",
             "permissionsRequiredMessage": "Предоставьте доступ к записи для патча ASAR и повторите",
