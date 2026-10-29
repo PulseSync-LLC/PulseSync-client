@@ -46,19 +46,10 @@ on:
           - beta
         default: dev
       publish_changelog:
-        description: "Publish changelog (API/Discord)"
+        description: "Publish legacy version changelog to API"
         required: true
         type: boolean
         default: false
-      changelog_target:
-        description: "Where to publish changelog"
-        required: true
-        type: choice
-        options:
-          - both
-          - api
-          - discord
-        default: both
       changelog_version:
         description: "Override version for changelog (optional)"
         required: false
@@ -170,21 +161,7 @@ jobs:
             VERSION_ARGS=(--version "${{ inputs.changelog_version }}")
           fi
 
-          case "${{ inputs.changelog_target }}" in
-            both)
-              yarn publish:api "${VERSION_ARGS[@]}"
-              yarn publish:discord "${VERSION_ARGS[@]}"
-              ;;
-            api)
-              yarn publish:api "${VERSION_ARGS[@]}"
-              ;;
-            discord)
-              yarn publish:discord "${VERSION_ARGS[@]}"
-              ;;
-            *)
-              echo "Unknown changelog_target"; exit 1
-              ;;
-          esac
+          yarn publish:api "${VERSION_ARGS[@]}"
 
   publish_desktop_s3:
     concurrency:
