@@ -114,7 +114,14 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             }),
             react({}),
             babel({
-                presets: [reactCompilerPreset()],
+                parallel: !isDevMode,
+                presets: [
+                    {
+                        ...reactCompilerPreset(),
+                        // Keep Vite hooks and filters, but load the Babel preset inside each worker.
+                        preset: fileURLToPath(new URL('./scripts/renderer/react-compiler-preset.mjs', import.meta.url)),
+                    },
+                ],
             } as Parameters<typeof babel>[0]),
             ...(!isDevMode
                 ? [
