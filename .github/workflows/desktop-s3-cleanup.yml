@@ -29,6 +29,15 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -46,7 +55,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Resolve active release IDs
         id: active_releases

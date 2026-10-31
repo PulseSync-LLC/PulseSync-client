@@ -20,11 +20,20 @@ jobs:
       version: ${{ steps.tag.outputs.version }}
     steps:
       - uses: actions/checkout@v7
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
           cache: yarn
-      - run: yarn install --frozen-lockfile --ignore-scripts
+      - run: yarn install --immutable --mode=skip-build
       - name: Resolve release tag
         id: tag
         env:
@@ -47,6 +56,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v7
+
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
 
       - uses: actions/setup-node@v7
         with:
@@ -74,10 +92,10 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Check Sentry CLI
-        run: yarn -s sentry-cli --version
+        run: yarn exec sentry-cli --version
 
       - name: Build (package)
         run: yarn build:package --nativeModules
@@ -136,6 +154,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -151,7 +178,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
@@ -220,6 +247,15 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -235,7 +271,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Download validated S3 release
         uses: actions/download-artifact@v8
@@ -258,18 +294,29 @@ jobs:
           --legacy-update-bridge
           --require-baseline
 
-      - name: Create GitHub Release
+      - name: Prepare GitHub release draft
         uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ github.ref_name }}
           name: ${{ github.ref_name }}
           prerelease: ${{ needs.tag.outputs.channel == 'dev' }}
+          draft: true
           make_latest: ${{ needs.tag.outputs.channel == 'beta' && 'true' || 'false' }}
           generate_release_notes: true
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: |
-            github-release-assets/*
+
+      - name: Upload GitHub release assets with retries
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+        run: yarn tsx scripts/github-release-upload.ts "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber github-release-assets/*
+
+      - name: Publish GitHub release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ github.ref_name }}
+          MAKE_LATEST: ${{ needs.tag.outputs.channel == 'beta' && 'true' || 'false' }}
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --latest="$MAKE_LATEST"
 
   publish_aur:
     name: Publish AUR Package

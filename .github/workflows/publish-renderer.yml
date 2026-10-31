@@ -46,6 +46,15 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -63,7 +72,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Typecheck renderer
         run: yarn typecheck
@@ -72,7 +81,7 @@ jobs:
         run: yarn lint
 
       - name: Check Sentry CLI
-        run: yarn -s sentry-cli --version
+        run: yarn exec sentry-cli --version
 
       - name: Publish remote renderer
         id: renderer_publish

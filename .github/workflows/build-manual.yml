@@ -83,6 +83,15 @@ jobs:
         with:
           ref: ${{ inputs.target }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -109,11 +118,11 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Check Sentry CLI
         if: ${{ inputs.upload_to_glitchtip == true }}
-        run: yarn -s sentry-cli --version
+        run: yarn exec sentry-cli --version
 
       - name: Build (package)
         run: yarn build:package --nativeModules ${{ inputs.upload_to_s3 && format('--publish {0}', inputs.s3_branch) || '' }}
@@ -178,6 +187,15 @@ jobs:
         with:
           ref: ${{ inputs.target }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -195,7 +213,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Download staged release
         uses: actions/download-artifact@v8
@@ -289,6 +307,15 @@ jobs:
         with:
           ref: ${{ inputs.target }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -306,11 +333,11 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Check Sentry CLI
         if: ${{ inputs.upload_to_glitchtip == true }}
-        run: yarn -s sentry-cli --version
+        run: yarn exec sentry-cli --version
 
       - name: Publish remote renderer
         run: yarn renderer:publish --channel ${{ inputs.renderer_channel }}

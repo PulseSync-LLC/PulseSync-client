@@ -27,6 +27,15 @@ jobs:
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -49,7 +58,7 @@ jobs:
           key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Typecheck desktop
         run: yarn typecheck

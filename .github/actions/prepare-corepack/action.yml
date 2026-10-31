@@ -1,0 +1,22 @@
+name: Prepare pinned Yarn
+description: Download the project's Yarn through the npm registry with bounded retries.
+
+runs:
+  using: composite
+  steps:
+    - name: Enable Corepack and cache Yarn
+      shell: bash
+      env:
+        COREPACK_NPM_REGISTRY: https://registry.npmjs.org
+        COREPACK_ENABLE_DOWNLOAD_PROMPT: '0'
+      run: |
+        corepack enable
+        for attempt in 1 2 3; do
+          if corepack install; then
+            yarn --version
+            exit 0
+          fi
+          if [ "$attempt" -eq 3 ]; then exit 1; fi
+          echo "Corepack download failed; retrying in 5 seconds ($attempt/3)" >&2
+          sleep 5
+        done

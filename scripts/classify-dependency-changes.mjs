@@ -3,6 +3,8 @@ import fs from 'node:fs'
 import path from 'node:path'
 import { pathToFileURL } from 'node:url'
 
+import { load } from 'js-yaml'
+
 import { collectSourceOwnership } from './classify-common-changes.mjs'
 
 const sections = ['dependencies', 'devDependencies', 'optionalDependencies']
@@ -25,8 +27,49 @@ const packageName = selector => {
 }
 const scalar = value => (value.startsWith('"') ? JSON.parse(value) : value)
 
-// Yarn classic's generated format only. Unrecognized syntax must never produce renderer-only routing.
+function parseModernYarnLock(text) {
+    const document = load(text)
+    if (!document || typeof document !== 'object' || !document.__metadata) throw new Error('Unsupported lockfile format')
+    const entries = new Map()
+    for (const [key, value] of Object.entries(document)) {
+        if (key === '__metadata') continue
+        if (!value || typeof value !== 'object' || !value.version || !value.resolution) throw new Error(`Unsupported lock entry: ${key}`)
+        const selectors = key.split(', ')
+        if (selectors.every(selector => selector.includes('@workspace:'))) continue
+        const name = packageName(selectors[0])
+        const dependencies = {}
+        const optionalDependencies = {}
+        for (const [dependency, range] of Object.entries(value.dependencies ?? {})) {
+            if (typeof range !== 'string') throw new Error(`Unsupported dependency range: ${dependency}`)
+            const target = value.dependenciesMeta?.[dependency]?.optional ? optionalDependencies : dependencies
+            target[dependency] = range.startsWith('npm:') ? range.slice(4) : range
+        }
+        const entry = {
+            name,
+            version: String(value.version),
+            resolved: value.resolution,
+            integrity: value.checksum,
+            dependencies,
+            optionalDependencies,
+            peerDependencies: value.peerDependencies ?? {},
+            peerDependenciesMeta: value.peerDependenciesMeta ?? {},
+            dependenciesMeta: value.dependenciesMeta ?? {},
+            raw: value,
+        }
+        for (const selector of selectors) {
+            if (packageName(selector) !== name) throw new Error(`Mixed lock selector: ${selector}`)
+            const descriptor = selector.slice(name.length + 1)
+            const normalized = `${name}@${descriptor.startsWith('npm:') ? descriptor.slice(4) : descriptor}`
+            if (entries.has(normalized)) throw new Error(`Duplicate lock selector: ${normalized}`)
+            entries.set(normalized, entry)
+        }
+    }
+    return entries
+}
+
+// Unknown syntax always falls back to a full desktop and renderer build.
 export function parseYarnLock(text) {
+    if (text.includes('__metadata:')) return parseModernYarnLock(text)
     if (!text.includes('# yarn lockfile v1')) throw new Error('Unsupported lockfile format')
     const entries = new Map()
     let entry
@@ -89,7 +132,8 @@ function graph(snapshot) {
     const visited = new Set()
     function collect(name, range, owner, optional = false) {
         const selector = `${name}@${range}`
-        const entry = lock.get(selector)
+        const override = snapshot.packageJson.resolutions?.[name]
+        const entry = lock.get(selector) ?? (typeof override === 'string' ? lock.get(`${name}@${override}`) : undefined)
         if (!entry) throw new Error(`Unresolved lock dependency: ${selector}`)
         const peerKey = Object.hasOwn(snapshot.peerConsumers ?? {}, name) ? name : `${name}@${entry.version}`
         // These audited platform binary leaves, including macOS-only fsevents,

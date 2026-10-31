@@ -95,6 +95,15 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -110,7 +119,7 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Set up Rust for bootstrapper validation
         if: ${{ inputs.component == 'bootstrapper' }}
@@ -153,6 +162,15 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -179,7 +197,7 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Typecheck
         run: yarn typecheck
@@ -245,6 +263,15 @@ jobs:
         with:
           ref: ${{ inputs.ref }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - name: Set up Node.js
         uses: actions/setup-node@v7
         with:
@@ -263,7 +290,7 @@ jobs:
           fi
 
       - name: Install dependencies
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Download prepared assets
         uses: actions/download-artifact@v8
@@ -326,7 +353,7 @@ jobs:
             exit 1
           fi
           gh release view "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" >/dev/null
-          gh release upload "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"
+          yarn tsx scripts/github-release-upload.ts "${{ needs.prepare.outputs.tag }}" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"
 
       - name: Create ordinary GitHub release draft
         if: ${{ inputs.release_mode != 'reuse-latest' }}
@@ -341,7 +368,8 @@ jobs:
           yarn tsx scripts/component-release.ts check-new
           options=(--draft --title "$TAG" --notes "" --latest=false --target "$RELEASE_REF")
           if [[ "$PRERELEASE" == "true" ]]; then options+=(--prerelease); fi
-          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" "${options[@]}" "${assets[@]}"
+          gh release create "$TAG" --repo "$GITHUB_REPOSITORY" "${options[@]}"
+          yarn tsx scripts/github-release-upload.ts "$TAG" --repo "$GITHUB_REPOSITORY" --clobber "${assets[@]}"
 
       - name: Publish complete S3 release
         run: >-

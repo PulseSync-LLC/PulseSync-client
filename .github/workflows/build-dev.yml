@@ -114,6 +114,17 @@ jobs:
               - '.github/workflows/build-manual.yml'
               - '.github/workflows/publish-component.yml'
 
+      - name: Set up Node.js for Corepack
+        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
         with:
@@ -124,7 +135,7 @@ jobs:
 
       - name: Install routing dependencies
         if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
-        run: yarn install --frozen-lockfile --ignore-scripts
+        run: yarn install --immutable --mode=skip-build
 
       - name: Classify common changes
         if: ${{ steps.filter.outputs.common == 'true' }}
@@ -164,6 +175,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -181,7 +201,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Compute dev version
         id: version
@@ -190,7 +210,7 @@ jobs:
         shell: bash
         run: |
           BASE_VERSION="$(node -p "require('./packages/desktop-core/package.json').version.split('-')[0]")"
-          DEV_VERSION="$(yarn -s tsx scripts/resolve-dev-version.ts --base-version "$BASE_VERSION" --repository "$GITHUB_REPOSITORY")"
+          DEV_VERSION="$(yarn exec tsx scripts/resolve-dev-version.ts --base-version "$BASE_VERSION" --repository "$GITHUB_REPOSITORY")"
           echo "build_version=$DEV_VERSION" >> "$GITHUB_OUTPUT"
           echo "Using BUILD_VERSION=$DEV_VERSION"
 
@@ -216,6 +236,15 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ github.sha }}
+
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
 
       - uses: actions/setup-node@v7
         with:
@@ -243,10 +272,10 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Check Sentry CLI
-        run: yarn -s sentry-cli --version
+        run: yarn exec sentry-cli --version
 
       - name: Build dev release
         run: yarn build:package --nativeModules --publish dev
@@ -366,6 +395,15 @@ jobs:
         with:
           ref: ${{ github.sha }}
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        uses: ./.github/actions/prepare-corepack
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -383,7 +421,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Download build artifacts
         uses: actions/download-artifact@v8
@@ -439,18 +477,28 @@ jobs:
           --version ${{ needs.version.outputs.build_version }}
           --legacy-update-bridge
 
-      - name: Create GitHub prerelease
+      - name: Prepare GitHub prerelease draft
         uses: softprops/action-gh-release@v3.0.3
         with:
           tag_name: ${{ needs.version.outputs.build_version }}
           target_commitish: ${{ github.sha }}
           name: ${{ needs.version.outputs.build_version }}
           prerelease: true
+          draft: true
           generate_release_notes: true
-          overwrite_files: true
-          fail_on_unmatched_files: true
-          files: |
-            github-release-assets/*
+
+      - name: Upload GitHub prerelease assets with retries
+        shell: bash
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.build_version }}
+        run: yarn tsx scripts/github-release-upload.ts "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --clobber github-release-assets/*
+
+      - name: Publish GitHub prerelease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ needs.version.outputs.build_version }}
+        run: gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false
 
   skip-build:
     needs: changes
