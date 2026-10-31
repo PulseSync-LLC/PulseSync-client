@@ -27,7 +27,8 @@ jobs:
           check-latest: true
 
       - name: Prepare Yarn with retries
-        uses: ./.github/actions/prepare-corepack
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
 
       - uses: actions/setup-node@v7
         with:
@@ -64,7 +65,8 @@ jobs:
           check-latest: true
 
       - name: Prepare Yarn with retries
-        uses: ./.github/actions/prepare-corepack
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
 
       - uses: actions/setup-node@v7
         with:
@@ -161,7 +163,8 @@ jobs:
           check-latest: true
 
       - name: Prepare Yarn with retries
-        uses: ./.github/actions/prepare-corepack
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
 
       - uses: actions/setup-node@v7
         with:
@@ -254,7 +257,8 @@ jobs:
           check-latest: true
 
       - name: Prepare Yarn with retries
-        uses: ./.github/actions/prepare-corepack
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
 
       - uses: actions/setup-node@v7
         with:
