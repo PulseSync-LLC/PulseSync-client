@@ -3808,22 +3808,22 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@tanstack/react-virtual@npm:^3.14.24":
-  version: 3.14.24
-  resolution: "@tanstack/react-virtual@npm:3.14.24"
+"@tanstack/react-virtual@npm:^3.14.25":
+  version: 3.14.25
+  resolution: "@tanstack/react-virtual@npm:3.14.25"
   dependencies:
-    "@tanstack/virtual-core": "npm:3.19.9"
+    "@tanstack/virtual-core": "npm:3.19.10"
   peerDependencies:
     react: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
     react-dom: ^16.8.0 || ^17.0.0 || ^18.0.0 || ^19.0.0
-  checksum: 10c0/eabb2eb43ff60ea365bebac3c85011c51ca15829382391cc5bb809c577760743360acd8826478bd671f1f70be8347e29251e658abe55c55497354044811dd618
+  checksum: 10c0/ca59d705325ca528ede3843bd4cbc1b313b6ec5efe58214fd6c645aa1e9a3839394117552c757b9362f31609616e8a1656b5ce57d99d1f661b41561dad6a16e5
   languageName: node
   linkType: hard
 
-"@tanstack/virtual-core@npm:3.19.9":
-  version: 3.19.9
-  resolution: "@tanstack/virtual-core@npm:3.19.9"
-  checksum: 10c0/874183b370f4d0ba072b9ea2716680bd523e569f6aac92e877f195a53ac7bf68b1198a8704a7fc7d3b6d5299694b2ff37e49c33b5b7a88ef75c1a18d3b31dc9b
+"@tanstack/virtual-core@npm:3.19.10":
+  version: 3.19.10
+  resolution: "@tanstack/virtual-core@npm:3.19.10"
+  checksum: 10c0/5b97a9aa44cba1fb04df3b0be3b06c5994e00e73bc2cf322a39fc1cc9314da8cf6a81e50b4280273fad8272ed6de0f0a7234ed66c5bdd91ae7a265d85bc0b8fa
   languageName: node
   linkType: hard
 
@@ -4508,7 +4508,7 @@ __metadata:
     "@rolldown/plugin-babel": "npm:^0.3.0"
     "@sentry/cli": "npm:3.8.2"
     "@sentry/electron": "npm:8.3.0"
-    "@tanstack/react-virtual": "npm:^3.14.24"
+    "@tanstack/react-virtual": "npm:^3.14.25"
     "@types/lodash.debounce": "npm:^4.0.9"
     "@types/node": "npm:^24.19.2"
     "@types/react": "npm:^19.3.0"
@@ -4539,7 +4539,7 @@ __metadata:
     graphql: "npm:^17.0.2"
     graphql-tag: "npm:^2.12.7"
     graphql-ws: "npm:^6.4.1"
-    i18next: "npm:^26.5.12"
+    i18next: "npm:^26.6.0"
     i18next-http-backend: "npm:^4.0.7"
     js-yaml: "npm:^5.5.0"
     lodash.debounce: "npm:^4.0.8"
@@ -4551,7 +4551,7 @@ __metadata:
     react-chartjs-2: "npm:^5.3.1"
     react-dom: "npm:^19.3.1"
     react-hot-toast: "npm:^2.6.1"
-    react-i18next: "npm:^17.1.9"
+    react-i18next: "npm:^17.1.10"
     react-icons: "npm:^5.7.0"
     react-is: "npm:19.3.1"
     react-markdown: "npm:^10.1.0"
@@ -7281,15 +7281,15 @@ __metadata:
   languageName: node
   linkType: hard
 
-"i18next@npm:^26.5.12":
-  version: 26.5.12
-  resolution: "i18next@npm:26.5.12"
+"i18next@npm:^26.6.0":
+  version: 26.6.0
+  resolution: "i18next@npm:26.6.0"
   peerDependencies:
     typescript: ^5 || ^6 || ^7
   peerDependenciesMeta:
     typescript:
       optional: true
-  checksum: 10c0/9723eeb9c938a35fa66c555841172de32a51a4216fa2ca3432747bba4bd1644d77301601a16f6f857b842c2b3354128f80dc3608b9059d1be7479b94193ae9b3
+  checksum: 10c0/865e3fe8a414436f8b8033a0ef5947a2233b043e78a770a0d66261e5f1dd7777c6cd89a101fc34215a328aa1d5876f768a9005da5495052ffaf6464aaa89c5d8
   languageName: node
   linkType: hard
 
@@ -9730,9 +9730,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"react-i18next@npm:^17.1.9":
-  version: 17.1.9
-  resolution: "react-i18next@npm:17.1.9"
+"react-i18next@npm:^17.1.10":
+  version: 17.1.10
+  resolution: "react-i18next@npm:17.1.10"
   dependencies:
     "@babel/runtime": "npm:^7.29.7"
     html-parse-stringify: "npm:^4.0.1"
@@ -9748,7 +9748,7 @@ __metadata:
       optional: true
     typescript:
       optional: true
-  checksum: 10c0/f3c263df1d152a6a757cd47895c86568fa36cd583ac659276afa9c5a97e6babd72e3197f22587862f7382de628428e39f757b6d67ad03ebbfd333296237d44d7
+  checksum: 10c0/8c03c2b27bf4d4861926d5629221e3c6b3e502213030c7667b1563ac6a67451ace96c3f52eddb44d7ff02db64a140d4d502d8113d4c364f485b946d2ba44ea0a
   languageName: node
   linkType: hard
 
