@@ -1,24 +1,25 @@
 import { ipcMain } from 'electron'
 
-import fs from 'original-fs'
-
 import MainEvents from '@common/types/mainEvents'
 import RendererEvents from '@common/types/rendererEvents'
 
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
-import { musicPath } from '../startup/runtimeState'
 import { getFfmpegMeta, getYtDlpMeta } from '../submodulesChecker'
-import { checkMusic, findAppByName, getInstalledYmMetadata, isLinux, isYandexMusicRunning, uninstallApp } from '../utils/appUtils'
+import {
+    findAppByName,
+    getInstalledYmMetadata,
+    isYandexMusicInstalled,
+    isYandexMusicRunning,
+    requestYandexMusicInstall,
+    uninstallApp,
+} from '../utils/appUtils'
 
 import type { SubcomponentsMeta } from '@common/types/subcomponentsMeta'
 import type { BrowserWindow } from 'electron'
 
 export const registerMusicStatusEvents = (): void => {
-    ipcMain.handle(MainEvents.GET_MUSIC_STATUS, async () => {
-        if (isLinux()) return true
-        else return fs.existsSync(musicPath)
-    })
+    ipcMain.handle(MainEvents.GET_MUSIC_STATUS, () => isYandexMusicInstalled())
 
     ipcMain.handle(MainEvents.GET_MUSIC_RUNNING_STATUS, async () => {
         return await isYandexMusicRunning()
@@ -29,8 +30,8 @@ export const registerMusicStatusEvents = (): void => {
         return metadata?.version
     })
 
-    ipcMain.on(MainEvents.CHECK_MUSIC_INSTALL, () => {
-        checkMusic()
+    ipcMain.on(MainEvents.REQUEST_MUSIC_INSTALL, () => {
+        requestYandexMusicInstall()
     })
 }
 

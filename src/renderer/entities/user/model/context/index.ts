@@ -17,7 +17,7 @@ const defaultUserContextValue: UserContextValue = {
     isAutonomousMode: true,
     authorize: noopAsync,
     loading: true,
-    musicInstalled: false,
+    musicInstalled: null,
     setMusicInstalled: () => void 0,
     musicVersion: null,
     setMusicVersion: () => void 0,

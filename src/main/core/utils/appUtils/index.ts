@@ -251,8 +251,10 @@ export const checkAsar = () => {
     }
 }
 
-export const checkMusic = () => {
-    if (isLinux() || fso.existsSync(musicPath) || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
+export const isYandexMusicInstalled = () => isLinux() || (Boolean(musicPath) && fso.existsSync(path.join(musicPath, 'app.asar')))
+
+export const requestYandexMusicInstall = () => {
+    if (isYandexMusicInstalled() || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
 
     yandexMusicInstallPromptOpen = true
     dialog
@@ -260,16 +262,14 @@ export const checkMusic = () => {
             type: 'info',
             title: t('main.appUtils.yandexNotInstalledTitle'),
             message: t('main.appUtils.yandexNotInstalledMessage'),
-            buttons: [t('main.common.start'), t('main.common.cancel')],
+            buttons: [t('main.appUtils.yandexInstallYes'), t('main.appUtils.yandexInstallNo')],
+            defaultId: 1,
             cancelId: 1,
         })
         .then(async result => {
-            if (result.response === 0) {
+            if (result.response === 0 && !isYandexMusicInstalled()) {
                 await downloadYandexMusic()
-                return
             }
-
-            app.quit()
         })
         .catch(error => {
             logger.main.error('Failed to show Yandex Music install prompt:', error)

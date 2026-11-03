@@ -100,7 +100,9 @@ export const desktopApi = {
         getStatus: () => requireDesktopApi().music.getStatus(),
         getRunningStatus: () => requireDesktopApi().music.getRunningStatus(),
         getVersion: () => requireDesktopApi().music.getVersion(),
-        checkInstall: () => requireDesktopApi().music.checkInstall(),
+        get requestInstall() {
+            return requireDesktopApi().music.requestInstall
+        },
         fixLinuxPermissions: () => requireDesktopApi().music.fixLinuxPermissions(),
         selectLinuxAsarPath: (defaultPath?: string) => requireDesktopApi().music.selectLinuxAsarPath(defaultPath),
         refreshModInfo: () => requireDesktopApi().music.refreshModInfo(),

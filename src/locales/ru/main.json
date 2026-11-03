@@ -25,6 +25,8 @@
             "updatingInfoPlistHash": "Обновляем хеш в Info.plist...",
             "windowsPatchError": "Ошибка Windows-патча: {{message}}",
             "windowsPatchSuccess": "Патч Windows выполнен успешно",
+            "yandexInstallNo": "Нет",
+            "yandexInstallYes": "Да",
             "yandexNotInstalledMessage": "Приложение Яндекс Музыка не найдено. Начать установку?",
             "yandexNotInstalledTitle": "Яндекс Музыка не установлена"
         },

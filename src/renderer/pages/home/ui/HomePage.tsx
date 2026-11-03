@@ -501,6 +501,7 @@ export default function HomePage() {
                             isModUpdatePrepared={Boolean(preparedModUpdate)}
                             isModUpdating={isModUpdating}
                             isMusicInstalled={Boolean((isAutonomousMode || musicInstalled) && musicVersion)}
+                            onInstallMusic={musicInstalled === false ? desktopApi.music.requestInstall : undefined}
                             onWhatsNewClick={handleWhatsNewClick}
                             onCheckUpdatesClick={handleCheckUpdatesClick}
                         />

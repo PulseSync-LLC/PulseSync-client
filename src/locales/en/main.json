@@ -25,6 +25,8 @@
             "updatingInfoPlistHash": "Updating Info.plist hash...",
             "windowsPatchError": "Windows patch error: {{message}}",
             "windowsPatchSuccess": "Windows patch completed successfully",
+            "yandexInstallNo": "No",
+            "yandexInstallYes": "Yes",
             "yandexNotInstalledMessage": "Yandex Music app not found. Start installation?",
             "yandexNotInstalledTitle": "Yandex Music is not installed"
         },

@@ -78,7 +78,7 @@ function App() {
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
-    const [musicInstalled, setMusicInstalled] = useState(false)
+    const [musicInstalled, setMusicInstalled] = useState<boolean | null>(null)
     const [musicVersion, setMusicVersion] = useState<string | null>(null)
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)

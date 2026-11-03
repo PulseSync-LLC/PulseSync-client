@@ -18,10 +18,10 @@ const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
 type Params = {
     app: SettingsInterface
     modInfo: ModInterface[]
-    musicInstalled: boolean
+    musicInstalled: boolean | null
     openModal: (modal: ModalName) => void
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
-    setMusicInstalled: React.Dispatch<React.SetStateAction<boolean>>
+    setMusicInstalled: React.Dispatch<React.SetStateAction<boolean | null>>
     setMusicVersion: React.Dispatch<React.SetStateAction<string | null>>
     t: (key: string, options?: any) => string
     modals: {
@@ -100,7 +100,7 @@ export function useLayoutInstallers({ app, modInfo, musicInstalled, openModal, s
     )
 
     useEffect(() => {
-        setIsModUpdateAvailable(musicInstalled && (!hasInstalledMod || isModReleaseUpdateAvailable(modInfo[0], app.mod)))
+        setIsModUpdateAvailable(Boolean(musicInstalled) && (!hasInstalledMod || isModReleaseUpdateAvailable(modInfo[0], app.mod)))
     }, [app.mod, hasInstalledMod, modInfo, musicInstalled])
 
     useEffect(() => {

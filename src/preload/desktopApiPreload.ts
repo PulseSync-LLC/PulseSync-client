@@ -337,7 +337,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         getVersion: () => ipcRenderer.invoke(MainEvents.GET_MUSIC_VERSION),
 
-        checkInstall: () => ipcRenderer.send(MainEvents.CHECK_MUSIC_INSTALL),
+        // Older renderers called this automatically on startup.
+        checkInstall: () => undefined,
+        requestInstall: () => ipcRenderer.send(MainEvents.REQUEST_MUSIC_INSTALL),
 
         fixLinuxPermissions: () => ipcRenderer.invoke(MainEvents.FIX_LINUX_MUSIC_PERMISSIONS),
 
