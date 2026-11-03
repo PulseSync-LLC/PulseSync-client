@@ -372,7 +372,7 @@ jobs:
       ${{
         always() &&
         needs.changes.result == 'success' &&
-        (needs.changes.outputs.renderer == 'true' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core == 'true' || needs.changes.outputs.bootstrapper == 'true') &&
+        (needs.changes.outputs.renderer == 'true' || needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core == 'true') &&
         (needs.changes.outputs.desktop != 'true' || needs.github_prerelease.result == 'success') &&
         (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.desktop_core != 'true' || needs.publish_desktop_core.result == 'success') &&
         (needs.changes.outputs.desktop == 'true' || needs.changes.outputs.bootstrapper != 'true' || needs.publish_bootstrapper.result == 'success')
