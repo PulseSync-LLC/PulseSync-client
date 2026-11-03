@@ -152,10 +152,27 @@ export function assertGlitchTipSourceMapConfig(): void {
     }
 }
 
+function normalizeSourceMapSources(directory: string): void {
+    for (const entry of fs.readdirSync(directory, { withFileTypes: true })) {
+        const entryPath = path.join(directory, entry.name)
+        if (entry.isDirectory()) {
+            normalizeSourceMapSources(entryPath)
+        } else if (entry.isFile() && path.extname(entry.name).toLowerCase() === '.map') {
+            const sourceMap = JSON.parse(fs.readFileSync(entryPath, 'utf8')) as { sourcesContent?: Array<string | null> }
+            if (!sourceMap.sourcesContent?.some(source => typeof source === 'string' && source.includes('\r'))) continue
+
+            // GlitchTip joins context lines with CRLF without stripping an existing CR.
+            sourceMap.sourcesContent = sourceMap.sourcesContent.map(source => (typeof source === 'string' ? source.replace(/\r\n?/gu, '\n') : source))
+            fs.writeFileSync(entryPath, JSON.stringify(sourceMap))
+        }
+    }
+}
+
 function prepareSourceMaps(
     sourceDirectory: string,
     targets: Array<{ destinationDirectory: string; include?: (relativePath: string) => boolean; name: string; required?: boolean }>,
 ): void {
+    normalizeSourceMapSources(sourceDirectory)
     runSentryCli(['sourcemaps', 'inject', sourceDirectory])
 
     for (const target of targets) {
