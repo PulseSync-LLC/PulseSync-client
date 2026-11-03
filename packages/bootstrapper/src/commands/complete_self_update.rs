@@ -243,7 +243,9 @@ fn complete_self_update_inner(args: &Args) -> Result<Value> {
         }));
     }
 
-    let launch_executable = if is_macos_bundle {
+    // Component-only macOS updates also launch from the external .app bundle.
+    // Transaction kind determines how to apply the update, not the host layout.
+    let launch_executable = if host_bundle.is_some() {
         explicit_app_executable
     } else {
         resolve_layout(
