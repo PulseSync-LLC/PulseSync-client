@@ -8,6 +8,12 @@ let queue: Promise<unknown> = Promise.resolve()
 const pendingDisableUsers = new Set<string>()
 const restoreAttempts = new Map<string, number>()
 let restoreToken = ''
+let lastSync: { userId: string; token: string; checkedAt: number; status?: CloudSettingsStatus } | undefined
+
+const LOCAL_CHANGE_INTERVAL = 15_000
+const RETRY_INTERVAL = 60_000
+const REMOTE_CHECK_INTERVAL = 5 * 60_000
+const DISABLED_CHECK_INTERVAL = 15 * 60_000
 
 const restoreCloudAddons = async (session: CloudSettingsSession, remote: CloudSettingsSnapshot, local: CloudSettingsLocalState) => {
     if (restoreToken !== session.token) {
@@ -50,11 +56,32 @@ export const synchronizeCloudSettings = (
         enabled === false ? sessionPromise.then(session => desktopApi.settings.setCloudPendingDelete(session, true)) : Promise.resolve()
     void markDeletion.catch(() => {})
     void sessionPromise.catch(() => {})
+    let attempt: typeof lastSync
 
     const run = async (): Promise<CloudSettingsStatus> => {
         const session = await sessionPromise
         await markDeletion
         let local = await desktopApi.settings.readCloudLocalState(session)
+        const previous = lastSync?.userId === userId && lastSync.token === session.token ? lastSync : undefined
+        if (enabled === undefined && previous) {
+            const status = previous.status
+            const localChanged = status?.enabled && local.baseline && stableCloudJson(local.snapshot) !== stableCloudJson(local.baseline)
+            const retrying = !status || status.offline || status.pendingDelete || status.addonRestoreFailed
+            const interval = retrying
+                ? RETRY_INTERVAL
+                : localChanged
+                  ? LOCAL_CHANGE_INTERVAL
+                  : status.enabled
+                    ? REMOTE_CHECK_INTERVAL
+                    : DISABLED_CHECK_INTERVAL
+            if (Date.now() - previous.checkedAt < interval) {
+                if (!status) throw new Error('CLOUD_SETTINGS_RETRY_DELAY')
+                const pendingDelete = local.pendingDelete || pendingDisableUsers.has(userId)
+                return { ...status, enabled: status.enabled && !pendingDelete, pendingDelete, addonsChanged: false }
+            }
+        }
+        attempt = { ...session, checkedAt: Date.now(), status: previous?.status }
+        lastSync = attempt
         let remote
         try {
             remote = await getCloudSettings(session.token, userId)
@@ -101,7 +128,22 @@ export const synchronizeCloudSettings = (
         return { enabled: remote.enabled && !pendingDelete, pendingDelete }
     }
 
-    const operation = queue.then(run)
+    const operation = queue.then(run).then(
+        status => {
+            if (attempt) {
+                attempt.checkedAt = Date.now()
+                attempt.status = status
+            }
+            return status
+        },
+        error => {
+            if (attempt) {
+                attempt.checkedAt = Date.now()
+                if (attempt.status) attempt.status = { ...attempt.status, offline: true, addonsChanged: false }
+            }
+            throw error
+        },
+    )
     queue = operation.catch(() => {})
     return operation
 }
