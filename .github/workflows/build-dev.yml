@@ -18,7 +18,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       bootstrapper: ${{ steps.filter.outputs.bootstrapper }}
-      desktop: ${{ steps.filter.outputs.desktop == 'true' || steps.common.outputs.desktop == 'true' || steps.dependencies.outputs.desktop == 'true' || ((steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true') && steps.filter.outputs.bootstrapper == 'true') }}
+      desktop: ${{ steps.filter.outputs.desktop == 'true' || steps.common.outputs.desktop == 'true' || steps.dependencies.outputs.desktop == 'true' || steps.core_package.outputs.desktop == 'true' || ((steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true') && steps.filter.outputs.bootstrapper == 'true') }}
       desktop_core: ${{ steps.filter.outputs.desktop_core == 'true' || steps.common.outputs.desktop_core == 'true' }}
       renderer: ${{ steps.filter.outputs.renderer == 'true' || steps.common.outputs.renderer == 'true' || steps.dependencies.outputs.renderer == 'true' }}
       retention: ${{ steps.filter.outputs.retention }}
@@ -61,7 +61,6 @@ jobs:
               - 'static/assets/icon/**'
               - 'icons/**'
               - 'nativeModules/**'
-              - 'packages/desktop-core/**'
               - 'scripts/!(@(s3-prune.ts|s3-retention.ts|s3-upload.ts))'
               - 'scripts/!(@(bootstrapper|renderer))/**/*'
               - 'scripts/bootstrapper/verify-*.ts'
@@ -86,6 +85,9 @@ jobs:
             desktop_core:
               - 'src/main/core/**'
               - 'src/preload/mainWindowPreload.ts'
+              - 'packages/desktop-core/**'
+            core_package:
+              - 'packages/desktop-core/package.json'
             common:
               - 'src/common/**'
             dependencies:
@@ -115,7 +117,7 @@ jobs:
               - '.github/workflows/publish-component.yml'
 
       - name: Set up Node.js for Corepack
-        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
+        if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' || steps.filter.outputs.core_package == 'true' }}
         uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -153,6 +155,13 @@ jobs:
           BEFORE_SHA: ${{ github.event.before }}
         run: node scripts/classify-dependency-changes.mjs
 
+      - name: Classify desktop core package changes
+        if: ${{ steps.filter.outputs.core_package == 'true' }}
+        id: core_package
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+        run: node scripts/classify-core-package-changes.mjs
+
       - name: Report changed build-related files
         shell: bash
         run: |
@@ -162,6 +171,7 @@ jobs:
           echo "renderer=${{ steps.filter.outputs.renderer }}"
           echo "dependencies_desktop=${{ steps.dependencies.outputs.desktop }}"
           echo "dependencies_renderer=${{ steps.dependencies.outputs.renderer }}"
+          echo "core_package_desktop=${{ steps.core_package.outputs.desktop }}"
           echo "retention=${{ steps.filter.outputs.retention }}"
 
   version:
