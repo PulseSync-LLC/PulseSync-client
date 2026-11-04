@@ -1,6 +1,6 @@
 {
     "browserDownload": {
-        "description": "PulseSync доступен только в приложении. Скачай клиент, чтобы продолжить.",
+        "description": "PulseSync доступен только в приложении. Скачайте клиент, чтобы продолжить.",
         "action": "Скачать PulseSync"
     },
     "common": {
@@ -21,7 +21,7 @@
         "done": "Готово",
         "doneTitle": "Готово",
         "downloadTitle": "Скачивание",
-        "downloading": "Скачивание...",
+        "downloading": "Скачивание…",
         "emDash": "—",
         "enable": "Включить",
         "enabled": "Включено",
@@ -32,15 +32,15 @@
         "fetchFailed": "Не удалось загрузить",
         "fileNotFound": "Файл не найден",
         "importTitle": "Импорт",
-        "importing": "Импортируется...",
+        "importing": "Импортируется…",
         "infoTitleShort": "Инфо",
         "linkLabel": "ссылка",
-        "loading": "Загрузка...",
+        "loading": "Загрузка…",
         "loadingTitle": "Загрузка",
         "more": "Еще",
         "networkTitle": "Сеть",
         "notAvailable": "Недоступно",
-        "oopsTitle": "Ой...",
+        "oopsTitle": "Ой…",
         "operationCancelled": "Операция отменена",
         "pingPongTitle": "Пинг-понг",
         "pleaseWait": "Ожидайте",
@@ -53,22 +53,22 @@
         "submit": "Отправить",
         "successTitle": "Успех",
         "successTitleShort": "Успех",
-        "takeBreakTitle": "Отдохни чуток :)",
+        "takeBreakTitle": "Сделайте перерыв :)",
         "thinkLater": "Установить позже",
         "tooManyAttempts": "Превышено количество попыток подключения.",
         "waitTitle": "Подождите",
         "warningTitleShort": "Предупреждение"
     },
     "auth": {
-        "accessQuestionTitle": "Может у тебя нет доступа?",
-        "appVersionDeprecatedMessage": "Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнется автоматически.",
+        "accessQuestionTitle": "Возможно, у вас нет доступа?",
+        "appVersionDeprecatedMessage": "Ошибка авторизации. Данная версия приложения устарела. Скачивание новой версии начнётся автоматически.",
         "appVersionDeprecatedTitle": "Данная версия приложения устарела",
         "authErrorTitle": "Ошибка авторизации 😡 {{title}}",
         "bannedMessage": "Вы забанены. По причине: {{reason}}.",
-        "checkUpdates": "Проверить обновления",
+        "checkUpdates": "Проверить обновлёния",
         "closeAfterSeconds": "Приложение закроется через 10 секунд",
         "consentPrefix": "Нажимая на “Авторизация”, вы соглашаетесь с",
-        "deprecatedRequiresUpdate": "Приложение устарело и требует обновления 😡😡😡",
+        "deprecatedRequiresUpdate": "Приложение устарело и требует обновлёния 😡😡😡",
         "deprecatedSoon": "Ваша версия приложения устарела 🤠 и скоро прекратит работу. Пожалуйста, обновите приложение.",
         "hardwareIdentityWarning": "Не удалось подтвердить HWID клиента. Некоторые функции могут быть ограничены.",
         "discordAuth": "Авторизация",
@@ -76,7 +76,7 @@
         "pendingAuth": "Ожидание авторизации",
         "pleaseLoginAgain": "Пожалуйста, войдите снова.",
         "readTermsError": "Ошибка чтения файла:",
-        "sessionExpired": "Ваша сессия истекла. Пожалуйста, войдите снова.",
+        "sessionExpired": "Срок вашей сессии истёк. Пожалуйста, войдите снова.",
         "sessionExpiredTitle": "Ошибка",
         "termsLink": "Соглашением об использовании программы",
         "title": "Авторизация",
@@ -89,8 +89,8 @@
     },
     "changes": {
         "saveChanges": "Сохранить изменения",
-        "saving": "Сохранение...",
-        "unsavedWarning": "Есть несохраненные изменения"
+        "saving": "Сохранение…",
+        "unsavedWarning": "Есть несохранённые изменения"
     },
     "colorInput": {
         "inputFormat": "Формат ввода"
@@ -140,7 +140,7 @@
         },
         "category": "Разделы",
         "searchEmpty": "Настройки не найдены",
-        "searchPlaceholder": "Найти настройку...",
+        "searchPlaceholder": "Найти настройку…",
         "sections": {
             "general": "Основные",
             "integrations": "Компоненты"
@@ -151,7 +151,7 @@
         },
         "subscription": "Подписка",
         "title": "Настройки",
-        "updateSource": "Источник обновлений",
+        "updateSource": "Источник обновлёний",
         "developer": {
             "category": "Для разработчиков",
             "componentsTitle": "Тестирование UI",
@@ -164,10 +164,10 @@
     },
     "contextMenu": {
         "boostyUrl": "Страница на Boosty",
-        "appDirectory": "Директория приложения",
+        "appDirectory": "Папка приложения",
         "appSettings": {
             "autoStartApp": "Автозапуск приложения",
-            "autoUpdateStoreAddons": "Автообновление аддонов из каталога",
+            "autoUpdateStoreAddons": "Автообновлёние аддонов из каталога",
             "deletePextAfterImport": "Удалять .pext после импорта темы",
             "hardwareAcceleration": "Аппаратное ускорение",
             "title": "Настройки приложения"
@@ -178,15 +178,15 @@
             "title": "Язык"
         },
         "misc": {
-            "checkUpdates": "Проверить обновления",
+            "checkUpdates": "Проверить обновлёния",
             "collectLogs": "Собрать логи в архив",
-            "logsReady": "Скоро открою папку",
+            "logsReady": "Папка скоро откроется",
             "showDevFrame": "Показывать рамку разработки",
             "title": "Система",
             "websocketStatus": "Статус вебсокета"
         },
         "mod": {
-            "checkUpdates": "Проверить обновления мода",
+            "checkUpdates": "Проверить обновлёния мода",
             "clearCache": "Очистить кеш мода",
             "experimentalBuild": "Экспериментальная сборка · v{{version}} · {{commit}}",
             "branchUnavailable": "Сборка ветки больше недоступна в GitHub Releases",
@@ -211,12 +211,12 @@
             "sourceGithub": "Источник: GitHub",
             "backend": "Сервер PulseSync",
             "github": "GitHub",
-            "channel": "Канал обновлений",
-            "checkAppUpdates": "Проверить обновления клиента",
-            "checkModUpdates": "Проверить обновления мода",
-            "sourceChanged": "Источник обновлений переключён на {{source}}.",
-            "sourceChangeError": "Не удалось переключить источник обновлений.",
-            "busy": "Переключение источника недоступно, пока обновление проверяется или скачивается."
+            "channel": "Канал обновлёний",
+            "checkAppUpdates": "Проверить обновлёния клиента",
+            "checkModUpdates": "Проверить обновлёния мода",
+            "sourceChanged": "Источник обновлёний переключён на {{source}}.",
+            "sourceChangeError": "Не удалось переключить источник обновлёний.",
+            "busy": "Переключение источника недоступно, пока обновлёние проверяется или скачивается."
         },
         "obsWidget": {
             "copyPath": "Скопировать путь до виджета",
@@ -245,9 +245,9 @@
     "contextMenuThemes": {
         "delete": "Удалить {{name}}",
         "deleteConfirm": "Вы уверены, что хотите удалить аддон \"{{name}}\"? Это действие нельзя будет отменить.",
-        "deleteError": "Ошибка при удалении темы \"{{name}}\"",
-        "deleteSuccess": "Тема \"{{name}}\" и связанные файлы удалены.",
-        "directory": "Директория аддона {{name}}",
+        "deleteError": "Ошибка при удалёнии темы \"{{name}}\"",
+        "deleteSuccess": "Тема \"{{name}}\" и связанные файлы удалёны.",
+        "directory": "Папка аддона {{name}}",
         "export": "Экспорт {{name}}",
         "exportSuccess": "Успешный экспорт"
     },
@@ -325,7 +325,7 @@
         "updatedLabel": "Обновлено",
         "updatedLabelWithTime": "Обновлено: {{time}}",
         "upload": {
-            "scanning": "Сканирование...",
+            "scanning": "Сканирование…",
             "steps": {
                 "manifests": "Создание .manifests",
                 "review": "Отправлено на рассмотрение",
@@ -337,10 +337,10 @@
     "errors": {
         "copiedToClipboard": "Содержание ошибки скопировано в буфер обмена",
         "copyFailed": "Произошла ошибка при попытке записи в буфер обмена",
-        "copyStackFailed": "Failed to copy stack trace:",
-        "noStackTrace": "No stack trace available",
-        "title": "Так, погоди-ка... Что-то здесь не так...",
-        "unknownError": "An unknown error occurred"
+        "copyStackFailed": "Не удалось скопировать трассировку ошибки:",
+        "noStackTrace": "Трассировка ошибки недоступна",
+        "title": "Что-то пошло не так",
+        "unknownError": "Произошла неизвестная ошибка"
     },
     "extensions": {
         "project": {
@@ -351,7 +351,7 @@
             "resetLinkHint": "Забыть папку проекта и выбор режима редактирования. Файлы останутся на месте.",
             "resetLinkError": "Не удалось сбросить привязку проекта.",
             "metadataPromptTitle": "Сохранить изменения в проекте?",
-            "metadataPromptDescription": "Метаданные WebHost-аддона создаются при сборке. Изменения только в установленной копии могут пропасть после пересборки или обновления.",
+            "metadataPromptDescription": "Метаданные WebHost-аддона создаются при сборке. Изменения только в установленной копии могут пропасть после пересборки или обновлёния.",
             "metadataPromptSource": "Откройте папку исходников, чтобы сохранить правки в проекте. Папку достаточно выбрать один раз — связанный проект откроется сразу.",
             "continueHere": "Продолжить здесь",
             "wrongAddon": "Выбран проект другого аддона. Укажите папку исходников этого аддона.",
@@ -382,7 +382,7 @@
                 "text": "Текст",
                 "empty": "Пока пусто"
             },
-            "discard": "Закрыть без сохранения",
+            "discard": "Закрыть без сохранёния",
             "changed": "Файл изменился вне редактора. Откройте проект заново, чтобы загрузить актуальную версию.",
             "openError": "Не удалось открыть проект. Выберите папку с addon.config.mjs и каталогом addon. Поддерживаются метаданные в addon.manifest.json или прямо в addon.config.mjs.",
             "unsupportedConfig": "Не удалось прочитать addon.config.mjs: для редактора нужен объект с готовыми значениями. Вынесите вычисляемые метаданные в addon.manifest.json."
@@ -396,7 +396,7 @@
         "addonCreatedTitle": "Шаблон аддона скачан",
         "createHandleEvents": "Создайте handleEvents.json",
         "disableAction": "Выключить",
-        "editModeEnter": "Режим редактирования включен",
+        "editModeEnter": "Режим редактирования включён",
         "editModeExit": "Режим редактирования выключен",
         "handleEventsMissing": "Файл handleEvents.json не найден",
         "initError": "Ошибка инициализации",
@@ -436,9 +436,9 @@
             "version": "Версия"
         },
         "relations": {
-            "autoDisabled": "Автоматически отключено: {{value}}",
+            "autoDisabled": "Автоматически отключёно: {{value}}",
             "autoDisabledDependents": "Отключены аддоны, зависящие от {{dependency}}: {{value}}",
-            "autoEnabled": "Автоматически включено: {{value}}",
+            "autoEnabled": "Автоматически включёно: {{value}}",
             "blockedByConflicts": "Мешают несовместимые аддоны: {{value}}",
             "blockedByDependencies": "Не хватает зависимостей: {{value}}",
             "disableBlockedByDependents": "Нельзя отключить: этот аддон нужен для {{value}}",
@@ -455,7 +455,7 @@
             "retry": "Повторить",
             "enableBlockedHintMissing": "Нужно установить: {{value}}",
             "enableBlockedMissing": "Нельзя включить аддон: не установлены обязательные зависимости: {{value}}",
-            "enableBlockedResolved": "Не удалось включить аддон {{name}}. Проверь зависимости и несовместимые аддоны.",
+            "enableBlockedResolved": "Не удалось включить аддон {{name}}. Проверьте зависимости и несовместимые аддоны.",
             "statusConflictActive": "сейчас конфликтует",
             "statusEnabled": "включён",
             "statusInstalled": "установлен",
@@ -492,9 +492,9 @@
             "detailsTitle": "Данные публикации",
             "changelogLabel": "Список изменений",
             "changelogPlaceholder": "- Исправил баг с плеером\n- Обновил стили карточек\n- Добавил новую настройку",
-            "changelogRequired": "Добавь список изменений перед публикацией.",
-            "githubUrlRequired": "Добавь ссылку на GitHub перед публикацией.",
-            "githubUrlInvalid": "Укажи корректную ссылку на GitHub.",
+            "changelogRequired": "Добавьте список изменений перед публикацией.",
+            "githubUrlRequired": "Добавьте ссылку на GitHub перед публикацией.",
+            "githubUrlInvalid": "Укажите корректную ссылку на GitHub.",
             "rulesAgreementPrefix": "Я ознакомился и согласен с",
             "rulesAgreementLink": "правилами публикации аддонов",
             "aiUsageLabel": "При разработке использовался ИИ",
@@ -504,31 +504,31 @@
             "cooldownMessage": "После отклонения аддон можно отправить снова только через 3 дня. Доступно {{date}}.",
             "publish": "Опубликовать",
             "update": "Обновить",
-            "uploading": "Отправляю...",
+            "uploading": "Отправка…",
             "successTitle": "Отправлено на проверку",
             "publishSuccess": "Аддон отправлен на модерацию.",
             "updateSuccess": "Обновление аддона отправлено на модерацию.",
             "errors": {
                 "PACKAGE_FAILED": "Не удалось подготовить архив аддона к отправке.",
-                "ADDON_PATH_NOT_FOUND": "Папка аддона не найдена. Проверь путь к аддону.",
+                "ADDON_PATH_NOT_FOUND": "Папка аддона не найдена. Проверьте путь к аддону.",
                 "ARCHIVE_FILE_TOO_LARGE": "Размер архива аддона превышает 100 МБ.",
-                "ARCHIVE_TOO_MANY_ENTRIES": "В архиве слишком много файлов и папок. Допускается не более 2048 записей. Оставь только необходимые файлы.",
-                "ARCHIVE_ENTRY_SIZE_INVALID": "В архиве указан некорректный размер файла. Собери архив заново.",
+                "ARCHIVE_TOO_MANY_ENTRIES": "В архиве слишком много файлов и папок. Допускается не более 2048 записей. Оставьте только необходимые файлы.",
+                "ARCHIVE_ENTRY_SIZE_INVALID": "В архиве указан некорректный размер файла. Соберите архив заново.",
                 "ARCHIVE_UNCOMPRESSED_TOO_LARGE": "Размер распакованного аддона превышает 100 МБ.",
                 "METADATA_PREVIEW_NOT_FOUND": "Превью, указанное в metadata.json, не найдено в архиве.",
-                "ADDON_SETTINGS_TOO_LARGE": "Настройки в metadata.json слишком большие. Уменьши их размер.",
+                "ADDON_SETTINGS_TOO_LARGE": "Настройки в metadata.json слишком большие. Уменьшите их размер.",
                 "ADDON_TYPE_INVALID": "В metadata.json указан неподдерживаемый тип аддона.",
                 "MODULE_SECURITY_METADATA_INVALID": "Для аддона с модулями нужны корректный id в metadata.json и файл скрипта.",
                 "MODULE_SCRIPT_ENCODING_INVALID": "Скрипт аддона с модулями должен использовать кодировку UTF-8.",
                 "MODULES_REQUIRE_WEB_ADDON": "Модули доступны только для WebHost-аддонов.",
                 "MODULE_REFERENCES_INVALID": "Список модулей в metadata.json некорректен. Допускается от 1 до 20 модулей.",
-                "MODULE_REFERENCE_INVALID": "Ссылка на модуль в metadata.json некорректна. Проверь идентификатор, версию API и канал или версию модуля.",
+                "MODULE_REFERENCE_INVALID": "Ссылка на модуль в metadata.json некорректна. Проверьте идентификатор, версию API и канал или версию модуля.",
                 "MODULE_FEATURE_UNAVAILABLE": "Публикация аддонов с модулями сейчас недоступна.",
-                "ADDON_MODERATION_ALREADY_PENDING": "Аддон уже ожидает модерации. Дождись решения перед повторной отправкой.",
+                "ADDON_MODERATION_ALREADY_PENDING": "Аддон уже ожидает модерации. Дождитесь решения перед повторной отправкой.",
                 "ADDON_DEVELOPER_VISIBILITY_FORBIDDEN": "Публикация только для разработчиков доступна пользователям с ролью DEVELOPER.",
                 "ADDON_REPUBLISH_COOLDOWN_ACTIVE": "После отклонения аддон можно отправить снова только через 3 дня.",
-                "S3_DELETE_FAILED": "Не удалось обновить файлы публикации. Попробуй позже.",
-                "S3_READ_FAILED": "Не удалось прочитать файлы публикации. Попробуй позже.",
+                "S3_DELETE_FAILED": "Не удалось обновить файлы публикации. Попробуйте позже.",
+                "S3_READ_FAILED": "Не удалось прочитать файлы публикации. Попробуйте позже.",
                 "ZIP_FILE_REQUIRED": "Архив аддона не был передан на сервер.",
                 "INVALID_ZIP_FILE": "Архив аддона повреждён или имеет неверный формат.",
                 "METADATA_JSON_MISSING": "В архиве отсутствует файл metadata.json.",
@@ -540,23 +540,23 @@
                 "SCRIPT_USES_FORBIDDEN_EVAL": "Скрипт не прошёл автоматическую проверку безопасности.",
                 "SCRIPT_ACCESSES_OAUTH_STORAGE": "Скрипт не прошёл автоматическую проверку безопасности.",
                 "IMAGE_CONVERT_FAILED": "Не удалось обработать изображения аддона.",
-                "ADDON_NAME_REQUIRED": "Укажи название аддона перед отправкой.",
-                "ADDON_DESCRIPTION_REQUIRED": "Укажи описание аддона перед отправкой.",
-                "ADDON_GITHUB_URL_REQUIRED": "Укажи ссылку на GitHub перед отправкой.",
-                "ADDON_GITHUB_URL_INVALID": "Укажи корректную ссылку на GitHub.",
+                "ADDON_NAME_REQUIRED": "Укажите название аддона перед отправкой.",
+                "ADDON_DESCRIPTION_REQUIRED": "Укажите описание аддона перед отправкой.",
+                "ADDON_GITHUB_URL_REQUIRED": "Укажите ссылку на GitHub перед отправкой.",
+                "ADDON_GITHUB_URL_INVALID": "Укажите корректную ссылку на GitHub.",
                 "ADDON_VERSION_INVALID": "Версия аддона должна быть в формате SemVer, например 1.0.0.",
-                "ADDON_AUTHORS_REQUIRED": "Укажи хотя бы одного автора аддона.",
+                "ADDON_AUTHORS_REQUIRED": "Укажите хотя бы одного автора аддона.",
                 "ADDON_NOT_FOUND": "Публикация аддона не найдена.",
                 "AUTHENTICATED_USER_ID_REQUIRED": "Не удалось определить текущего пользователя для публикации.",
-                "CDN_BUCKET_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
-                "CDN_DOMAIN_URL_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуй позже.",
-                "S3_UPLOAD_FAILED": "Не удалось отправить файлы аддона. Попробуй позже.",
+                "CDN_BUCKET_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуйте позже.",
+                "CDN_DOMAIN_URL_NOT_CONFIGURED": "Сервис публикации сейчас временно недоступен. Попробуйте позже.",
+                "S3_UPLOAD_FAILED": "Не удалось отправить файлы аддона. Попробуйте позже.",
                 "ADDON_UPLOAD_FAILED": "Не удалось отправить аддон на модерацию.",
                 "THEME_SCRIPT_NOT_ALLOWED": "Тема может содержать только CSS. Удалите поле script или смените type на web-addon.",
                 "WEB_ADDON_RUNTIME_INVALID": "Архив помечен как WebHost-аддон, но не содержит корректную регистрацию runtime. Соберите аддон через официальный шаблон.",
                 "ADDON_RELEASE_CHANNEL_INVALID": "Выберите канал Stable или Dev.",
                 "ADDON_VISIBILITY_INVALID": "Выберите, кому доступна эта версия аддона.",
-                "ADDON_VERSION_ALREADY_PUBLISHED": "Эта версия уже опубликована. Для обновления укажите новый номер версии.",
+                "ADDON_VERSION_ALREADY_PUBLISHED": "Эта версия уже опубликована. Для обновлёния укажите новый номер версии.",
                 "WEB_ADDON_ROOT_METADATA_REQUIRED": "Не удалось прочитать аддон. Файл metadata.json должен находиться в корне архива.",
                 "WEB_ADDON_ARCHIVE_PATH_INVALID": "Архив WebHost-аддона содержит недопустимые или повторяющиеся пути файлов. Соберите архив заново через официальный шаблон.",
                 "WEB_ADDON_API_VERSION_UNSUPPORTED": "Версия API аддона не поддерживается. Для публикации требуется WebHost API версии 1.",
@@ -564,7 +564,7 @@
                 "LEGACY_ADDON_PUBLICATION_DISABLED": "Сервер запретил публикацию legacy-аддона. Переведите его на WebHost runtime."
             },
             "publishError": "Не удалось опубликовать аддон.",
-            "updateError": "Не удалось отправить обновление аддона."
+            "updateError": "Не удалось отправить обновлёние аддона."
         },
         "untrustedLocal": {
             "title": "Непроверенный аддон",
@@ -575,32 +575,32 @@
         "legacyAddon": {
             "warningTitle": "Legacy-аддон",
             "warningDescription": "Для публикации новых версий требуется переход на WebHost.",
-            "warningAction": "Публикация и legacy-обновления отключены. Нажмите, чтобы открыть инструкцию по переходу на WebHost.",
+            "warningAction": "Публикация и legacy-обновлёния отключёны. Нажмите, чтобы открыть инструкцию по переходу на WebHost.",
             "migrationModalTitle": "Требуется переход на WebHost",
-            "migrationModalDescription": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost, чтобы продолжить публикацию.",
+            "migrationModalDescription": "Публикация и обновлёние legacy-аддонов отключёны. Переведите аддон на WebHost, чтобы продолжить публикацию.",
             "openNews": "Открыть новость",
-            "publicationBlocked": "Публикация и обновление legacy-аддонов отключены. Переведите аддон на WebHost runtime.",
+            "publicationBlocked": "Публикация и обновлёние legacy-аддонов отключёны. Переведите аддон на WebHost runtime.",
             "storeUpdateBlocked": "Этот legacy-аддон нельзя обновить, пока его автор не переведёт аддон на WebHost runtime. Открываем подробности."
         },
         "tabs": {
-            "changelog": "Патчноуты",
+            "changelog": "Список изменений",
             "description": "Описание",
             "license": "Лицензия",
-            "metadata": "Метадата",
+            "metadata": "Метаданные",
             "relations": "Совместимость",
             "settings": "Настройки"
         },
-        "storeUpdateAvailableTitle": "Доступно обновление аддона",
+        "storeUpdateAvailableTitle": "Доступно обновлёние аддона",
         "storeUpdateAvailableMessage": "Для {{name}} доступна версия {{version}}.",
         "storeUpdateComplete": "Аддон {{name}} обновлён.",
         "storeUpdateFailed": "Не удалось обновить аддон {{name}}.",
-        "storeUpdateUnavailable": "Это обновление пока недоступно.",
+        "storeUpdateUnavailable": "Это обновлёние пока недоступно.",
         "reloadFailed": "Ошибка перезагрузки",
         "reloadSuccess": "Успешно перезагружено",
         "reopenTheme": "Повторно открыть тему",
-        "scriptDisabled": "Скрипт отключен",
+        "scriptDisabled": "Скрипт отключён",
         "scriptDisabledMessage": "Скрипт {{name}} отключён.",
-        "scriptEnabled": "Скрипт включен",
+        "scriptEnabled": "Скрипт включён",
         "scriptEnabledMessage": "Скрипт {{name}} включён.",
         "themeActivated": "Тема активирована",
         "themeActivatedMessage": "Тема {{name}} активирована",
@@ -613,13 +613,13 @@
         "notFound": {
             "catalogLink": "Открыть каталог",
             "emptyDescription": "У вас пока нет установленных аддонов. Найдите подходящий в каталоге.",
-            "filteredDescription": "Возможно, расширение было удалено, отфильтровано или ещё не установлено.",
+            "filteredDescription": "Возможно, аддон был удалён, отфильтрован или ещё не установлен.",
             "titleEmpty": "Аддоны не найдены",
-            "titleFiltered": "Расширение не найдено"
+            "titleFiltered": "Аддон не найден"
         },
         "optionsLabel": "Опции",
         "pageTitle": "Аддоны",
-        "searchPlaceholder": "Поиск...",
+        "searchPlaceholder": "Поиск…",
         "supportedVersionsInfo": "Этот аддон работает на версиях Яндекс Музыки: {{supported}}.",
         "supportedVersionsUnknown": "неизвестно",
         "supportedVersionsWarning": "Этот аддон работает на версиях Яндекс Музыки: {{supported}}.\nВаша версия Яндекс Музыки ({{musicVersion}}) не входит в поддерживаемый диапазон ({{supported}}). Возможны ошибки или некорректная работа!",
@@ -654,11 +654,11 @@
     "header": {
         "accessDeniedTitle": "Доступ запрещён",
         "avatarUploadForbidden": "Загрузка аватара запрещена",
-        "avatarUploadRetry": "Ошибка при загрузке аватара, попробуй ещё раз",
+        "avatarUploadRetry": "Не удалось загрузить аватар. Попробуйте ещё раз",
         "avatarUploadSuccess": "Аватар успешно загружен!",
         "avatarUploadUnknownError": "Неизвестная ошибка при загрузке аватара",
         "bannerUploadForbidden": "Загрузка баннера запрещена",
-        "bannerUploadRetry": "Ошибка при загрузке баннера, попробуй ещё раз",
+        "bannerUploadRetry": "Не удалось загрузить баннер. Попробуйте ещё раз",
         "bannerUploadSuccess": "Баннер успешно загружен!",
         "bannerUploadUnknownError": "Неизвестная ошибка при загрузке баннера",
         "developmentBuild": "DEVELOPMENT BUILD #{{branch}}",
@@ -669,8 +669,8 @@
         "back": "Назад",
         "friends": "Друзья",
         "login": "Войти",
-        "latestModUpdatesTitle": "Последние обновления мода",
-        "latestUpdatesTitle": "Последние обновления",
+        "latestModUpdatesTitle": "Последние обновлёния мода",
+        "latestUpdatesTitle": "Последние обновлёния",
         "logout": "Выйти",
         "logoutMessage": "Успешный выход",
         "logoutTitle": "До встречи {{name}}",
@@ -681,7 +681,7 @@
             "title": "Уведомления",
             "unreadCount": "Непрочитанных: {{count}}",
             "markAllRead": "Прочитать все",
-            "loading": "Загружаю уведомления...",
+            "loading": "Загрузка уведомлений…",
             "loadMoreError": "Не удалось загрузить более ранние уведомления.",
             "retry": "Повторить",
             "empty": "Пока нет важных уведомлений",
@@ -697,14 +697,14 @@
             },
             "items": {
                 "addonPendingTitle": "Аддон отправлен на проверку",
-                "addonPendingBody": "{{name}} сейчас ожидает модерацию.",
+                "addonPendingBody": "{{name}} ожидает модерации.",
                 "addonAcceptedTitle": "Аддон принят",
                 "addonAcceptedBody": "{{name}} теперь доступен в каталоге.",
                 "addonRejectedTitle": "Аддон отклонён",
                 "addonRejectedBody": "{{name}} не прошёл модерацию.",
                 "unknownModuleName": "Модуль",
                 "modulePendingTitle": "Модуль отправлен на проверку",
-                "modulePendingBody": "Модуль «{{name}}» ожидает модерацию.",
+                "modulePendingBody": "Модуль «{{name}}» ожидает модерации.",
                 "moduleAcceptedTitle": "Модуль одобрен",
                 "moduleAcceptedBody": "Модуль «{{name}}» прошёл проверку. Теперь его можно опубликовать в канале.",
                 "moduleRejectedTitle": "Модуль отклонён",
@@ -715,7 +715,7 @@
                 "localizationApprovedTitle": "Предложение по локализации принято",
                 "localizationApprovedBody": "Изменения прошли проверку и уже опубликованы.",
                 "localizationRejectedTitle": "Предложение по локализации отклонено",
-                "localizationRejectedBody": "Открой уведомление, чтобы посмотреть детали ревью.",
+                "localizationRejectedBody": "Откройте уведомление, чтобы посмотреть подробности проверки.",
                 "giveawayStartedTitle": "Начался новый розыгрыш",
                 "giveawayStartedBody": "Розыгрыш «{{giveaway}}» уже идёт. Участвовать можно до {{date}}.",
                 "giveawayWonTitle": "Вы выиграли розыгрыш",
@@ -730,7 +730,7 @@
                 "subscriptionFallbackPlan": "Подписка PulseSync",
                 "subscriptionFallbackDate": "скоро",
                 "genericTitle": "Новое уведомление",
-                "genericBody": "Открой уведомление, чтобы посмотреть подробности."
+                "genericBody": "Откройте уведомление, чтобы посмотреть подробности."
             }
         },
         "subscription": {
@@ -765,20 +765,20 @@
             "remainingHours": "{{hours}} ч. {{minutes}} мин.",
             "remainingMinutes": "{{minutes}} мин.",
             "join": "Участвовать",
-            "joining": "Отправляю...",
+            "joining": "Отправка…",
             "entered": "Вы участвуете",
             "notStarted": "Скоро",
             "enteredTitle": "Заявка принята",
-            "enteredText": "Ты участвуешь в розыгрыше «{{title}}».",
+            "enteredText": "Вы участвуете в розыгрыше «{{title}}».",
             "enterErrorTitle": "Не удалось участвовать",
-            "enterErrorText": "Проверь подключение и попробуй еще раз."
+            "enterErrorText": "Проверьте подключение и попробуйте ещё раз."
         },
         "devOverrides": {
             "title": "Experiments",
             "description": "Локальные overrides применяются поверх серверной группы только на этом устройстве.",
             "warningTitle": "Осторожно",
             "warningBody": "Это экспериментальные функции. Они могут работать нестабильно и вызывать ошибки.",
-            "warningHint": "Меняй настройки только если понимаешь, за что они отвечают. Изменения сохраняются только на этом устройстве.",
+            "warningHint": "Меняйте настройки, только если понимаете, за что они отвечают. Изменения сохраняются только на этом устройстве.",
             "empty": "Пока нет доступных experiments.",
             "searchPlaceholder": "Поиск experiments",
             "searchEmpty": "По запросу ничего не найдено.",
@@ -793,7 +793,7 @@
             "metaLabel": "Meta (JSON)",
             "groupRollout": "{{percentage}}%",
             "groupDescriptionEmpty": "Без описания",
-            "groupRequired": "Укажи группу перед применением override",
+            "groupRequired": "Укажите группу перед применением override",
             "copyName": "Скопировать ключ",
             "copyNameSuccess": "Ключ скопирован",
             "copyNameError": "Не удалось скопировать ключ",
@@ -811,8 +811,8 @@
             "metaObjectError": "Meta должен быть JSON-объектом"
         },
         "updateChannel": {
-            "open": "Канал обновлений",
-            "title": "Канал обновлений",
+            "open": "Канал обновлёний",
+            "title": "Канал обновлёний",
             "buildChannel": "Сборка",
             "currentChannel": "Текущий",
             "overrideChannel": "Override",
@@ -822,12 +822,12 @@
             "optionBeta": "beta",
             "optionDev": "dev",
             "apply": "Применить",
-            "saving": "Сохраняю...",
+            "saving": "Сохранение…",
             "saved": "Переключено на {{channel}}.",
-            "loadError": "Не удалось загрузить настройки канала обновлений.",
-            "saveError": "Не удалось сохранить канал обновлений.",
-            "busy": "Переключение канала недоступно, пока обновление проверяется или скачивается.",
-            "downloadedHint": "Скачанное обновление будет сброшено, затем начнется проверка выбранного канала.",
+            "loadError": "Не удалось загрузить настройки канала обновлёний.",
+            "saveError": "Не удалось сохранить канал обновлёний.",
+            "busy": "Переключение канала недоступно, пока обновлёние проверяется или скачивается.",
+            "downloadedHint": "Скачанное обновлёние будет сброшено, затем начнётся проверка выбранного канала.",
             "switchDisabled": "Переход с dev на beta сейчас недоступен.",
             "nextChannel": "После применения: {{channel}}"
         },
@@ -839,11 +839,11 @@
     },
     "modals": {
         "appUpdate": {
-            "title": "Доступно обновление",
-            "description": "Применить обновление сейчас?",
+            "title": "Доступно обновлёние",
+            "description": "Применить обновлёние сейчас?",
             "buttons": {
                 "later": "Позже",
-                "install": "Применить обновление"
+                "install": "Применить обновлёние"
             }
         },
         "linuxAsarPath": {
@@ -869,8 +869,8 @@
                 "fixPermissions": "Исправить права"
             },
             "toasts": {
-                "successTitle": "Права обновлены",
-                "successDescription": "Повторите установку или удаление мода.",
+                "successTitle": "Права обновлёны",
+                "successDescription": "Повторите установку или удалёние мода.",
                 "errorTitle": "Не удалось обновить права",
                 "applyFailed": "Ошибка: {{message}}"
             }
@@ -878,37 +878,37 @@
         "macPermissions": {
             "title": "Требуются дополнительные права",
             "description": "На macOS для корректной работы патчера нужно выдать приложению разрешение App Management или Full disk access.",
-            "subText": "Кнопка «Открыть настройки» переведет вас сразу в нужный раздел системных настроек.",
+            "subText": "Кнопка «Открыть настройки» переведёт вас сразу в нужный раздел системных настроек.",
             "buttons": {
                 "cancel": "Отмена",
                 "openSettings": "Открыть настройки"
             }
         },
         "premiumPromo": {
-            "title": "Это премиум функция",
-            "description": "Вам нужно оформить подписку на Boosty, чтобы использовать эту функцию.\nУчтите что вам также нужно привязать один и тот же аккаунт Discord к вашим аккаунтам на Boosty и PulseSync.",
+            "title": "Это премиум-функция",
+            "description": "Для использования этой функции оформите подписку на Boosty.\nУчтите, что вам также нужно привязать один и тот же аккаунт Discord к вашим аккаунтам на Boosty и PulseSync.",
             "subscribe": "Подписаться",
             "ok": "Ясно"
         },
         "premiumUnlocked": {
             "title": "Премиум разблокирован",
-            "description": "Премиум функции теперь доступны в вашем аккаунте.\nСпасибо за поддержку!",
+            "description": "Премиум-функции теперь доступны в вашем аккаунте.\nСпасибо за поддержку!",
             "ok": "Отлично"
         },
         "yandexMusicUpdate": {
             "title": "Удаление Яндекс Музыки",
-            "description": "У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалено для корректной работы со всеми функциями.",
-            "subText": "Если вы согласны, приложение будет удалено. После этого вы сможете установить актуальную версию.",
+            "description": "У вас установлена устаревшая версия Яндекс Музыки из Microsoft Store. Это приложение будет удалёно для корректной работы со всеми функциями.",
+            "subText": "Если вы согласны, приложение будет удалёно. После этого вы сможете установить актуальную версию.",
             "buttons": {
                 "cancel": "Отмена",
                 "delete": "Удалить"
             },
             "toasts": {
-                "deletingTitle": "Удаление...",
-                "deletingDescription": "Удаляю Яндекс Музыку из Microsoft Store",
-                "deleteStartFailed": "Не удалось запустить удаление приложения",
+                "deletingTitle": "Удаление…",
+                "deletingDescription": "Удаление Яндекс Музыки из Microsoft Store",
+                "deleteStartFailed": "Не удалось запустить удалёние приложения",
                 "deleteFailed": "Не удалось удалить приложение",
-                "deleteSuccess": "Яндекс Музыка успешно удалена",
+                "deleteSuccess": "Яндекс Музыка успешно удалёна",
                 "successTitle": "Готово",
                 "errorTitle": "Ошибка"
             }
@@ -924,34 +924,34 @@
     "layout": {
         "downloadProgress": "Прогресс загрузки: {{progress}}%",
         "downloadProgressLabel": "Загрузка файлов мода",
-        "downloading": "Загружаю {{name}}...",
+        "downloading": "Загрузка {{name}}…",
         "errorOccurred": "Произошла ошибка",
         "errorWithMessage": "Ошибка: {{message}}",
         "installAction": "Установить",
         "installPreparedUpdateAction": "Установить",
-        "installUpdateTooltip": "Применить обновление",
+        "installUpdateTooltip": "Применить обновлёние",
         "authRequired": {
-            "description": "Этот раздел доступен только после входа в учётную запись. Сначала войди, потом открой его снова.",
-            "title": "Нужен вход в аккаунт"
+            "description": "Войдите в аккаунт и откройте этот раздел снова.",
+            "title": "Войдите в аккаунт"
         },
         "modInstallAlreadyRunning": "Установка уже запущена",
         "modInstallErrorTitle": "Ошибка установки мода",
         "modInstallErrorProxyHint": "Проверьте, что данные домены проксируются/добавлены в zapret:",
         "modInstallFailed": "Установка мода не удалась. Попробуйте ещё раз.",
         "modInstallInterrupted": "Загрузка была прервана. Проверьте соединение и попробуйте снова.",
-        "modInstallStart": "Начало установки мода...",
+        "modInstallStart": "Начало установки мода…",
         "modInstallSuccess": "Установка прошла успешно!",
         "modInstallTitle": "Установка мода",
-        "modInstallDescription": "Процесс займет около минуты",
-        "modInstallUpdateError": "Ошибка установки/обновления",
+        "modInstallDescription": "Процесс займёт около минуты",
+        "modInstallUpdateError": "Ошибка установки/обновлёния",
         "modNotInstalled": "Не установлен",
         "modUpdateAlreadyRunning": "Обновление уже запущено",
         "modUpdateFailed": "Не удалось обновить мод. Попробуйте ещё раз или проверьте соединение.",
-        "modUpdateLoadError": "Ошибка загрузки обновления",
-        "modUpdateInstalling": "Установка обновления мода...",
+        "modUpdateLoadError": "Ошибка загрузки обновлёния",
+        "modUpdateInstalling": "Установка обновлёния мода…",
         "modUpdateReadyDescription": "Версия {{version}} загружена и готова к установке.",
         "modUpdateReadyTitle": "Обновление мода готово",
-        "modUpdateStart": "Начало загрузки обновления...",
+        "modUpdateStart": "Начало загрузки обновлёния…",
         "modUpdateSuccess": "Обновление прошло успешно!",
         "modUpdateTitle": "Обновление мода",
         "nav": {
@@ -962,7 +962,7 @@
             "unavailableInAutonomous": "Недоступно в автономном режиме"
         },
         "noModInstallsAvailable": "Нет доступных модификаций для установки.",
-        "noModUpdatesAvailable": "Нет доступных обновлений для установки.",
+        "noModUpdatesAvailable": "Нет доступных обновлёний для установки.",
         "updateAction": "Обновить",
         "updatingAction": "Обновление…",
         "unknownError": "Неизвестная ошибка."
@@ -976,9 +976,9 @@
             "title": "Авторы",
             "searchPlaceholder": "Найти пользователя",
             "requiredPlaceholder": "Добавьте хотя бы одного автора",
-            "searchHint": "Начните вводить username или nickname.",
+            "searchHint": "Начните вводить имя пользователя или никнейм.",
             "noSearchResults": "Пользователи не найдены",
-            "loading": "Загрузка пользователей...",
+            "loading": "Загрузка пользователей…",
             "add": "Добавить",
             "added": "Добавлен",
             "minimumOneAuthor": "У аддона должен быть минимум один автор.",
@@ -1046,34 +1046,34 @@
             "scriptPath": "script.js или абсолютный путь",
             "selectOrEnterPath": "Выберите или укажите путь"
         },
-        "saveError": "Ошибка сохранения",
+        "saveError": "Ошибка сохранёния",
         "versionFormat": "Версия должна быть в формате X.Y.Z"
     },
     "mod": {
         "availableVersion": "Доступна версия {{version}}",
         "cacheClearError": "Не удалось очистить кеш: {{message}}",
         "cacheCleared": "Кеш мода успешно очищен",
-        "cacheClearing": "Очистка кеша мода...",
+        "cacheClearing": "Очистка кеша мода…",
         "notInstalledTitle": "Мод не установлен",
-        "removeError": "Ошибка удаления мода: {{message}}",
-        "removedSuccess": "Мод удален успешно",
-        "removing": "Удаление мода...",
+        "removeError": "Ошибка удалёния мода: {{message}}",
+        "removedSuccess": "Мод удалён успешно",
+        "removing": "Удаление мода…",
         "updateAvailableBody": "Доступна новая версия: {{version}}",
-        "updateAvailableTitle": "Доступно обновление"
+        "updateAvailableTitle": "Доступно обновлёние"
     },
     "obsWidget": {
         "downloadError": "Не удалось загрузить виджет: {{message}}",
-        "downloading": "Загрузка виджета OBS...",
+        "downloading": "Загрузка виджета OBS…",
         "installSuccess": "Виджет OBS успешно установлен",
         "pathCopied": "Путь скопирован в буфер обмена",
         "pathCopyError": "Не удалось скопировать путь",
         "pathFetchError": "Не удалось получить путь до виджета",
         "removeError": "Не удалось удалить виджет: {{message}}",
-        "removeSuccess": "Виджет OBS успешно удален",
-        "removing": "Удаление виджета OBS..."
+        "removeSuccess": "Виджет OBS успешно удалён",
+        "removing": "Удаление виджета OBS…"
     },
     "options": {
-        "addonsDirectory": "Директория аддонов",
+        "addonsDirectory": "Папка аддонов",
         "createAddon": "Создать аддон",
         "reloadAddons": "Перезагрузить аддоны"
     },
@@ -1089,10 +1089,10 @@
             "newsError": "Не удалось загрузить новости",
             "whatsNew": "Что нового?",
             "checkUpdatesAction": "Проверить",
-            "branchPickerLoading": "Загружаем ветки…",
+            "branchPickerLoading": "Загрузка веток…",
             "selectModBranch": "Выбрать ветку PulseSync Mod",
             "selectClientBranch": "Выбрать канал PulseSync Client",
-            "musicReleaseNotesTitle": "Последние обновления Яндекс Музыки",
+            "musicReleaseNotesTitle": "Последние обновлёния Яндекс Музыки",
             "musicReleaseNotesFallbackVersion": "По умолчанию",
             "installed": "Установлено",
             "notInstalled": "Не установлено",
@@ -1145,7 +1145,7 @@
             "following": "Подписан",
             "friends": "Друзья",
             "removeFriend": "Удалить из друзей",
-            "requestError": "Ошибка при запросе на добавление/удаление из друзей",
+            "requestError": "Ошибка при запросе на добавление/удалёние из друзей",
             "unfollow": "Отписаться"
         },
         "level": "Уровень {{level}}",
@@ -1167,7 +1167,7 @@
         "fetchError": "Произошла ошибка при получении пользователей!",
         "noResults": "Нет результатов",
         "pageTitle": "Пользователи",
-        "searchPlaceholder": "найти...",
+        "searchPlaceholder": "найти…",
         "sort": {
             "createdAt": "Дата регистрации",
             "lastOnline": "Последняя активность",
@@ -1182,11 +1182,11 @@
             "askSavePath": "Опция \"Спрашивать куда сохранять трек\" {{status}}",
             "autoStartApp": "Опция \"Автозапуск приложения\" {{status}}",
             "autoStartMusic": "Опция \"Автозапуск музыки\" {{status}}",
-            "autoUpdateStoreAddons": "Опция \"Автообновление аддонов из каталога\" {{status}}",
+            "autoUpdateStoreAddons": "Опция \"Автообновлёние аддонов из каталога\" {{status}}",
             "autoTray": "Опция \"Автозапуск в трее\" {{status}}",
             "openWindowOnManualLaunch": "Опция \"Открывать окно при ручном запуске\" {{status}}",
             "closeAppInTray": "Опция \"Закрытие приложения в трее\" {{status}}",
-            "deletePextAfterImport": "Включена функция удаления .pext после импорта темы",
+            "deletePextAfterImport": "Включена функция удалёния .pext после импорта темы",
             "saveAsMp3": "Опция \"Сохранять в формате mp3\" {{status}}",
             "saveWindowDimensions": "Опция \"Сохранять размер окна\" {{status}}",
             "saveWindowPosition": "Опция \"Сохранять положение окна\" {{status}}",
@@ -1206,7 +1206,7 @@
             "results": "Результаты",
             "openFilters": "Открыть фильтры",
             "searchSort": {
-                "latestRelease": "по дате обновления",
+                "latestRelease": "по дате обновлёния",
                 "name": "по названию",
                 "downloads": "по скачиваниям"
             },
@@ -1248,7 +1248,7 @@
             }
         },
         "pendingSectionTitle": "Аддоны на модерации",
-        "pendingSectionSubtitle": "Аддоны проходящие модерацию",
+        "pendingSectionSubtitle": "Аддоны, проходящие модерацию",
         "pendingEmpty": "По текущему запросу аддоны на модерации не найдены.",
         "installComplete": "Аддон {{title}} установлен.",
         "installFailed": "Не удалось установить аддон {{title}}.",
@@ -1293,17 +1293,17 @@
         }
     },
     "updates": {
-        "installingTitle": "Установка обновления",
-        "installError": "Не удалось установить обновление. Проверьте обновления и повторите попытку.",
-        "prepareError": "Не удалось подготовить обновление. Повторите проверку обновлений.",
-        "checkError": "Не удалось проверить обновления. Повторите попытку.",
-        "checkingTitle": "Проверка обновлений",
+        "installingTitle": "Установка обновлёния",
+        "installError": "Не удалось установить обновлёние. Проверьте обновлёния и повторите попытку.",
+        "prepareError": "Не удалось подготовить обновлёние. Повторите проверку обновлёний.",
+        "checkError": "Не удалось проверить обновлёния. Повторите попытку.",
+        "checkingTitle": "Проверка обновлёний",
         "downloadError": "Ошибка скачивания",
         "downloaded": "Обновление загружено",
         "downloadingLabel": "Загрузка",
-        "downloadingTitle": "Скачивание обновления",
+        "downloadingTitle": "Скачивание обновлёния",
         "preparingLabel": "Применяем патчи и подготавливаем файлы",
-        "preparingTitle": "Подготовка обновления",
+        "preparingTitle": "Подготовка обновлёния",
         "notFoundMessage": "У вас актуальная версия приложения",
         "notFoundTitle": "Обновлений не найдено",
         "mod": {
