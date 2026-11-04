@@ -8,22 +8,17 @@ import remarkBreaks from 'remark-breaks'
 import remarkGfm from 'remark-gfm'
 
 import { useModalContext } from '@app/providers/modal'
-import rendererHttpClient from '@shared/api/http/client'
 import {
-    invalidateSubscriptionGiveawaysSnapshot,
+    enterSubscriptionGiveaway,
     loadSubscriptionGiveawaysSnapshot,
     type SubscriptionGiveaway,
-} from '@shared/api/subscriptionGiveaways'
+} from '@entities/subscription/api/subscriptionGiveaways'
 import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 import toast from '@shared/ui/toast'
 
 import * as styles from '@widgets/modalContainer/modals/SubscriptionGiveawaysModal.module.scss'
 
 import type { Components } from 'react-markdown'
-
-type SubscriptionGiveawayEntryResponse = {
-    ok?: boolean
-}
 
 type GiveawayViewModel = {
     giveaway: SubscriptionGiveaway
@@ -124,21 +119,24 @@ const SubscriptionGiveawaysModal: React.FC = () => {
 
     const close = useCallback(() => closeModal(Modals.SUBSCRIPTION_GIVEAWAYS), [Modals.SUBSCRIPTION_GIVEAWAYS, closeModal])
 
-    const loadGiveaways = useCallback(async () => {
-        setLoading(true)
-        setError(null)
+    const loadGiveaways = useCallback(
+        async (force = false) => {
+            setLoading(true)
+            setError(null)
 
-        try {
-            const snapshot = await loadSubscriptionGiveawaysSnapshot({ force: true })
-            setGiveaways(snapshot.giveaways)
-            setEnteredIds(new Set(snapshot.enteredIds))
-        } catch (loadError) {
-            console.error('Failed to load subscription giveaways:', loadError)
-            setError(t('header.giveaways.loadError'))
-        } finally {
-            setLoading(false)
-        }
-    }, [t])
+            try {
+                const snapshot = await loadSubscriptionGiveawaysSnapshot({ force })
+                setGiveaways(snapshot.giveaways)
+                setEnteredIds(new Set(snapshot.enteredIds))
+            } catch (loadError) {
+                console.error('Failed to load subscription giveaways:', loadError)
+                setError(t('header.giveaways.loadError'))
+            } finally {
+                setLoading(false)
+            }
+        },
+        [t],
+    )
 
     useEffect(() => {
         if (isOpen) {
@@ -226,16 +224,7 @@ const SubscriptionGiveawaysModal: React.FC = () => {
             setJoiningId(giveaway.uuid)
 
             try {
-                const response = await rendererHttpClient.post<SubscriptionGiveawayEntryResponse>(
-                    `/subscription/giveaways/${encodeURIComponent(giveaway.uuid)}/enter`,
-                    { auth: true, body: {} },
-                )
-
-                if (!response.ok || !response.data?.ok) {
-                    throw new Error('Failed to enter subscription giveaway')
-                }
-
-                invalidateSubscriptionGiveawaysSnapshot()
+                await enterSubscriptionGiveaway(giveaway.uuid)
                 setEnteredIds(current => new Set(current).add(giveaway.uuid))
                 toast.custom('success', t('header.giveaways.enteredTitle'), t('header.giveaways.enteredText', { title: giveaway.title }))
             } catch (enterError) {
@@ -340,7 +329,7 @@ const SubscriptionGiveawaysModal: React.FC = () => {
                             type="button"
                             className={cn(styles.refreshButton, { [styles.refreshButtonLoading]: isLoading })}
                             disabled={isLoading}
-                            onClick={() => void loadGiveaways()}
+                            onClick={() => void loadGiveaways(true)}
                             aria-label={t('header.giveaways.refresh')}
                         >
                             <MdRefresh size={16} />
