@@ -94,6 +94,7 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.ref }}
+          fetch-depth: 0
 
       - name: Set up Node.js for Corepack
         uses: actions/setup-node@v7
@@ -121,6 +122,10 @@ jobs:
 
       - name: Install dependencies
         run: yarn install --immutable
+
+      - name: Require Desktop API version bump
+        if: ${{ inputs.component == 'desktopCore' }}
+        run: node scripts/verify-desktop-api-version.mjs
 
       - name: Set up Rust for bootstrapper validation
         if: ${{ inputs.component == 'bootstrapper' }}

@@ -261,8 +261,7 @@ export interface PulseSyncDesktopApi {
         getStatus(): Promise<boolean>
         getRunningStatus(): Promise<boolean>
         getVersion(): Promise<string | undefined>
-        checkInstall(): void
-        requestInstall?(): void
+        requestInstall(): void
         fixLinuxPermissions(): Promise<unknown>
         selectLinuxAsarPath(defaultPath?: string): Promise<DesktopSelectLinuxAsarPathResult>
         refreshModInfo(): void

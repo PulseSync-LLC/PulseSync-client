@@ -69,6 +69,12 @@ jobs:
           HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
         run: node scripts/verify-runtime-versions.mjs
 
+      - name: Require Desktop API version bump
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: node scripts/verify-desktop-api-version.mjs
+
       - name: Typecheck desktop
         run: yarn typecheck
 
