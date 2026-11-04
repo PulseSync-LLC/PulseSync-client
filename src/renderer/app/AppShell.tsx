@@ -72,12 +72,13 @@ function App() {
     const [app, setApp] = useState<SettingsInterface>(settingsInitials)
     const [modInfo, setMod] = useState<ModInterface[]>(modInitials)
     const [preparedModUpdate, setPreparedModUpdate] = useState<DesktopInstallModRequest | null>(null)
+    const [isModUpdating, setIsModUpdating] = useState(false)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
     const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
-    const [musicInstalled, setMusicInstalled] = useState(false)
+    const [musicInstalled, setMusicInstalled] = useState<boolean | null>(null)
     const [musicVersion, setMusicVersion] = useState<string | null>(null)
     const [modInfoFetched, setModInfoFetched] = useState(false)
     const [widgetInstalled, setWidgetInstalled] = useState(false)
@@ -493,6 +494,7 @@ function App() {
         setNavigateState,
         setNavigateTo,
         setPreparedModUpdate,
+        setIsModUpdating,
         setTokenReady,
         setUpdate,
         t,
@@ -541,6 +543,7 @@ function App() {
                 addons={addons}
                 setMod={setMod}
                 modInfo={modInfo}
+                isModUpdating={isModUpdating}
                 modInfoFetched={modInfoFetched}
                 preparedModUpdate={preparedModUpdate}
                 allAchievements={allAchievements}

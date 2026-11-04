@@ -12,12 +12,13 @@ import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGate
 const noopAsync = async (): Promise<void> => {}
 
 const defaultUserContextValue: UserContextValue = {
+    cloudSettings: { enabled: false, pendingDelete: false, available: false, busy: false, error: false, setEnabled: noopAsync },
     user: userInitials,
     setUser: () => void 0,
     isAutonomousMode: true,
     authorize: noopAsync,
     loading: true,
-    musicInstalled: false,
+    musicInstalled: null,
     setMusicInstalled: () => void 0,
     musicVersion: null,
     setMusicVersion: () => void 0,
@@ -37,6 +38,7 @@ const defaultUserContextValue: UserContextValue = {
     modInfo: modInitials,
     modInfoFetched: false,
     preparedModUpdate: null,
+    isModUpdating: false,
     setMod: () => void 0,
     allAchievements: [],
     setAllAchievements: () => void 0,

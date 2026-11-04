@@ -11,19 +11,22 @@
             "localAppDataMissing": "LOCALAPPDATA не задан",
             "macPatchError": "Ошибка macOS-патча: {{message}}",
             "macPatchSuccess": "Патч macOS выполнен успешно",
+            "musicCloseTimeout": "Не удалось закрыть Яндекс Музыку. Закройте её вручную и повторите установку",
             "noWriteAccess": "Нет прав на запись app.asar",
             "patchSupportedPlatforms": "Патч доступен только на Windows и macOS",
             "permissionsRequiredMessage": "Предоставьте доступ к записи для патча ASAR и повторите",
             "permissionsRequiredTitle": "Требуются права",
             "rcdataJsonNotFound": "RCDATA JSON запись не найдена",
             "reSigningApp": "Переподписываем приложение…",
-            "readingExe": "Чтение EXE...",
+            "readingExe": "Чтение EXE…",
             "resourcesAsarNotFound": "Запись resources\\app.asar не найдена",
             "sipEnabled": "SIP включён — отключите его и повторите",
             "updateIntegrityError": "Ошибка в updateIntegrityHashInExe:",
-            "updatingInfoPlistHash": "Обновляем хеш в Info.plist...",
+            "updatingInfoPlistHash": "Обновляем хеш в Info.plist…",
             "windowsPatchError": "Ошибка Windows-патча: {{message}}",
             "windowsPatchSuccess": "Патч Windows выполнен успешно",
+            "yandexInstallNo": "Нет",
+            "yandexInstallYes": "Да",
             "yandexNotInstalledMessage": "Приложение Яндекс Музыка не найдено. Начать установку?",
             "yandexNotInstalledTitle": "Яндекс Музыка не установлена"
         },
@@ -46,10 +49,10 @@
             "connectError": "Ошибка подключения к Discord RPC",
             "connected": "Успешное подключение",
             "connectionClosed": "Закрытие соединения",
-            "disconnectError": "Ошибка отключения клиента",
+            "disconnectError": "Ошибка отключёния клиента",
             "disconnected": "Отключение RPC",
             "genericConnectError": "Ошибка подключения",
-            "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключен",
+            "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключён",
             "stateRetry": "{{state}} Следующая попытка через несколько секунд",
             "states": {
                 "administrator": "Похоже, Discord запущен с правами администратора. Запустите PulseSync с правами администратора",
@@ -57,7 +60,7 @@
                 "snap": "Похоже, Discord запущен из пакета Snap. Это, скорее всего, помешает приложению подключиться к RPC",
                 "success": ""
             },
-            "timeoutFallback": "Тайм-аут подключения. Переключаюсь на резервный App ID.",
+            "timeoutFallback": "Тайм-аут подключения. Переключение на резервный App ID.",
             "timeoutRateLimit": "Тайм-аут подключения. Возможны рейт-лимиты от Discord. Если не показывается активность, то попробуйте снова через 10–15 минут."
         },
         "events": {
@@ -80,11 +83,11 @@
             "rendererError": "Ошибка рендера",
             "yandexNotFound": "Приложение Яндекс Музыка не найдено",
             "yandexNotFoundMessage": "Приложение Яндекс Музыка не найдено",
-            "yandexUninstallError": "Ошибка при удалении приложения",
+            "yandexUninstallError": "Ошибка при удалёнии приложения",
             "yandexUninstallFailedWithReason": "Не удалось удалить приложение: {{message}}",
-            "yandexUninstallStart": "Начинаю удаление Яндекс Музыки...",
-            "yandexUninstallSuccess": "Яндекс Музыка удалена",
-            "yandexUninstallSuccessMessage": "Яндекс Музыка удалена"
+            "yandexUninstallStart": "Удаление Яндекс Музыки…",
+            "yandexUninstallSuccess": "Яндекс Музыка удалёна",
+            "yandexUninstallSuccessMessage": "Яндекс Музыка удалёна"
         },
         "handleErrors": {
             "internalError": "Ошибка внутри ErrorService.handleError:",
@@ -101,7 +104,7 @@
             "asarNotFound": "{{name}} не найден. Пожалуйста, переустановите Яндекс Музыку.",
             "pickAsarMessage": "Куда сохранить модификацию ASAR для Яндекс Музыки?",
             "pickAsarTitle": "Укажите путь к модификации ASAR",
-            "saveAsTitle": "Сохранить модификацию ASAR как..."
+            "saveAsTitle": "Сохранить модификацию ASAR как…"
         },
         "modManager": {
             "fullDiskAccessRequired": "Пожалуйста, предоставьте приложению полный доступ к диску.",
@@ -122,9 +125,9 @@
             "downloadError": "Ошибка при скачивании виджета",
             "downloadUnknownError": "Неизвестная ошибка при скачивании виджета",
             "installSuccess": "Виджет OBS успешно установлен",
-            "removeError": "Ошибка при удалении виджета",
-            "removeSuccess": "Виджет OBS успешно удален",
-            "removeUnknownError": "Неизвестная ошибка при удалении виджета"
+            "removeError": "Ошибка при удалёнии виджета",
+            "removeSuccess": "Виджет OBS успешно удалён",
+            "removeUnknownError": "Неизвестная ошибка при удалёнии виджета"
         },
         "process": {
             "updateCompleteBody": "Посмотреть список изменений можно в приложении",
@@ -161,13 +164,13 @@
                 "name": "Название мода",
                 "realMusicVersion": "Реальная версия музыки",
                 "unpackedChecksum": "Контрольная сумма зависимостей мода",
-                "updated": "Флаг, указывающий, обновлен ли мод до последней версии",
+                "updated": "Флаг, указывающий, обновлён ли мод до последней версии",
                 "version": "Версия мода"
             },
             "settings": {
-                "askSavePath": "Спрашивать путь для сохранения при выгрузке/экспорте",
+                "askSavePath": "Спрашивать путь для сохранёния при выгрузке/экспорте",
                 "autoStartApp": "Автоматически запускать приложение при загрузке системы",
-                "autoStartInTray": "Запускать приложение свернутым в трей при старте системы",
+                "autoStartInTray": "Запускать приложение свёрнутым в трей при старте системы",
                 "openWindowOnManualLaunch": "Показывать окно при ручном запуске приложения",
                 "autoStartMusic": "Автоматически запускать воспроизведение музыки при старте приложения",
                 "closeAppInTray": "При закрытии окна сворачивать приложение в трей, а не выходить полностью",
@@ -207,17 +210,17 @@
         },
         "tray": {
             "open": "Открыть",
-            "addonsDirectory": "Директория аддонов",
-            "checkUpdates": "Проверить обновления",
+            "addonsDirectory": "Папка аддонов",
+            "checkUpdates": "Проверить обновлёния",
             "close": "Закрыть",
             "discordRpc": "Discord RPC",
-            "openDiscord": "Перейти в дискорд PulseSync"
+            "openDiscord": "Перейти в Discord PulseSync"
         },
         "updater": {
             "appFilesCorrupted": "Файлы приложения повреждены. Переустановите приложение.",
             "noUpdatesFound": "Обновлений не найдено",
             "updateReadyBody": "PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения",
-            "updateReadyTitle": "Новое обновление готово к установке"
+            "updateReadyTitle": "Новое обновлёние готово к установке"
         }
     }
 }

@@ -100,7 +100,21 @@ pub fn inspect_process_with_retry(
 }
 
 pub fn process_identity_is_live(identity: &ProcessIdentity) -> Result<bool> {
-    let Some(current) = inspect_process(identity.pid, &identity.executable)? else {
+    let inspected = inspect_process(identity.pid, &identity.executable);
+    #[cfg(windows)]
+    if let Err(error) = &inspected
+        && error
+            .downcast_ref::<IoOperationError>()
+            .is_some_and(|error| {
+                let diagnostic = error.diagnostic();
+                diagnostic["operation"] == "OpenProcess" && diagnostic["osCode"] == 5
+            })
+    {
+        // The saved PID and creation time identify the already verified process.
+        // A native process snapshot can verify both without opening its handle.
+        return snapshot_process_start_is_live(identity.pid, &identity.process_start_id);
+    }
+    let Some(current) = inspected? else {
         return Ok(false);
     };
     Ok(current.process_start_id == identity.process_start_id
@@ -109,6 +123,99 @@ pub fn process_identity_is_live(identity: &ProcessIdentity) -> Result<bool> {
 
 pub fn process_start_is_live(pid: u32, process_start_id: &str) -> Result<bool> {
     process_start_is_live_platform(pid, process_start_id)
+}
+
+#[cfg(windows)]
+fn snapshot_process_start_is_live(pid: u32, process_start_id: &str) -> Result<bool> {
+    use windows_sys::Win32::System::{
+        LibraryLoader::{GetModuleHandleW, GetProcAddress},
+        WindowsProgramming::SYSTEM_PROCESS_INFORMATION,
+    };
+
+    type QuerySystemInformation =
+        unsafe extern "system" fn(i32, *mut std::ffi::c_void, u32, *mut u32) -> i32;
+    const SYSTEM_PROCESS_INFORMATION_CLASS: i32 = 5;
+    const STATUS_INFO_LENGTH_MISMATCH: i32 = 0xc0000004_u32 as i32;
+    const MAX_SNAPSHOT_BYTES: usize = 64 * 1024 * 1024;
+
+    let expected_start = process_start_id.parse::<u64>()?;
+    let module_name: Vec<u16> = "ntdll.dll\0".encode_utf16().collect();
+    let module = unsafe { GetModuleHandleW(module_name.as_ptr()) };
+    if module.is_null() {
+        return Err(IoOperationError::process(
+            "GetModuleHandleW(ntdll)",
+            pid,
+            std::io::Error::last_os_error(),
+        )
+        .into());
+    }
+    let address = unsafe { GetProcAddress(module, c"NtQuerySystemInformation".as_ptr().cast()) }
+        .ok_or("NtQuerySystemInformation is unavailable")?;
+    // Resolve dynamically as required by the Windows native API contract.
+    let query: QuerySystemInformation = unsafe { std::mem::transmute(address) };
+    let mut capacity = 256 * 1024;
+    for _ in 0..8 {
+        let mut buffer = vec![0_u8; capacity];
+        let mut returned = 0_u32;
+        let status = unsafe {
+            query(
+                SYSTEM_PROCESS_INFORMATION_CLASS,
+                buffer.as_mut_ptr().cast(),
+                buffer.len() as u32,
+                &mut returned,
+            )
+        };
+        if status == STATUS_INFO_LENGTH_MISMATCH {
+            capacity = (returned as usize).max(capacity * 2);
+            if capacity > MAX_SNAPSHOT_BYTES {
+                break;
+            }
+            continue;
+        }
+        if status < 0 {
+            return Err(format!("NtQuerySystemInformation pid={pid}: NTSTATUS {status:#x}").into());
+        }
+        let length = returned as usize;
+        if length == 0 || length > buffer.len() {
+            return Err("invalid native process snapshot length".into());
+        }
+        let mut offset = 0_usize;
+        loop {
+            let size = std::mem::size_of::<SYSTEM_PROCESS_INFORMATION>();
+            if offset.checked_add(size).is_none_or(|end| end > length) {
+                return Err("truncated native process snapshot".into());
+            }
+            // read_unaligned avoids relying on Vec<u8>'s allocation alignment.
+            let entry = unsafe {
+                buffer
+                    .as_ptr()
+                    .add(offset)
+                    .cast::<SYSTEM_PROCESS_INFORMATION>()
+                    .read_unaligned()
+            };
+            if entry.UniqueProcessId as usize == pid as usize {
+                // NT6+ CreateTime is the fourth 64-bit value in Reserved1,
+                // in the same 100ns/1601 epoch as GetProcessTimes FILETIME.
+                // https://learn.microsoft.com/en-us/openspecs/windows_protocols/ms-tsts/66ef46a7-504f-4696-9613-0bd8446ee225
+                let creation = u64::from_le_bytes(entry.Reserved1[24..32].try_into()?);
+                if creation == 0 {
+                    return Err("native process snapshot has no creation time".into());
+                }
+                return Ok(creation == expected_start);
+            }
+            let next = entry.NextEntryOffset as usize;
+            if next == 0 {
+                return Ok(false);
+            }
+            if next < size {
+                return Err("invalid native process snapshot offset".into());
+            }
+            offset = offset
+                .checked_add(next)
+                .ok_or("native process snapshot offset overflow")?;
+        }
+    }
+    Err("native process snapshot kept growing during verification".into())
 }
 
 #[cfg(windows)]
@@ -125,6 +232,7 @@ fn process_start_is_live_platform(pid: u32, process_start_id: &str) -> Result<bo
         let error = std::io::Error::last_os_error();
         return match error.raw_os_error() {
             Some(87) | Some(1168) => Ok(false),
+            Some(5) => snapshot_process_start_is_live(pid, process_start_id),
             _ => Err(IoOperationError::process("OpenProcess", pid, error).into()),
         };
     }

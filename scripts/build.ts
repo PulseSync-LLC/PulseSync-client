@@ -16,7 +16,7 @@ import { promisify } from 'util'
 import { build as viteBuild } from 'vite'
 
 import { buildBootstrapperExecutable, buildUniversalMacBootstrapperExecutable, copyBootstrapperToInstallRoot } from './bootstrapper/build.js'
-import { publishChangelogToApi, publishPatchNotesToDiscord } from './changelog-publish.js'
+import { publishChangelogToApi } from './changelog-publish.js'
 import { prepareCodeSigning, signMacBundle, signRuntimeBinaries } from './code-signing.js'
 import { componentContainerName, readRuntimeComponentMetadata } from './component-layout.js'
 import {
@@ -1046,9 +1046,8 @@ function normalizeVersionedRuntimeModules(outDir: string): void {
 }
 
 async function main(): Promise<void> {
-    if (sendPatchNotesFlag && !buildApplication) {
-        await publishPatchNotesToDiscord()
-        return
+    if (sendPatchNotesFlag) {
+        throw new Error('Create a patch note on the website to publish it through PulseSync-bot')
     }
     ensureNodeHeapForMac()
     if (buildApplication || buildOnlyInstaller) prepareCodeSigning()

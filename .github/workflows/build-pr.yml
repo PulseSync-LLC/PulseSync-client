@@ -30,6 +30,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -57,7 +67,7 @@ jobs:
           fi
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Build (package)
         run: yarn build:package --nativeModules
@@ -85,6 +95,16 @@ jobs:
     steps:
       - uses: actions/checkout@v7
 
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
+
       - uses: actions/setup-node@v7
         with:
           node-version: 24
@@ -93,7 +113,7 @@ jobs:
           cache-dependency-path: '**/yarn.lock'
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
 
       - name: Build remote renderer
         run: yarn renderer:build --channel dev --build-number "${{ github.run_id }}" --out-dir out/remote-renderer-pr

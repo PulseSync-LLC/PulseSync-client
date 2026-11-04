@@ -12,6 +12,7 @@ type AddonMetadataRecord = {
     installSource?: 'local' | 'store'
     name?: string
     storeAddonId?: string
+    storeReleaseChannel?: 'stable' | 'dev'
     type?: string
 }
 
@@ -42,6 +43,7 @@ export const listAddonMetadata = (): AddonMetadataRecord[] => {
                     installSource: readText(parsed.installSource) === 'store' ? 'store' : 'local',
                     name: readText(parsed.name),
                     storeAddonId: readText(parsed.storeAddonId),
+                    storeReleaseChannel: parsed.storeReleaseChannel === 'dev' ? 'dev' : 'stable',
                     type: readText(parsed.type),
                 }
             } catch {

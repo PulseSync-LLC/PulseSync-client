@@ -5,6 +5,7 @@ import * as path from 'path'
 import { DESKTOP_CORE_VERSION } from '@common/desktopRuntime/version'
 
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
+import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import { CACHE_DIR } from '../constants/paths'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
@@ -55,6 +56,7 @@ export async function closeMusicIfRunning(_window: BrowserWindow | null | undefi
         }
         if (await isYandexMusicRunning()) {
             logger.modManager.warn('Yandex Music is still running after close timeout')
+            throw new Error(t('main.appUtils.musicCloseTimeout'))
         }
         return true
     }

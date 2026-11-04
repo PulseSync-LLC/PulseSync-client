@@ -11,19 +11,22 @@
             "localAppDataMissing": "LOCALAPPDATA is not set",
             "macPatchError": "macOS patch error: {{message}}",
             "macPatchSuccess": "macOS patch completed successfully",
+            "musicCloseTimeout": "Could not close Yandex Music. Close it manually and try installing again",
             "noWriteAccess": "No write access to app.asar",
             "patchSupportedPlatforms": "Patch is supported only on Windows and macOS",
             "permissionsRequiredMessage": "Grant write access to patch ASAR and try again.",
             "permissionsRequiredTitle": "Permissions required",
             "rcdataJsonNotFound": "RCDATA JSON entry not found",
             "reSigningApp": "Re-signing the app…",
-            "readingExe": "Reading EXE...",
+            "readingExe": "Reading EXE…",
             "resourcesAsarNotFound": "resources\\app.asar entry not found",
             "sipEnabled": "SIP is enabled — disable it and try again",
             "updateIntegrityError": "Error in updateIntegrityHashInExe:",
-            "updatingInfoPlistHash": "Updating Info.plist hash...",
+            "updatingInfoPlistHash": "Updating Info.plist hash…",
             "windowsPatchError": "Windows patch error: {{message}}",
             "windowsPatchSuccess": "Windows patch completed successfully",
+            "yandexInstallNo": "No",
+            "yandexInstallYes": "Yes",
             "yandexNotInstalledMessage": "Yandex Music app not found. Start installation?",
             "yandexNotInstalledTitle": "Yandex Music is not installed"
         },
@@ -62,10 +65,10 @@
             "timeoutRateLimit": "Connection timed out. Discord may be rate limiting. If activity is missing, try again in 10–15 minutes."
         },
         "events": {
-            "addonsLoadError": "Addons: Error loading themes:",
-            "addonTemplateArchiveInvalid": "Failed to unpack the addon template",
+            "addonsLoadError": "Add-ons: Error loading themes:",
+            "addonTemplateArchiveInvalid": "Failed to unpack the add-on template",
             "addonTemplateDestinationBusy": "The destination folder already exists and is not empty",
-            "addonTemplateDirectoryDialogTitle": "Choose a folder where the addon template should be saved",
+            "addonTemplateDirectoryDialogTitle": "Choose a folder where the add-on template should be saved",
             "createArchiveError": "Error while creating archive file",
             "createExtensionError": "Error creating new extension:",
             "createZipError": "Error while creating .zip file with AdmZip",
@@ -83,7 +86,7 @@
             "yandexNotFoundMessage": "Yandex Music app not found",
             "yandexUninstallError": "Error removing application",
             "yandexUninstallFailedWithReason": "Failed to remove app: {{message}}",
-            "yandexUninstallStart": "Starting Yandex Music uninstallation...",
+            "yandexUninstallStart": "Removing Yandex Music…",
             "yandexUninstallSuccess": "Yandex Music removed",
             "yandexUninstallSuccessMessage": "Yandex Music removed"
         },
@@ -102,7 +105,7 @@
             "asarNotFound": "{{name}} not found. Please reinstall Yandex Music.",
             "pickAsarMessage": "Where should the ASAR modification for Yandex Music be saved?",
             "pickAsarTitle": "Select ASAR mod path",
-            "saveAsTitle": "Save ASAR modification as..."
+            "saveAsTitle": "Save ASAR modification as…"
         },
         "modManager": {
             "fullDiskAccessRequired": "Please grant full disk access to the app.",
@@ -208,7 +211,7 @@
         },
         "tray": {
             "open": "Open",
-            "addonsDirectory": "Addons directory",
+            "addonsDirectory": "Add-ons folder",
             "checkUpdates": "Check updates",
             "close": "Close",
             "discordRpc": "Discord RPC",

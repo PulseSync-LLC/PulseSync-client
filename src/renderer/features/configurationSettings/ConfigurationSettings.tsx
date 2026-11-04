@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdClose, MdSearch } from 'react-icons/md'
 
 import BufferedColorInput from '@features/configurationSettings/BufferedColorInput'
 import BufferedSliderInput from '@features/configurationSettings/BufferedSliderInput'
@@ -124,6 +125,23 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
     const { t } = useTranslation()
     const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
     const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
+    const [search, setSearch] = useState('')
+    const searchRef = useRef<HTMLInputElement>(null)
+    const searchTerms = search.toLocaleLowerCase().replace(/ё/g, 'е').trim().split(/\s+/).filter(Boolean)
+    const matches = (sectionTitle: string, item: Item) => {
+        const text = [
+            sectionTitle,
+            item.name,
+            item.description,
+            item.id,
+            ...(item.type === 'selector' ? Object.values(item.options).map(option => option.name) : []),
+        ]
+            .join(' ')
+            .toLocaleLowerCase()
+            .replace(/ё/g, 'е')
+        return searchTerms.every(term => text.includes(term))
+    }
+    const hasResults = cfg.sections.some(section => section.items.some(item => matches(section.title, item)))
 
     const rootRef = useRef<HTMLDivElement>(null)
     const baselineRef = useRef<AddonConfig>(normalizedInitialConfig)
@@ -143,7 +161,7 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
         return () => root.removeEventListener('focusin', onFocusIn)
     }, [])
     useLayoutEffect(() => {
-        if (lastFocusedRef.current && document.activeElement !== lastFocusedRef.current) {
+        if (lastFocusedRef.current?.offsetParent && document.activeElement !== lastFocusedRef.current) {
             lastFocusedRef.current.focus?.()
         }
     })
@@ -207,7 +225,9 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
             case 'file':
                 return item.value !== item.defaultValue
             case 'selector':
-                return Object.values(item.options).some(option => 'value' in option) ? !Object.is(item.value, item.defaultValue) : String(item.value) !== String(item.defaultValue)
+                return Object.values(item.options).some(option => 'value' in option)
+                    ? !Object.is(item.value, item.defaultValue)
+                    : String(item.value) !== String(item.defaultValue)
             case 'text':
                 return item.value !== item.defaultValue
         }
@@ -302,7 +322,11 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
                             className={css.controlCard}
                             label={it.name}
                             description={it.description}
-                            value={Object.entries(it.options).find(([key, option]) => Object.is(option.value ?? (toNumber ? Number(key) : key), it.value))?.[0] ?? ''}
+                            value={
+                                Object.entries(it.options).find(([key, option]) =>
+                                    Object.is(option.value ?? (toNumber ? Number(key) : key), it.value),
+                                )?.[0] ?? ''
+                            }
                             options={opts}
                             onChange={val => {
                                 const option = it.options[String(val)]
@@ -416,14 +440,46 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
 
     return (
         <div ref={rootRef} className={css.root}>
+            <div className={css.searchBox}>
+                <MdSearch className={css.searchIcon} size={18} aria-hidden="true" />
+                <input
+                    ref={searchRef}
+                    type="search"
+                    className={css.search}
+                    value={search}
+                    onChange={event => setSearch(event.target.value)}
+                    placeholder={t('settingsModal.searchPlaceholder')}
+                    aria-label={t('settingsModal.searchPlaceholder')}
+                />
+                <button
+                    type="button"
+                    className={css.searchClear}
+                    hidden={!search}
+                    aria-label={t('common.clear')}
+                    onClick={() => {
+                        setSearch('')
+                        searchRef.current?.focus()
+                    }}
+                >
+                    <MdClose size={16} aria-hidden="true" />
+                </button>
+            </div>
+            {!hasResults && (
+                <p className={css.searchEmpty} aria-live="polite">
+                    {t('settingsModal.searchEmpty')}
+                </p>
+            )}
             {(cfg.sections ?? []).map((s, si) => {
-                const isCollapsed = !!collapsed[si]
+                const isCollapsed = searchTerms.length === 0 && !!collapsed[si]
+                const sectionMatches = s.items.some(item => matches(s.title, item))
                 return (
-                    <div key={s.title ?? si} className={css.section}>
+                    <div key={s.title ?? si} className={css.section} hidden={!sectionMatches}>
                         <button
                             type="button"
                             className={clsx(css.sectionHeader, isCollapsed && css.collapsed)}
-                            onClick={() => setCollapsed(c => ({ ...c, [si]: !c[si] }))}
+                            onClick={() => {
+                                if (!searchTerms.length) setCollapsed(c => ({ ...c, [si]: !c[si] }))
+                            }}
                             aria-expanded={!isCollapsed}
                             aria-controls={`section-panel-${si}`}
                         >
@@ -435,7 +491,9 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
                         <Collapse open={!isCollapsed} id={`section-panel-${si}`}>
                             <div className={css.list}>
                                 {(s.items ?? []).map((it, ii) => (
-                                    <div key={it.id}>{renderItem(si, ii, it)}</div>
+                                    <div key={it.id} hidden={!matches(s.title, it)}>
+                                        {renderItem(si, ii, it)}
+                                    </div>
                                 ))}
                             </div>
                         </Collapse>

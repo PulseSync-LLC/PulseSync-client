@@ -5,7 +5,7 @@ import { MdRedeem } from 'react-icons/md'
 
 import { useModalContext } from '@app/providers/modal'
 import { useNotifications } from '@app/providers/notifications'
-import { loadSubscriptionGiveawaysSnapshot } from '@shared/api/subscriptionGiveaways'
+import { loadSubscriptionGiveawaysSnapshot } from '@entities/subscription/api/subscriptionGiveaways'
 import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as styles from '@widgets/layout/header.module.scss'
@@ -50,7 +50,7 @@ const SubscriptionGiveawaysButton: React.FC = () => {
 
     useEffect(() => {
         void refreshActiveCount()
-        const intervalId = window.setInterval(() => void refreshActiveCount(true), REFRESH_INTERVAL_MS)
+        const intervalId = window.setInterval(() => void refreshActiveCount(), REFRESH_INTERVAL_MS)
         return () => window.clearInterval(intervalId)
     }, [refreshActiveCount])
 

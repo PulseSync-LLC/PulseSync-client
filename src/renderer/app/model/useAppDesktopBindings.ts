@@ -21,6 +21,7 @@ type Params = {
     setNavigateState: React.Dispatch<React.SetStateAction<Addon | null>>
     setNavigateTo: React.Dispatch<React.SetStateAction<string | null>>
     setPreparedModUpdate: React.Dispatch<React.SetStateAction<DesktopInstallModRequest | null>>
+    setIsModUpdating: React.Dispatch<React.SetStateAction<boolean>>
     setTokenReady: React.Dispatch<React.SetStateAction<boolean>>
     setUpdate: React.Dispatch<React.SetStateAction<boolean>>
     t: (key: string, options?: any) => string
@@ -37,6 +38,7 @@ export function useAppDesktopBindings({
     setNavigateState,
     setNavigateTo,
     setPreparedModUpdate,
+    setIsModUpdating,
     setTokenReady,
     setUpdate,
     t,
@@ -102,7 +104,20 @@ export function useAppDesktopBindings({
 
         const handleModUpdateReady = (payload: unknown) => {
             const release = payload && typeof payload === 'object' ? (payload as { release?: DesktopInstallModRequest }).release : undefined
-            if (release) setPreparedModUpdate(release)
+            if (release) {
+                setPreparedModUpdate(release)
+                setIsModUpdating(false)
+            }
+        }
+
+        const handleModUpdateStarted = () => {
+            setPreparedModUpdate(null)
+            setIsModUpdating(true)
+        }
+
+        const handleModUpdateFinished = () => {
+            setPreparedModUpdate(null)
+            setIsModUpdating(false)
         }
 
         const handleClientReady = () => {
@@ -252,11 +267,11 @@ export function useAppDesktopBindings({
 
         const unsubscribers = [
             desktopApi.mods.onUpdateCheckRequested(payload => handleModUpdateCheck(payload as { manual?: boolean })),
-            desktopApi.mods.onUpdateDownloadStarted(() => setPreparedModUpdate(null)),
+            desktopApi.mods.onUpdateDownloadStarted(handleModUpdateStarted),
             desktopApi.mods.onUpdateReady(handleModUpdateReady),
-            desktopApi.mods.onInstallStarted(() => setPreparedModUpdate(null)),
-            desktopApi.mods.onDownloadSuccess(() => setPreparedModUpdate(null)),
-            desktopApi.mods.onDownloadFailure(() => setPreparedModUpdate(null)),
+            desktopApi.mods.onInstallStarted(handleModUpdateStarted),
+            desktopApi.mods.onDownloadSuccess(handleModUpdateFinished),
+            desktopApi.mods.onDownloadFailure(handleModUpdateFinished),
             desktopApi.music.onClientReady(handleClientReady),
             desktopApi.auth.onPremiumTokenRequested(premiumUserCheck),
             desktopApi.updates.onCheck(handleCheckUpdate),
@@ -269,7 +284,7 @@ export function useAppDesktopBindings({
         return () => {
             unsubscribers.forEach(unsubscribe => unsubscribe())
         }
-    }, [appRef, fetchModInfo, setPreparedModUpdate, setUpdate, t, toastReference])
+    }, [appRef, fetchModInfo, setIsModUpdating, setPreparedModUpdate, setUpdate, t, toastReference])
 
     useEffect(() => {
         if (typeof window === 'undefined' || typeof navigator === 'undefined') return

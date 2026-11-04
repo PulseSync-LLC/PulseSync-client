@@ -73,6 +73,28 @@ export function useSettingsSchema({
                         kind: 'groups',
                         groups: [
                             {
+                                id: 'cloud-settings',
+                                title: t('settingsModal.cloud.title'),
+                                items: [
+                                    {
+                                        id: 'cloud-settings-enabled',
+                                        kind: 'toggle',
+                                        label: t('settingsModal.cloud.enabled'),
+                                        description: actions.cloudSettings.pendingDelete
+                                            ? t('settingsModal.cloud.pendingDelete')
+                                            : actions.cloudSettings.addonRestoreFailed
+                                              ? t('settingsModal.cloud.restoreError')
+                                              : actions.cloudSettings.error
+                                                ? t('settingsModal.cloud.error')
+                                                : t('settingsModal.cloud.description'),
+                                        checked: actions.cloudSettings.enabled,
+                                        disabled:
+                                            !actions.cloudSettings.available || actions.cloudSettings.busy || actions.cloudSettings.pendingDelete,
+                                        onChange: checked => void actions.cloudSettings.setEnabled(checked),
+                                    },
+                                ],
+                            },
+                            {
                                 id: 'application',
                                 title: t('contextMenu.appSettings.title'),
                                 items: [

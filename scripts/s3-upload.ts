@@ -20,7 +20,7 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
-import { fetchWithRetry } from './network-retry.js'
+import { fetchWithRetry, retryNetworkOperation } from './network-retry.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
@@ -526,15 +526,25 @@ async function uploadFileToS3(
     const metadata = sha256 ? { Metadata: { ...options?.metadata, sha256 } } : {}
 
     if (size < threshold) {
-        await client.send(
-            new PutObjectCommand({
-                Bucket: bucket,
-                Key: key,
-                Body: fs.createReadStream(filePath),
-                ACL: 'public-read',
-                ...uploadHeaders,
-                ...metadata,
-            }),
+        await retryNetworkOperation(
+            async () => {
+                const body = fs.createReadStream(filePath)
+                try {
+                    await client.send(
+                        new PutObjectCommand({
+                            Bucket: bucket,
+                            Key: key,
+                            Body: body,
+                            ContentLength: size,
+                            ...uploadHeaders,
+                            ...metadata,
+                        }),
+                    )
+                } finally {
+                    body.destroy()
+                }
+            },
+            { attempts: parsePositiveInteger(process.env.S3_MAX_ATTEMPTS, 5), label: `S3 upload ${key}` },
         )
         log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
         return
@@ -544,7 +554,6 @@ async function uploadFileToS3(
         new CreateMultipartUploadCommand({
             Bucket: bucket,
             Key: key,
-            ACL: 'public-read',
             ...uploadHeaders,
             ...metadata,
         }),
@@ -651,7 +660,6 @@ async function copyUploadedFileInS3(
                 Bucket: bucket,
                 Key: targetKey,
                 CopySource: copySource,
-                ACL: 'public-read',
                 MetadataDirective: 'REPLACE',
                 Metadata: { ...metadata, sha256 },
                 ...headers,
@@ -752,7 +760,6 @@ async function archiveStoredDesktopManifest(client: S3Client, bucket: string, cu
             Bucket: bucket,
             Key: archiveKey,
             Body: body,
-            ACL: 'public-read',
             ...headers,
             Metadata: { sha256 },
         }),

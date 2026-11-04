@@ -17,6 +17,53 @@ const isAbortError = (error: unknown): boolean => error instanceof Error && erro
 
 const isTransientStatus = (status: number): boolean => status === 408 || status === 425 || status === 429 || status >= 500
 
+export function isTransientNetworkError(error: unknown): boolean {
+    if (!error || typeof error !== 'object' || isAbortError(error)) return false
+    const value = error as {
+        code?: unknown
+        name?: unknown
+        message?: unknown
+        status?: unknown
+        $metadata?: { httpStatusCode?: number }
+        cause?: unknown
+    }
+    const status = value.$metadata?.httpStatusCode ?? value.status
+    if (typeof status === 'number' && status >= 400) return isTransientStatus(status)
+    if (
+        typeof value.code === 'string' &&
+        /^(EAI_AGAIN|ECONNRESET|ECONNREFUSED|ETIMEDOUT|EPIPE|UND_ERR_(CONNECT_TIMEOUT|HEADERS_TIMEOUT|BODY_TIMEOUT|SOCKET))$/u.test(value.code)
+    )
+        return true
+    if (value.name === 'TimeoutError') return true
+    if (
+        typeof value.message === 'string' &&
+        /(?:connection reset|connection timed out|connect timeout|TLS handshake timeout|i\/o timeout|\bEOF\b|socket hang up|fetch failed)/iu.test(
+            value.message,
+        )
+    )
+        return true
+    return value.cause !== error && isTransientNetworkError(value.cause)
+}
+
+export async function retryNetworkOperation<T>(operation: () => Promise<T>, retryOptions: Omit<NetworkRetryOptions, 'retryUnsafe'> = {}): Promise<T> {
+    const options: Required<NetworkRetryOptions> = {
+        attempts: retryOptions.attempts ?? DEFAULT_ATTEMPTS,
+        baseDelayMs: retryOptions.baseDelayMs ?? DEFAULT_BASE_DELAY_MS,
+        maxDelayMs: retryOptions.maxDelayMs ?? DEFAULT_MAX_DELAY_MS,
+        label: retryOptions.label ?? 'Network operation',
+        retryUnsafe: false,
+    }
+    for (let attempt = 1; attempt <= options.attempts; attempt += 1) {
+        try {
+            return await operation()
+        } catch (error) {
+            if (!isTransientNetworkError(error) || attempt === options.attempts) throw error
+            await waitBeforeRetry(attempt, null, options, error instanceof Error ? error.message : String(error))
+        }
+    }
+    throw new Error(`${options.label} exhausted retry attempts`)
+}
+
 const retryAfterMs = (response: Response | null): number | null => {
     const value = response?.headers.get('retry-after')?.trim()
     if (!value) return null

@@ -96,6 +96,15 @@ export async function closeYandexMusic(): Promise<void> {
         logger.main.info('Yandex Music is not running.')
         return
     }
+    if (isWindows()) {
+        try {
+            const args = [...procs.flatMap(({ pid }) => ['/PID', String(pid)]), '/T', '/F']
+            await execFileAsync('taskkill.exe', args, { windowsHide: true, timeout: 5000 })
+            return
+        } catch (error) {
+            logger.main.warn('Failed to terminate Yandex Music process trees:', error)
+        }
+    }
     for (const { pid } of procs) {
         terminateProcess(pid)
     }
@@ -242,8 +251,10 @@ export const checkAsar = () => {
     }
 }
 
-export const checkMusic = () => {
-    if (isLinux() || fso.existsSync(musicPath) || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
+export const isYandexMusicInstalled = () => isLinux() || (Boolean(musicPath) && fso.existsSync(path.join(musicPath, 'app.asar')))
+
+export const requestYandexMusicInstall = () => {
+    if (isYandexMusicInstalled() || yandexMusicInstallPromptOpen || yandexMusicDownloadInFlight) return
 
     yandexMusicInstallPromptOpen = true
     dialog
@@ -251,16 +262,14 @@ export const checkMusic = () => {
             type: 'info',
             title: t('main.appUtils.yandexNotInstalledTitle'),
             message: t('main.appUtils.yandexNotInstalledMessage'),
-            buttons: [t('main.common.start'), t('main.common.cancel')],
+            buttons: [t('main.appUtils.yandexInstallYes'), t('main.appUtils.yandexInstallNo')],
+            defaultId: 1,
             cancelId: 1,
         })
         .then(async result => {
-            if (result.response === 0) {
+            if (result.response === 0 && !isYandexMusicInstalled()) {
                 await downloadYandexMusic()
-                return
             }
-
-            app.quit()
         })
         .catch(error => {
             logger.main.error('Failed to show Yandex Music install prompt:', error)
@@ -408,7 +417,8 @@ export async function updateIntegrityHashInExe(exePath: string, asarPath: string
         nativePatchWindowsIntegrity(exePath, asarPath)
     } catch (err) {
         logger.main.error(t('main.appUtils.updateIntegrityError'), err)
-        await downloadYandexMusic('reinstall')
+        const message = err instanceof Error ? err.message : String(err)
+        if (!/\(os error (?:32|33)\)/u.test(message)) await downloadYandexMusic('reinstall')
         throw err
     }
 }

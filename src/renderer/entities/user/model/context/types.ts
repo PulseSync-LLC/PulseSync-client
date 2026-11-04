@@ -1,3 +1,4 @@
+import type { CloudSettingsStatus } from '@common/cloudSettings'
 import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AppInfoInterface } from '@entities/appInfo/model/appinfo.interface'
@@ -8,18 +9,26 @@ import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGate
 import type { Dispatch, SetStateAction } from 'react'
 import type { Socket } from 'socket.io-client'
 
+export interface CloudSettingsControl extends CloudSettingsStatus {
+    available: boolean
+    busy: boolean
+    error: boolean
+    setEnabled(enabled: boolean): Promise<void>
+}
+
 export type SettingsUpdater = SettingsInterface | ((prev: SettingsInterface) => SettingsInterface)
 export type EmitGateway = (event: OutgoingGatewayEvent, payload: unknown) => void
 export type CheckModUpdates = (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
 
 export type UserContextValue = {
+    cloudSettings: CloudSettingsControl
     user: UserInterface
     setUser: Dispatch<SetStateAction<UserInterface>>
     isAutonomousMode: boolean
     authorize: () => Promise<void>
     loading: boolean
-    musicInstalled: boolean
-    setMusicInstalled: Dispatch<SetStateAction<boolean>>
+    musicInstalled: boolean | null
+    setMusicInstalled: Dispatch<SetStateAction<boolean | null>>
     musicVersion: string | null
     setMusicVersion: Dispatch<SetStateAction<string | null>>
     widgetInstalled: boolean
@@ -38,6 +47,7 @@ export type UserContextValue = {
     modInfo: ModInterface[]
     modInfoFetched: boolean
     preparedModUpdate: DesktopInstallModRequest | null
+    isModUpdating: boolean
     setMod: Dispatch<SetStateAction<ModInterface[]>>
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>

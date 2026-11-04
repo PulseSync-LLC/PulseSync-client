@@ -26,6 +26,17 @@ jobs:
       - uses: actions/checkout@v7
         with:
           ref: ${{ inputs.checkout_ref || github.sha }}
+          fetch-depth: 0
+
+      - name: Set up Node.js for Corepack
+        uses: actions/setup-node@v7
+        with:
+          node-version: 24
+          check-latest: true
+
+      - name: Prepare Yarn with retries
+        shell: bash
+        run: bash .github/scripts/prepare-corepack.sh
 
       - uses: actions/setup-node@v7
         with:
@@ -49,7 +60,20 @@ jobs:
           key: desktop-tests-${{ runner.os }}-${{ runner.arch }}-node24-rust1991-${{ hashFiles('yarn.lock', 'packages/bootstrapper/Cargo.toml', 'packages/bootstrapper/Cargo.lock', 'packages/bootstrapper/src/**/*.rs') }}
 
       - name: Install deps
-        run: yarn install --frozen-lockfile
+        run: yarn install --immutable
+
+      - name: Require host and bootstrapper version bumps
+        if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: node scripts/verify-runtime-versions.mjs
+
+      - name: Require Desktop API version bump
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha || github.event.merge_group.head_sha }}
+        run: node scripts/verify-desktop-api-version.mjs
 
       - name: Typecheck desktop
         run: yarn typecheck

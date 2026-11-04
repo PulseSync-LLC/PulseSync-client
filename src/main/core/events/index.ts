@@ -23,6 +23,7 @@ import {
 import { getUpdateSource, normalizeUpdateSource, setUpdateSource } from '../../shared/updater/updateSource'
 import isAppDev from '../../shared/utils/isAppDev'
 import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../auth/browserAuth'
+import { applyCloudSnapshot, readCloudLocalState, rememberCloudBaseline, setCloudPendingDelete } from '../cloudSettings'
 import { inSleepMode, mainWindow } from '../createWindow'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
 import { refreshInstalledModState } from '../mod/integrity'
@@ -345,6 +346,10 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
         event.returnValue = State.get(val)
     })
+    ipcMain.handle(MainEvents.READ_CLOUD_LOCAL_STATE, (_event, session, remote) => readCloudLocalState(session, remote))
+    ipcMain.handle(MainEvents.SET_CLOUD_PENDING_DELETE, (_event, session, pending) => setCloudPendingDelete(session, pending))
+    ipcMain.handle(MainEvents.REMEMBER_CLOUD_BASELINE, (_event, session, snapshot) => rememberCloudBaseline(session, snapshot))
+    ipcMain.handle(MainEvents.APPLY_CLOUD_SNAPSHOT, (_event, session, snapshot, expected) => applyCloudSnapshot(session, snapshot, expected))
     ipcMain.on(MainEvents.ELECTRON_STORE_SET, (_event, key, val) => {
         State.set(key, val)
     })

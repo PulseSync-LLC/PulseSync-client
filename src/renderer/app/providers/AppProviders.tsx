@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo } from 'react'
+import { useEffect, useMemo } from 'react'
 
 import { CssVarsProvider } from '@mui/joy'
 import { RouterProvider } from 'react-router/dom'
@@ -13,11 +13,11 @@ import ExtensionPublicationModal from '@widgets/modalContainer/modals/ExtensionP
 import SettingsModal from '@widgets/modalContainer/modals/SettingsModal'
 import UpdateChannelOverrideModal from '@widgets/modalContainer/modals/UpdateChannelOverrideModal'
 import Preloader from '@widgets/preloader'
+import { useCloudSettings } from '@features/settings/model/useCloudSettings'
 import UserContext from '@entities/user/model/context'
-import OutgoingGatewayEvents from '@shared/api/socket/enums/outgoingGatewayEvents'
 
 import type { AppProvidersProps } from '@app/AppShell.types'
-import type { SettingsUpdater, UserContextValue } from '@entities/user/model/context/types'
+import type { UserContextValue } from '@entities/user/model/context/types'
 
 export default function AppProviders({
     user,
@@ -44,6 +44,7 @@ export default function AppProviders({
     modInfo,
     modInfoFetched,
     preparedModUpdate,
+    isModUpdating,
     allAchievements,
     setAllAchievements,
     checkModUpdates,
@@ -53,6 +54,7 @@ export default function AppProviders({
     onLegacyAddonRestrictionsChange,
 }: AppProvidersProps) {
     const { socket, socketConnected, emitGateway } = useSocketContext()
+    const cloudSettings = useCloudSettings(user.id, !loading && !isAutonomousMode, setApp, setAddons)
 
     useEffect(() => {
         const showDevFrame = app.info.devmark && app.settings.showDevFrame
@@ -62,18 +64,6 @@ export default function AppProviders({
             document.body.classList.remove('devmark-border')
         }
     }, [app.info.devmark, app.settings.showDevFrame])
-
-    const setAppWithSocket = useCallback(
-        (updater: SettingsUpdater) => {
-            setApp(prevSettings => {
-                const updatedSettings = typeof updater === 'function' ? updater(prevSettings) : updater
-                const { tokens: _tokens, info: _info, ...socketInfo } = updatedSettings
-                emitGateway(OutgoingGatewayEvents.USER_SETTINGS_UPDATE, socketInfo)
-                return updatedSettings
-            })
-        },
-        [emitGateway, setApp],
-    )
 
     const userContextValue = useMemo<UserContextValue>(
         () => ({
@@ -91,7 +81,8 @@ export default function AppProviders({
             socket,
             socketConnected,
             app,
-            setApp: setAppWithSocket,
+            setApp,
+            cloudSettings,
             isAppDeprecated,
             setIsAppDeprecated,
             updateAvailable,
@@ -103,6 +94,7 @@ export default function AppProviders({
             modInfo,
             modInfoFetched,
             preparedModUpdate,
+            isModUpdating,
             allAchievements,
             setAllAchievements,
             checkModUpdates,
@@ -122,10 +114,12 @@ export default function AppProviders({
             modInfo,
             modInfoFetched,
             preparedModUpdate,
+            isModUpdating,
             musicInstalled,
             musicVersion,
             refreshAddons,
-            setAppWithSocket,
+            setApp,
+            cloudSettings,
             setAllAchievements,
             setIsAppDeprecated,
             socket,

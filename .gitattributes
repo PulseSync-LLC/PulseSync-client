@@ -1,1 +1,2 @@
 package.json filter=strip_buildinfo
+.github/scripts/prepare-corepack.sh text eol=lf

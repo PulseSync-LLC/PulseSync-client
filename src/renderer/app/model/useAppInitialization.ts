@@ -22,7 +22,7 @@ type Params = {
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     setApp: Dispatch<SetStateAction<SettingsInterface>>
     setModInfoFetched: Dispatch<SetStateAction<boolean>>
-    setMusicInstalled: Dispatch<SetStateAction<boolean>>
+    setMusicInstalled: Dispatch<SetStateAction<boolean | null>>
     setMusicVersion: Dispatch<SetStateAction<string | null>>
     setWidgetInstalled: Dispatch<SetStateAction<boolean>>
     userId: string
@@ -69,21 +69,10 @@ export function useAppInitialization({
 
         const initializeApp = async () => {
             desktopApi.updates.start()
-            desktopApi.music.checkInstall()
             desktopApi.lifecycle.ready()
 
-            const [hydratedApp, musicStatus, musicVersion, fetchedAddons] = await Promise.all([
-                fetchSettings(setApp),
-                desktopApi.music.getStatus(),
-                desktopApi.music.getVersion(),
-                desktopApi.addons.list(),
-            ])
+            const [hydratedApp, fetchedAddons] = await Promise.all([fetchSettings(setApp), desktopApi.addons.list()])
             appRef.current = hydratedApp
-            detectedMusicVersionRef.current = (musicVersion as string | null | undefined) || null
-            const resolvedMusicVersion = userIdRef.current === '-1' ? config.AUTONOMOUS_MUSIC_VERSION : detectedMusicVersionRef.current
-
-            setMusicInstalled(!!musicStatus)
-            setMusicVersion(resolvedMusicVersion)
             setAddons((fetchedAddons as Addon[]) || [])
 
             try {
@@ -103,7 +92,48 @@ export function useAppInitialization({
         }
 
         void initializeApp()
-    }, [appRef, fetchModInfo, router, setAddons, setApp, setMusicInstalled, setMusicVersion, setWidgetInstalled])
+    }, [appRef, fetchModInfo, router, setAddons, setApp, setWidgetInstalled])
+
+    useEffect(() => {
+        let disposed = false
+        let checking = false
+        let installed = false
+
+        const refreshMusic = async () => {
+            if (checking || installed) return
+            checking = true
+            try {
+                const status = await desktopApi.music.getStatus()
+                if (disposed) return
+                if (!status) {
+                    setMusicInstalled(false)
+                    return
+                }
+
+                const version = await desktopApi.music.getVersion()
+                if (disposed) return
+
+                installed = true
+                window.clearInterval(interval)
+                detectedMusicVersionRef.current = version || null
+                setMusicInstalled(true)
+                if (userIdRef.current !== '-1') setMusicVersion(detectedMusicVersionRef.current)
+            } catch (error) {
+                console.error('Failed to check Yandex Music installation:', error)
+            } finally {
+                checking = false
+            }
+        }
+
+        const interval = window.setInterval(refreshMusic, 3000)
+        void refreshMusic()
+        window.addEventListener('focus', refreshMusic)
+        return () => {
+            disposed = true
+            window.clearInterval(interval)
+            window.removeEventListener('focus', refreshMusic)
+        }
+    }, [setMusicInstalled, setMusicVersion])
 
     useEffect(() => {
         const modCheckId = setInterval(

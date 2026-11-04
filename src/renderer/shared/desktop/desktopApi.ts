@@ -52,6 +52,16 @@ export const desktopApi = {
             requireDesktopApi().updates.onDownloadFailed(listener),
     },
     settings: {
+        supportsCloudSync: () => typeof requireDesktopApi().settings.readCloudLocalState === 'function',
+        readCloudLocalState: (...args: Parameters<PulseSyncDesktopApi['settings']['readCloudLocalState']>) =>
+            requireDesktopApi().settings.readCloudLocalState(...args),
+        setCloudPendingDelete: (...args: Parameters<PulseSyncDesktopApi['settings']['setCloudPendingDelete']>) =>
+            requireDesktopApi().settings.setCloudPendingDelete(...args),
+        rememberCloudBaseline: (...args: Parameters<PulseSyncDesktopApi['settings']['rememberCloudBaseline']>) =>
+            requireDesktopApi().settings.rememberCloudBaseline(...args),
+        applyCloudSnapshot: (...args: Parameters<PulseSyncDesktopApi['settings']['applyCloudSnapshot']>) =>
+            requireDesktopApi().settings.applyCloudSnapshot(...args),
+        onCloudAddonApplied: (listener: (addonId: string) => void) => requireDesktopApi().settings.onCloudAddonApplied?.(listener) ?? (() => {}),
         getSnapshot: () => requireDesktopApi().settings.getSnapshot(),
         updatePreferences: (patch: Parameters<PulseSyncDesktopApi['settings']['updatePreferences']>[0]) =>
             requireDesktopApi().settings.updatePreferences(patch),
@@ -100,7 +110,7 @@ export const desktopApi = {
         getStatus: () => requireDesktopApi().music.getStatus(),
         getRunningStatus: () => requireDesktopApi().music.getRunningStatus(),
         getVersion: () => requireDesktopApi().music.getVersion(),
-        checkInstall: () => requireDesktopApi().music.checkInstall(),
+        requestInstall: () => requireDesktopApi().music.requestInstall(),
         fixLinuxPermissions: () => requireDesktopApi().music.fixLinuxPermissions(),
         selectLinuxAsarPath: (defaultPath?: string) => requireDesktopApi().music.selectLinuxAsarPath(defaultPath),
         refreshModInfo: () => requireDesktopApi().music.refreshModInfo(),

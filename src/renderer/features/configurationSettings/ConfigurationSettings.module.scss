@@ -30,6 +30,159 @@
     }
 }
 
+.searchBox {
+    box-sizing: border-box;
+    display: flex;
+
+    flex-shrink: 0;
+
+    gap: 10px;
+
+    align-items: center;
+
+    width: 100%;
+    height: 40px;
+
+    padding: 0 10px 0 12px;
+    margin-bottom: 12px;
+
+    background: var(--surface-secondary);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+
+    transition:
+        background-color 0.16s ease,
+        border-color 0.16s ease;
+
+    &:hover {
+        background: var(--surface-tertiary);
+        border-color: var(--border-hover);
+    }
+
+    &:focus-within {
+        background: var(--surface-tertiary);
+        border-color: var(--text-secondary);
+    }
+
+    &:focus-within .searchIcon {
+        color: var(--cfg-text);
+    }
+}
+
+.searchIcon {
+    flex-shrink: 0;
+
+    color: var(--cfg-muted);
+
+    transition: color 0.16s ease;
+}
+
+.search {
+    flex: 1;
+
+    width: 100%;
+    min-width: 0;
+    height: 100%;
+
+    padding: 0;
+
+    font: inherit;
+    font-size: 14px;
+
+    color: var(--cfg-text);
+
+    appearance: none;
+    outline: none;
+
+    background: transparent;
+    border: 0;
+
+    &::placeholder {
+        color: var(--cfg-muted);
+    }
+
+    &::-webkit-search-cancel-button {
+        appearance: none;
+    }
+}
+
+.searchClear {
+    display: inline-flex;
+
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 26px;
+    height: 26px;
+
+    padding: 0;
+
+    color: var(--cfg-muted);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 6px;
+
+    transition:
+        color 0.16s ease,
+        background-color 0.16s ease,
+        opacity 0.16s ease,
+        transform 0.16s ease,
+        display 0.16s allow-discrete;
+
+    &[hidden] {
+        display: none;
+
+        opacity: 0;
+
+        transform: scale(0.85);
+    }
+
+    @starting-style {
+        opacity: 0;
+
+        transform: scale(0.85);
+    }
+
+    &:hover {
+        color: var(--cfg-text);
+
+        background: var(--hover);
+    }
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: 1px;
+    }
+}
+
+.searchEmpty {
+    color: var(--cfg-muted);
+}
+
+.section[hidden],
+.list > [hidden] {
+    display: none;
+
+    opacity: 0;
+}
+
+.section,
+.list > div,
+.searchEmpty {
+    transition:
+        opacity 0.16s ease,
+        display 0.16s allow-discrete;
+
+    @starting-style {
+        opacity: 0;
+    }
+}
+
 .section {
     display: grid;
 
@@ -197,6 +350,15 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .searchBox,
+    .searchIcon,
+    .searchClear,
+    .section,
+    .list > div,
+    .searchEmpty {
+        transition: none;
+    }
+
     .collapse {
         will-change: auto;
     }

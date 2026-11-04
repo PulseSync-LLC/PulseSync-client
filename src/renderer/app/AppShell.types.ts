@@ -26,8 +26,8 @@ export type AppProvidersProps = {
     isAutonomousMode: boolean
     authorize: () => Promise<void>
     loading: boolean
-    musicInstalled: boolean
-    setMusicInstalled: Dispatch<SetStateAction<boolean>>
+    musicInstalled: boolean | null
+    setMusicInstalled: Dispatch<SetStateAction<boolean | null>>
     musicVersion: string | null
     setMusicVersion: Dispatch<SetStateAction<string | null>>
     widgetInstalled: boolean
@@ -45,6 +45,7 @@ export type AppProvidersProps = {
     modInfo: ModInterface[]
     modInfoFetched: boolean
     preparedModUpdate: DesktopInstallModRequest | null
+    isModUpdating: boolean
     allAchievements: any[]
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     checkModUpdates: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>

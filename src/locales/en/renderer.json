@@ -21,7 +21,7 @@
         "done": "Done",
         "doneTitle": "Done",
         "downloadTitle": "Download",
-        "downloading": "Downloading...",
+        "downloading": "Downloading…",
         "emDash": "—",
         "enable": "Enable",
         "enabled": "Enabled",
@@ -32,10 +32,10 @@
         "fetchFailed": "Failed to fetch",
         "fileNotFound": "File not found",
         "importTitle": "Import",
-        "importing": "Importing...",
+        "importing": "Importing…",
         "infoTitleShort": "Info",
         "linkLabel": "link",
-        "loading": "Loading...",
+        "loading": "Loading…",
         "loadingTitle": "Loading",
         "more": "More",
         "networkTitle": "Network",
@@ -60,7 +60,7 @@
         "warningTitleShort": "Warning"
     },
     "auth": {
-        "accessQuestionTitle": "Maybe you don't have access?",
+        "accessQuestionTitle": "You may not have access",
         "appVersionDeprecatedMessage": "Authorization error. This app version is deprecated. Downloading the new version will start automatically.",
         "appVersionDeprecatedTitle": "This app version is deprecated",
         "authErrorTitle": "Authorization error 😡 {{title}}",
@@ -72,24 +72,24 @@
         "deprecatedSoon": "Your app version is outdated 🤠 and will stop working soon. Please update the app.",
         "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
-        "failedToFetchUser": "Failed to fetch user data. Please log in again.",
+        "failedToFetchUser": "Failed to fetch user data. Please sign in again.",
         "pendingAuth": "Waiting for authorization",
-        "pleaseLoginAgain": "Please log in again.",
+        "pleaseLoginAgain": "Please sign in again.",
         "readTermsError": "Failed to read file:",
-        "sessionExpired": "Your session has expired. Please log in again.",
+        "sessionExpired": "Your session has expired. Please sign in again.",
         "sessionExpiredTitle": "Error",
         "termsLink": "the Terms of Use",
         "title": "Authorization",
         "unknownAuthError": "Unknown authorization error."
     },
     "addons": {
-        "invalidType": "Addon is missing the type field or it is invalid",
-        "uploadRules": "You have read the addon upload rules",
-        "uploadTitle": "Addon upload ({{name}})"
+        "invalidType": "Add-on is missing the type field or it is invalid",
+        "uploadRules": "You have read the add-on upload rules",
+        "uploadTitle": "Add-on upload ({{name}})"
     },
     "changes": {
         "saveChanges": "Save changes",
-        "saving": "Saving...",
+        "saving": "Saving…",
         "unsavedWarning": "You have unsaved changes"
     },
     "colorInput": {
@@ -133,6 +133,14 @@
         "resetToDefault": "Reset to default"
     },
     "settingsModal": {
+        "cloud": {
+            "restoreError": "Some catalog addons could not be restored. They will be retried automatically.",
+            "title": "Cloud sync",
+            "enabled": "Sync settings",
+            "description": "Syncs your main client settings, catalog addons and their settings between devices through your account. Turning this off deletes the cloud copy. Local settings and addons are kept.",
+            "pendingDelete": "Sync is disabled. The cloud copy will be deleted when the connection is restored.",
+            "error": "Could not sync settings. Check your connection and try again."
+        },
         "application": "Application",
         "actions": {
             "changelog": "Changelog",
@@ -140,7 +148,7 @@
         },
         "category": "Sections",
         "searchEmpty": "No settings found",
-        "searchPlaceholder": "Find a setting...",
+        "searchPlaceholder": "Search settings…",
         "sections": {
             "general": "General",
             "integrations": "Components"
@@ -164,7 +172,7 @@
     },
     "contextMenu": {
         "boostyUrl": "Page on Boosty",
-        "appDirectory": "App directory",
+        "appDirectory": "App folder",
         "appSettings": {
             "autoStartApp": "Auto-start app",
             "autoUpdateStoreAddons": "Auto-update store add-ons",
@@ -244,15 +252,15 @@
     },
     "contextMenuThemes": {
         "delete": "Delete {{name}}",
-        "deleteConfirm": "Are you sure you want to delete the addon \"{{name}}\"? This action cannot be undone.",
+        "deleteConfirm": "Are you sure you want to delete the add-on \"{{name}}\"? This action cannot be undone.",
         "deleteError": "Error deleting theme \"{{name}}\"",
         "deleteSuccess": "Theme \"{{name}}\" and related files were removed.",
-        "directory": "Addon directory {{name}}",
+        "directory": "Add-on folder {{name}}",
         "export": "Export {{name}}",
         "exportSuccess": "Export successful"
     },
     "dev": {
-        "addonPlaceholder": "Example Addon",
+        "addonPlaceholder": "Example Add-on",
         "cards": {
             "form": {
                 "open": "Open form",
@@ -271,7 +279,7 @@
             },
             "upload": {
                 "open": "Open upload",
-                "subtitle": "Addon upload modal",
+                "subtitle": "Add-on upload modal",
                 "title": "Upload"
             }
         },
@@ -325,7 +333,7 @@
         "updatedLabel": "Updated",
         "updatedLabelWithTime": "Updated: {{time}}",
         "upload": {
-            "scanning": "Scanning...",
+            "scanning": "Scanning…",
             "steps": {
                 "manifests": "Generating .manifests",
                 "review": "Sent for review",
@@ -339,7 +347,7 @@
         "copyFailed": "Failed to write to clipboard",
         "copyStackFailed": "Failed to copy stack trace:",
         "noStackTrace": "No stack trace available",
-        "title": "Hold on... Something went wrong...",
+        "title": "Something went wrong",
         "unknownError": "An unknown error occurred"
     },
     "extensions": {
@@ -351,11 +359,11 @@
             "resetLinkHint": "Forget the project folder and editing preference. Files are kept.",
             "resetLinkError": "Could not reset the project link.",
             "metadataPromptTitle": "Save changes to the project?",
-            "metadataPromptDescription": "WebHost addon metadata is generated during the build. Changes made only to the installed copy may be lost after rebuilding or updating.",
+            "metadataPromptDescription": "WebHost add-on metadata is generated during the build. Changes made only to the installed copy may be lost after rebuilding or updating.",
             "metadataPromptSource": "Open the source folder to save changes to the project. Choose it once — a linked project opens directly.",
             "continueHere": "Continue here",
-            "wrongAddon": "The selected project belongs to another addon. Select this addon's source folder.",
-            "title": "Addon project",
+            "wrongAddon": "The selected project belongs to another add-on. Select this add-on's source folder.",
+            "title": "Add-on project",
             "close": "Close",
             "loading": "Loading…",
             "edit": "Edit",
@@ -384,16 +392,16 @@
             },
             "discard": "Close without saving",
             "changed": "The file changed outside the editor. Reopen the project to load the latest version.",
-            "openError": "Could not open the project. Select a folder containing addon.config.mjs and the addon directory. Metadata can be stored in addon.manifest.json or directly in addon.config.mjs.",
+            "openError": "Could not open the project. Select a folder containing addon.config.mjs and the folder named addon. Metadata can be stored in addon.manifest.json or directly in addon.config.mjs.",
             "unsupportedConfig": "Could not read addon.config.mjs: the editor needs an object with literal values. Move computed metadata to addon.manifest.json."
         },
         "actions": {
             "openStore": "Open page in store",
             "openGithub": "Open GitHub page"
         },
-        "addonCreateFailed": "Failed to download the addon template",
+        "addonCreateFailed": "Failed to download the add-on template",
         "addonCreatedMessage": "The {{name}} template was saved successfully",
-        "addonCreatedTitle": "Addon template downloaded",
+        "addonCreatedTitle": "Add-on template downloaded",
         "createHandleEvents": "Create handleEvents.json",
         "disableAction": "Disable",
         "editModeEnter": "Edit mode enabled",
@@ -415,13 +423,13 @@
             "createAction": "Create",
             "createCategory": "Create category",
             "deleteCategory": "Delete category",
-            "deleteCategoryConfirm": "Delete the “{{name}}” category? Its addons will remain installed and move to Uncategorized.",
+            "deleteCategoryConfirm": "Delete the “{{name}}” category? Its add-ons will remain installed and move to Uncategorized.",
             "deleteCategoryTitle": "Delete category",
             "moveToCategory": "Move to category",
             "movedToCategory": "“{{name}}” moved to “{{category}}”",
             "organizeAddon": "Organize {{name}}",
             "removeFavorite": "Remove from favorites",
-            "saveFailed": "Failed to save addon organization",
+            "saveFailed": "Failed to save add-on organization",
             "uncategorized": "Uncategorized"
         },
         "meta": {
@@ -470,7 +478,7 @@
             "promote": "Publish to Stable",
             "promoted": "Release added to Stable. Visibility is unchanged.",
             "promoteFailed": "Could not add the release to Stable.",
-            "channelLabel": "Addon channel",
+            "channelLabel": "Add-on channel",
             "channelStable": "Stable",
             "channelDev": "Dev",
             "channelUnavailable": "No release is available in this channel yet.",
@@ -499,12 +507,12 @@
             "rulesAgreementLink": "add-on publication rules",
             "aiUsageLabel": "AI was used during development",
             "changelogTabTitle": "Changes in this version",
-            "changelogEmpty": "No changelog was added for this version yet.",
+            "changelogEmpty": "No changelog has been added for this version yet.",
             "cooldownLabel": "Resubmission",
             "cooldownMessage": "After rejection, the add-on can be submitted again only after 3 days. Available {{date}}.",
             "publish": "Publish",
             "update": "Update",
-            "uploading": "Sending...",
+            "uploading": "Sending…",
             "successTitle": "Sent for review",
             "publishSuccess": "The add-on has been submitted for moderation.",
             "updateSuccess": "The add-on update has been submitted for moderation.",
@@ -613,13 +621,13 @@
         "notFound": {
             "catalogLink": "Open catalog",
             "emptyDescription": "You don't have any add-ons installed yet. Find one in the catalog.",
-            "filteredDescription": "The extension may have been removed, filtered out, or not installed yet.",
+            "filteredDescription": "The add-on may have been removed, filtered out, or not installed yet.",
             "titleEmpty": "No add-ons found",
-            "titleFiltered": "Extension not found"
+            "titleFiltered": "Add-on not found"
         },
         "optionsLabel": "Options",
         "pageTitle": "Add-ons",
-        "searchPlaceholder": "Search...",
+        "searchPlaceholder": "Search…",
         "supportedVersionsInfo": "This add-on works with Yandex Music versions: {{supported}}.",
         "supportedVersionsUnknown": "unknown",
         "supportedVersionsWarning": "This add-on works with Yandex Music versions: {{supported}}.\nYour Yandex Music version ({{musicVersion}}) is outside the supported range ({{supported}}). Errors or unexpected behavior may occur!",
@@ -681,7 +689,7 @@
             "title": "Notifications",
             "unreadCount": "Unread: {{count}}",
             "markAllRead": "Mark all read",
-            "loading": "Loading notifications...",
+            "loading": "Loading notifications…",
             "loadMoreError": "Could not load older notifications.",
             "retry": "Retry",
             "empty": "There are no important notifications yet",
@@ -765,7 +773,7 @@
             "remainingHours": "{{hours}}h {{minutes}}m",
             "remainingMinutes": "{{minutes}}m",
             "join": "Join",
-            "joining": "Joining...",
+            "joining": "Joining…",
             "entered": "Joined",
             "notStarted": "Soon",
             "enteredTitle": "Entry accepted",
@@ -822,7 +830,7 @@
             "optionBeta": "beta",
             "optionDev": "dev",
             "apply": "Apply",
-            "saving": "Saving...",
+            "saving": "Saving…",
             "saved": "Switched to {{channel}}.",
             "loadError": "Failed to load update channel settings.",
             "saveError": "Failed to save the update channel.",
@@ -885,8 +893,8 @@
             }
         },
         "premiumPromo": {
-            "title": "This is premium feature",
-            "description": "You need subscribe on Boosty to use this feature.\nAlso you should connect the same Discord account to your Boosty and PulseSync accounts.",
+            "title": "This is a premium feature",
+            "description": "Subscribe on Boosty to use this feature.\nYou also need to connect the same Discord account to your Boosty and PulseSync accounts.",
             "subscribe": "Subscribe",
             "ok": "Got it"
         },
@@ -904,7 +912,7 @@
                 "delete": "Delete"
             },
             "toasts": {
-                "deletingTitle": "Removing...",
+                "deletingTitle": "Removing…",
                 "deletingDescription": "Removing Yandex Music from the Microsoft Store",
                 "deleteStartFailed": "Failed to start app removal",
                 "deleteFailed": "Failed to remove the app",
@@ -924,22 +932,22 @@
     "layout": {
         "downloadProgress": "Download progress: {{progress}}%",
         "downloadProgressLabel": "Downloading mod files",
-        "downloading": "Downloading {{name}}...",
+        "downloading": "Downloading {{name}}…",
         "errorOccurred": "An error occurred",
         "errorWithMessage": "Error: {{message}}",
         "installAction": "Install",
         "installPreparedUpdateAction": "Install",
         "installUpdateTooltip": "Apply update",
         "authRequired": {
-            "description": "This section is available only after you sign in. Sign in first, then open it again.",
-            "title": "Sign in required"
+            "description": "Sign in to your account and open this section again.",
+            "title": "Sign in to your account"
         },
         "modInstallAlreadyRunning": "Installation already started",
         "modInstallErrorTitle": "Mod install error",
         "modInstallErrorProxyHint": "Make sure these domains are proxied/added to zapret:",
         "modInstallFailed": "Failed to install the mod. Please try again.",
         "modInstallInterrupted": "The download was interrupted. Check your connection and try again.",
-        "modInstallStart": "Starting mod installation...",
+        "modInstallStart": "Starting mod installation…",
         "modInstallSuccess": "Installation completed successfully!",
         "modInstallTitle": "Mod installation",
         "modInstallDescription": "The process will take about a minute",
@@ -948,15 +956,15 @@
         "modUpdateAlreadyRunning": "Update already started",
         "modUpdateFailed": "Failed to update the mod. Please try again or check your connection.",
         "modUpdateLoadError": "Update download error",
-        "modUpdateInstalling": "Installing the mod update...",
+        "modUpdateInstalling": "Installing the mod update…",
         "modUpdateReadyDescription": "Version {{version}} is downloaded and ready to install.",
         "modUpdateReadyTitle": "Mod update is ready",
-        "modUpdateStart": "Starting update download...",
+        "modUpdateStart": "Starting update download…",
         "modUpdateSuccess": "Update completed successfully!",
         "modUpdateTitle": "Mod update",
         "nav": {
             "addonsBeta": "Add-ons",
-            "extensionsStore": "Extension store",
+            "extensionsStore": "Add-on catalog",
             "home": "Home",
             "users": "Users",
             "unavailableInAutonomous": "Unavailable in autonomous mode"
@@ -964,6 +972,7 @@
         "noModInstallsAvailable": "No mod installations available.",
         "noModUpdatesAvailable": "No updates available to install.",
         "updateAction": "Update",
+        "updatingAction": "Updating…",
         "unknownError": "Unknown error."
     },
     "levelProgress": {
@@ -977,7 +986,7 @@
             "requiredPlaceholder": "Add at least one author",
             "searchHint": "Start typing a username or nickname.",
             "noSearchResults": "No users found",
-            "loading": "Loading users...",
+            "loading": "Loading users…",
             "add": "Add",
             "added": "Added",
             "minimumOneAuthor": "An add-on must have at least one author.",
@@ -1052,29 +1061,29 @@
         "availableVersion": "Version {{version}} available",
         "cacheClearError": "Failed to clear cache: {{message}}",
         "cacheCleared": "Mod cache cleared",
-        "cacheClearing": "Clearing mod cache...",
+        "cacheClearing": "Clearing mod cache…",
         "notInstalledTitle": "Mod not installed",
         "removeError": "Error removing mod: {{message}}",
         "removedSuccess": "Mod removed successfully",
-        "removing": "Removing mod...",
+        "removing": "Removing mod…",
         "updateAvailableBody": "New version available: {{version}}",
         "updateAvailableTitle": "Update available"
     },
     "obsWidget": {
         "downloadError": "Failed to download widget: {{message}}",
-        "downloading": "Downloading OBS widget...",
+        "downloading": "Downloading OBS widget…",
         "installSuccess": "OBS widget installed successfully",
         "pathCopied": "Path copied to clipboard",
         "pathCopyError": "Failed to copy path",
         "pathFetchError": "Failed to get widget path",
         "removeError": "Failed to remove widget: {{message}}",
         "removeSuccess": "OBS widget removed successfully",
-        "removing": "Removing OBS widget..."
+        "removing": "Removing OBS widget…"
     },
     "options": {
-        "addonsDirectory": "Addons directory",
-        "createAddon": "Create addon",
-        "reloadAddons": "Reload addons"
+        "addonsDirectory": "Add-ons folder",
+        "createAddon": "Create add-on",
+        "reloadAddons": "Reload add-ons"
     },
     "pages": {
         "home": {
@@ -1095,7 +1104,7 @@
             "musicReleaseNotesFallbackVersion": "Default",
             "installed": "Installed",
             "notInstalled": "Not installed",
-            "onDemandInstallHint": "This component installs automatically by Yandex Music when needed.",
+            "onDemandInstallHint": "Yandex Music installs this component automatically when needed.",
             "musicName": "Yandex Music",
             "modName": "PulseSync Mod",
             "clientName": "PulseSync Client"
@@ -1125,7 +1134,7 @@
             "subtitle": "Reach the highest level.",
             "title": "Achievements",
             "unknown": "Unknown",
-            "warningDescription": "At the moment, we are deciding the future fate of the achievement system. Until then, it will be unavailable",
+            "warningDescription": "The achievement system is unavailable while we decide its future.",
             "warningTitle": "Attention! The achievement system is temporarily unavailable"
         },
         "errors": {
@@ -1166,7 +1175,7 @@
         "fetchError": "Failed to fetch users.",
         "noResults": "No results",
         "pageTitle": "Users",
-        "searchPlaceholder": "search...",
+        "searchPlaceholder": "search…",
         "sort": {
             "createdAt": "Registration date",
             "lastOnline": "Last active",
@@ -1256,7 +1265,7 @@
         "shareCopied": "Add-on link copied.",
         "shareFailed": "Failed to copy the link.",
         "remove": "Remove",
-        "removeConfirm": "Are you sure you want to delete the addon \"{{title}}\"?",
+        "removeConfirm": "Are you sure you want to delete the add-on \"{{title}}\"?",
         "removeComplete": "Add-on {{title}} was removed.",
         "removeFailed": "Failed to remove add-on {{title}}.",
         "unknownAddon": "Add-on",

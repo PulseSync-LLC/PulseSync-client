@@ -70,6 +70,8 @@ type DeltaArtifact = {
 
 type BootstrapperUpdateManifest = {
     channel: string
+    deprecatedVersions?: string[] | null
+    minClientVersion?: string | null
     desktopVersion: string
     bundleVersion?: string
     metadataVersion: number
@@ -848,6 +850,8 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
         throw new Error('desktopCore component artifact is required')
     }
     const manifest: BootstrapperUpdateManifest = {
+        deprecatedVersions: previousManifest?.deprecatedVersions,
+        minClientVersion: previousManifest?.minClientVersion,
         schemaVersion: 3,
         metadataVersion,
         channel: options.channel,
@@ -883,6 +887,8 @@ export async function emitDesktopReleaseManifest(options: EmitDesktopReleaseMani
     if (macosBundle) {
         if (!bootstrapperArtifact) throw new Error('macos-hybrid manifest requires a bootstrapper artifact')
         const hybridManifest: BootstrapperUpdateManifest = {
+            deprecatedVersions: previousManifest?.deprecatedVersions,
+            minClientVersion: previousManifest?.minClientVersion,
             schemaVersion: 5,
             metadataVersion,
             channel: options.channel,

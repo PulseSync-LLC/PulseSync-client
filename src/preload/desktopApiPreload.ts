@@ -220,6 +220,11 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     },
 
     settings: {
+        readCloudLocalState: (session, remote) => ipcRenderer.invoke(MainEvents.READ_CLOUD_LOCAL_STATE, session, remote),
+        setCloudPendingDelete: (session, pending) => ipcRenderer.invoke(MainEvents.SET_CLOUD_PENDING_DELETE, session, pending),
+        rememberCloudBaseline: (session, snapshot) => ipcRenderer.invoke(MainEvents.REMEMBER_CLOUD_BASELINE, session, snapshot),
+        applyCloudSnapshot: (session, snapshot, expected) => ipcRenderer.invoke(MainEvents.APPLY_CLOUD_SNAPSHOT, session, snapshot, expected),
+        onCloudAddonApplied: listener => subscribePayload(RendererEvents.CLOUD_ADDON_SETTINGS_APPLIED, listener),
         getSnapshot: async () => {
             const mod = await ipcRenderer.invoke(MainEvents.GET_INSTALLED_MOD_STATE)
             return {
@@ -337,7 +342,7 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
 
         getVersion: () => ipcRenderer.invoke(MainEvents.GET_MUSIC_VERSION),
 
-        checkInstall: () => ipcRenderer.send(MainEvents.CHECK_MUSIC_INSTALL),
+        requestInstall: () => ipcRenderer.send(MainEvents.REQUEST_MUSIC_INSTALL),
 
         fixLinuxPermissions: () => ipcRenderer.invoke(MainEvents.FIX_LINUX_MUSIC_PERMISSIONS),
 
