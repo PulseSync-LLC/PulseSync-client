@@ -2,6 +2,7 @@ import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useSta
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { MdClose, MdSearch } from 'react-icons/md'
 
 import BufferedColorInput from '@features/configurationSettings/BufferedColorInput'
 import BufferedSliderInput from '@features/configurationSettings/BufferedSliderInput'
@@ -125,6 +126,7 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
     const normalizedInitialConfig = normalizeAddonConfig(structuredClone(configData))
     const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
     const [search, setSearch] = useState('')
+    const searchRef = useRef<HTMLInputElement>(null)
     const searchTerms = search.toLocaleLowerCase().replace(/ё/g, 'е').trim().split(/\s+/).filter(Boolean)
     const matches = (sectionTitle: string, item: Item) => {
         const text = [
@@ -223,7 +225,9 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
             case 'file':
                 return item.value !== item.defaultValue
             case 'selector':
-                return Object.values(item.options).some(option => 'value' in option) ? !Object.is(item.value, item.defaultValue) : String(item.value) !== String(item.defaultValue)
+                return Object.values(item.options).some(option => 'value' in option)
+                    ? !Object.is(item.value, item.defaultValue)
+                    : String(item.value) !== String(item.defaultValue)
             case 'text':
                 return item.value !== item.defaultValue
         }
@@ -318,7 +322,11 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
                             className={css.controlCard}
                             label={it.name}
                             description={it.description}
-                            value={Object.entries(it.options).find(([key, option]) => Object.is(option.value ?? (toNumber ? Number(key) : key), it.value))?.[0] ?? ''}
+                            value={
+                                Object.entries(it.options).find(([key, option]) =>
+                                    Object.is(option.value ?? (toNumber ? Number(key) : key), it.value),
+                                )?.[0] ?? ''
+                            }
                             options={opts}
                             onChange={val => {
                                 const option = it.options[String(val)]
@@ -432,14 +440,30 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
 
     return (
         <div ref={rootRef} className={css.root}>
-            <input
-                type="search"
-                className={css.search}
-                value={search}
-                onChange={event => setSearch(event.target.value)}
-                placeholder={t('settingsModal.searchPlaceholder')}
-                aria-label={t('settingsModal.searchPlaceholder')}
-            />
+            <div className={css.searchBox}>
+                <MdSearch className={css.searchIcon} size={18} aria-hidden="true" />
+                <input
+                    ref={searchRef}
+                    type="search"
+                    className={css.search}
+                    value={search}
+                    onChange={event => setSearch(event.target.value)}
+                    placeholder={t('settingsModal.searchPlaceholder')}
+                    aria-label={t('settingsModal.searchPlaceholder')}
+                />
+                <button
+                    type="button"
+                    className={css.searchClear}
+                    hidden={!search}
+                    aria-label={t('common.clear')}
+                    onClick={() => {
+                        setSearch('')
+                        searchRef.current?.focus()
+                    }}
+                >
+                    <MdClose size={16} aria-hidden="true" />
+                </button>
+            </div>
             {!hasResults && (
                 <p className={css.searchEmpty} aria-live="polite">
                     {t('settingsModal.searchEmpty')}
