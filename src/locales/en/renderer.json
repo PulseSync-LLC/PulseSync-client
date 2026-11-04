@@ -133,6 +133,14 @@
         "resetToDefault": "Reset to default"
     },
     "settingsModal": {
+        "cloud": {
+            "restoreError": "Some catalog addons could not be restored. They will be retried automatically.",
+            "title": "Cloud settings",
+            "enabled": "Sync settings",
+            "description": "Save client preferences and addon settings to your account and restore them on other devices. Turning this off deletes the cloud copy and keeps local settings.",
+            "pendingDelete": "Sync is stopped. The cloud copy will be deleted when the connection is restored.",
+            "error": "Could not connect to the cloud. Check your connection and try again."
+        },
         "application": "Application",
         "actions": {
             "changelog": "Changelog",

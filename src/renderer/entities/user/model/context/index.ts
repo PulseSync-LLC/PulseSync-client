@@ -12,6 +12,7 @@ import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGate
 const noopAsync = async (): Promise<void> => {}
 
 const defaultUserContextValue: UserContextValue = {
+    cloudSettings: { enabled: false, pendingDelete: false, available: false, busy: false, error: false, setEnabled: noopAsync },
     user: userInitials,
     setUser: () => void 0,
     isAutonomousMode: true,

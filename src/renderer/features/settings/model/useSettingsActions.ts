@@ -20,7 +20,7 @@ type UpdateStatus = 'IDLE' | 'CHECKING' | 'DOWNLOADING' | 'DOWNLOADED'
 
 export function useSettingsActions(enabled: boolean) {
     const { t, i18n } = useTranslation()
-    const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates } = useContext(userContext)
+    const { app, setApp, widgetInstalled, setWidgetInstalled, isAutonomousMode, checkModUpdates, cloudSettings } = useContext(userContext)
     const { Modals, openModal } = useModalContext()
     const { isExperimentEnabled } = useExperiments()
     const widgetDownloadToastIdRef = useRef<string | null>(null)
@@ -373,6 +373,7 @@ export function useSettingsActions(enabled: boolean) {
 
     return {
         app,
+        cloudSettings,
         canResetAsarPath,
         checkAppUpdates: () => desktopApi.updates.check({ manual: true }),
         checkModUpdates: () => checkModUpdates(app, { manual: true }),

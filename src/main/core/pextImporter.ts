@@ -25,6 +25,7 @@ type ImportAddonArchiveOptions = {
     releaseChannel?: 'stable' | 'dev'
     installSource?: 'store' | 'local'
     storeAddonId?: string | null
+    preserveLocalAddons?: boolean
     validateLegacyStoreUpdate?: () => Promise<void>
 }
 
@@ -228,6 +229,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             const existingLocalAddon = findAddonByPublicationFingerprint(publicationFingerprint, 'local')
 
             if (existingLocalAddon) {
+                if (options.preserveLocalAddons) throw new Error('LOCAL_ADDON_CONFLICT')
                 targetDirectoryOverride = existingLocalAddon.directoryName
                 logger.main.info(
                     `Replacing local addon ${existingLocalAddon.directoryName} with store publication ${String(metadata.storeAddonId || metadata.name)}`,
@@ -241,6 +243,12 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
                 preferStoreId: metadata.installSource === 'store',
             })
         const outputDir = path.join(getAddonsRoot(), addonDirectory)
+        if (options.preserveLocalAddons && fs.existsSync(outputDir)) {
+            const existingMetadata = JSON.parse(await fsp.readFile(path.join(outputDir, 'metadata.json'), 'utf8'))
+            if (existingMetadata.installSource !== 'store' || existingMetadata.storeAddonId !== metadata.storeAddonId) {
+                throw new Error('LOCAL_ADDON_CONFLICT')
+            }
+        }
         if (metadata.installSource === 'store' && options.validateLegacyStoreUpdate && fs.existsSync(outputDir)) {
             const targetRuntime = await classifyAddonRuntime(stagingDir, metadata)
             if (targetRuntime === 'legacy') {

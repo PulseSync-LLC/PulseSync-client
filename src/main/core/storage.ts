@@ -71,11 +71,13 @@ const schema = {
                 default: false,
             },
             devSocket: {
+                $comment: 'device-local',
                 type: 'boolean',
                 description: t('main.storage.settings.devSocket'),
                 default: true,
             },
             showDevFrame: {
+                $comment: 'device-local',
                 type: 'boolean',
                 description: 'Show the development build frame',
                 default: true,
@@ -106,6 +108,7 @@ const schema = {
                 default: 'ru',
             },
             modSavePath: {
+                $comment: 'device-local',
                 type: 'string',
                 description: t('main.storage.settings.modSavePath'),
                 default: '',
@@ -131,6 +134,7 @@ const schema = {
                 },
             },
             windowDimensions: {
+                $comment: 'device-local',
                 type: 'object',
                 description: t('main.storage.settings.windowDimensions'),
                 properties: {
@@ -141,6 +145,7 @@ const schema = {
                 default: {},
             },
             windowPosition: {
+                $comment: 'device-local',
                 type: 'object',
                 description: t('main.storage.settings.windowPosition'),
                 properties: {
@@ -151,11 +156,13 @@ const schema = {
                 default: {},
             },
             lastDisplayId: {
+                $comment: 'device-local',
                 type: 'number',
                 description: t('main.storage.settings.lastDisplayId'),
                 default: 0,
             },
             musicReinstalled: {
+                $comment: 'device-local',
                 type: 'boolean',
                 description: t('main.storage.settings.musicReinstalled'),
                 default: false,
@@ -336,6 +343,37 @@ const schema = {
         },
     },
 }
+
+type PreferenceSchema = {
+    type: string
+    $comment?: string
+    enum?: unknown[]
+    properties?: Record<string, PreferenceSchema>
+    required?: string[]
+}
+
+const pickPreferenceValue = (value: unknown, property: PreferenceSchema): unknown => {
+    if (property.$comment === 'device-local' || value === undefined) return undefined
+    if (property.enum && !property.enum.includes(value)) return undefined
+    if (property.type === 'object') {
+        if (!value || typeof value !== 'object' || Array.isArray(value) || !property.properties) return undefined
+        const entries = Object.entries(property.properties).flatMap(([key, child]) => {
+            const picked = pickPreferenceValue((value as Record<string, unknown>)[key], child)
+            return picked === undefined ? [] : [[key, picked]]
+        })
+        const result = Object.fromEntries(entries)
+        return property.required?.some(key => !Object.hasOwn(result, key)) ? undefined : result
+    }
+    return typeof value === property.type && (typeof value !== 'number' || Number.isFinite(value)) ? value : undefined
+}
+
+export const pickCloudPreferences = (input: Record<string, unknown>): Record<string, unknown> =>
+    Object.fromEntries(
+        Object.entries(schema.settings.properties).flatMap(([key, property]) => {
+            const value = pickPreferenceValue(input[key], property)
+            return value === undefined ? [] : [[key, value]]
+        }),
+    )
 
 class Store implements StoreType {
     public store: any

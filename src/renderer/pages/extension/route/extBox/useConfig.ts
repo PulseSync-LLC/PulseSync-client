@@ -104,5 +104,13 @@ export function useConfig(addon: Addon): UseConfigResult {
         reload()
     }, [reload])
 
+    useEffect(
+        () =>
+            desktopApi.settings.onCloudAddonApplied(addonId => {
+                if (addonId === addon.id) void reload()
+            }),
+        [addon.id, reload],
+    )
+
     return { configExists, config, editConfig, configApi: { reload, save, saveSchema } }
 }

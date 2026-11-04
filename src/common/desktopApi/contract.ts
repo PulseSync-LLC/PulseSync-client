@@ -1,4 +1,5 @@
 import type { AddonProject, AddonProjectDocument, AddonProjectOpenRequest } from '../addons/project'
+import type { CloudSettingsLocalState, CloudSettingsSession, CloudSettingsSnapshot } from '../cloudSettings'
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
@@ -99,6 +100,7 @@ export interface DesktopInstallModRequest {
 }
 
 export interface DesktopInstallStoreAddonRequest {
+    cloudSession?: CloudSettingsSession
     openAfterInstall?: boolean
     legacyAddonRestrictionsOverrideGroup?: string
     releaseChannel?: 'stable' | 'dev'
@@ -216,6 +218,15 @@ export interface PulseSyncDesktopApi {
         onDownloadFailed(listener: (failure?: DesktopUpdateFailurePayload) => void): DesktopUnsubscribe
     }
     settings: {
+        readCloudLocalState(session: CloudSettingsSession, remote?: CloudSettingsSnapshot): Promise<CloudSettingsLocalState>
+        setCloudPendingDelete(session: CloudSettingsSession, pending: boolean): Promise<void>
+        rememberCloudBaseline(session: CloudSettingsSession, snapshot: CloudSettingsSnapshot | null): Promise<void>
+        applyCloudSnapshot(
+            session: CloudSettingsSession,
+            snapshot: CloudSettingsSnapshot,
+            expected: CloudSettingsSnapshot,
+        ): Promise<CloudSettingsSnapshot>
+        onCloudAddonApplied(listener: (addonId: string) => void): DesktopUnsubscribe
         getSnapshot(): Promise<DesktopStateSnapshot>
         updatePreferences(patch: DesktopSettingsPatch): Promise<void>
         getStoreReleaseChannel(): DesktopStoreReleaseChannel | null

@@ -30,7 +30,7 @@ const readStoredValue = (storedValues: AddonSettingsValues | undefined, keys: st
     return undefined
 }
 
-const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => {
+export const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => {
     const valuesPath = path.join(getAddonsRoot(), directory, HANDLE_EVENTS_SETTINGS_FILENAME)
     if (!fs.existsSync(valuesPath)) {
         return {}
@@ -43,7 +43,7 @@ const readAddonSettingsValuesFile = (directory: string): AddonSettingsValues => 
     }
 }
 
-const readAddonSettingsSchema = (directory: string): HandleConfig | null => {
+export const readAddonSettingsSchema = (directory: string): HandleConfig | null => {
     const addonRoot = path.join(getAddonsRoot(), directory)
     const metadataPath = path.join(addonRoot, 'metadata.json')
 

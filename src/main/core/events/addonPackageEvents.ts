@@ -14,9 +14,11 @@ import MainEvents from '@common/types/mainEvents'
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
+import { assertCloudAddonRestoreAllowed } from '../cloudSettings'
 import mainHttpClient from '../http/client'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../pextImporter'
 import { getState } from '../state'
+import { listAddonMetadata } from '../utils/addonRegistry'
 import { loadAddons } from '../utils/addonUtils'
 import { assertLegacyAddonUpdateAllowed } from '../utils/legacyAddonUpdatePolicy'
 
@@ -284,6 +286,11 @@ export const registerAddonPackageEvents = ({
             const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
             const authToken = State.get('tokens.token')
             if (!isAuthorized() || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
+            if (payload.cloudSession) {
+                assertCloudAddonRestoreAllowed(payload.cloudSession)
+                const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
+                if (installed) return { success: true, addonName: installed.directoryName }
+            }
 
             let downloadUrl: string | null | undefined
             const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
@@ -316,6 +323,7 @@ export const registerAddonPackageEvents = ({
             }
             if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
             if (State.get('tokens.token') !== authToken || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
+            if (payload.cloudSession) assertCloudAddonRestoreAllowed(payload.cloudSession)
 
             const parsedUrl = new URL(downloadUrl)
             if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
@@ -327,15 +335,23 @@ export const registerAddonPackageEvents = ({
 
             const response = await axios.get<ArrayBuffer>(downloadUrl, {
                 responseType: 'arraybuffer',
+                ...(payload.cloudSession ? { timeout: 30_000 } : {}),
             })
             if (State.get('tokens.token') !== authToken || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
 
             await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
 
+            if (payload.cloudSession) {
+                assertCloudAddonRestoreAllowed(payload.cloudSession)
+                const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
+                if (installed) return { success: true, addonName: installed.directoryName }
+            }
+
             const addonName = await importAddonArchive(tempArchivePath, {
                 installSource: 'store',
                 storeAddonId: addonId,
                 releaseChannel,
+                preserveLocalAddons: !!payload.cloudSession,
                 validateLegacyStoreUpdate: reviewReleaseId
                     ? undefined
                     : () => assertLegacyAddonUpdateAllowed(authToken, payload.legacyAddonRestrictionsOverrideGroup),
