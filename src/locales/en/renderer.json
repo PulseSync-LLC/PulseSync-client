@@ -148,7 +148,7 @@
         },
         "category": "Sections",
         "searchEmpty": "No settings found",
-        "searchPlaceholder": "Find a setting…",
+        "searchPlaceholder": "Search settings…",
         "sections": {
             "general": "General",
             "integrations": "Components"

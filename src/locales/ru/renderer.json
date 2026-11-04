@@ -148,7 +148,7 @@
         },
         "category": "Разделы",
         "searchEmpty": "Настройки не найдены",
-        "searchPlaceholder": "Найти настройку…",
+        "searchPlaceholder": "Поиск настроек…",
         "sections": {
             "general": "Основные",
             "integrations": "Компоненты"
