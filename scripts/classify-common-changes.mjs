@@ -257,10 +257,11 @@ export function classifyCommonChanges(changedFiles, root = process.cwd()) {
     try {
         const { closures } = collectSourceOwnership(root)
         for (const file of changedFiles) {
-            if (!/\.(?:[cm]?[jt]s|[jt]sx|json)$/u.test(file)) throw new Error(`Unsupported common source: ${file}`)
-            if (!file.startsWith('src/common/') || !fs.existsSync(path.resolve(root, file))) throw new Error(`Missing common source: ${file}`)
+            if (!/\.(?:[cm]?[jt]s|[jt]sx|json)$/u.test(file)) throw new Error(`Unsupported classified source: ${file}`)
+            if (!/^src\/(?:common|preload)\//u.test(file) || !fs.existsSync(path.resolve(root, file)))
+                throw new Error(`Missing classified source: ${file}`)
             const owners = Object.keys(closures).filter(owner => closures[owner].has(file))
-            if (!owners.length) throw new Error(`Unknown common owner: ${file}`)
+            if (!owners.length) throw new Error(`Unknown source owner: ${file}`)
             for (const owner of owners) result[owner] = true
             result.details.push(`${file}: ${owners.join(', ')}`)
         }
@@ -273,13 +274,17 @@ export function classifyCommonChanges(changedFiles, root = process.cwd()) {
 export function classifyCommonPush(changedFiles, before, root = process.cwd()) {
     if (!changedFiles.length) return classifyCommonChanges([], root)
     try {
-        if (!/^[a-f0-9]{40}$/iu.test(before || '') || /^0+$/u.test(before)) throw new Error('Missing previous commit for common changes')
-        const deleted = execFileSync('git', ['diff', '--name-only', '--diff-filter=D', '--no-renames', '-z', before, 'HEAD', '--', 'src/common'], {
-            cwd: root,
-            encoding: 'utf8',
-            stdio: ['ignore', 'pipe', 'pipe'],
-        })
-        if (deleted) throw new Error('Deleted or renamed common source')
+        if (!/^[a-f0-9]{40}$/iu.test(before || '') || /^0+$/u.test(before)) throw new Error('Missing previous commit for source changes')
+        const deleted = execFileSync(
+            'git',
+            ['diff', '--name-only', '--diff-filter=D', '--no-renames', '-z', before, 'HEAD', '--', 'src/common', 'src/preload'],
+            {
+                cwd: root,
+                encoding: 'utf8',
+                stdio: ['ignore', 'pipe', 'pipe'],
+            },
+        )
+        if (deleted) throw new Error('Deleted or renamed classified source')
         return classifyCommonChanges(changedFiles, root)
     } catch (error) {
         return fallback(error.message)

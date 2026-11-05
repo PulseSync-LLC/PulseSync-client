@@ -51,7 +51,6 @@ jobs:
               - 'src/main/core/mod/network/artifactWorker*'
               - 'src/main/core/nativeModules/pulsesyncNative.ts'
               - 'src/main/core/bootstrap/activeComponents.ts'
-              - 'src/preload/!(mainWindowPreload.ts)/**'
               - 'src/locales/bundled/*/main.json'
               - 'src/renderer/preloader.html'
               - 'src/renderer/preloader.ts'
@@ -90,6 +89,7 @@ jobs:
               - 'packages/desktop-core/package.json'
             common:
               - 'src/common/**'
+              - 'src/preload/**'
             dependencies:
               - 'package.json'
               - 'yarn.lock'
@@ -140,7 +140,7 @@ jobs:
         if: ${{ steps.filter.outputs.common == 'true' || steps.filter.outputs.dependencies == 'true' }}
         run: yarn install --immutable --mode=skip-build
 
-      - name: Classify common changes
+      - name: Classify shared and preload changes
         if: ${{ steps.filter.outputs.common == 'true' }}
         id: common
         env:
@@ -168,6 +168,8 @@ jobs:
           echo "bootstrapper=${{ steps.filter.outputs.bootstrapper }}"
           echo "desktop_filter=${{ steps.filter.outputs.desktop }}"
           echo "desktop_core=${{ steps.filter.outputs.desktop_core }}"
+          echo "common_desktop=${{ steps.common.outputs.desktop }}"
+          echo "common_desktop_core=${{ steps.common.outputs.desktop_core }}"
           echo "renderer=${{ steps.filter.outputs.renderer }}"
           echo "dependencies_desktop=${{ steps.dependencies.outputs.desktop }}"
           echo "dependencies_renderer=${{ steps.dependencies.outputs.renderer }}"
