@@ -1,0 +1,48 @@
+.panel {
+    padding: 14px;
+    margin: 16px 0;
+
+    color: var(--text-primary);
+
+    background: color-mix(in srgb, var(--danger) 8%, var(--surface-primary));
+    border: 1px solid color-mix(in srgb, var(--danger) 40%, transparent);
+    border-radius: 8px;
+
+    p {
+        margin: 8px 0;
+
+        font-size: 13px;
+
+        line-height: 1.5;
+    }
+}
+
+.timestamp,
+.unavailable {
+    font-size: 12px;
+
+    color: var(--text-secondary);
+}
+
+.details {
+    margin-top: 12px;
+
+    summary {
+        cursor: pointer;
+    }
+
+    pre {
+        max-height: 220px;
+
+        overflow: auto;
+
+        font-size: 12px;
+
+        overflow-wrap: anywhere;
+        white-space: pre-wrap;
+    }
+}
+
+.error {
+    color: var(--danger);
+}

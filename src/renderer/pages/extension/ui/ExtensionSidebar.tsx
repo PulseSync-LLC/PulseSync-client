@@ -14,6 +14,7 @@ import toast from '@shared/ui/toast'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
+import type { DesktopAddonRecoverySnapshot } from '@common/addons/recovery'
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonTypeFilter, SortKey } from '@pages/extension/model/addonCatalog'
@@ -22,6 +23,7 @@ const ADDON_DRAG_TYPE = 'application/x-pulsesync-addon-id'
 const DRAG_OPEN_DELAY_MS = 550
 
 type Props = {
+    addonRecovery: DesktopAddonRecoverySnapshot
     addonOrganization: DesktopAddonOrganization
     addonImagesReady: boolean
     addons: Addon[]
@@ -71,6 +73,7 @@ function getActiveFiltersCount(type: AddonTypeFilter, sort: SortKey, selectedTag
 }
 
 export default function ExtensionSidebar({
+    addonRecovery,
     addonOrganization,
     addonImagesReady,
     addons,
@@ -248,6 +251,7 @@ export default function ExtensionSidebar({
 
     const renderAddonCard = (addon: Addon) => (
         <AddonCard
+            recoveryEntries={addonRecovery.entries.filter(entry => entry.directoryName === addon.directoryName)}
             key={addon.id}
             addon={addon}
             categories={addonOrganization.categories}
@@ -386,6 +390,11 @@ export default function ExtensionSidebar({
                     </OptionMenu>
                 </div>
                 <div className={extensionStylesV2.addonList}>
+                    {addonRecovery.entries.length ? (
+                        <div className={extensionStylesV2.recoverySummary} role="status">
+                            {t('extensions.recovery.summary', { count: new Set(addonRecovery.entries.map(entry => entry.directoryName)).size })}
+                        </div>
+                    ) : null}
                     <Accordion
                         items={groupItems}
                         multiple

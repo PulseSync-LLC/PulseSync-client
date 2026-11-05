@@ -18,6 +18,7 @@ import mainHttpClient from '../http/client'
 import { isFirstInstance } from '../singleInstance'
 import { selectedAddon } from '../startup/runtimeState'
 import { getState } from '../state'
+import { createAddonRecoveryService } from './addonRecovery'
 import { createAddonService } from './addonService'
 import { registerServerIpcEvents } from './events/registerServerIpcEvents'
 import { registerSocketClientEvents } from './events/registerSocketClientEvents'
@@ -65,6 +66,7 @@ const addonService = createAddonService({
     getAuthorized: () => authorized,
     getSelectedAddon: () => selectedAddon,
 })
+const addonRecovery = createAddonRecoveryService(() => authorized)
 
 const handleWebDeeplink = async (url: string): Promise<boolean> => {
     if (!checkIsDeeplink(url)) return false
@@ -213,6 +215,7 @@ const initializeServer = () => {
 
     io.on('connection', (socket: Socket) => {
         if (socket.data.modIntegrityVerified === true) {
+            addonRecovery.registerSocket(socket)
             registerAddonModuleTransport(
                 socket,
                 () => {

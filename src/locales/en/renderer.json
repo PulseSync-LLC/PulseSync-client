@@ -351,6 +351,26 @@
         "unknownError": "An unknown error occurred"
     },
     "extensions": {
+        "recovery": {
+            "blocked": "Blocked after an error",
+            "description": "PulseSync blocked this addon from loading again to prevent further failures. Your enable preference is preserved. You can retry manually.",
+            "rendererCrash": "The application exited while this addon was loading. PulseSync blocked it from loading again. This does not establish that the addon caused the crash.",
+            "retry": "Retry addon",
+            "retrying": "Retrying…",
+            "retryFailed": "Could not retry the addon. Check the connection to Yandex Music and the current addon state.",
+            "details": "Error details",
+            "copy": "Copy details",
+            "copied": "Error details copied",
+            "copyFailed": "Could not copy error details",
+            "disconnected": "Yandex Music is disconnected. This state is not updating; reconnect to retry the addon.",
+            "unsupported": "Addon recovery status is unavailable. Update the PulseSync client and mod.",
+            "loading": "Getting addon status from Yandex Music…",
+            "disabled": "This addon is disabled in settings. Enable it before retrying.",
+            "summary": "Addons need attention: {{count}}",
+            "restartTitle": "Retry this legacy addon?",
+            "restartDescription": "Retrying requires reloading the Yandex Music window. Playback may be interrupted.",
+            "restartAction": "Reload Yandex Music"
+        },
         "project": {
             "open": "Open project",
             "editProject": "Edit project",

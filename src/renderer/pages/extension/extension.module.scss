@@ -442,6 +442,39 @@
     opacity: 1;
 }
 
+.addonCardBlocked {
+    height: 48px;
+}
+
+.checkSelectBlocked,
+.recoveryLabel {
+    color: var(--danger);
+}
+
+.addonIdentity {
+    min-width: 0;
+}
+
+.recoveryLabel {
+    overflow: hidden;
+    text-overflow: ellipsis;
+
+    font-size: 10px;
+
+    white-space: nowrap;
+}
+
+.recoverySummary {
+    padding: 10px;
+    margin: 0 10px 10px;
+
+    color: var(--danger);
+
+    background: color-mix(in srgb, var(--danger) 8%, transparent);
+    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
+    border-radius: 6px;
+}
+
 .checkSelectEnabled.checkMarkTheme,
 .checkSelectEnabled.checkMarkScript {
     color: var(--success);

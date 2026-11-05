@@ -45,6 +45,7 @@ interface DataToMusicOptions {
 
 type ThemePayload = {
     name: string
+    directoryName?: string
     css: string
     script: string
 }
@@ -304,6 +305,7 @@ export const createAddonService = ({ state, logger, getIo, getAuthorized, getSel
 
             return {
                 name: useDefault ? 'Default' : metadata.name || themeFolder,
+                directoryName: themeFolder,
                 css: css || '{}',
                 script,
             }

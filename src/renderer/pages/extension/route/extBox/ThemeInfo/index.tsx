@@ -15,6 +15,7 @@ import { useModalContext } from '@app/providers/modal'
 import { createContextMenuActions } from '@features/context_menu_themes/sectionConfig'
 import { isAddonAuthor, isRestrictedLegacyAddon } from '@entities/addon/lib/legacyAddonRestrictions'
 import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
+import AddonRecoveryPanel from '@entities/addon/ui/AddonRecoveryPanel'
 import LegacyAddonRestrictionBadge from '@entities/addon/ui/LegacyAddonRestrictionBadge'
 import userContext from '@entities/user/model/context'
 import { desktopApi } from '@shared/desktop/desktopApi'
@@ -24,10 +25,13 @@ import toast from '@shared/ui/toast'
 
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 
+import type { DesktopAddonRecoveryEntry, DesktopAddonRecoverySnapshot } from '@common/addons/recovery'
 import type AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 interface Props {
+    recoveryEntries: DesktopAddonRecoveryEntry[]
+    recoveryConnection: DesktopAddonRecoverySnapshot['connection']
     addon: AddonInterface
     onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
     isEnabled: boolean
@@ -116,6 +120,8 @@ function normalizeAuthorNames(author: AddonInterface['author']): string[] {
 }
 
 const ThemeInfo: React.FC<Props> = ({
+    recoveryEntries,
+    recoveryConnection,
     addon,
     onEditProject,
     isEnabled,
@@ -295,7 +301,7 @@ const ThemeInfo: React.FC<Props> = ({
                         <Button
                             className={cn(
                                 s.toggleButton,
-                                isEnabled ? s.enabledState : s.disabledState,
+                                isEnabled && !recoveryEntries.length ? s.enabledState : s.disabledState,
                                 !isEnabled && enableBlockedReason && s.dependencyInstallButton,
                             )}
                             disabled={dependencyInstallBusy || (!isEnabled && !!enableBlockedReason && !onInstallDependencies)}
@@ -327,6 +333,8 @@ const ThemeInfo: React.FC<Props> = ({
                 <h1>{addon.name}</h1>
                 {addon.description ? <p>{addon.description}</p> : null}
             </div>
+
+            <AddonRecoveryPanel key={addon.directoryName} entries={recoveryEntries} connection={recoveryConnection} enabled={isEnabled} />
 
             {addon.type === 'web-addon' && isAddonAuthor(addon, user) && onEditProject && (
                 <section className={s.section}>

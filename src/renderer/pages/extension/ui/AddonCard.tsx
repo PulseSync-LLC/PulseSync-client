@@ -4,7 +4,7 @@ import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz, MdShare } from 'react-icons/md'
+import { MdCheckCircle, MdErrorOutline, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz, MdShare } from 'react-icons/md'
 
 import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -18,10 +18,12 @@ import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
+import type { DesktopAddonRecoveryEntry } from '@common/addons/recovery'
 import type { DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 
 type Props = {
+    recoveryEntries: DesktopAddonRecoveryEntry[]
     addon: Addon
     categories: DesktopAddonOrganizationCategory[]
     categoryId: string | null
@@ -77,6 +79,7 @@ function AddonImage({ alt, fallbackSrc, ready, src }: AddonImageProps) {
 }
 
 export default function AddonCard({
+    recoveryEntries,
     addon,
     categories,
     categoryId,
@@ -100,6 +103,7 @@ export default function AddonCard({
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { user } = React.useContext(userContext)
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
+    const recoveryStatus = recoveryEntries.some(entry => entry.status === 'retrying') ? 'retrying' : recoveryEntries.length ? 'blocked' : null
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
     const storeAddonId = String(addon.storeAddonId || '').trim()
@@ -168,6 +172,7 @@ export default function AddonCard({
             draggable
             className={cn(
                 extensionStylesV2.addonCard,
+                recoveryStatus && extensionStylesV2.addonCardBlocked,
                 isActive && extensionStylesV2.addonCardSelected,
                 isDragging && extensionStylesV2.addonCardDragging,
             )}
@@ -178,7 +183,8 @@ export default function AddonCard({
             <div
                 className={cn(
                     extensionStylesV2.checkSelect,
-                    isEnabled && extensionStylesV2.checkSelectEnabled,
+                    isEnabled && !recoveryStatus && extensionStylesV2.checkSelectEnabled,
+                    recoveryStatus && extensionStylesV2.checkSelectBlocked,
                     addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
                 )}
                 onClick={event => {
@@ -190,10 +196,13 @@ export default function AddonCard({
                     }
                 }}
             >
-                <MdCheckCircle size={18} />
+                {recoveryStatus ? <MdErrorOutline size={18} /> : <MdCheckCircle size={18} />}
             </div>
             <AddonImage key={imagePath} src={imagePath} fallbackSrc={fallbackAddonImage} alt={addon.name} ready={imageReady} />
-            <div className={extensionStylesV2.addonName}>{addon.name}</div>
+            <div className={extensionStylesV2.addonIdentity}>
+                <div className={extensionStylesV2.addonName}>{addon.name}</div>
+                {recoveryStatus ? <div className={extensionStylesV2.recoveryLabel}>{t(`extensions.recovery.${recoveryStatus}`)}</div> : null}
+            </div>
             <div className={extensionStylesV2.addonMeta}>
                 {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
                 <div className={extensionStylesV2.addonType} aria-hidden>

@@ -414,6 +414,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     },
 
     addons: {
+        getRecoverySnapshot: () => ipcRenderer.invoke(MainEvents.GET_ADDON_RECOVERY),
+        retryRecovery: request => ipcRenderer.invoke(MainEvents.RETRY_ADDON_RECOVERY, request),
+        onRecoveryChange: listener => subscribePayload(RendererEvents.ADDON_RECOVERY_CHANGED, listener),
         list: () => ipcRenderer.invoke(MainEvents.GET_ADDONS),
 
         setEnabled: request => ipcRenderer.invoke(MainEvents.SET_ADDON_ENABLED, request),

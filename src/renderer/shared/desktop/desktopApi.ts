@@ -144,6 +144,11 @@ export const desktopApi = {
         onClearCacheFailure: (listener: (payload: unknown) => void) => requireDesktopApi().mods.onClearCacheFailure(listener),
     },
     addons: {
+        getRecoverySnapshot: () =>
+            requireDesktopApi().addons.getRecoverySnapshot?.() ?? Promise.resolve({ connection: 'unsupported' as const, entries: [] }),
+        retryRecovery: (request: Parameters<PulseSyncDesktopApi['addons']['retryRecovery']>[0]) => requireDesktopApi().addons.retryRecovery(request),
+        onRecoveryChange: (listener: Parameters<PulseSyncDesktopApi['addons']['onRecoveryChange']>[0]) =>
+            requireDesktopApi().addons.onRecoveryChange?.(listener) ?? (() => {}),
         list: () => requireDesktopApi().addons.list(),
         setEnabled: (request: Parameters<PulseSyncDesktopApi['addons']['setEnabled']>[0]) => requireDesktopApi().addons.setEnabled(request),
         saveOrganization: (organization: Parameters<PulseSyncDesktopApi['addons']['saveOrganization']>[0]) =>
