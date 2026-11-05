@@ -168,6 +168,37 @@
     background: var(--success);
 }
 
+.titleRow {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    align-items: center;
+}
+
+.recoveryState {
+    display: inline-flex;
+
+    gap: 6px;
+
+    align-items: center;
+
+    font-size: 12px;
+    font-weight: 500;
+
+    line-height: 20px;
+
+    color: var(--text-secondary);
+
+    svg {
+        flex-shrink: 0;
+
+        color: var(--danger);
+    }
+}
+
 .copy {
     padding: 14px 14px 0;
 

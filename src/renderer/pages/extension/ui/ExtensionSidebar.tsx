@@ -390,11 +390,6 @@ export default function ExtensionSidebar({
                     </OptionMenu>
                 </div>
                 <div className={extensionStylesV2.addonList}>
-                    {addonRecovery.entries.length ? (
-                        <div className={extensionStylesV2.recoverySummary} role="status">
-                            {t('extensions.recovery.summary', { count: new Set(addonRecovery.entries.map(entry => entry.directoryName)).size })}
-                        </div>
-                    ) : null}
                     <Accordion
                         items={groupItems}
                         multiple

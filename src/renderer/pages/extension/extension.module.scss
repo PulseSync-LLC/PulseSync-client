@@ -422,6 +422,13 @@
     }
 }
 
+.checkSelectSlot {
+    display: flex;
+
+    width: 30px;
+    height: 100%;
+}
+
 .checkSelect {
     display: flex;
 
@@ -431,48 +438,30 @@
     width: 30px;
     height: 100%;
 
+    padding: 0;
+
     color: var(--text-disabled);
 
     cursor: pointer;
 
+    background: transparent;
+    border: 0;
+    border-radius: 4px;
+
     opacity: 0.85;
+
+    &:focus-visible {
+        outline: 2px solid var(--focus-ring);
+        outline-offset: -2px;
+    }
 }
 
 .checkSelectEnabled {
     opacity: 1;
 }
 
-.addonCardBlocked {
-    height: 48px;
-}
-
-.checkSelectBlocked,
-.recoveryLabel {
+.checkSelectBlocked {
     color: var(--danger);
-}
-
-.addonIdentity {
-    min-width: 0;
-}
-
-.recoveryLabel {
-    overflow: hidden;
-    text-overflow: ellipsis;
-
-    font-size: 10px;
-
-    white-space: nowrap;
-}
-
-.recoverySummary {
-    padding: 10px;
-    margin: 0 10px 10px;
-
-    color: var(--danger);
-
-    background: color-mix(in srgb, var(--danger) 8%, transparent);
-    border: 1px solid color-mix(in srgb, var(--danger) 35%, transparent);
-    border-radius: 6px;
 }
 
 .checkSelectEnabled.checkMarkTheme,

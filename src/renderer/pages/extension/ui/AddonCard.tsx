@@ -172,7 +172,6 @@ export default function AddonCard({
             draggable
             className={cn(
                 extensionStylesV2.addonCard,
-                recoveryStatus && extensionStylesV2.addonCardBlocked,
                 isActive && extensionStylesV2.addonCardSelected,
                 isDragging && extensionStylesV2.addonCardDragging,
             )}
@@ -180,29 +179,35 @@ export default function AddonCard({
             onDragStart={event => onDragStart(addon, event)}
             onDragEnd={onDragEnd}
         >
-            <div
-                className={cn(
-                    extensionStylesV2.checkSelect,
-                    isEnabled && !recoveryStatus && extensionStylesV2.checkSelectEnabled,
-                    recoveryStatus && extensionStylesV2.checkSelectBlocked,
-                    addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
-                )}
-                onClick={event => {
-                    event.stopPropagation()
-                    if (isEnabled) {
-                        onDisable(addon)
-                    } else {
-                        onEnable(addon)
-                    }
-                }}
+            <TooltipButton
+                as="span"
+                side="right"
+                className={extensionStylesV2.checkSelectSlot}
+                tooltipText={t(recoveryStatus ? `extensions.recovery.${recoveryStatus}` : isEnabled ? 'extensions.disableAction' : 'common.enable')}
             >
-                {recoveryStatus ? <MdErrorOutline size={18} /> : <MdCheckCircle size={18} />}
-            </div>
+                <button
+                    type="button"
+                    aria-label={t(
+                        recoveryStatus ? `extensions.recovery.${recoveryStatus}` : isEnabled ? 'extensions.disableAction' : 'common.enable',
+                    )}
+                    className={cn(
+                        extensionStylesV2.checkSelect,
+                        isEnabled && !recoveryStatus && extensionStylesV2.checkSelectEnabled,
+                        recoveryStatus && extensionStylesV2.checkSelectBlocked,
+                        addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
+                    )}
+                    onClick={event => {
+                        event.stopPropagation()
+                        if (recoveryStatus) onClick(addon)
+                        else if (isEnabled) onDisable(addon)
+                        else onEnable(addon)
+                    }}
+                >
+                    {recoveryStatus ? <MdErrorOutline size={18} /> : <MdCheckCircle size={18} />}
+                </button>
+            </TooltipButton>
             <AddonImage key={imagePath} src={imagePath} fallbackSrc={fallbackAddonImage} alt={addon.name} ready={imageReady} />
-            <div className={extensionStylesV2.addonIdentity}>
-                <div className={extensionStylesV2.addonName}>{addon.name}</div>
-                {recoveryStatus ? <div className={extensionStylesV2.recoveryLabel}>{t(`extensions.recovery.${recoveryStatus}`)}</div> : null}
-            </div>
+            <div className={extensionStylesV2.addonName}>{addon.name}</div>
             <div className={extensionStylesV2.addonMeta}>
                 {showLegacyRestriction ? <LegacyAddonRestrictionBadge className={extensionStylesV2.legacyRestrictionBadge} /> : null}
                 <div className={extensionStylesV2.addonType} aria-hidden>
