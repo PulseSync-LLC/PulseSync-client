@@ -53,16 +53,47 @@
 
 .valBox {
     position: relative;
+
+    display: grid;
+
+    font-variant-numeric: tabular-nums;
+}
+
+.val,
+.valInput,
+.valSizer {
+    box-sizing: border-box;
+
+    grid-area: 1 / 1;
+}
+
+.val,
+.valInput {
+    position: absolute;
+    inset: 0;
+}
+
+.valSizer {
+    display: flex;
+    visibility: hidden;
+
+    padding: 7px 10px;
+
+    white-space: nowrap;
+
+    pointer-events: none;
 }
 
 .val {
-    width: -webkit-fill-available;
+    width: 100%;
+    min-width: 0;
 
     padding: 7px 10px;
 
     color: var(--text-primary);
 
     text-align: left;
+    white-space: nowrap;
 
     cursor: text;
 
@@ -80,8 +111,8 @@
 }
 
 .valInput {
-    width: fit-content;
-    max-width: 30px;
+    width: 100%;
+    min-width: 0;
 
     padding: 6px 10px;
 
