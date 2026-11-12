@@ -18,7 +18,7 @@ import { asarBackup, musicPath } from '../../startup/runtimeState'
 import { getState } from '../../state'
 import { isLinuxAccessError } from './elevation'
 import { runPowerShell } from './powershell'
-import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+import { parsePgrep, parseWindowsTasklist } from './process'
 
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
@@ -58,18 +58,20 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
         try {
             const command = `pgrep -f "Яндекс Музыка"`
             const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
-            return parseMacPgrep(stdout)
+            return parsePgrep(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
             return []
         }
     } else if (isLinux()) {
         try {
-            const command = `pgrep -fa "yandexmusic"`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
-            return parseLinuxPgrep(stdout)
+            // A shell wrapper would match the pattern in its own command line.
+            const { stdout } = await execFileAsync('pgrep', ['-f', 'yandexmusic'], { encoding: 'utf8' })
+            return parsePgrep(stdout)
         } catch (error) {
-            logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
+            if ((error as { code?: number }).code !== 1) {
+                logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
+            }
             return []
         }
     } else {
