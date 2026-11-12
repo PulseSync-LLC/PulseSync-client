@@ -10,7 +10,7 @@ import logger from '../../shared/logger'
 import { CACHE_DIR } from '../constants/paths'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
 import { getState } from '../state'
-import { closeYandexMusic, getInstalledYmMetadata, isYandexMusicRunning, launchYandexMusic } from '../utils/appUtils'
+import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../utils/appUtils'
 import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
 import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
@@ -54,8 +54,9 @@ export async function closeMusicIfRunning(_window: BrowserWindow | null | undefi
             if (!(await isYandexMusicRunning())) return true
             await new Promise(r => setTimeout(r, MUSIC_CLOSE_POLL_INTERVAL_MS))
         }
-        if (await isYandexMusicRunning()) {
-            logger.modManager.warn('Yandex Music is still running after close timeout')
+        const remainingPids = (await getYandexMusicProcesses()).map(({ pid }) => pid)
+        if (remainingPids.length) {
+            logger.modManager.warn('Yandex Music is still running after close timeout', { remainingPids })
             throw new Error(t('main.appUtils.musicCloseTimeout'))
         }
         return true

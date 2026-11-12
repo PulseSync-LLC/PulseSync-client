@@ -47,7 +47,7 @@ export const resolveModAsarPath = (musicPath: string, customPath?: string): stri
 const terminateProcess = (pid: number): void => {
     try {
         process.kill(pid)
-        logger.main.info(`Yandex Music process ${pid} terminated.`)
+        logger.main.info(`Sent termination signal to Yandex Music process ${pid}.`)
     } catch (error) {
         logger.main.error(`Error terminating ${pid}:`, error)
     }
@@ -67,7 +67,18 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
         try {
             // A shell wrapper would match the pattern in its own command line.
             const { stdout } = await execFileAsync('pgrep', ['-f', 'yandexmusic'], { encoding: 'utf8' })
-            return parsePgrep(stdout)
+            const processes = await Promise.all(
+                parsePgrep(stdout).map(async candidate => {
+                    try {
+                        // pgrep can report zombies, whose /proc command line is empty.
+                        return (await fsp.readFile(`/proc/${candidate.pid}/cmdline`)).length ? candidate : null
+                    } catch (error) {
+                        const code = (error as NodeJS.ErrnoException).code
+                        return code === 'ENOENT' || code === 'ESRCH' ? null : candidate
+                    }
+                }),
+            )
+            return processes.filter(candidate => candidate !== null)
         } catch (error) {
             if ((error as { code?: number }).code !== 1) {
                 logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
