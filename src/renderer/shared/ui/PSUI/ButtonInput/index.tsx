@@ -63,7 +63,7 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
             <div className={styles.label}>
                 {label}
                 {description && (
-                    <TooltipButton className={styles.tip} side="right" tooltipText={<div className={styles.itemName}>{description}</div>}>
+                    <TooltipButton side="right" tooltipText={<div>{description}</div>}>
                         <MdHelp size={14} color="white" />
                     </TooltipButton>
                 )}
@@ -83,14 +83,13 @@ const ButtonInput: React.FC<ButtonInputProps> = ({
                     </div>
 
                     <button
-                        className={clsx(styles.controlButton, styles.toggleButton, {
-                            [styles.active]: isActive,
+                        className={clsx(styles.controlButton, {
                             [styles.error]: touched && error,
                         })}
                         onClick={toggleState}
                         type="button"
                     >
-                        <span className={styles.knob}></span>
+                        <span></span>
                     </button>
                 </div>
             ) : null}

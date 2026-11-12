@@ -215,7 +215,7 @@ const ExtensionCardStore: React.FC<ExtensionCardStoreProps> = ({
                         <div className={st.titleRow}>
                             <h3>{title}</h3>
                             {usesOfficialTemplate ? (
-                                <TooltipButton as="span" side="top" className={st.verifiedTooltip} tooltipText={t('store.badges.officialTemplate')}>
+                                <TooltipButton as="span" side="top" tooltipText={t('store.badges.officialTemplate')}>
                                     <MdVerifiedUser className={st.verified} aria-label={t('store.badges.officialTemplate')} />
                                 </TooltipButton>
                             ) : null}

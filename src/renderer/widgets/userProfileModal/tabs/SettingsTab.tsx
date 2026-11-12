@@ -27,7 +27,7 @@ const SettingsTab: React.FC<SettingsTabProps> = ({ loading, error }) => {
     }
 
     return (
-        <div className={styles.settingsContainer}>
+        <div>
             <h2>{t('profile.tabs.settings')}</h2>
             <p>{t('profile.settings.placeholder')}</p>
         </div>

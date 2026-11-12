@@ -188,7 +188,7 @@ const SelectInput: React.FC<Props> = ({
             <div className={s.label}>
                 {label}
                 {description && (
-                    <TooltipButton className={s.tip} side="right" tooltipText={<div className={s.itemName}>{description}</div>}>
+                    <TooltipButton side="right" tooltipText={<div>{description}</div>}>
                         <MdHelp size={14} color="white" />
                     </TooltipButton>
                 )}
