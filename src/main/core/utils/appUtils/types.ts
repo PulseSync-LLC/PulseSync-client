@@ -1,5 +1,6 @@
 export interface ProcessInfo {
     pid: number
+    isLinuxHelper?: boolean
 }
 
 export interface AppxPackage {

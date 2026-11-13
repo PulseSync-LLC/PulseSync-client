@@ -66,12 +66,14 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
     } else if (isLinux()) {
         try {
             // A shell wrapper would match the pattern in its own command line.
-            const { stdout } = await execFileAsync('pgrep', ['-f', 'yandexmusic'], { encoding: 'utf8' })
+            const { stdout } = await execFileAsync('pgrep', ['-fi', 'yandexmusic'], { encoding: 'utf8' })
             const processes = await Promise.all(
                 parsePgrep(stdout).map(async candidate => {
                     try {
-                        // pgrep can report zombies, whose /proc command line is empty.
-                        return (await fsp.readFile(`/proc/${candidate.pid}/cmdline`)).length ? candidate : null
+                        const [executable, ...args] = (await fsp.readFile(`/proc/${candidate.pid}/cmdline`, 'utf8')).split('\0')
+                        // Match the executable argument and ignore zombies with empty command lines.
+                        if (!/^yandexmusic(?:\.appimage)?$/iu.test(path.posix.basename(executable))) return null
+                        return { ...candidate, isLinuxHelper: args.some(arg => arg === '--type' || arg.startsWith('--type=')) }
                     } catch (error) {
                         const code = (error as NodeJS.ErrnoException).code
                         return code === 'ENOENT' || code === 'ESRCH' ? null : candidate
@@ -103,10 +105,11 @@ export async function isYandexMusicRunning(): Promise<boolean> {
     return !!(await getYandexMusicProcesses())?.length
 }
 
-export async function closeYandexMusic(): Promise<void> {
-    const procs = await getYandexMusicProcesses()
-    if (!procs.length) {
-        logger.main.info('Yandex Music is not running.')
+export async function closeYandexMusic(procs: ProcessInfo[]): Promise<void> {
+    if (isLinux()) {
+        const mainProcesses = procs.filter(({ isLinuxHelper }) => isLinuxHelper === false)
+        const targets = mainProcesses.length ? mainProcesses : procs.filter(({ isLinuxHelper }) => isLinuxHelper === true)
+        for (const { pid } of targets) terminateProcess(pid)
         return
     }
     if (isWindows()) {
