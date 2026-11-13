@@ -188,7 +188,7 @@ async function migrateLegacySession(started: number, requestedAt: number): Promi
         migrationRejected = true
         return ''
     }
-    if (!response.ok) throw new Error('AUTH_MIGRATION_UNAVAILABLE')
+    if (!response.ok) throw new Error(`AUTH_MIGRATION_FAILED (${response.status})`)
     const credentials = parseV2Credentials(await response.json())
     if (started !== generation) return currentAuthToken()
     if (!credentials) throw new Error('AUTH_MIGRATION_INVALID_RESPONSE')
@@ -223,7 +223,7 @@ async function refreshSession(record: SavedSession, started: number, requestedAt
         notifySessionExpired()
         return ''
     }
-    if (!response.ok) throw new Error('AUTH_REFRESH_FAILED')
+    if (!response.ok) throw new Error(`AUTH_REFRESH_FAILED (${response.status})`)
 
     const credentials = parseV2Credentials(await response.json())
     if (started !== generation) return ''
@@ -246,9 +246,11 @@ export async function getAuthToken(): Promise<string> {
 
     try {
         return await request
-    } catch {
+    } catch (error) {
         if (started !== generation) return ''
         if (access && access.expiresAt > Date.now()) return access.token
+        const reason = error instanceof Error && /^AUTH_[A-Z_]+(?: \(\d{3}\))?$/.test(error.message) ? error.message : (error as Error)?.name
+        logger.main.warn(`Desktop auth ${record ? 'refresh' : 'migration'} failed: ${reason ?? 'unknown error'}`)
         throw new Error('AUTH_REFRESH_UNAVAILABLE')
     } finally {
         if (refreshPending === request) refreshPending = null

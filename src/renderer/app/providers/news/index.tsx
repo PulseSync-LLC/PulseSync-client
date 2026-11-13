@@ -20,6 +20,7 @@ export const NewsContext = createContext<NewsContextValue>(defaultNewsContextVal
 export function NewsProvider({ children, enabled = true }: NewsProviderProps) {
     const { data, loading, error, refetch } = useQuery<GetVisibleNewsData>(GET_VISIBLE_NEWS, {
         skip: !enabled,
+        context: { optionalAuth: true },
         fetchPolicy: 'cache-first',
         nextFetchPolicy: 'cache-first',
         notifyOnNetworkStatusChange: true,
@@ -38,7 +39,11 @@ export function NewsProvider({ children, enabled = true }: NewsProviderProps) {
             return
         }
 
-        await refetch()
+        try {
+            await refetch()
+        } catch {
+            // useQuery exposes the error for the retry UI.
+        }
     }, [enabled, refetch])
 
     const value = useMemo<NewsContextValue>(
