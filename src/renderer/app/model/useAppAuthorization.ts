@@ -8,7 +8,7 @@ import { setRendererErrorTrackingUser } from '@app/errorTracking'
 import UserMeQuery from '@entities/user/api/getMe.query'
 import userInitials from '@entities/user/model/user.initials'
 import { desktopApi } from '@shared/desktop/desktopApi'
-import { clearCachedUserToken, getUserTokenAsync } from '@shared/lib/auth/getUserToken'
+import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 import { checkInternetAccess, notifyUserRetries } from '@shared/lib/utils'
 import toast from '@shared/ui/toast'
 
@@ -84,7 +84,6 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
 
     const redirectToAuth = useCallback(async () => {
         await desktopApi.auth.deleteToken()
-        clearCachedUserToken()
         setHasToken(false)
         await router.navigate('/home', { replace: true })
         setUser(userInitials)
@@ -98,6 +97,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         } catch {
             if (mountedRef.current) {
                 sendAuthStatus(null)
+                setTokenReady(true)
                 setLoading(false)
             }
             return
@@ -111,7 +111,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         authorizationRef.current = authorization
         const isActive = () => mountedRef.current && !controller.signal.aborted
         const hasCurrentToken = async () => {
-            const currentToken = await getUserTokenAsync()
+            const currentToken = await getUserTokenAsync().catch(() => token)
             if (currentToken !== token) controller.abort()
             return isActive()
         }
@@ -217,6 +217,7 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
                 setHasToken(!!token)
                 setTokenReady(true)
                 if (!token) {
+                    setUser(userInitials)
                     sendAuthStatus(null)
                     return
                 }
@@ -291,8 +292,6 @@ export function useAppAuthorization({ router, setIsAppDeprecated, setLoading, se
         authorize,
         hasToken,
         meLoading,
-        setHasToken,
-        setTokenReady,
         tokenReady,
     }
 }

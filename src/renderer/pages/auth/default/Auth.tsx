@@ -3,9 +3,11 @@ import { useContext, useEffect, useRef } from 'react'
 import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
-import { checkUpdateHard, openAuthCallback, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
+import { checkUpdateHard, readAndSendTerms, useAuthRedirect } from '@pages/auth/authUtils'
 import Header from '@widgets/layout/header'
 import userContext from '@entities/user/model/context'
+import { desktopApi } from '@shared/desktop/desktopApi'
+import toast from '@shared/ui/toast'
 
 import AppNameLogo from '@shared/assets/icon/AppName.svg'
 
@@ -17,7 +19,13 @@ export default function AuthPage() {
     const { user, isAppDeprecated } = useContext(userContext)
     const containerRef = useRef<HTMLDivElement>(null)
 
-    const startAuthProcess = () => openAuthCallback(navigate)
+    const startAuthProcess = async () => {
+        if (await desktopApi.auth.startBrowserAuth().catch(() => false)) {
+            await navigate('/auth/callback', { replace: true })
+        } else {
+            toast.custom('error', t('common.errorTitle'), t('auth.browserLoginUnavailable'))
+        }
+    }
     const checkUpdate = () => checkUpdateHard()
     const readAndSendFile = async () => {
         try {

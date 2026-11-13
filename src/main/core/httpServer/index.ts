@@ -10,7 +10,7 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import logger from '../../shared/logger'
 import isAppDev from '../../shared/utils/isAppDev'
 import { registerAddonModuleTransport } from '../addonModules'
-import { extractBrowserAuthFromPayload, processBrowserAuth } from '../auth/browserAuth'
+import { currentAuthSessionId, getAuthToken, isCurrentAuthToken } from '../auth/session'
 import { mainWindow } from '../createWindow'
 import { authorized } from '../events'
 import { checkIsDeeplink, createDeeplinkCommandsHandler, navigateToDeeplink } from '../handleDeeplinks'
@@ -87,7 +87,7 @@ const handleWebDeeplink = async (url: string): Promise<boolean> => {
 }
 
 const getUserValidationToken = async (): Promise<UserValidationToken | null> => {
-    const authToken = State.get('tokens.token')
+    const authToken = await getAuthToken().catch(() => '')
     if (!authorized || typeof authToken !== 'string' || !authToken) return null
 
     if (
@@ -110,7 +110,7 @@ const getUserValidationToken = async (): Promise<UserValidationToken | null> => 
             if (!response.ok || response.data?.ok !== true || !token || !Number.isFinite(expiresAt) || expiresAt <= Date.now()) {
                 return null
             }
-            if (generation !== userValidationTokenGeneration || State.get('tokens.token') !== authToken || !authorized) return null
+            if (generation !== userValidationTokenGeneration || !isCurrentAuthToken(authToken) || !authorized) return null
 
             cachedUserValidationToken = { authToken, token, expiresAt }
             return { token, expiresAt }
@@ -218,10 +218,9 @@ const initializeServer = () => {
             addonRecovery.registerSocket(socket)
             registerAddonModuleTransport(
                 socket,
-                () => {
-                    const token = State.get('tokens.token')
-                    return authorized && typeof token === 'string' && token ? token : null
-                },
+                async () => (authorized ? await getAuthToken().catch(() => '') : ''),
+                token => authorized && isCurrentAuthToken(token),
+                currentAuthSessionId,
                 addonService.readModuleAddon,
                 addonService.readLocalModuleBytes,
             )
@@ -237,7 +236,6 @@ const initializeServer = () => {
             sendDataToMusic: addonService.sendDataToMusic,
             sendUserValidationToken,
             updateData,
-            handleBrowserAuth,
             handleWebDeeplink,
         })
     })
@@ -280,16 +278,6 @@ const startSocketServer = async () => {
 
 const stopSocketServer = async () => {
     await closeServer()
-}
-
-const handleBrowserAuth = async (payload: any, client: Socket) => {
-    const credentials = extractBrowserAuthFromPayload(payload)
-    if (!credentials) {
-        logger.socketManager.error('Invalid authentication data received from browser.')
-        app.quit()
-        return
-    }
-    await processBrowserAuth(credentials, { window: mainWindow, client })
 }
 
 const handlePortInUse = () => {

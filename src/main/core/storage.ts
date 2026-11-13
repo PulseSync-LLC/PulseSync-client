@@ -335,6 +335,30 @@ const schema = {
                 description: t('main.storage.tokens.token'),
                 default: '',
             },
+            v2: {
+                type: 'object',
+                properties: {
+                    refreshToken: { type: 'string' },
+                    rotationId: { type: 'string' },
+                    dpapi: { type: 'string', minLength: 1 },
+                    safeStorage: { type: 'string', minLength: 1 },
+                },
+                additionalProperties: false,
+                oneOf: [
+                    {
+                        required: ['refreshToken', 'rotationId'],
+                        maxProperties: 2,
+                    },
+                    {
+                        required: ['dpapi'],
+                        maxProperties: 1,
+                    },
+                    {
+                        required: ['safeStorage'],
+                        maxProperties: 1,
+                    },
+                ],
+            },
         },
         required: ['token'],
         additionalProperties: false,

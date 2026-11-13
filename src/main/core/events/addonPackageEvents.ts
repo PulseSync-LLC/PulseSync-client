@@ -14,17 +14,16 @@ import MainEvents from '@common/types/mainEvents'
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
+import { getAuthToken, isCurrentAuthToken } from '../auth/session'
 import { assertCloudAddonRestoreAllowed } from '../cloudSettings'
 import mainHttpClient from '../http/client'
 import { importAddonArchive, importPextFile, isPextFilePath } from '../pextImporter'
-import { getState } from '../state'
 import { listAddonMetadata } from '../utils/addonRegistry'
 import { loadAddons } from '../utils/addonUtils'
 import { assertLegacyAddonUpdateAllowed } from '../utils/legacyAddonUpdatePolicy'
 
 import type { DesktopInstallStoreAddonRequest } from '@common/desktopApi/contract'
 
-const State = getState()
 const ADDON_TEMPLATE_DOWNLOAD_URL = 'https://codeload.github.com/PulseSync-LLC/PulseSync-ExampleAddon/zip/refs/heads/main'
 const ADDON_TEMPLATE_DEFAULT_DIRECTORY_NAME = 'PulseSync-ExampleAddon'
 const EXCLUDED_ADDON_ARCHIVE_DIRECTORIES = new Set(['node_modules', 'bower_components', '__MACOSX'])
@@ -284,7 +283,7 @@ export const registerAddonPackageEvents = ({
             const addonId = payload?.id?.trim().toLowerCase()
             if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
             const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
-            const authToken = State.get('tokens.token')
+            const authToken = await getAuthToken().catch(() => '')
             if (!isAuthorized() || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
             if (payload.cloudSession) {
                 assertCloudAddonRestoreAllowed(payload.cloudSession)
@@ -322,7 +321,7 @@ export const registerAddonPackageEvents = ({
                 }
             }
             if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
-            if (State.get('tokens.token') !== authToken || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
+            if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
             if (payload.cloudSession) assertCloudAddonRestoreAllowed(payload.cloudSession)
 
             const parsedUrl = new URL(downloadUrl)
@@ -337,7 +336,7 @@ export const registerAddonPackageEvents = ({
                 responseType: 'arraybuffer',
                 ...(payload.cloudSession ? { timeout: 30_000 } : {}),
             })
-            if (State.get('tokens.token') !== authToken || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
+            if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
 
             await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
 

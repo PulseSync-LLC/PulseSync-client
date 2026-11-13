@@ -4,7 +4,7 @@ import type { DeeplinkCommandContext } from '..'
 
 export default async function authCommand(context: DeeplinkCommandContext): Promise<boolean> {
     const code = extractBrowserAuthCodeFromUrl(context.rawUrl)
-    if (!code) return false
+    if (!code) return true
 
     const credentials = await exchangeBrowserAuthCode(code)
     if (!credentials) return true

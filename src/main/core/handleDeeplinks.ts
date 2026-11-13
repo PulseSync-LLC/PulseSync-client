@@ -91,7 +91,7 @@ const handleBrowserAuthDeepLink = async (credentials: BrowserAuthCredentials, wi
     const targetWindow = window ?? BrowserWindow.getAllWindows()[0]
     if (!targetWindow) {
         pendingBrowserAuthFromDeepLink = credentials
-        logger.main.info(`Queued BROWSER_AUTH from deeplink for userId=${credentials.userId}`)
+        logger.main.info(`Queued BROWSER_AUTH from deeplink for userId=${credentials.v2.userId}`)
         return
     }
 

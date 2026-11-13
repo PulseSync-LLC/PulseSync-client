@@ -34,7 +34,6 @@ interface RegisterSocketClientEventsOptions {
     }) => void
     sendUserValidationToken: (targetSocket?: Socket) => Promise<void>
     updateData: (newData: any) => void
-    handleBrowserAuth: (payload: any, client: Socket) => void
     handleWebDeeplink: (url: string) => Promise<boolean>
 }
 
@@ -51,7 +50,6 @@ export const registerSocketClientEvents = ({
     sendDataToMusic,
     sendUserValidationToken,
     updateData,
-    handleBrowserAuth,
     handleWebDeeplink,
 }: RegisterSocketClientEventsOptions) => {
     const sendToRenderer = (channel: string, ...args: any[]) => {
@@ -104,11 +102,6 @@ export const registerSocketClientEvents = ({
         } else {
             sendToRenderer(RendererEvents.IS_PREMIUM_USER)
         }
-    })
-
-    socket.on('BROWSER_AUTH', (args: any) => {
-        logger.http.log('BROWSER_AUTH received:', args)
-        handleBrowserAuth(args, socket)
     })
 
     socket.on('BROWSER_BAN', (args: any) => {

@@ -4,8 +4,8 @@ import path from 'path'
 import { branch } from '@common/appConfig'
 
 import logger from '../../shared/logger'
+import { getAuthToken, isCurrentAuthToken } from '../auth/session'
 import mainHttpClient from '../http/client'
-import { getState } from '../state'
 import { resolveAddonStableId } from './addonIdentity'
 
 import type Addon from '@entities/addon/model/addon.interface'
@@ -15,7 +15,7 @@ const recoveryAttempts = new Map<string, number>()
 let recoveryAuthToken = ''
 
 export async function recoverStoreAddonIdentities(addons: Addon[]): Promise<void> {
-    const authToken = getState().get('tokens.token')
+    const authToken = await getAuthToken().catch(() => '')
     if (typeof authToken !== 'string' || !authToken) return
     if (authToken !== recoveryAuthToken) {
         recoveryAttempts.clear()
@@ -46,7 +46,7 @@ export async function recoverStoreAddonIdentities(addons: Addon[]): Promise<void
                     timeoutMs: 15_000,
                 })
                 if (!response.ok || response.data?.ok === false) throw new Error('STORE_IDENTITY_RECOVERY_FAILED')
-                if (getState().get('tokens.token') !== authToken) return
+                if (!isCurrentAuthToken(authToken)) return
 
                 for (const addon of candidates) {
                     const publication = response.data?.addons?.find(item => item.id === addon.storeAddonId)

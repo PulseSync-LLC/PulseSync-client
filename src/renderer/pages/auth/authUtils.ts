@@ -1,6 +1,5 @@
 import { useEffect } from 'react'
 
-import config from '@common/appConfig'
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
@@ -18,16 +17,6 @@ export const useAuthRedirect = (userId: string, navigate: NavigateFunction) => {
             navigate('/home', { replace: true })
         }
     }, [userId, navigate])
-}
-
-export const openAuthCallback = (navigate: NavigateFunction) => {
-    void Promise.resolve(desktopApi.auth.startBrowserAuth()).finally(() => {
-        const callbackUrl = new URL('/callback', config.WEBSITE_URL)
-        callbackUrl.searchParams.set('source', 'app')
-        callbackUrl.searchParams.set('clientAuth', 'v2')
-        window.open(callbackUrl.toString())
-        navigate('/auth/callback', { replace: true })
-    })
 }
 
 export const checkUpdateHard = () => {

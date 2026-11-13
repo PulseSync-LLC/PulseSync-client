@@ -19,7 +19,6 @@ import userInitials from '@entities/user/model/user.initials'
 import client from '@shared/api/apolloClient'
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
-import { clearCachedUserToken } from '@shared/lib/auth/getUserToken'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { compareVersions } from '@shared/lib/utils'
 import ButtonV2 from '@shared/ui/buttonV2'
@@ -84,8 +83,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
     }, [nav])
     const cancelLoginFlow = useCallback(async () => {
         await desktopApi.auth.cancelBrowserAuth()
-        await desktopApi.auth.deleteToken()
-        clearCachedUserToken()
         setUser(userInitials)
         await client.clearStore()
         await nav('/home', { replace: true })
@@ -144,7 +141,6 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
                 if (res.ok) {
                     toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
                     await desktopApi.auth.deleteToken()
-                    clearCachedUserToken()
                     setUser(userInitials)
                     await client.clearStore()
                 }

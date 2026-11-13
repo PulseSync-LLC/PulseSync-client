@@ -5,7 +5,7 @@ import * as semver from 'semver'
 import config from '@common/appConfig'
 
 import logger from '../../../shared/logger'
-import { getState } from '../../state'
+import { getAuthToken } from '../../auth/session'
 import { findGitHubAsset, listGitHubReleases, listStableGitHubReleases, normalizeGitHubTagVersion } from '../../updater/githubReleaseResolver'
 import { getPulseSyncUserAgent } from './userAgent'
 
@@ -88,8 +88,8 @@ function normalizeGitHubAssetDigest(digest?: string): string {
     return algorithm.toLowerCase() === 'sha256' ? value.trim().toLowerCase() : ''
 }
 
-function resolveTokenHeader(): Record<string, string> {
-    const token = getState().get('tokens.token')
+async function resolveTokenHeader(): Promise<Record<string, string>> {
+    const token = await getAuthToken().catch(() => '')
     return typeof token === 'string' && token ? { Authorization: `Bearer ${token}` } : {}
 }
 
@@ -147,7 +147,7 @@ export async function fetchBackendModReleases(): Promise<ModReleaseEntry[]> {
         headers: {
             'Content-Type': 'application/json',
             'User-Agent': getPulseSyncUserAgent(),
-            ...resolveTokenHeader(),
+            ...(await resolveTokenHeader()),
         },
         body: JSON.stringify({
             query: GET_MODS_QUERY,
@@ -323,7 +323,7 @@ export async function getModReleaseForSelection(selection: ModSourceSelection, s
 }
 
 export async function getModReleasesForSource(source: UpdateSource): Promise<ModReleaseEntry[]> {
-    if (source === 'github' || !resolveTokenHeader().Authorization) {
+    if (source === 'github' || !(await resolveTokenHeader()).Authorization) {
         return fetchGithubModReleases()
     }
 

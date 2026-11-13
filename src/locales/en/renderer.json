@@ -73,6 +73,7 @@
         "hardwareIdentityWarning": "Could not verify this client's HWID. Some features may be limited.",
         "discordAuth": "Authorize",
         "failedToFetchUser": "Failed to fetch user data. Please sign in again.",
+        "browserLoginUnavailable": "Browser sign-in is temporarily unavailable. Try again later.",
         "pendingAuth": "Waiting for authorization",
         "pleaseLoginAgain": "Please sign in again.",
         "readTermsError": "Failed to read file:",

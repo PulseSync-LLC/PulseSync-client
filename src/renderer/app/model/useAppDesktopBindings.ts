@@ -2,7 +2,6 @@ import { useCallback, useEffect, useRef } from 'react'
 
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
-import { setCachedUserToken } from '@shared/lib/auth/getUserToken'
 import toast from '@shared/ui/toast'
 
 import type { DesktopInstallModRequest, DesktopUpdateAvailablePayload, DesktopUpdateFailurePayload } from '@common/desktopApi/contract'
@@ -13,16 +12,13 @@ const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
 
 type Params = {
     appRef: React.MutableRefObject<SettingsInterface>
-    authorize: () => Promise<void>
     fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: { navigate: (to: string, options?: any) => Promise<void> | void }
     setAddons: React.Dispatch<React.SetStateAction<Addon[]>>
-    setHasToken: React.Dispatch<React.SetStateAction<boolean>>
     setNavigateState: React.Dispatch<React.SetStateAction<Addon | null>>
     setNavigateTo: React.Dispatch<React.SetStateAction<string | null>>
     setPreparedModUpdate: React.Dispatch<React.SetStateAction<DesktopInstallModRequest | null>>
     setIsModUpdating: React.Dispatch<React.SetStateAction<boolean>>
-    setTokenReady: React.Dispatch<React.SetStateAction<boolean>>
     setUpdate: React.Dispatch<React.SetStateAction<boolean>>
     t: (key: string, options?: any) => string
     toastReference: React.MutableRefObject<string | null>
@@ -30,16 +26,13 @@ type Params = {
 
 export function useAppDesktopBindings({
     appRef,
-    authorize,
     fetchModInfo,
     router,
     setAddons,
-    setHasToken,
     setNavigateState,
     setNavigateTo,
     setPreparedModUpdate,
     setIsModUpdating,
-    setTokenReady,
     setUpdate,
     t,
     toastReference,
@@ -285,15 +278,4 @@ export function useAppDesktopBindings({
             unsubscribers.forEach(unsubscribe => unsubscribe())
         }
     }, [appRef, fetchModInfo, setIsModUpdating, setPreparedModUpdate, setUpdate, t, toastReference])
-
-    useEffect(() => {
-        if (typeof window === 'undefined' || typeof navigator === 'undefined') return
-        ;(window as any).setToken = async (args: any) => {
-            await desktopApi.auth.setToken(String(args || ''))
-            setCachedUserToken(String(args || ''))
-            setHasToken(true)
-            setTokenReady(true)
-            await authorize()
-        }
-    }, [authorize, setHasToken, setTokenReady])
 }

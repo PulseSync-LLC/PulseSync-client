@@ -73,7 +73,6 @@ export const desktopApi = {
     },
     auth: {
         getToken: () => requireDesktopApi().auth.getToken(),
-        setToken: (token: string) => requireDesktopApi().auth.setToken(token),
         deleteToken: () => requireDesktopApi().auth.deleteToken(),
         startBrowserAuth: () => requireDesktopApi().auth.startBrowserAuth(),
         cancelBrowserAuth: () => requireDesktopApi().auth.cancelBrowserAuth(),

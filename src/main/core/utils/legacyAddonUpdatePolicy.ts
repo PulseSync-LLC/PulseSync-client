@@ -1,12 +1,12 @@
 import { isDeveloperAccount } from '../auth/developerAccess'
+import { isCurrentAuthToken } from '../auth/session'
 import mainHttpClient from '../http/client'
-import { getState } from '../state'
 
 export class AddonUpdatePolicyError extends Error {}
 
 export async function assertLegacyAddonUpdateAllowed(authToken: string, overrideGroup?: string): Promise<void> {
     const assertIdentity = () => {
-        if (getState().get('tokens.token') !== authToken) throw new AddonUpdatePolicyError('AUTH_REQUIRED')
+        if (!isCurrentAuthToken(authToken)) throw new AddonUpdatePolicyError('AUTH_REQUIRED')
     }
     assertIdentity()
 

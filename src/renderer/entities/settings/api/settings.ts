@@ -8,7 +8,7 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 export const fetchSettings = async (setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>): Promise<SettingsInterface> => {
     const [snapshot, token, runtimeInfo] = await Promise.all([
         desktopApi.settings.getSnapshot(),
-        desktopApi.auth.getToken(),
+        desktopApi.auth.getToken().catch(() => ''),
         desktopApi.getRuntimeInfo(),
     ])
     const config: SettingsInterface = {

@@ -237,9 +237,8 @@ export interface PulseSyncDesktopApi {
     }
     auth: {
         getToken(): Promise<string>
-        setToken(token: string): Promise<void>
         deleteToken(): Promise<void>
-        startBrowserAuth(): Promise<unknown>
+        startBrowserAuth(): Promise<boolean>
         cancelBrowserAuth(): Promise<unknown>
         setStatus(payload: unknown): void
         sendPremiumToken(payload: unknown): void
