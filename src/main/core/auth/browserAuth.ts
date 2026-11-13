@@ -1,51 +1,57 @@
-import { app } from 'electron'
+import { createHash, randomBytes } from 'node:crypto'
 
-import axios from 'axios'
+import { dialog, shell } from 'electron'
 
 import config from '../../../common/appConfig'
 import RendererEvents from '../../../common/types/rendererEvents'
+import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import isAppDev from '../../shared/utils/isAppDev'
-import { getState } from '../state'
+import { authV2Request, installV2Session, parseV2Credentials } from './session'
 
 import type { BrowserWindow } from 'electron'
 
-const State = getState()
-const BROWSER_AUTH_CANCELLED_KEY = 'auth.browserAuthCancelled'
 const AUTH_EXCHANGE_CODE_PATTERN = /^[A-Za-z0-9_-]{43}$/
 
 export interface BrowserAuthCredentials {
-    userId: string
-    token: string
+    v2: NonNullable<ReturnType<typeof parseV2Credentials>>
+    flow: BrowserAuthFlow
+    requestedAt: number
 }
 
-interface BrowserAuthClientLike {
-    send: (channel: string, ...args: any[]) => void
-}
+type BrowserAuthFlow = { verifier: string; startedAt: number }
+let v2Flow: BrowserAuthFlow | null = null
 
-const trimQuotes = (value: string): string => value.trim().replace(/^["']|["']$/g, '')
-
-export const beginBrowserAuthFlow = (): void => {
-    State.set(BROWSER_AUTH_CANCELLED_KEY, false)
+export async function openBrowserAuthFlow(): Promise<boolean> {
+    const flow = { verifier: randomBytes(32).toString('base64url'), startedAt: Date.now() }
+    v2Flow = flow
+    try {
+        const challenge = createHash('sha256').update(flow.verifier).digest('base64url')
+        const availabilityUrl = new URL('/auth/v2', config.SERVER_URL)
+        availabilityUrl.searchParams.set('challenge', challenge)
+        const response = await fetch(availabilityUrl, {
+            redirect: 'error',
+            signal: AbortSignal.timeout(5000),
+        })
+        if (!response.ok || (await response.json())?.enabled !== true) {
+            if (v2Flow === flow) cancelBrowserAuthFlow()
+            return false
+        }
+        if (v2Flow !== flow) return false
+        const url = new URL('/callback', config.WEBSITE_URL)
+        url.searchParams.set('source', 'app')
+        url.searchParams.set('authVersion', '2')
+        url.searchParams.set('challenge', challenge)
+        await shell.openExternal(url.toString())
+        return true
+    } catch {
+        if (v2Flow === flow) cancelBrowserAuthFlow()
+        return false
+    }
 }
 
 export const cancelBrowserAuthFlow = (): void => {
-    State.set(BROWSER_AUTH_CANCELLED_KEY, true)
-}
-
-export const isBrowserAuthFlowCancelled = (): boolean => State.get(BROWSER_AUTH_CANCELLED_KEY) === true
-
-const pickAuthCredentials = (raw: unknown): BrowserAuthCredentials | null => {
-    if (!raw || typeof raw !== 'object') return null
-    const obj = raw as Record<string, unknown>
-    const userIdRaw = obj.userId ?? obj.userID ?? obj.user_id ?? obj.id
-    const tokenRaw = obj.token ?? obj.accessToken ?? obj.access_token
-    if (typeof userIdRaw !== 'string' || typeof tokenRaw !== 'string') return null
-
-    const userId = trimQuotes(userIdRaw)
-    const token = trimQuotes(tokenRaw)
-    if (!userId || !token) return null
-    return { userId, token }
+    v2Flow = null
 }
 
 export const extractBrowserAuthCodeFromUrl = (rawUrl: string): string | null => {
@@ -54,41 +60,59 @@ export const extractBrowserAuthCodeFromUrl = (rawUrl: string): string | null => 
     try {
         const parsed = new URL(rawUrl)
         if (parsed.protocol !== 'pulsesync:') return null
-        const code = trimQuotes(parsed.searchParams.get('code') || '')
+        if (parsed.searchParams.get('authVersion') !== '2') return null
+        const code = parsed.searchParams.get('code') ?? ''
         return AUTH_EXCHANGE_CODE_PATTERN.test(code) ? code : null
     } catch {
         return null
     }
 }
 
-export const extractBrowserAuthFromPayload = (payload: unknown): BrowserAuthCredentials | null => {
-    const direct = pickAuthCredentials(payload)
-    if (direct) return direct
-
-    if (payload && typeof payload === 'object') {
-        const nested = pickAuthCredentials((payload as Record<string, unknown>).args)
-        if (nested) return nested
-    }
-
-    return null
-}
-
 export const exchangeBrowserAuthCode = async (code: string): Promise<BrowserAuthCredentials | null> => {
+    const flow = v2Flow
     if (!AUTH_EXCHANGE_CODE_PATTERN.test(code)) return null
+    if (!flow || Date.now() - flow.startedAt > 12 * 60_000) {
+        logger.socketManager.warn('Browser authentication callback has no active sign-in attempt')
+        return null
+    }
     try {
-        const response = await axios.post<BrowserAuthCredentials>(
-            `${config.SERVER_URL}/auth/oauth/exchange`,
-            { code },
-            { headers: { 'Content-Type': 'application/json' }, timeout: 15_000 },
-        )
-        return pickAuthCredentials(response.data)
-    } catch (error) {
-        logger.socketManager.error(`Failed to exchange browser authentication code: ${error instanceof Error ? error.message : String(error)}`)
+        const requestedAt = Date.now()
+        const response = await authV2Request('/oauth/exchange', { code, verifier: flow.verifier })
+        if (!response.ok) {
+            logger.socketManager.warn(`Browser authentication exchange failed (HTTP ${response.status})`)
+            return null
+        }
+        const credentials = parseV2Credentials(await response.json())
+        if (!credentials) logger.socketManager.warn('Browser authentication exchange returned invalid credentials')
+        return credentials ? { v2: credentials, flow, requestedAt } : null
+    } catch {
+        logger.socketManager.error('Failed to exchange browser authentication code')
         return null
     }
 }
 
-const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: BrowserAuthClientLike | null): void => {
+export const processBrowserAuth = async (
+    credentials: BrowserAuthCredentials,
+    { window }: { window?: BrowserWindow | null } = {},
+): Promise<boolean> => {
+    const { v2, flow, requestedAt } = credentials
+    if (flow !== v2Flow) {
+        void authV2Request('/logout', { refreshToken: v2.refreshToken }).catch(() => {})
+        return false
+    }
+
+    try {
+        installV2Session(v2, requestedAt)
+    } catch {
+        v2Flow = null
+        void authV2Request('/logout', { refreshToken: v2.refreshToken }).catch(() => {})
+        logger.socketManager.error('Could not store the browser authentication session')
+        dialog.showErrorBox(t('main.auth.storageErrorTitle'), t('main.auth.storageErrorMessage'))
+        return false
+    }
+
+    v2Flow = null
+    logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${v2.userId}.`)
     if (window && !window.isDestroyed()) {
         if (window.isMinimized()) window.restore()
         window.show()
@@ -96,40 +120,5 @@ const notifyAuthSuccess = (window: BrowserWindow | null | undefined, client?: Br
         window.focus()
         window.webContents.send(RendererEvents.AUTH_SUCCESS)
     }
-    client?.send(RendererEvents.AUTH_SUCCESS)
-}
-
-export const processBrowserAuth = async (
-    credentials: BrowserAuthCredentials,
-    options?: {
-        window?: BrowserWindow | null
-        client?: BrowserAuthClientLike | null
-    },
-): Promise<boolean> => {
-    const { window, client } = options || {}
-    const userId = trimQuotes(credentials?.userId || '')
-    const token = trimQuotes(credentials?.token || '')
-
-    if (!userId || !token) {
-        logger.socketManager.error('Invalid authentication data received from browser.')
-        app.quit()
-        return false
-    }
-
-    if (isBrowserAuthFlowCancelled()) {
-        logger.socketManager.info(`Ignored browser auth for user ${userId}: auth flow was cancelled.`)
-        return false
-    }
-
-    try {
-        State.set('tokens.token', token)
-        State.set(BROWSER_AUTH_CANCELLED_KEY, false)
-        logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${userId}.`)
-        notifyAuthSuccess(window, client)
-        return true
-    } catch (error) {
-        logger.socketManager.error(`Error processing authentication for user ${userId}: ${error}`)
-        app.quit()
-        return false
-    }
+    return true
 }

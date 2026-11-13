@@ -22,7 +22,8 @@ import {
 } from '../../shared/updater/updateChannel'
 import { getUpdateSource, normalizeUpdateSource, setUpdateSource } from '../../shared/updater/updateSource'
 import isAppDev from '../../shared/utils/isAppDev'
-import { beginBrowserAuthFlow, cancelBrowserAuthFlow } from '../auth/browserAuth'
+import { cancelBrowserAuthFlow, openBrowserAuthFlow } from '../auth/browserAuth'
+import { deleteAuthToken, getAuthToken } from '../auth/session'
 import { applyCloudSnapshot, readCloudLocalState, rememberCloudBaseline, setCloudPendingDelete } from '../cloudSettings'
 import { inSleepMode, mainWindow } from '../createWindow'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
@@ -344,17 +345,17 @@ const registerSystemEvents = (window: BrowserWindow): void => {
         }
     })
     ipcMain.on(MainEvents.ELECTRON_STORE_GET, (event, val) => {
-        event.returnValue = State.get(val)
+        event.returnValue = val === 'tokens' || (typeof val === 'string' && val.startsWith('tokens.')) ? undefined : State.get(val)
     })
     ipcMain.handle(MainEvents.READ_CLOUD_LOCAL_STATE, (_event, session, remote) => readCloudLocalState(session, remote))
     ipcMain.handle(MainEvents.SET_CLOUD_PENDING_DELETE, (_event, session, pending) => setCloudPendingDelete(session, pending))
     ipcMain.handle(MainEvents.REMEMBER_CLOUD_BASELINE, (_event, session, snapshot) => rememberCloudBaseline(session, snapshot))
     ipcMain.handle(MainEvents.APPLY_CLOUD_SNAPSHOT, (_event, session, snapshot, expected) => applyCloudSnapshot(session, snapshot, expected))
     ipcMain.on(MainEvents.ELECTRON_STORE_SET, (_event, key, val) => {
-        State.set(key, val)
+        if (typeof key === 'string' && key !== 'tokens' && !key.startsWith('tokens.')) State.set(key, val)
     })
     ipcMain.on(MainEvents.ELECTRON_STORE_DELETE, (_event, key) => {
-        State.delete(key)
+        if (typeof key === 'string' && key !== 'tokens' && !key.startsWith('tokens.')) State.delete(key)
     })
     ipcMain.handle(MainEvents.MARK_APP_PATCH_NOTES_SEEN, (_event, ids: unknown) => {
         if (!Array.isArray(ids) || !ids.every((id): id is string => typeof id === 'string')) throw new Error('Invalid patch note IDs')
@@ -424,13 +425,12 @@ const registerAuthEvents = (): void => {
         sendAuthorizationStatus(authorized)
         tryOpenPendingAddon()
     })
-    ipcMain.handle(MainEvents.START_BROWSER_AUTH, async () => {
-        beginBrowserAuthFlow()
-        return { success: true }
-    })
+    ipcMain.handle(MainEvents.AUTH_GET_TOKEN, () => getAuthToken())
+    ipcMain.handle(MainEvents.AUTH_DELETE_TOKEN, () => deleteAuthToken())
+    ipcMain.handle(MainEvents.START_BROWSER_AUTH, () => openBrowserAuthFlow())
     ipcMain.handle(MainEvents.CANCEL_BROWSER_AUTH, async () => {
         cancelBrowserAuthFlow()
-        State.delete('tokens.token')
+        await deleteAuthToken()
         authorized = false
         sendAuthorizationStatus(false)
         return { success: true }

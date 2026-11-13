@@ -1,1 +1,1 @@
-export const DESKTOP_API_VERSION = '1.16.0'
+export const DESKTOP_API_VERSION = '2.0.0'

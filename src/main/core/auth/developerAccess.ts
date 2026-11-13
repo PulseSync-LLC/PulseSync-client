@@ -1,13 +1,12 @@
 import mainHttpClient from '../http/client'
-import { getState } from '../state'
+import { getAuthToken, isCurrentAuthToken } from './session'
 
-const State = getState()
 const ROLE_CACHE_MS = 30_000
 let cachedRole: { token: string; developer: boolean; expiresAt: number } | null = null
 let pendingRole: { token: string; promise: Promise<boolean> } | null = null
 
 export async function isDeveloperAccount(): Promise<boolean> {
-    const token = State.get('tokens.token')
+    const token = await getAuthToken().catch(() => '')
     if (typeof token !== 'string' || !token) return false
     if (cachedRole?.token === token && cachedRole.expiresAt > Date.now()) return cachedRole.developer
     if (pendingRole?.token === token) return pendingRole.promise
@@ -27,7 +26,7 @@ export async function isDeveloperAccount(): Promise<boolean> {
         } catch {
             developer = false
         }
-        if (State.get('tokens.token') !== token) return false
+        if (!isCurrentAuthToken(token)) return false
         cachedRole = { token, developer, expiresAt: Date.now() + ROLE_CACHE_MS }
         return developer
     })()

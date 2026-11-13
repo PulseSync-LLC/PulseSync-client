@@ -11,15 +11,9 @@ const parsePid = (value: string): number | null => {
     return Number.isNaN(pid) ? null : pid
 }
 
-export const parseMacPgrep = (stdout: string): ProcessInfo[] =>
+export const parsePgrep = (stdout: string): ProcessInfo[] =>
     splitNonEmptyLines(stdout)
         .map(line => parsePid(line))
-        .filter((pid): pid is number => pid !== null)
-        .map(pid => ({ pid }))
-
-export const parseLinuxPgrep = (stdout: string): ProcessInfo[] =>
-    splitNonEmptyLines(stdout)
-        .map(line => parsePid(line.split(' ')[0]))
         .filter((pid): pid is number => pid !== null)
         .map(pid => ({ pid }))
 

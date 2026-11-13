@@ -7,7 +7,7 @@ import { createGatewayHandler } from '@app/providers/socket/gateway'
 import { useZstdCodec } from '@app/providers/socket/useZstdCodec'
 import { buildRealtimeSocketAuth, CONNECTION_ERROR_TOAST_THRESHOLD, emitCompressedGateway } from '@app/providers/socket/utils'
 import IncomingSocketEvents from '@shared/api/socket/enums/incomingSocketEvents'
-import { createRealtimeSocket, updateRealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
+import { createRealtimeSocket, reconnectOnAuthExpiry, updateRealtimeSocketAuth } from '@shared/api/socket/realtimeSocket'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
 
@@ -53,6 +53,7 @@ export function SocketProvider({
     const websocketStartedRef = useRef(false)
     const connectionErrorAttemptsRef = useRef(0)
     const unavailableToastShownRef = useRef(false)
+    const authExpiredRef = useRef(false)
 
     const emitGateway = useCallback(
         (event: OutgoingGatewayEvent, payload: unknown) => {
@@ -90,54 +91,16 @@ export function SocketProvider({
     useEffect(() => {
         if (!zstdReady || !desktopRuntimeInfo) return
 
-        let active = true
-        void (async () => {
-            const token = await desktopApi.auth.getToken()
-            const socketAuth = buildRealtimeSocketAuth(appVersion, token, desktopRuntimeInfo)
-
-            if (!active) return
-
-            if (!socketRef.current) {
-                const newSocket = createRealtimeSocket(socketAuth)
-                socketRef.current = newSocket
-                setSocket(newSocket)
-                return
-            }
-
-            updateRealtimeSocketAuth(socketRef.current, socketAuth)
-        })()
-
-        return () => {
-            active = false
+        const socketAuth = buildRealtimeSocketAuth(appVersion, desktopRuntimeInfo)
+        if (!socketRef.current) {
+            const newSocket = createRealtimeSocket(socketAuth)
+            socketRef.current = newSocket
+            setSocket(newSocket)
+            return
         }
+
+        updateRealtimeSocketAuth(socketRef.current, socketAuth)
     }, [appVersion, desktopRuntimeInfo, zstdReady])
-
-    useEffect(() => {
-        if (userId === '-1' || !socketRef.current) return
-
-        let active = true
-        void (async () => {
-            const newToken = await desktopApi.auth.getToken()
-            if (!active || !newToken || !socketRef.current?.auth) {
-                return
-            }
-
-            const wasConnected = socketRef.current.connected
-            socketRef.current.auth = {
-                ...socketRef.current.auth,
-                token: newToken,
-            }
-
-            if (wasConnected) {
-                socketRef.current.disconnect()
-                socketRef.current.connect()
-            }
-        })()
-
-        return () => {
-            active = false
-        }
-    }, [userId])
 
     useEffect(() => {
         const currentSocket = socketRef.current
@@ -182,7 +145,8 @@ export function SocketProvider({
         }
 
         const onConnectionLost = () => {
-            notifyUnavailableIfNeeded()
+            if (!authExpiredRef.current) notifyUnavailableIfNeeded()
+            authExpiredRef.current = false
             setSocket(null)
             setSocketConnected(false)
         }
@@ -213,35 +177,21 @@ export function SocketProvider({
         setUser,
         t,
         zstdReady,
+        desktopRuntimeInfo,
     ])
 
     useEffect(() => {
-        if (userId === '-1' || !zstdReady) return
-
         const currentSocket = socketRef.current
-        if (!currentSocket) return
-
-        let active = true
-        void (async () => {
-            const token = await desktopApi.auth.getToken()
-            if (!active) return
-
-            currentSocket.auth = {
-                ...currentSocket.auth,
-                token,
-                compression: 'zstd-stream',
-                inboundCompression: 'zstd-stream',
-            }
-
-            if (!currentSocket.connected) {
-                currentSocket.connect()
-            }
-        })()
-
+        if (!currentSocket || !zstdReady || !desktopRuntimeInfo || userId === '-1') return
+        const stopReconnecting = reconnectOnAuthExpiry(currentSocket, () => {
+            authExpiredRef.current = true
+        })
+        currentSocket.connect()
         return () => {
-            active = false
+            stopReconnecting()
+            currentSocket.disconnect()
         }
-    }, [userId, zstdReady])
+    }, [userId, zstdReady, desktopRuntimeInfo])
 
     const value = useMemo(
         () => ({

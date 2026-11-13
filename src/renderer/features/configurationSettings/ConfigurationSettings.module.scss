@@ -17,6 +17,7 @@
     gap: 5px;
 
     width: -webkit-fill-available;
+    min-width: 0;
     min-height: 100%;
 
     padding: 15px 40px;
@@ -28,6 +29,151 @@
 
         margin-top: auto;
     }
+}
+
+.layout {
+    display: grid;
+
+    align-items: start;
+}
+
+.withNavigation {
+    grid-template-columns: 0 minmax(0, 1fr);
+}
+
+.settingsContent {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 5px;
+
+    min-width: 0;
+}
+
+.navigation {
+    position: sticky;
+    top: 50%;
+    z-index: 2;
+
+    width: 28px;
+
+    margin-left: -34px;
+
+    transform: translateY(-50%);
+}
+
+.navigationList {
+    display: flex;
+
+    flex-direction: column;
+
+    max-height: min(60dvh, 400px);
+
+    padding: 2px 0;
+
+    overflow-y: auto;
+
+    overscroll-behavior: contain;
+
+    scrollbar-width: none;
+}
+
+.navigationItem {
+    display: flex;
+
+    flex-shrink: 0;
+
+    align-items: center;
+    justify-content: center;
+
+    width: 28px;
+    height: 12px;
+
+    padding: 0;
+
+    color: var(--text-muted);
+
+    cursor: pointer;
+
+    background: transparent;
+    border: 0;
+    border-radius: 3px;
+
+    transition: color 0.16s ease;
+
+    &:hover,
+    &:focus-visible {
+        color: var(--cfg-text);
+    }
+
+    &:focus-visible {
+        outline: 1px solid var(--focus-ring);
+        outline-offset: 1px;
+    }
+
+    &[aria-current='location'] {
+        color: var(--cfg-text);
+    }
+}
+
+.navigationTick {
+    width: 6px;
+    height: 2px;
+
+    pointer-events: none;
+
+    background: currentcolor;
+    border-radius: 1px;
+
+    transition: width 0.16s ease;
+}
+
+.navigation:hover .navigationTick,
+.navigationItem:focus-visible .navigationTick {
+    width: 12px;
+}
+
+.navigationItem[aria-current='location'] .navigationTick,
+.navigationItem:hover .navigationTick {
+    width: 20px;
+}
+
+.navigationTooltip {
+    z-index: 9999;
+
+    display: flex;
+
+    gap: 10px;
+
+    align-items: baseline;
+
+    max-width: min(320px, calc(100vw - 48px));
+
+    padding: 10px 12px;
+
+    font-size: 13px;
+
+    line-height: 1.4;
+
+    color: var(--cfg-text);
+
+    overflow-wrap: anywhere;
+
+    pointer-events: none;
+
+    background: var(--surface-elevated);
+    border: 1px solid var(--border-hover);
+    border-radius: 10px;
+    box-shadow: 0 6px 24px rgb(0 0 0 / 25%);
+}
+
+.navigationNumber {
+    flex-shrink: 0;
+
+    font-size: 12px;
+
+    color: var(--cfg-muted);
 }
 
 .searchBox {
@@ -191,6 +337,8 @@
     padding: 1px;
 
     overflow: visible;
+
+    scroll-margin-top: 15px;
 }
 
 .sectionHeader {
@@ -350,6 +498,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+    .navigationItem,
+    .navigationTick,
     .searchBox,
     .searchIcon,
     .searchClear,

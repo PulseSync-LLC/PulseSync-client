@@ -10,14 +10,13 @@ const COMPRESSION_LEVEL = 3
 
 export const CONNECTION_ERROR_TOAST_THRESHOLD = 3
 
-export function buildRealtimeSocketAuth(appVersion: string, token: string, runtimeInfo: DesktopRuntimeInfo): RealtimeSocketAuth {
+export function buildRealtimeSocketAuth(appVersion: string, runtimeInfo: DesktopRuntimeInfo): RealtimeSocketAuth {
     const rawHash = window.location?.hash || ''
     const page = rawHash.startsWith('#') ? rawHash.slice(1) : rawHash
     const version = (appVersion || SOCKET_VERSION_FALLBACK).split('-')[0]
 
     return {
         page,
-        token,
         version,
         buildIdentity: runtimeInfo.buildIdentity,
         hardwareIdentity: runtimeInfo.hardwareIdentity,

@@ -258,11 +258,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     },
 
     auth: {
-        getToken: async () => ipcRenderer.sendSync(MainEvents.ELECTRON_STORE_GET, 'tokens.token') ?? '',
+        getToken: () => ipcRenderer.invoke(MainEvents.AUTH_GET_TOKEN),
 
-        setToken: async token => ipcRenderer.send(MainEvents.ELECTRON_STORE_SET, 'tokens.token', token),
-
-        deleteToken: async () => ipcRenderer.send(MainEvents.ELECTRON_STORE_DELETE, 'tokens.token'),
+        deleteToken: () => ipcRenderer.invoke(MainEvents.AUTH_DELETE_TOKEN),
 
         startBrowserAuth: () => ipcRenderer.invoke(MainEvents.START_BROWSER_AUTH),
 
@@ -414,6 +412,9 @@ const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
     },
 
     addons: {
+        getRecoverySnapshot: () => ipcRenderer.invoke(MainEvents.GET_ADDON_RECOVERY),
+        retryRecovery: request => ipcRenderer.invoke(MainEvents.RETRY_ADDON_RECOVERY, request),
+        onRecoveryChange: listener => subscribePayload(RendererEvents.ADDON_RECOVERY_CHANGED, listener),
         list: () => ipcRenderer.invoke(MainEvents.GET_ADDONS),
 
         setEnabled: request => ipcRenderer.invoke(MainEvents.SET_ADDON_ENABLED, request),

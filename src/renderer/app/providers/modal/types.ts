@@ -56,6 +56,7 @@ export type ModalAdditionalStateMap = {
         description?: string | null
         confirmLabel?: string | null
         confirmVariant?: 'primary' | 'danger'
+        confirmDisabled?: boolean
         onConfirm?: (() => void) | null
     }
     [Modals.USER_PROFILE]: {

@@ -45,10 +45,8 @@ const AchievementItem: React.FC<AchievementItemProps> = ({ ach, userAch, expande
     const difficultyLabel = difficultyMap[diffKey] ?? t('profile.achievements.unknown')
     const difficultyColor = difficultyColors[diffKey] || '#000'
 
-    const itemClassNames = [achv.achievementCard, isCompleted && achv.completed, isInProgress && achv.inProgress].filter(Boolean).join(' ')
-
     return (
-        <div key={ach.id} className={itemClassNames}>
+        <div key={ach.id} className={achv.achievementCard}>
             <div className={achv.achievementHeader}>
                 {!isCompleted ? (
                     <div className={achv.image}>?</div>

@@ -10,7 +10,7 @@ import logger from '../../shared/logger'
 import { CACHE_DIR } from '../constants/paths'
 import { nativeDeleteFile, nativeFileExists } from '../nativeModules'
 import { getState } from '../state'
-import { closeYandexMusic, getInstalledYmMetadata, isYandexMusicRunning, launchYandexMusic } from '../utils/appUtils'
+import { closeYandexMusic, getInstalledYmMetadata, getYandexMusicProcesses, isYandexMusicRunning, launchYandexMusic } from '../utils/appUtils'
 import { resetProgress, sendProgress, sendToRenderer, setProgress } from './download.helpers'
 import { downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
@@ -47,20 +47,28 @@ export function clearCacheOnVersionChange(): void {
 }
 
 export async function closeMusicIfRunning(_window: BrowserWindow | null | undefined): Promise<boolean> {
-    if (await isYandexMusicRunning()) {
-        await closeYandexMusic()
-        const deadline = Date.now() + MUSIC_CLOSE_TIMEOUT_MS
-        while (Date.now() < deadline) {
-            if (!(await isYandexMusicRunning())) return true
-            await new Promise(r => setTimeout(r, MUSIC_CLOSE_POLL_INTERVAL_MS))
+    const processes = await getYandexMusicProcesses()
+    if (!processes.length) return false
+
+    let waitingForLinuxMain = processes.some(({ isLinuxHelper }) => isLinuxHelper === false)
+    await closeYandexMusic(processes)
+    const deadline = Date.now() + MUSIC_CLOSE_TIMEOUT_MS
+    while (Date.now() < deadline) {
+        const remaining = await getYandexMusicProcesses()
+        if (!remaining.length) return true
+        // Let Electron shut down its helpers before signalling any that are still alive.
+        if (waitingForLinuxMain && remaining.every(({ isLinuxHelper }) => isLinuxHelper === true)) {
+            waitingForLinuxMain = false
+            await closeYandexMusic(remaining)
         }
-        if (await isYandexMusicRunning()) {
-            logger.modManager.warn('Yandex Music is still running after close timeout')
-            throw new Error(t('main.appUtils.musicCloseTimeout'))
-        }
-        return true
+        await new Promise(r => setTimeout(r, MUSIC_CLOSE_POLL_INTERVAL_MS))
     }
-    return false
+    const remainingPids = (await getYandexMusicProcesses()).map(({ pid }) => pid)
+    if (remainingPids.length) {
+        logger.modManager.warn('Yandex Music is still running after close timeout', { remainingPids })
+        throw new Error(t('main.appUtils.musicCloseTimeout'))
+    }
+    return true
 }
 
 export async function tryUseCacheOrDownload(

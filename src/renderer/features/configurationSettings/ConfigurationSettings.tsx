@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react'
+import React, { useCallback, useEffect, useId, useLayoutEffect, useMemo, useRef, useState } from 'react'
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
@@ -8,6 +8,7 @@ import BufferedColorInput from '@features/configurationSettings/BufferedColorInp
 import BufferedSliderInput from '@features/configurationSettings/BufferedSliderInput'
 import { useCollapsedSections } from '@features/configurationSettings/model/useCollapsedSections'
 import { normalizeAddonConfig } from '@features/configurationSettings/types'
+import ConfigurationNavigation from '@features/configurationSettings/ui/ConfigurationNavigation'
 import ButtonInput from '@shared/ui/PSUI/ButtonInput'
 import ChangesBar from '@shared/ui/PSUI/ChangesBar'
 import FileInput from '@shared/ui/PSUI/FileInput'
@@ -127,6 +128,10 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
     const [cfg, setCfg] = useState<AddonConfig>(normalizedInitialConfig)
     const [search, setSearch] = useState('')
     const searchRef = useRef<HTMLInputElement>(null)
+    const sectionId = useId()
+    const sectionRefs = useRef<(HTMLDivElement | null)[]>([])
+    const sectionHighlightRef = useRef<Animation | null>(null)
+    const [pendingSection, setPendingSection] = useState<number | null>(null)
     const searchTerms = search.toLocaleLowerCase().replace(/ё/g, 'е').trim().split(/\s+/).filter(Boolean)
     const matches = (sectionTitle: string, item: Item) => {
         const text = [
@@ -141,7 +146,10 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
             .replace(/ё/g, 'е')
         return searchTerms.every(term => text.includes(term))
     }
-    const hasResults = cfg.sections.some(section => section.items.some(item => matches(section.title, item)))
+    const visibleSections = cfg.sections
+        .map((section, index) => ({ section, index }))
+        .filter(({ section }) => section.items.some(item => matches(section.title, item)))
+    const hasResults = visibleSections.length > 0
 
     const rootRef = useRef<HTMLDivElement>(null)
     const baselineRef = useRef<AddonConfig>(normalizedInitialConfig)
@@ -149,6 +157,30 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
 
     const [savedTick, setSavedTick] = useState(0)
     const [collapsed, setCollapsed] = useCollapsedSections(addonId, cfg.sections)
+
+    useLayoutEffect(() => {
+        if (pendingSection === null) return
+        const section = sectionRefs.current[pendingSection]
+        const header = section?.querySelector('button')
+        header?.focus({ preventScroll: true })
+        section?.scrollIntoView({ block: 'start', behavior: 'instant' })
+        sectionHighlightRef.current?.cancel()
+        if (header && typeof header.animate === 'function') {
+            const highlight = {
+                backgroundColor: 'var(--active)',
+                borderColor: 'var(--cfg-accent)',
+                boxShadow: '0 0 0 2px var(--focus-ring)',
+            }
+            const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches
+            sectionHighlightRef.current = header.animate(
+                [highlight, reducedMotion ? highlight : { backgroundColor: 'transparent', borderColor: 'var(--cfg-border)', boxShadow: 'none' }],
+                { duration: 1500, easing: 'ease-out' },
+            )
+        }
+        setPendingSection(null)
+    }, [pendingSection])
+
+    useEffect(() => () => sectionHighlightRef.current?.cancel(), [])
 
     const lastFocusedRef = useRef<HTMLElement | null>(null)
     useEffect(() => {
@@ -440,66 +472,90 @@ const ConfigurationSettings: React.FC<Props> = ({ addonId, configData, onChange,
 
     return (
         <div ref={rootRef} className={css.root}>
-            <div className={css.searchBox}>
-                <MdSearch className={css.searchIcon} size={18} aria-hidden="true" />
-                <input
-                    ref={searchRef}
-                    type="search"
-                    className={css.search}
-                    value={search}
-                    onChange={event => setSearch(event.target.value)}
-                    placeholder={t('settingsModal.searchPlaceholder')}
-                    aria-label={t('settingsModal.searchPlaceholder')}
-                />
-                <button
-                    type="button"
-                    className={css.searchClear}
-                    hidden={!search}
-                    aria-label={t('common.clear')}
-                    onClick={() => {
-                        setSearch('')
-                        searchRef.current?.focus()
-                    }}
-                >
-                    <MdClose size={16} aria-hidden="true" />
-                </button>
-            </div>
-            {!hasResults && (
-                <p className={css.searchEmpty} aria-live="polite">
-                    {t('settingsModal.searchEmpty')}
-                </p>
-            )}
-            {(cfg.sections ?? []).map((s, si) => {
-                const isCollapsed = searchTerms.length === 0 && !!collapsed[si]
-                const sectionMatches = s.items.some(item => matches(s.title, item))
-                return (
-                    <div key={s.title ?? si} className={css.section} hidden={!sectionMatches}>
+            <div className={clsx(css.layout, cfg.sections.length > 1 && hasResults && css.withNavigation)}>
+                {cfg.sections.length > 1 && hasResults && (
+                    <ConfigurationNavigation
+                        rootRef={rootRef}
+                        sectionRefs={sectionRefs}
+                        sectionId={sectionId}
+                        sections={visibleSections}
+                        onNavigate={index => {
+                            if (collapsed[index]) setCollapsed(previous => ({ ...previous, [index]: false }))
+                            setPendingSection(index)
+                        }}
+                    />
+                )}
+                <div className={css.settingsContent}>
+                    <div className={css.searchBox}>
+                        <MdSearch className={css.searchIcon} size={18} aria-hidden="true" />
+                        <input
+                            ref={searchRef}
+                            type="search"
+                            className={css.search}
+                            value={search}
+                            onChange={event => setSearch(event.target.value)}
+                            placeholder={t('settingsModal.searchPlaceholder')}
+                            aria-label={t('settingsModal.searchPlaceholder')}
+                        />
                         <button
                             type="button"
-                            className={clsx(css.sectionHeader, isCollapsed && css.collapsed)}
+                            className={css.searchClear}
+                            hidden={!search}
+                            aria-label={t('common.clear')}
                             onClick={() => {
-                                if (!searchTerms.length) setCollapsed(c => ({ ...c, [si]: !c[si] }))
+                                setSearch('')
+                                searchRef.current?.focus()
                             }}
-                            aria-expanded={!isCollapsed}
-                            aria-controls={`section-panel-${si}`}
                         >
-                            <span className={css.badge}>{si + 1}</span>
-                            <span className={css.sectionTitle}>{s.title}</span>
-                            <span className={css.chev} aria-hidden />
+                            <MdClose size={16} aria-hidden="true" />
                         </button>
-
-                        <Collapse open={!isCollapsed} id={`section-panel-${si}`}>
-                            <div className={css.list}>
-                                {(s.items ?? []).map((it, ii) => (
-                                    <div key={it.id} hidden={!matches(s.title, it)}>
-                                        {renderItem(si, ii, it)}
-                                    </div>
-                                ))}
-                            </div>
-                        </Collapse>
                     </div>
-                )
-            })}
+                    {!hasResults && (
+                        <p className={css.searchEmpty} aria-live="polite">
+                            {t('settingsModal.searchEmpty')}
+                        </p>
+                    )}
+                    {(cfg.sections ?? []).map((s, si) => {
+                        const isCollapsed = searchTerms.length === 0 && !!collapsed[si]
+                        const sectionMatches = s.items.some(item => matches(s.title, item))
+                        return (
+                            <div
+                                key={si}
+                                ref={element => {
+                                    sectionRefs.current[si] = element
+                                }}
+                                className={css.section}
+                                hidden={!sectionMatches}
+                            >
+                                <button
+                                    type="button"
+                                    className={clsx(css.sectionHeader, isCollapsed && css.collapsed)}
+                                    onClick={() => {
+                                        if (!searchTerms.length) setCollapsed(c => ({ ...c, [si]: !c[si] }))
+                                    }}
+                                    aria-expanded={!isCollapsed}
+                                    id={`${sectionId}-heading-${si}`}
+                                    aria-controls={`${sectionId}-panel-${si}`}
+                                >
+                                    <span className={css.badge}>{si + 1}</span>
+                                    <span className={css.sectionTitle}>{s.title}</span>
+                                    <span className={css.chev} aria-hidden />
+                                </button>
+
+                                <Collapse open={!isCollapsed} id={`${sectionId}-panel-${si}`}>
+                                    <div className={css.list}>
+                                        {(s.items ?? []).map((it, ii) => (
+                                            <div key={it.id} hidden={!matches(s.title, it)}>
+                                                {renderItem(si, ii, it)}
+                                            </div>
+                                        ))}
+                                    </div>
+                                </Collapse>
+                            </div>
+                        )
+                    })}
+                </div>
+            </div>
 
             <ChangesBar open={isDirty} text={t('changes.unsavedWarning')} onReset={resetAll} onSave={commitAll} />
         </div>

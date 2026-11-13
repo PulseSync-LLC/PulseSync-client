@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
@@ -26,6 +26,7 @@ type Props = {
 
 const clamp = (n: number, a: number, b: number) => Math.min(b, Math.max(a, n))
 const snap = (n: number, step: number, min: number) => Math.round((n - min) / step) * step + min
+const numberFormat = new Intl.NumberFormat('ru-RU', { maximumFractionDigits: 6 })
 
 const SliderInput: React.FC<Props> = ({
     label,
@@ -53,10 +54,13 @@ const SliderInput: React.FC<Props> = ({
 
     const commit = (n: number) => onChange?.(clamp(snap(n, step, min), min, max))
 
-    const format = (n: number) =>
-        new Intl.NumberFormat('ru-RU', {
-            maximumFractionDigits: 6,
-        }).format(n) + (unit ? '' : '')
+    const numberSamples = useMemo(() => {
+        const fractionDigits = Math.max(
+            ...[min, max, step].map(n => numberFormat.formatToParts(n).find(part => part.type === 'fraction')?.value.length ?? 0),
+        )
+        const sizingFormat = new Intl.NumberFormat('ru-RU', { minimumFractionDigits: fractionDigits, maximumFractionDigits: 6 })
+        return [sizingFormat.format(min), sizingFormat.format(max)]
+    }, [min, max, step])
 
     useEffect(() => {
         if (!drag) return
@@ -124,7 +128,7 @@ const SliderInput: React.FC<Props> = ({
             <div className={s.label}>
                 {label}
                 {description && (
-                    <TooltipButton className={s.tip} side="right" tooltipText={<div className={s.itemName}>{description}</div>}>
+                    <TooltipButton side="right" tooltipText={<div>{description}</div>}>
                         <MdHelp size={14} color="white" />
                     </TooltipButton>
                 )}
@@ -133,9 +137,15 @@ const SliderInput: React.FC<Props> = ({
             <div className={s.row}>
                 {showNumber && (
                     <div className={s.valBox}>
+                        {numberSamples.map((sample, index) => (
+                            <span key={index} className={s.valSizer} aria-hidden="true">
+                                {sample}
+                                {unit && <span className={s.unitLabel}>{unit}</span>}
+                            </span>
+                        ))}
                         {!editing ? (
                             <button type="button" className={s.val} onClick={startEdit} title={t('common.clickToEdit')}>
-                                {format(v)}
+                                {numberFormat.format(v)}
                                 {unit && <span className={s.unitLabel}>{unit}</span>}
                             </button>
                         ) : (

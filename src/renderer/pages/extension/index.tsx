@@ -51,6 +51,7 @@ import {
 import { isAddonAuthor, isRestrictedLegacyAddon, openLegacyAddonMigrationNews } from '@entities/addon/lib/legacyAddonRestrictions'
 import { normalizeStoreAddonChangelogMarkdown } from '@entities/addon/lib/storeAddonChangelog'
 import { buildStoreAddonMetrics } from '@entities/addon/lib/storeAddonMetrics'
+import { useAddonRecovery } from '@entities/addon/lib/useAddonRecovery'
 import { useLegacyAddonMigrationModal } from '@entities/addon/lib/useLegacyAddonMigrationModal'
 import userContext from '@entities/user/model/context'
 import apolloClient from '@shared/api/apolloClient'
@@ -185,6 +186,7 @@ function buildEnabledAddonKeys(theme: string, scripts: string[]): Set<string> {
 }
 
 export default function ExtensionPage() {
+    const addonRecovery = useAddonRecovery()
     const { i18n, t } = useTranslation()
     const { addons, setAddons, musicVersion, user, emitGateway } = useContext(userContext)
     const { getExperiment, isExperimentEnabled, loading: experimentsLoading, localOverrides } = useExperiments()
@@ -1612,6 +1614,7 @@ export default function ExtensionPage() {
             />
             <div className={extensionStylesV2.container}>
                 <ExtensionSidebar
+                    addonRecovery={addonRecovery}
                     addons={mergedAddons}
                     addonOrganization={addonOrganization}
                     addonImagesReady={isLoaded}
@@ -1675,6 +1678,8 @@ export default function ExtensionPage() {
 
                             return (
                                 <ExtensionView
+                                    recoveryEntries={addonRecovery.entries.filter(entry => entry.directoryName === selectedAddon.directoryName)}
+                                    recoveryConnection={addonRecovery.connection}
                                     addon={selectedAddon}
                                     onEditProject={linkedOnly => handleOpenProject(selectedAddon, linkedOnly)}
                                     project={project?.addonDirectoryName === selectedAddon.directoryName ? project : null}

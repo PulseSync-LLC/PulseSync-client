@@ -1,5 +1,9 @@
 {
     "main": {
+        "auth": {
+            "storageErrorTitle": "Не удалось сохранить сессию",
+            "storageErrorMessage": "PulseSync не смог записать данные входа в профиль приложения. Повторите вход."
+        },
         "appUtils": {
             "dmgAppNotFound": "В DMG не найден .app пакет",
             "dumpingEntitlements": "Дампим entitlements…",

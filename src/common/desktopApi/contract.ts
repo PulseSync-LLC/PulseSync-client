@@ -1,4 +1,5 @@
 import type { AddonProject, AddonProjectDocument, AddonProjectOpenRequest } from '../addons/project'
+import type { DesktopAddonRecoveryRequest, DesktopAddonRecoverySnapshot } from '../addons/recovery'
 import type { CloudSettingsLocalState, CloudSettingsSession, CloudSettingsSnapshot } from '../cloudSettings'
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
@@ -236,9 +237,8 @@ export interface PulseSyncDesktopApi {
     }
     auth: {
         getToken(): Promise<string>
-        setToken(token: string): Promise<void>
         deleteToken(): Promise<void>
-        startBrowserAuth(): Promise<unknown>
+        startBrowserAuth(): Promise<boolean>
         cancelBrowserAuth(): Promise<unknown>
         setStatus(payload: unknown): void
         sendPremiumToken(payload: unknown): void
@@ -305,6 +305,9 @@ export interface PulseSyncDesktopApi {
         onClearCacheFailure(listener: (payload: unknown) => void): DesktopUnsubscribe
     }
     addons: {
+        getRecoverySnapshot(): Promise<DesktopAddonRecoverySnapshot>
+        retryRecovery(request: DesktopAddonRecoveryRequest): Promise<void>
+        onRecoveryChange(listener: (snapshot: DesktopAddonRecoverySnapshot) => void): DesktopUnsubscribe
         list(): Promise<unknown>
         setEnabled(request: DesktopSetAddonEnabledRequest): Promise<unknown>
         saveOrganization(organization: DesktopAddonOrganization): Promise<void>

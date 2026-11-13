@@ -3,6 +3,8 @@ import React from 'react'
 import rendererHttpClient from '@shared/api/http/client'
 import toast from '@shared/ui/toast'
 
+import type { TFunction } from 'i18next'
+
 type UploadKind = 'avatar' | 'banner'
 
 type UploadProfileMediaParams = {
@@ -10,7 +12,7 @@ type UploadProfileMediaParams = {
     file: File
     setProgress: React.Dispatch<React.SetStateAction<number>>
     setUser: React.Dispatch<React.SetStateAction<any>>
-    t: (key: string, options?: any) => string
+    t: TFunction
 }
 
 const uploadConfig = {

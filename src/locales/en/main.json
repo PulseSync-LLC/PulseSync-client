@@ -1,5 +1,9 @@
 {
     "main": {
+        "auth": {
+            "storageErrorTitle": "Could not save your session",
+            "storageErrorMessage": "PulseSync could not write the sign-in data to its application profile. Try signing in again."
+        },
         "appUtils": {
             "dmgAppNotFound": "No .app bundle found in DMG",
             "dumpingEntitlements": "Dumping entitlements…",

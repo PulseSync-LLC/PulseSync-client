@@ -11,6 +11,7 @@ import TextInput from '@shared/ui/PSUI/TextInput'
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
 
 import type { AddonConfig, ButtonItem, ColorItem, FileItem, Item, SelectorItem, SliderItem, TextItem } from '@features/configurationSettings/types'
+import type { TFunction } from 'i18next'
 
 type Props = {
     cfg: AddonConfig
@@ -19,7 +20,7 @@ type Props = {
     item: Item
     setConfig: (next: AddonConfig) => void
     si: number
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
     updateItem: (si: number, ii: number, patch: Partial<Item>) => void
     updateTextButton: (si: number, ii: number, bi: number, patch: Record<string, any>) => void
     removeTextButton: (si: number, ii: number, bi: number) => void

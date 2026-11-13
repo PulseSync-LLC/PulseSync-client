@@ -18,7 +18,7 @@ import { asarBackup, musicPath } from '../../startup/runtimeState'
 import { getState } from '../../state'
 import { isLinuxAccessError } from './elevation'
 import { runPowerShell } from './powershell'
-import { parseLinuxPgrep, parseMacPgrep, parseWindowsTasklist } from './process'
+import { parsePgrep, parseWindowsTasklist } from './process'
 
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
@@ -47,7 +47,7 @@ export const resolveModAsarPath = (musicPath: string, customPath?: string): stri
 const terminateProcess = (pid: number): void => {
     try {
         process.kill(pid)
-        logger.main.info(`Yandex Music process ${pid} terminated.`)
+        logger.main.info(`Sent termination signal to Yandex Music process ${pid}.`)
     } catch (error) {
         logger.main.error(`Error terminating ${pid}:`, error)
     }
@@ -58,18 +58,33 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
         try {
             const command = `pgrep -f "Яндекс Музыка"`
             const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
-            return parseMacPgrep(stdout)
+            return parsePgrep(stdout)
         } catch (error) {
             logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
             return []
         }
     } else if (isLinux()) {
         try {
-            const command = `pgrep -fa "yandexmusic"`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
-            return parseLinuxPgrep(stdout)
+            // A shell wrapper would match the pattern in its own command line.
+            const { stdout } = await execFileAsync('pgrep', ['-fi', 'yandexmusic'], { encoding: 'utf8' })
+            const processes = await Promise.all(
+                parsePgrep(stdout).map(async candidate => {
+                    try {
+                        const [executable, ...args] = (await fsp.readFile(`/proc/${candidate.pid}/cmdline`, 'utf8')).split('\0')
+                        // Match the executable argument and ignore zombies with empty command lines.
+                        if (!/^yandexmusic(?:\.appimage)?$/iu.test(path.posix.basename(executable))) return null
+                        return { ...candidate, isLinuxHelper: args.some(arg => arg === '--type' || arg.startsWith('--type=')) }
+                    } catch (error) {
+                        const code = (error as NodeJS.ErrnoException).code
+                        return code === 'ENOENT' || code === 'ESRCH' ? null : candidate
+                    }
+                }),
+            )
+            return processes.filter(candidate => candidate !== null)
         } catch (error) {
-            logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
+            if ((error as { code?: number }).code !== 1) {
+                logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
+            }
             return []
         }
     } else {
@@ -90,10 +105,11 @@ export async function isYandexMusicRunning(): Promise<boolean> {
     return !!(await getYandexMusicProcesses())?.length
 }
 
-export async function closeYandexMusic(): Promise<void> {
-    const procs = await getYandexMusicProcesses()
-    if (!procs.length) {
-        logger.main.info('Yandex Music is not running.')
+export async function closeYandexMusic(procs: ProcessInfo[]): Promise<void> {
+    if (isLinux()) {
+        const mainProcesses = procs.filter(({ isLinuxHelper }) => isLinuxHelper === false)
+        const targets = mainProcesses.length ? mainProcesses : procs.filter(({ isLinuxHelper }) => isLinuxHelper === true)
+        for (const { pid } of targets) terminateProcess(pid)
         return
     }
     if (isWindows()) {

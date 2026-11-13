@@ -23,8 +23,14 @@ const wsLink =
           )
         : null
 
-const authMiddleware = setContext(async (_, { headers, authToken }) => {
-    const token = typeof authToken === 'string' ? authToken : await getUserTokenAsync()
+const authMiddleware = setContext(async (_, { headers, authToken, optionalAuth }) => {
+    const token =
+        typeof authToken === 'string'
+            ? authToken
+            : await getUserTokenAsync().catch(error => {
+                  if (optionalAuth === true) return ''
+                  throw error
+              })
     return {
         headers: {
             ...headers,

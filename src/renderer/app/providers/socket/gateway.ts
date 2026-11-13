@@ -7,11 +7,12 @@ import toast from '@shared/ui/toast'
 
 import type UserInterface from '@entities/user/model/user.interface'
 import type { SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents'
+import type { TFunction } from 'i18next'
 import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
 import type { Socket } from 'socket.io-client'
 
 type CreateGatewayHandlerParams = {
-    t: (key: string, options?: any) => string
+    t: TFunction
     zstdReady: boolean
     zstdRef: MutableRefObject<any>
     setSocket: Dispatch<SetStateAction<Socket | null>>

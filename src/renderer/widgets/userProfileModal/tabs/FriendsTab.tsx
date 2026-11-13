@@ -34,9 +34,9 @@ const FriendsTab: React.FC<FriendsTabProps> = ({ userProfile, loading, error }) 
     }
 
     return (
-        <div className={styles.friendsContainer}>
+        <div>
             <h2>{t('profile.tabs.friends')}</h2>
-            <div className={styles.friendsList}>{t('profile.friends.placeholder')}</div>
+            <div>{t('profile.friends.placeholder')}</div>
         </div>
     )
 }

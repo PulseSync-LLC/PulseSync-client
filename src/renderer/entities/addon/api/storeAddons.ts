@@ -2,7 +2,7 @@ import path from 'path'
 
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 
 import type Addon from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
@@ -23,12 +23,12 @@ const MAX_STORE_READ_REQUESTS = 32
 const storeReadRequests = new Map<string, Promise<StoreAddon[]>>()
 let storeReadAuthToken = ''
 
-function requestStoreAddons(
+async function requestStoreAddons(
     key: string,
     fetchAddons: (authToken: string) => Promise<StoreAddon[]>,
     options?: StoreAddonReadOptions,
 ): Promise<StoreAddon[]> {
-    const authToken = getUserToken()
+    const authToken = await getUserTokenAsync()
     if (storeReadAuthToken !== authToken) {
         storeReadRequests.clear()
         storeReadAuthToken = authToken

@@ -22,6 +22,8 @@ import * as s from '@pages/extension/route/extensionview.module.scss'
 import type { ActiveTab, ExtensionViewProps } from '@pages/extension/route/extBox/types'
 
 const ExtensionView: React.FC<ExtensionViewProps> = ({
+    recoveryEntries,
+    recoveryConnection,
     addon,
     onEditProject,
     project,
@@ -205,6 +207,8 @@ const ExtensionView: React.FC<ExtensionViewProps> = ({
 
             <Scrollbar className={s.summaryPane} classNameInner={s.summaryPaneInner}>
                 <ThemeInfo
+                    recoveryEntries={recoveryEntries}
+                    recoveryConnection={recoveryConnection}
                     addon={addon}
                     onEditProject={onEditProject}
                     isEnabled={isEnabled}

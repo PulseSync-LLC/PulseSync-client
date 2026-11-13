@@ -4,6 +4,7 @@ import * as pageStyles from '@widgets/layout/layout.module.scss'
 
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type { TFunction } from 'i18next'
 
 const modInstallProxyDomains = ['pulsesync.dev', 'ru-node-1.pulsesync.dev', 'worker.pulsesync.dev', 's3.pulsesync.dev']
 
@@ -17,7 +18,7 @@ type Props = {
     } | null
     modInfo: ModInterface[]
     onStartUpdate: () => void
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
 }
 
 export default function ModUpdateBanner({ app, isModUpdateAvailable, modInstallError, modInfo, onStartUpdate, t }: Props) {

@@ -18,9 +18,6 @@ import {
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
 
-const LEGACY_BACKEND_REMOTE_RENDERER_MANIFEST_URL = `${BACKEND_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
-const LEGACY_GITHUB_REMOTE_RENDERER_MANIFEST_URL = `${GITHUB_REMOTE_RENDERER_BASE_URL}/desktop/manifest.json`
-
 type PublicRendererChannel = 'dev' | 'beta'
 
 export interface RemoteRendererManifest {
@@ -70,9 +67,6 @@ function getRemoteManifestUrls(): string[] {
     const backendManifestUrl = readBootstrapSettings().remoteRendererManifestUrl || getBackendRendererManifestUrl(channel)
     const githubManifestUrl = getGithubRendererManifestUrl(channel)
     const orderedManifestUrls = updateSource === 'github' ? [githubManifestUrl, backendManifestUrl] : [backendManifestUrl, githubManifestUrl]
-    if (channel === 'beta') {
-        orderedManifestUrls.push(LEGACY_BACKEND_REMOTE_RENDERER_MANIFEST_URL, LEGACY_GITHUB_REMOTE_RENDERER_MANIFEST_URL)
-    }
     return Array.from(new Set(orderedManifestUrls))
 }
 

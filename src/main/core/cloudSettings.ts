@@ -7,6 +7,7 @@ import { applyAddonSettingsValuesToConfig, collectAddonSettingsValuesFromConfig,
 import { normalizeCloudAddons, stableCloudJson as stableJson } from '@common/cloudSettings'
 import RendererEvents from '@common/types/rendererEvents'
 
+import { isCurrentAuthToken } from './auth/session'
 import { sendAddonSettings } from './httpServer'
 import { readAddonSettingsSchema, readAddonSettingsValuesFile } from './httpServer/addonSettings'
 import { setAutoStartEnabled } from './startup/loginItem'
@@ -26,7 +27,7 @@ const requireSession = (session: CloudSettingsSession) => {
         session.userId === '-1' ||
         typeof session.token !== 'string' ||
         !session.token ||
-        getState().get('tokens.token') !== session.token
+        !isCurrentAuthToken(session.token)
     ) {
         throw new Error('CLOUD_SETTINGS_SESSION_CHANGED')
     }
@@ -94,7 +95,7 @@ export const applyCloudSnapshot = async (
     requireSnapshot(snapshot)
     requireSnapshot(expected)
     const { token: authToken, userId } = session
-    if (getState().get('tokens.token') !== authToken || pendingUsers().includes(userId)) return expected
+    if (!isCurrentAuthToken(authToken) || pendingUsers().includes(userId)) return expected
     const settings = pickCloudPreferences(snapshot.settings)
     const skippedSettings: string[] = []
     const skippedAddons: Record<string, string[]> = {}
@@ -124,7 +125,7 @@ export const applyCloudSnapshot = async (
         if (stableJson(next) === stableJson(existing)) continue
         const target = path.join(addon.directory, HANDLE_EVENTS_SETTINGS_FILENAME)
         if (fs.existsSync(target) && !resolveExistingPathInsideBase(getAddonsRoot(), target)) continue
-        if (getState().get('tokens.token') !== authToken || pendingUsers().includes(userId)) return expected
+        if (!isCurrentAuthToken(authToken) || pendingUsers().includes(userId)) return expected
         await fs.promises.writeFile(target, JSON.stringify(next, null, 4), 'utf8')
         sendAddonSettings({ addonName: addon.directoryName, force: true })
         for (const window of BrowserWindow.getAllWindows()) window.webContents.send(RendererEvents.CLOUD_ADDON_SETTINGS_APPLIED, addon.id)

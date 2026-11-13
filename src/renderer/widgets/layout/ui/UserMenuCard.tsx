@@ -12,6 +12,7 @@ import TooltipButton from '@shared/ui/tooltip_button'
 import * as styles from '@widgets/layout/header.module.scss'
 
 import type UserInterface from '@entities/user/model/user.interface'
+import type { TFunction } from 'i18next'
 import type { CSSProperties } from 'react'
 
 type Props = {
@@ -22,7 +23,7 @@ type Props = {
     isOpen: boolean
     logout: () => void
     onClose: () => void
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
     user: UserInterface
 }
 

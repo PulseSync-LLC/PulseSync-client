@@ -10,6 +10,7 @@ import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.
 
 import type { Item } from '@features/configurationSettings/types'
 import type { AddonConfig } from '@features/configurationSettings/types'
+import type { TFunction } from 'i18next'
 
 type Props = {
     addItemAt: (si: number, index: number, type: Item['type']) => void
@@ -35,7 +36,7 @@ type Props = {
     setConfig: (next: AddonConfig) => void
     si: number
     ii: number
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
     updateItem: (si: number, ii: number, patch: Partial<Item>) => void
     updateTextButton: (si: number, ii: number, bi: number, patch: Record<string, any>) => void
 }

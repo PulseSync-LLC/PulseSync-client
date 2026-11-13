@@ -13,7 +13,8 @@ class State {
             const snapshot = this.store.getAll()
             logger.main.debug('State initialized with:', {
                 ...snapshot,
-                tokens: snapshot.tokens ? { ...snapshot.tokens, token: '[redacted]' } : undefined,
+                tokens: snapshot.tokens ? '[redacted]' : undefined,
+                auth: snapshot.auth ? '[redacted]' : undefined,
             })
         } else {
             logger.main.info('State initialized')

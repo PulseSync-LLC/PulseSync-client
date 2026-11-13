@@ -114,7 +114,7 @@ function App() {
     const { notificationsValue, handleNotificationCreated, handleNotificationRead, handleNotificationsReadAll } = useNotificationsController(user.id)
 
     const router = useMemo(() => createAppRouter(), [])
-    const { authorize, setHasToken, setTokenReady } = useAppAuthorization({
+    const { authorize } = useAppAuthorization({
         router,
         setIsAppDeprecated,
         setLoading,
@@ -470,7 +470,6 @@ function App() {
         setAddons,
         setAllAchievements,
         setApp,
-        setModInfoFetched,
         setMusicInstalled,
         setMusicVersion,
         setWidgetInstalled,
@@ -486,16 +485,13 @@ function App() {
     }, [navigateTo, navigateState, router])
     useAppDesktopBindings({
         appRef,
-        authorize,
         fetchModInfo,
         router,
         setAddons,
-        setHasToken,
         setNavigateState,
         setNavigateTo,
         setPreparedModUpdate,
         setIsModUpdating,
-        setTokenReady,
         setUpdate,
         t,
         toastReference,

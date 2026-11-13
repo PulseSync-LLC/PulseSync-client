@@ -21,7 +21,6 @@ type Params = {
     setAddons: Dispatch<SetStateAction<Addon[]>>
     setAllAchievements: Dispatch<SetStateAction<any[]>>
     setApp: Dispatch<SetStateAction<SettingsInterface>>
-    setModInfoFetched: Dispatch<SetStateAction<boolean>>
     setMusicInstalled: Dispatch<SetStateAction<boolean | null>>
     setMusicVersion: Dispatch<SetStateAction<string | null>>
     setWidgetInstalled: Dispatch<SetStateAction<boolean>>
@@ -36,7 +35,6 @@ export function useAppInitialization({
     setAddons,
     setAllAchievements,
     setApp,
-    setModInfoFetched,
     setMusicInstalled,
     setMusicVersion,
     setWidgetInstalled,
@@ -50,7 +48,6 @@ export function useAppInitialization({
     useEffect(() => {
         userIdRef.current = userId
         if (userId === '-1') {
-            setModInfoFetched(false)
             setAllAchievements([])
             achievementsUserIdRef.current = null
             setMusicVersion(config.AUTONOMOUS_MUSIC_VERSION)
@@ -61,7 +58,7 @@ export function useAppInitialization({
         if (achievementsUserIdRef.current === userId) return
         achievementsUserIdRef.current = userId
         void fetchAchievements()
-    }, [fetchAchievements, setAllAchievements, setModInfoFetched, setMusicVersion, userId])
+    }, [fetchAchievements, setAllAchievements, setMusicVersion, userId])
 
     useEffect(() => {
         if (initializationStartedRef.current) return

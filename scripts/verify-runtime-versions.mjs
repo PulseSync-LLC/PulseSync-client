@@ -9,7 +9,7 @@ import { classifyDependencyChanges, readDependencySnapshot } from './classify-de
 
 const hostInputs = [
     /^src\/main\/(?!core\/)/u,
-    /^src\/preload\/(?!mainWindowPreload\.ts$)/u,
+    /^src\/preload\/bootstrapWindowPreload\.ts$/u,
     /^src\/renderer\/preloader\.(?:html|ts)$/u,
     /^src\/styles\/(?:preloader|globals|fonts)\.css$/u,
     /^src\/renderer\/shared\/assets\/fonts\//u,

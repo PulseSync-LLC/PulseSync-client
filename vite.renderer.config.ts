@@ -28,6 +28,9 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     }
 
     const isDevMode = mode === 'development'
+    const compilerPreset = reactCompilerPreset()
+    // tsx can load Babel presets through CommonJS in dev, where import.meta.resolve is unavailable.
+    const rendererCompilerPreset = isDevMode ? { ...compilerPreset, preset: () => ({ plugins: ['babel-plugin-react-compiler'] }) } : compilerPreset
     const sourceMapMode = isDevMode ? true : process.env.GLITCHTIP_SOURCEMAPS === '1' ? 'hidden' : false
     const remoteRendererOutDir = process.env.PULSESYNC_REMOTE_RENDERER_OUT_DIR
     const remoteRendererStaticAssetsDir = process.env.PULSESYNC_REMOTE_RENDERER_STATIC_ASSETS_DIR
@@ -115,13 +118,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
             react({}),
             babel({
                 parallel: !isDevMode,
-                presets: [
-                    {
-                        ...reactCompilerPreset(),
-                        // Keep Vite hooks and filters, but load the Babel preset inside each worker.
-                        preset: fileURLToPath(new URL('./scripts/renderer/react-compiler-preset.mjs', import.meta.url)),
-                    },
-                ],
+                presets: [rendererCompilerPreset],
             } as Parameters<typeof babel>[0]),
             ...(!isDevMode
                 ? [

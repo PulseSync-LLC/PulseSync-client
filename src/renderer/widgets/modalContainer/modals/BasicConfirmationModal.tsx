@@ -7,10 +7,11 @@ import CustomModalPS from '@shared/ui/PSUI/CustomModalPS'
 
 const BasicConfirmationModal: React.FC = () => {
     const { t } = useTranslation()
-    const { Modals, closeModal, isModalOpen, getModalState } = useModalContext()
-    const { onConfirm, confirmLabel, title, description, confirmVariant } = getModalState(Modals.BASIC_CONFIRMATION)
+    const { Modals, closeModal, isModalOpen, getModalState, setModalState } = useModalContext()
+    const { onConfirm, confirmLabel, title, description, confirmVariant, confirmDisabled } = getModalState(Modals.BASIC_CONFIRMATION)
 
     const handleClose = () => {
+        setModalState(Modals.BASIC_CONFIRMATION, { confirmDisabled: undefined })
         closeModal(Modals.BASIC_CONFIRMATION)
     }
 
@@ -35,6 +36,7 @@ const BasicConfirmationModal: React.FC = () => {
                     text: confirmLabel ?? t('modals.basicConfirmation.confirm'),
                     onClick: handleConfirm,
                     variant: confirmVariant ?? 'primary',
+                    disabled: confirmDisabled,
                 },
             ]}
         />

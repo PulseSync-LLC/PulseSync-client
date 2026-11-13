@@ -12,6 +12,7 @@ import { captureBootstrapFailure } from '../shared/bootstrap/failureDiagnostic'
 import { addMainBreadcrumb } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
+import { recordAuthActivity } from './auth/session'
 import { queueAddonOpen, updateAvailable } from './events'
 import { refreshRemoteLocalization } from './localization'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
@@ -477,7 +478,11 @@ export async function createWindow(
         stopRendererUpdateMonitor()
     })
 
+    mainWindow.webContents.on('before-mouse-event', (_event, input) => {
+        if (mainWindow.isFocused() && input.type === 'mouseDown') recordAuthActivity()
+    })
     mainWindow.webContents.on('before-input-event', (e, input) => {
+        if (mainWindow.isFocused() && input.type === 'keyDown' && !input.isAutoRepeat) recordAuthActivity()
         if (input.control && (input.key === '+' || input.key === '-')) {
             e.preventDefault()
         }

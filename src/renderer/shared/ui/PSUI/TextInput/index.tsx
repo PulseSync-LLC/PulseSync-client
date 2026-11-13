@@ -265,7 +265,7 @@ const TextInput: React.FC<TextInputProps> = ({
             <div className={styles.label}>
                 {label}
                 {description && (
-                    <TooltipButton className={styles.tip} side="right" tooltipText={<div className={styles.itemName}>{description}</div>}>
+                    <TooltipButton side="right" tooltipText={<div className={styles.itemName}>{description}</div>}>
                         <MdHelp size={14} color="white" />
                     </TooltipButton>
                 )}

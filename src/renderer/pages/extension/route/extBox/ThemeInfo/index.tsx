@@ -6,7 +6,17 @@ import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
 import { FaGithub } from 'react-icons/fa'
-import { MdEdit, MdKeyboardArrowDown, MdMoreHoriz, MdShare, MdStoreMallDirectory, MdSync } from 'react-icons/md'
+import {
+    MdContentCopy,
+    MdEdit,
+    MdErrorOutline,
+    MdKeyboardArrowDown,
+    MdMoreHoriz,
+    MdPowerSettingsNew,
+    MdShare,
+    MdStoreMallDirectory,
+    MdSync,
+} from 'react-icons/md'
 import { useNavigate } from 'react-router'
 
 import config from '@common/appConfig'
@@ -24,10 +34,13 @@ import toast from '@shared/ui/toast'
 
 import * as s from '@pages/extension/route/extBox/ThemeInfo/ThemeInfo.module.scss'
 
+import type { DesktopAddonRecoveryEntry, DesktopAddonRecoverySnapshot } from '@common/addons/recovery'
 import type AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
 interface Props {
+    recoveryEntries: DesktopAddonRecoveryEntry[]
+    recoveryConnection: DesktopAddonRecoverySnapshot['connection']
     addon: AddonInterface
     onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
     isEnabled: boolean
@@ -116,6 +129,8 @@ function normalizeAuthorNames(author: AddonInterface['author']): string[] {
 }
 
 const ThemeInfo: React.FC<Props> = ({
+    recoveryEntries,
+    recoveryConnection,
     addon,
     onEditProject,
     isEnabled,
@@ -151,6 +166,66 @@ const ThemeInfo: React.FC<Props> = ({
     const authorNames = normalizeAuthorNames(addon.author)
 
     const [isMac, setIsMac] = useState(false)
+    const [recoveryPending, setRecoveryPending] = useState<string | null>(null)
+    const recoveryEntry = recoveryEntries.find(entry => entry.status === 'quarantined') ?? recoveryEntries[0]
+    const isRecoveryBlocked = isEnabled && !!recoveryEntry
+    const recoveryBusy = recoveryPending === addon.directoryName || recoveryEntries.some(entry => entry.status === 'retrying')
+    const canRetryRecovery = isRecoveryBlocked && recoveryConnection === 'connected' && recoveryEntry?.connected && !recoveryBusy
+
+    const retryRecovery = async (entry: DesktopAddonRecoveryEntry) => {
+        const directoryName = addon.directoryName
+        setRecoveryPending(directoryName)
+        try {
+            await desktopApi.addons.retryRecovery(entry)
+        } catch (error) {
+            console.error('[Addon recovery] Retry failed:', error)
+            toast.custom('error', t('common.errorTitle'), t('extensions.recovery.retryFailed'))
+        } finally {
+            setRecoveryPending(current => (current === directoryName ? null : current))
+        }
+    }
+
+    const requestRecovery = () => {
+        if (!recoveryEntry || !canRetryRecovery) return
+        if (recoveryEntry.runtime === 'legacy') {
+            openModal(Modals.BASIC_CONFIRMATION, {
+                title: t('extensions.recovery.restartTitle'),
+                description: t('extensions.recovery.restartDescription'),
+                confirmLabel: t('extensions.recovery.restartAction'),
+                confirmVariant: 'primary',
+                confirmDisabled: false,
+                onConfirm: () => void retryRecovery(recoveryEntry),
+            })
+        } else {
+            void retryRecovery(recoveryEntry)
+        }
+    }
+
+    const showRecoveryDetails = () => {
+        if (!recoveryEntry) return
+        const description = [recoveryEntry.details || recoveryEntry.reason || t('extensions.recovery.description')]
+        if (!recoveryEntry.connected || recoveryConnection !== 'connected') description.push(t('extensions.recovery.disconnected'))
+        if (!isEnabled) description.push(t('extensions.recovery.disabled'))
+        if (recoveryEntry.runtime === 'legacy') description.push(t('extensions.recovery.restartDescription'))
+        openModal(Modals.BASIC_CONFIRMATION, {
+            title: t('extensions.recovery.stoppedTitle', { name: recoveryEntry.name }),
+            description: description.join('\n\n'),
+            confirmLabel: t(recoveryEntry.runtime === 'legacy' ? 'extensions.recovery.restartAction' : 'extensions.recovery.retry'),
+            confirmVariant: 'primary',
+            confirmDisabled: !canRetryRecovery,
+            onConfirm: () => void retryRecovery(recoveryEntry),
+        })
+    }
+
+    const copyRecoveryDetails = async () => {
+        if (!recoveryEntry) return
+        try {
+            await desktopApi.system.writeClipboardText(JSON.stringify(recoveryEntry, null, 2))
+            toast.custom('success', t('common.doneTitle'), t('extensions.recovery.copied'))
+        } catch {
+            toast.custom('error', t('common.errorTitle'), t('extensions.recovery.copyFailed'))
+        }
+    }
     const isGif = (fn?: string | null) => !!fn && /\.gif$/i.test(fn)
 
     useEffect(() => {
@@ -238,6 +313,34 @@ const ThemeInfo: React.FC<Props> = ({
         })
     }
     const managementItems: DropdownMenuItem[] = [
+        ...(recoveryEntry
+            ? [
+                  {
+                      key: 'recovery-details',
+                      label: t('extensions.recovery.details'),
+                      icon: <MdErrorOutline size={18} />,
+                      onClick: showRecoveryDetails,
+                  },
+                  {
+                      key: 'recovery-copy',
+                      label: t('extensions.recovery.copy'),
+                      icon: <MdContentCopy size={18} />,
+                      onClick: () => void copyRecoveryDetails(),
+                      divider: !isRecoveryBlocked,
+                  },
+              ]
+            : []),
+        ...(isRecoveryBlocked
+            ? [
+                  {
+                      key: 'recovery-disable',
+                      label: t('extensions.disableAction'),
+                      icon: <MdPowerSettingsNew size={18} />,
+                      onClick: () => onToggleEnabled(false),
+                      divider: true,
+                  },
+              ]
+            : []),
         ...(canManagePublication
             ? [
                   {
@@ -291,11 +394,15 @@ const ThemeInfo: React.FC<Props> = ({
                         <Button className={cn(s.toggleButton, s.updateState)} onClick={onStoreUpdate} disabled={storeUpdateBusy}>
                             {storeUpdateBusy ? t('common.importing') : t('layout.updateAction')}
                         </Button>
+                    ) : isRecoveryBlocked ? (
+                        <Button className={cn(s.toggleButton, s.disabledState)} disabled={!canRetryRecovery} onClick={requestRecovery}>
+                            {t(recoveryBusy ? 'extensions.recovery.retrying' : 'extensions.recovery.retry')}
+                        </Button>
                     ) : (
                         <Button
                             className={cn(
                                 s.toggleButton,
-                                isEnabled ? s.enabledState : s.disabledState,
+                                isEnabled && !recoveryEntries.length ? s.enabledState : s.disabledState,
                                 !isEnabled && enableBlockedReason && s.dependencyInstallButton,
                             )}
                             disabled={dependencyInstallBusy || (!isEnabled && !!enableBlockedReason && !onInstallDependencies)}
@@ -324,7 +431,15 @@ const ThemeInfo: React.FC<Props> = ({
             </div>
 
             <div className={s.copy}>
-                <h1>{addon.name}</h1>
+                <div className={s.titleRow}>
+                    <h1>{addon.name}</h1>
+                    {isRecoveryBlocked ? (
+                        <span className={s.recoveryState} role="status">
+                            <MdErrorOutline size={16} aria-hidden />
+                            {t(recoveryBusy ? 'extensions.recovery.retrying' : 'extensions.recovery.shortStopped')}
+                        </span>
+                    ) : null}
+                </div>
                 {addon.description ? <p>{addon.description}</p> : null}
             </div>
 

@@ -14,7 +14,7 @@ import type { Socket } from 'socket.io'
 type ModuleActivation = {
     addon: ModuleAddon
     fingerprint: string
-    authToken: string
+    sessionId: string
     resolution: Resolution
 }
 
@@ -31,7 +31,9 @@ function getTransportCapability(): string {
 
 export function registerAddonModuleTransport(
     socket: Socket,
-    getAuthToken: () => string | null,
+    getAuthToken: () => Promise<string>,
+    isCurrentAuthToken: (token: string) => boolean,
+    getSessionId: () => string,
     readAddon: (id: string) => ModuleAddon | undefined,
     readLocalModuleBytes: (id: string, alias: string, hash: string) => string,
 ) {
@@ -44,7 +46,8 @@ export function registerAddonModuleTransport(
         sha256(JSON.stringify([addon.id, addon.catalogAddonId, sha256(addon.code), addon.securityManifest]))
     const assertAddonCurrent = (authToken: string, addon: ModuleAddon, fingerprint: string) => {
         const current = readAddon(addon.id)
-        if (!socket.connected || getAuthToken() !== authToken || !current || getAddonFingerprint(current) !== fingerprint) throwModuleError('aborted')
+        if (!socket.connected || !isCurrentAuthToken(authToken) || !current || getAddonFingerprint(current) !== fingerprint)
+            throwModuleError('aborted')
     }
     const cancelActivation = (activationId: string) => {
         for (const controller of pending.get(activationId) ?? []) controller.abort()
@@ -53,13 +56,13 @@ export function registerAddonModuleTransport(
     let checkingStatus = false
     const statusTimer = setInterval(async () => {
         if (checkingStatus || !socket.connected || !activations.size) return
-        const authToken = getAuthToken()
+        const authToken = await getAuthToken()
         if (!authToken) return
         const activationIds = [...activations.keys()]
         checkingStatus = true
         try {
             const status = await requestModuleRuntime<{ invalidatedActivationIds: string[] }>('status', { activationIds }, authToken)
-            if (!socket.connected || getAuthToken() !== authToken) return
+            if (!socket.connected || !isCurrentAuthToken(authToken)) return
             for (const activationId of status.invalidatedActivationIds) {
                 if (!activationIds.includes(activationId) || !activations.has(activationId)) continue
                 cancelActivation(activationId)
@@ -85,9 +88,7 @@ export function registerAddonModuleTransport(
             sha256?: unknown
             deadline?: unknown
         }
-        const authToken = getAuthToken()
         if (
-            !authToken ||
             typeof packet?.transportToken !== 'string' ||
             !/^[a-f0-9]{64}$/.test(packet.transportToken) ||
             !timingSafeEqual(Buffer.from(packet.transportToken, 'hex'), Buffer.from(capability, 'hex')) ||
@@ -102,6 +103,13 @@ export function registerAddonModuleTransport(
             return
         }
         inFlight++
+        const authToken = await getAuthToken()
+        if (!authToken || !socket.connected) {
+            inFlight--
+            ack({ ok: false, error: 'access-denied' })
+            return
+        }
+        const sessionId = getSessionId()
         let resolvingAddon: string | undefined
         let operation: ModuleOperation | undefined
         let controller: AbortController | undefined
@@ -154,19 +162,19 @@ export function registerAddonModuleTransport(
                 for (const [id, entry] of activations) {
                     if (entry.addon.id === addon.id) {
                         cancelActivation(id)
-                        void requestModuleRuntime('dispose', { activationId: id }, entry.authToken).catch(() => {})
+                        void requestModuleRuntime('dispose', { activationId: id }, authToken).catch(() => {})
                     }
                 }
                 if (activations.size >= 32) throwModuleError('reload-required')
                 const resolution = await requestModuleRuntime<Resolution>('resolve', { releaseBinding, activationId }, authToken, operation)
                 assertModuleOperation(operation)
                 assertAddonCurrent(authToken, addon, fingerprint)
-                activations.set(packet.activationId, { addon, fingerprint, authToken, resolution })
+                activations.set(packet.activationId, { addon, fingerprint, sessionId, resolution })
                 ack({ ok: true, value: resolution })
                 return
             }
             const entry = activations.get(packet.activationId)
-            if (!entry || entry.authToken !== authToken) throwModuleError('aborted')
+            if (!entry || entry.sessionId !== sessionId) throwModuleError('aborted')
             const active = entry
             assertAddonCurrent(authToken, active.addon, active.fingerprint)
             if (typeof packet.alias !== 'string' || !Object.hasOwn(active.resolution.descriptors, packet.alias)) throwModuleError('undeclared-module')
@@ -208,14 +216,16 @@ export function registerAddonModuleTransport(
             inFlight--
         }
     })
-    socket.once('disconnect', () => {
+    socket.once('disconnect', async () => {
         clearInterval(statusTimer)
-        for (const [activationId, requests] of pending) {
+        const activationIds = new Set([...pending.keys(), ...activations.keys()])
+        for (const requests of pending.values()) {
             for (const controller of requests) controller.abort()
-            const authToken = getAuthToken()
-            if (authToken) void requestModuleRuntime('dispose', { activationId }, authToken).catch(() => {})
         }
-        for (const [activationId, entry] of activations) void requestModuleRuntime('dispose', { activationId }, entry.authToken).catch(() => {})
         activations.clear()
+        const authToken = await getAuthToken()
+        if (authToken) {
+            for (const activationId of activationIds) void requestModuleRuntime('dispose', { activationId }, authToken).catch(() => {})
+        }
     })
 }

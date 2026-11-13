@@ -3,7 +3,7 @@ import type { HttpQueryParams, HttpRequestOptions, HttpResponse, HttpTransport }
 type CreateHttpClientOptions = {
     baseUrl?: string
     defaultHeaders?: Record<string, string>
-    getAuthToken?: () => string | null | undefined
+    getAuthToken?: () => string | null | undefined | Promise<string | null | undefined>
     transport: HttpTransport
 }
 
@@ -83,7 +83,7 @@ export function createHttpClient({ baseUrl, defaultHeaders, getAuthToken, transp
             ...options.headers,
         }
 
-        const authToken = options.authToken ?? (options.auth ? getAuthToken?.() : null)
+        const authToken = options.authToken ?? (options.auth ? await getAuthToken?.() : null)
         if (authToken && !hasHeader(headers, 'Authorization')) {
             headers.Authorization = `Bearer ${authToken}`
         }

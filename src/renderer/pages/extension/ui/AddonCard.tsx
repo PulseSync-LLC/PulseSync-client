@@ -4,7 +4,7 @@ import { Skeleton } from '@pulsesync/uikit/feedback'
 import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation'
 import cn from 'clsx'
 import { useTranslation } from 'react-i18next'
-import { MdCheckCircle, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz, MdShare } from 'react-icons/md'
+import { MdCheckCircle, MdErrorOutline, MdFavorite, MdFavoriteBorder, MdFolderOpen, MdMoreHoriz, MdShare } from 'react-icons/md'
 
 import config from '@common/appConfig'
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -18,10 +18,12 @@ import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as extensionStylesV2 from '@pages/extension/extension.module.scss'
 
+import type { DesktopAddonRecoveryEntry } from '@common/addons/recovery'
 import type { DesktopAddonOrganizationCategory } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 
 type Props = {
+    recoveryEntries: DesktopAddonRecoveryEntry[]
     addon: Addon
     categories: DesktopAddonOrganizationCategory[]
     categoryId: string | null
@@ -77,6 +79,7 @@ function AddonImage({ alt, fallbackSrc, ready, src }: AddonImageProps) {
 }
 
 export default function AddonCard({
+    recoveryEntries,
     addon,
     categories,
     categoryId,
@@ -100,6 +103,7 @@ export default function AddonCard({
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const { user } = React.useContext(userContext)
     const isEnabled = addon.type === 'theme' ? addon.directoryName === currentTheme : enabledScripts.includes(addon.directoryName)
+    const recoveryStatus = recoveryEntries.some(entry => entry.status === 'retrying') ? 'retrying' : recoveryEntries.length ? 'blocked' : null
     const legacyAddonRestrictionsEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientLegacyAddonRestrictions, false)
     const showLegacyRestriction = isRestrictedLegacyAddon(addon, legacyAddonRestrictionsEnabled) && isAddonAuthor(addon, user)
     const storeAddonId = String(addon.storeAddonId || '').trim()
@@ -175,23 +179,33 @@ export default function AddonCard({
             onDragStart={event => onDragStart(addon, event)}
             onDragEnd={onDragEnd}
         >
-            <div
-                className={cn(
-                    extensionStylesV2.checkSelect,
-                    isEnabled && extensionStylesV2.checkSelectEnabled,
-                    addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
-                )}
-                onClick={event => {
-                    event.stopPropagation()
-                    if (isEnabled) {
-                        onDisable(addon)
-                    } else {
-                        onEnable(addon)
-                    }
-                }}
+            <TooltipButton
+                as="span"
+                side="right"
+                className={extensionStylesV2.checkSelectSlot}
+                tooltipText={t(recoveryStatus ? `extensions.recovery.${recoveryStatus}` : isEnabled ? 'extensions.disableAction' : 'common.enable')}
             >
-                <MdCheckCircle size={18} />
-            </div>
+                <button
+                    type="button"
+                    aria-label={t(
+                        recoveryStatus ? `extensions.recovery.${recoveryStatus}` : isEnabled ? 'extensions.disableAction' : 'common.enable',
+                    )}
+                    className={cn(
+                        extensionStylesV2.checkSelect,
+                        isEnabled && !recoveryStatus && extensionStylesV2.checkSelectEnabled,
+                        recoveryStatus && extensionStylesV2.checkSelectBlocked,
+                        addon.type === 'theme' ? extensionStylesV2.checkMarkTheme : extensionStylesV2.checkMarkScript,
+                    )}
+                    onClick={event => {
+                        event.stopPropagation()
+                        if (recoveryStatus) onClick(addon)
+                        else if (isEnabled) onDisable(addon)
+                        else onEnable(addon)
+                    }}
+                >
+                    {recoveryStatus ? <MdErrorOutline size={18} /> : <MdCheckCircle size={18} />}
+                </button>
+            </TooltipButton>
             <AddonImage key={imagePath} src={imagePath} fallbackSrc={fallbackAddonImage} alt={addon.name} ready={imageReady} />
             <div className={extensionStylesV2.addonName}>{addon.name}</div>
             <div className={extensionStylesV2.addonMeta}>

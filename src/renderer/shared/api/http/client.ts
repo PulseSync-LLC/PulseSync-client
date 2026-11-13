@@ -2,7 +2,7 @@ import axios from 'axios'
 
 import config, { branch } from '@common/appConfig'
 import { createHttpClient } from '@common/http/createHttpClient'
-import getUserToken from '@shared/lib/auth/getUserToken'
+import { getUserTokenAsync } from '@shared/lib/auth/getUserToken'
 
 import type { HttpResponse, HttpResponseType, PreparedHttpRequest } from '@common/http/types'
 
@@ -68,7 +68,7 @@ const rendererHttpClient = createHttpClient({
         Accept: 'application/json',
         'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta',
     },
-    getAuthToken: getUserToken,
+    getAuthToken: getUserTokenAsync,
     transport: axiosTransport,
 })
 

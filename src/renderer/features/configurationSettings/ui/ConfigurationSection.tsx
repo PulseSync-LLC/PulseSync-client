@@ -10,6 +10,7 @@ import TextInput from '@shared/ui/PSUI/TextInput'
 import * as css from '@features/configurationSettings/ConfigurationSettingsEdit.module.scss'
 
 import type { AddonConfig, Item } from '@features/configurationSettings/types'
+import type { TFunction } from 'i18next'
 
 type Props = {
     addItemAt: (si: number, index: number, type: Item['type']) => void
@@ -43,7 +44,7 @@ type Props = {
     setCollapsed: React.Dispatch<React.SetStateAction<Record<number, boolean>>>
     setConfig: (next: AddonConfig) => void
     si: number
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
     updateItem: (si: number, ii: number, patch: Partial<Item>) => void
     updateTextButton: (si: number, ii: number, bi: number, patch: Record<string, any>) => void
 }

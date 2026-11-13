@@ -1,3 +1,4 @@
+import type { DesktopAddonRecoveryEntry, DesktopAddonRecoverySnapshot } from '@common/addons/recovery'
 import type AddonInterface from '@entities/addon/model/addon.interface'
 import type { StoreAddon, StoreAddonRelease, StoreAddonVisibility } from '@entities/addon/model/storeAddon.interface'
 
@@ -25,6 +26,8 @@ export interface AddonRelationsProps {
 }
 
 export interface ExtensionViewProps extends AddonRelationsProps {
+    recoveryEntries: DesktopAddonRecoveryEntry[]
+    recoveryConnection: DesktopAddonRecoverySnapshot['connection']
     addon: AddonInterface
     onEditProject?: (linkedOnly?: boolean) => Promise<boolean>
     project?: AddonProject | null
