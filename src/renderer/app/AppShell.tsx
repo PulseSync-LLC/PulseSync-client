@@ -470,7 +470,6 @@ function App() {
         setAddons,
         setAllAchievements,
         setApp,
-        setModInfoFetched,
         setMusicInstalled,
         setMusicVersion,
         setWidgetInstalled,

@@ -132,19 +132,19 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
         }
     }, [openModModal, user.id])
 
-    const logout = () => {
-        rendererHttpClient
-            .put<{ ok?: boolean }>('/auth/logout', {
-                auth: true,
-            })
-            .then(async ({ data: res }) => {
-                if (res.ok) {
-                    toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
-                    await desktopApi.auth.deleteToken()
-                    setUser(userInitials)
-                    await client.clearStore()
-                }
-            })
+    const logout = async () => {
+        try {
+            await desktopApi.auth.deleteToken()
+        } catch (error) {
+            console.error('Failed to sign out:', error)
+            toast.custom('error', t('common.errorTitle'), t('common.somethingWrongTitle'))
+            return
+        }
+
+        setUser(userInitials)
+        await nav('/home', { replace: true })
+        await client.clearStore().catch(error => console.error('Failed to clear the Apollo cache after logout:', error))
+        toast.custom('success', t('header.logoutTitle', { name: user.nickname }), t('header.logoutMessage'))
     }
 
     const formatDate = useCallback((timestamp: any) => {
