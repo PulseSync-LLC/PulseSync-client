@@ -70,11 +70,20 @@ export const extractBrowserAuthCodeFromUrl = (rawUrl: string): string | null => 
 
 export const exchangeBrowserAuthCode = async (code: string): Promise<BrowserAuthCredentials | null> => {
     const flow = v2Flow
-    if (!flow || !AUTH_EXCHANGE_CODE_PATTERN.test(code) || Date.now() - flow.startedAt > 12 * 60_000) return null
+    if (!AUTH_EXCHANGE_CODE_PATTERN.test(code)) return null
+    if (!flow || Date.now() - flow.startedAt > 12 * 60_000) {
+        logger.socketManager.warn('Browser authentication callback has no active sign-in attempt')
+        return null
+    }
     try {
         const requestedAt = Date.now()
         const response = await authV2Request('/oauth/exchange', { code, verifier: flow.verifier })
-        const credentials = response.ok ? parseV2Credentials(await response.json()) : null
+        if (!response.ok) {
+            logger.socketManager.warn(`Browser authentication exchange failed (HTTP ${response.status})`)
+            return null
+        }
+        const credentials = parseV2Credentials(await response.json())
+        if (!credentials) logger.socketManager.warn('Browser authentication exchange returned invalid credentials')
         return credentials ? { v2: credentials, flow, requestedAt } : null
     } catch {
         logger.socketManager.error('Failed to exchange browser authentication code')

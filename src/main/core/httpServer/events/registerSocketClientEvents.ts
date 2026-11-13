@@ -1,4 +1,5 @@
 import RendererEvents from '../../../../common/types/rendererEvents'
+import { exchangeBrowserAuthCode, processBrowserAuth } from '../../auth/browserAuth'
 import { extractInstallModUpdateFromPayload, installModUpdateFromAsar } from '../../mod/installModUpdateFrom'
 
 import type { Track } from '@entities/track/model/track.interface'
@@ -62,9 +63,13 @@ export const registerSocketClientEvents = ({
     ;(socket as any).clientType = clientType
     ;(socket as any).hasPong = false
     const isMusicClient = () => clientType === 'yaMusic' && socket.data.modIntegrityVerified === true
+    const isTrustedWebClient = () => {
+        const origin = socket.handshake.headers.origin
+        return clientType === 'web' && typeof origin === 'string' && allowedWebOrigins.includes(origin)
+    }
 
     logger.http.log(`New client connected: version=${version}, type=${clientType}`)
-    socket.emit('PING', { message: 'Connected to server' })
+    socket.emit('PING', { message: 'Connected to server', browserAuthV2: isTrustedWebClient() })
 
     socket.on(
         'READY',
@@ -109,10 +114,24 @@ export const registerSocketClientEvents = ({
         sendToRenderer(RendererEvents.AUTH_BANNED, { reason: args.reason })
     })
 
+    socket.on('BROWSER_AUTH_V2', async (payload: { code?: unknown } | undefined, acknowledge?: (result: { ok: boolean }) => void) => {
+        if (typeof acknowledge !== 'function') return
+        if (!isTrustedWebClient() || typeof payload?.code !== 'string') {
+            acknowledge({ ok: false })
+            return
+        }
+
+        try {
+            const credentials = await exchangeBrowserAuthCode(payload.code)
+            acknowledge({ ok: credentials ? await processBrowserAuth(credentials, { window: mainWindow }) : false })
+        } catch {
+            logger.http.warn('Could not complete browser authentication over the local socket')
+            acknowledge({ ok: false })
+        }
+    })
+
     socket.on('OPEN_DEEPLINK', async (payload: { url?: unknown } | undefined, acknowledge?: WebDeeplinkAck) => {
-        const origin = socket.handshake.headers.origin
-        const isTrustedWebClient = clientType === 'web' && typeof origin === 'string' && allowedWebOrigins.includes(origin)
-        if (!isTrustedWebClient) {
+        if (!isTrustedWebClient()) {
             logger.http.warn('OPEN_DEEPLINK rejected: untrusted web client')
             acknowledge?.({ ok: false, error: 'forbidden' })
             return
