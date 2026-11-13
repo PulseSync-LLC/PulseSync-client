@@ -45,7 +45,10 @@ export function isTransientNetworkError(error: unknown): boolean {
     return value.cause !== error && isTransientNetworkError(value.cause)
 }
 
-export async function retryNetworkOperation<T>(operation: () => Promise<T>, retryOptions: Omit<NetworkRetryOptions, 'retryUnsafe'> = {}): Promise<T> {
+export async function retryNetworkOperation<T>(
+    operation: () => Promise<T>,
+    retryOptions: Omit<NetworkRetryOptions, 'retryUnsafe'> & { shouldRetry?: (error: unknown) => boolean } = {},
+): Promise<T> {
     const options: Required<NetworkRetryOptions> = {
         attempts: retryOptions.attempts ?? DEFAULT_ATTEMPTS,
         baseDelayMs: retryOptions.baseDelayMs ?? DEFAULT_BASE_DELAY_MS,
@@ -57,7 +60,7 @@ export async function retryNetworkOperation<T>(operation: () => Promise<T>, retr
         try {
             return await operation()
         } catch (error) {
-            if (!isTransientNetworkError(error) || attempt === options.attempts) throw error
+            if (attempt === options.attempts || !(retryOptions.shouldRetry ?? isTransientNetworkError)(error)) throw error
             await waitBeforeRetry(attempt, null, options, error instanceof Error ? error.message : String(error))
         }
     }

@@ -20,13 +20,24 @@ import crypto from 'crypto'
 import fs from 'fs'
 import path from 'path'
 
-import { fetchWithRetry, retryNetworkOperation } from './network-retry.js'
+import { fetchWithRetry, isTransientNetworkError, retryNetworkOperation } from './network-retry.js'
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url))
 const S3_MULTIPART_MIN_PART_SIZE = 5 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_THRESHOLD = 16 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_PART_SIZE = 8 * 1024 * 1024
 const S3_MULTIPART_DEFAULT_CONCURRENCY = 4
+const S3_DEFAULT_MAX_ATTEMPTS = 8
+const S3_RETRYABLE_ERROR_NAMES = new Set([
+    'InternalError',
+    'OperationAborted',
+    'RequestTimeout',
+    'RequestTimeoutException',
+    'SlowDown',
+    'Throttling',
+    'ThrottlingException',
+    'TooManyRequestsException',
+])
 const REMOTE_RENDERER_RETAIN_VERSIONS = 5
 
 enum LogLevel {
@@ -88,13 +99,23 @@ function log(level: LogLevel, message: string): void {
     else console.log(out)
 }
 
+function getS3RetryOptions(label: string) {
+    return {
+        label,
+        attempts: parsePositiveInteger(process.env.S3_MAX_ATTEMPTS, S3_DEFAULT_MAX_ATTEMPTS),
+        baseDelayMs: 1_000,
+        maxDelayMs: 30_000,
+        shouldRetry: (error: unknown) => isTransientNetworkError(error) || (error instanceof Error && S3_RETRYABLE_ERROR_NAMES.has(error.name)),
+    }
+}
+
 function createS3Client(): S3Client {
     const bucket = process.env.S3_BUCKET
     if (!bucket) {
         log(LogLevel.ERROR, 'S3_BUCKET is not set in env')
         process.exit(1)
     }
-    return new S3Client({
+    const client = new S3Client({
         region: process.env.S3_REGION,
         credentials: {
             accessKeyId: process.env.S3_ACCESS_KEY_ID!,
@@ -102,9 +123,22 @@ function createS3Client(): S3Client {
         },
         endpoint: process.env.S3_ENDPOINT,
         forcePathStyle: true,
-        maxAttempts: Number(process.env.S3_MAX_ATTEMPTS) || 5,
-        retryMode: 'standard',
+        maxAttempts: 1,
     })
+    client.middlewareStack.add(
+        (next, context) => async args => {
+            const input = args.input as { Body?: unknown; Key?: string; PartNumber?: number; Prefix?: string }
+            // Streaming PUT retries recreate the stream in uploadFileToS3.
+            if (input.Body instanceof fs.ReadStream) return next(args)
+
+            const target = input.Key ?? input.Prefix
+            const part = input.PartNumber === undefined ? '' : ` part=${input.PartNumber}`
+            const label = `S3 ${context.commandName}${part}${target ? ` ${target}` : ''}`
+            return retryNetworkOperation(() => next(args), getS3RetryOptions(label))
+        },
+        { name: 'publishS3Retry', step: 'initialize' },
+    )
+    return client
 }
 
 function parsePositiveInteger(value: string | undefined, fallback: number): number {
@@ -544,7 +578,7 @@ async function uploadFileToS3(
                     body.destroy()
                 }
             },
-            { attempts: parsePositiveInteger(process.env.S3_MAX_ATTEMPTS, 5), label: `S3 upload ${key}` },
+            getS3RetryOptions(`S3 PutObjectCommand ${key}`),
         )
         log(LogLevel.INFO, `Uploaded ${key} (${Math.ceil(size / 1024)} KiB, single-part)`)
         return
@@ -575,12 +609,13 @@ async function uploadFileToS3(
         `Uploading ${key} via multipart (${(size / 1024 / 1024).toFixed(1)} MiB, ${partCount} parts x ${(partSize / 1024 / 1024).toFixed(1)} MiB, concurrency ${concurrency})`,
     )
 
-    try {
-        const uploadWorker = async () => {
-            while (true) {
-                const partNumber = nextPartNumber++
-                if (partNumber > partCount) return
+    let uploadFailed = false
+    const uploadWorker = async () => {
+        while (!uploadFailed) {
+            const partNumber = nextPartNumber++
+            if (partNumber > partCount) return
 
+            try {
                 const start = (partNumber - 1) * partSize
                 const contentLength = Math.min(size - start, partSize)
                 const body = await readFileChunk(filePath, start, contentLength)
@@ -608,11 +643,20 @@ async function uploadFileToS3(
                 finishedParts += 1
 
                 log(LogLevel.INFO, `Uploaded part ${partNumber}/${partCount} for ${key} (${Math.round((uploadedBytes / size) * 100)}%)`)
+            } catch (error) {
+                uploadFailed = true
+                log(LogLevel.ERROR, `S3 UploadPart ${partNumber}/${partCount} failed for ${key}: ${String(error)}`)
+                throw error
             }
         }
+    }
 
-        await Promise.all(Array.from({ length: Math.min(concurrency, partCount) }, () => uploadWorker()))
+    const workers = Array.from({ length: Math.min(concurrency, partCount) }, () => uploadWorker())
+    let operation = 'UploadPart'
+    try {
+        await Promise.all(workers)
 
+        operation = 'CompleteMultipartUpload'
         await client.send(
             new CompleteMultipartUploadCommand({
                 Bucket: bucket,
@@ -624,13 +668,25 @@ async function uploadFileToS3(
             }),
         )
     } catch (error) {
-        await client.send(
-            new AbortMultipartUploadCommand({
-                Bucket: bucket,
-                Key: key,
-                UploadId: uploadId,
-            }),
-        )
+        await Promise.allSettled(workers)
+        if (
+            operation === 'CompleteMultipartUpload' &&
+            sha256 &&
+            (isTransientNetworkError(error) || (error instanceof Error && error.name === 'NoSuchUpload'))
+        ) {
+            // The server may have completed the upload before the response was lost.
+            const matches = await hasMatchingS3Object(client, bucket, key, size, sha256, uploadHeaders, options?.metadata).catch(() => false)
+            if (matches) {
+                log(LogLevel.INFO, `Verified completed multipart upload for ${key}`)
+                return
+            }
+        }
+        if (operation === 'CompleteMultipartUpload') log(LogLevel.ERROR, `S3 ${operation} failed for ${key}: ${String(error)}`)
+        try {
+            await client.send(new AbortMultipartUploadCommand({ Bucket: bucket, Key: key, UploadId: uploadId }))
+        } catch (abortError) {
+            log(LogLevel.WARN, `S3 AbortMultipartUpload failed for ${key}: ${String(abortError)}`)
+        }
         throw error
     }
 
