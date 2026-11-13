@@ -12,6 +12,7 @@ import type { DesktopInstallModRequest } from '@common/desktopApi/contract'
 import type { ModReleaseChannel } from '@common/types/modSource'
 import type { ModInterface } from '@entities/mod/model/modInterface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type { TFunction } from 'i18next'
 
 const MOD_DOWNLOAD_TOAST_ID = 'mod-download-progress'
 
@@ -23,7 +24,7 @@ type Params = {
     setApp: React.Dispatch<React.SetStateAction<SettingsInterface>>
     setMusicInstalled: React.Dispatch<React.SetStateAction<boolean | null>>
     setMusicVersion: React.Dispatch<React.SetStateAction<string | null>>
-    t: (key: string, options?: any) => string
+    t: TFunction
     modals: {
         LINUX_ASAR_PATH: ModalName
         LINUX_PERMISSIONS_MODAL: ModalName

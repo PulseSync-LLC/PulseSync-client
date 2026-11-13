@@ -14,6 +14,7 @@ import type {
     SliderItem,
     TextItem,
 } from '@features/configurationSettings/types'
+import type { TFunction } from 'i18next'
 
 export function produce<S>(state: S, mut: (draft: S) => void): S {
     const copy: S = structuredClone(state as any)
@@ -41,7 +42,7 @@ export const stripInternal = (config: AddonConfig): AddonConfig =>
         })
     })
 
-const blankItem = (type: Item['type'], t: (key: string, options?: Record<string, any>) => string): Item => {
+const blankItem = (type: Item['type'], t: TFunction): Item => {
     switch (type) {
         case 'button':
             return {
@@ -122,7 +123,7 @@ type Params = {
     onChange?: (next: AddonConfig) => void
     save?: (next: AddonConfig) => Promise<void> | void
     configApiSave?: (next: AddonConfig) => Promise<void> | void
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
 }
 
 export function useConfigurationEditor({ addonId, addMenuClassName, configData, onChange, save, configApiSave, t }: Params) {

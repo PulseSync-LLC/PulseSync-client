@@ -7,6 +7,7 @@ import toast from '@shared/ui/toast'
 import type { DesktopInstallModRequest, DesktopUpdateAvailablePayload, DesktopUpdateFailurePayload } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
+import type { TFunction } from 'i18next'
 
 const CLIENT_UPDATE_TOAST_ID = 'client-update-progress'
 
@@ -20,7 +21,7 @@ type Params = {
     setPreparedModUpdate: React.Dispatch<React.SetStateAction<DesktopInstallModRequest | null>>
     setIsModUpdating: React.Dispatch<React.SetStateAction<boolean>>
     setUpdate: React.Dispatch<React.SetStateAction<boolean>>
-    t: (key: string, options?: any) => string
+    t: TFunction
     toastReference: React.MutableRefObject<string | null>
 }
 

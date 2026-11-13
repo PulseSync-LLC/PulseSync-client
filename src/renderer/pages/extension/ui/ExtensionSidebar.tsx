@@ -18,6 +18,7 @@ import type { DesktopAddonRecoverySnapshot } from '@common/addons/recovery'
 import type { DesktopAddonOrganization } from '@common/desktopApi/contract'
 import type Addon from '@entities/addon/model/addon.interface'
 import type { AddonTypeFilter, SortKey } from '@pages/extension/model/addonCatalog'
+import type { TFunction } from 'i18next'
 
 const ADDON_DRAG_TYPE = 'application/x-pulsesync-addon-id'
 const DRAG_OPEN_DELAY_MS = 550
@@ -62,7 +63,7 @@ type Props = {
     showFilters: boolean
     sort: SortKey
     sortOrder: 'asc' | 'desc'
-    t: (key: string, options?: Record<string, any>) => string
+    t: TFunction
     type: AddonTypeFilter
     uniqueCreators: string[]
     uniqueTags: string[]

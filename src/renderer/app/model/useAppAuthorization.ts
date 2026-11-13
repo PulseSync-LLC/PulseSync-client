@@ -14,6 +14,7 @@ import toast from '@shared/ui/toast'
 
 import type { GetMeData, GetMeVars } from '@app/AppShell.types'
 import type UserInterface from '@entities/user/model/user.interface'
+import type { TFunction } from 'i18next'
 
 type Params = {
     router: {
@@ -27,7 +28,7 @@ type Params = {
     setIsAppDeprecated: (value: boolean) => void
     setLoading: (value: boolean) => void
     setUser: React.Dispatch<React.SetStateAction<UserInterface>>
-    tRef: React.MutableRefObject<(key: string, options?: any) => string>
+    tRef: React.MutableRefObject<TFunction>
     userId: string
 }
 
