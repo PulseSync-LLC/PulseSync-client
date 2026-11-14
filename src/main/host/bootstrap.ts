@@ -263,7 +263,10 @@ async function startPackagedBootstrap(): Promise<void> {
         return
     }
 
-    const bootstrapWindow = await createBootstrapWindow({ startHidden: shouldHideStartupWindow() && !startupRevealRequested })
+    const bootstrapWindow = await createBootstrapWindow({
+        startHidden: shouldHideStartupWindow() && !startupRevealRequested,
+        afterUpdate: Boolean(handoffId),
+    })
     currentBootstrapWindow = bootstrapWindow
     revealStartupWindow = () => bootstrapWindow.show()
     if (startupRevealRequested) bootstrapWindow.show()

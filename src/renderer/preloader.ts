@@ -1,19 +1,22 @@
 import type { BootstrapStatusKey, BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
 
+const DOWNLOAD_TEXT = 'Загрузка обновления'
+const PREPARATION_TEXT = 'Подготовка обновления'
+
 const STATUS_TEXT: Record<BootstrapStatusKey, string> = {
-    'checking-for-updates': 'Проверяем обновления…',
-    'downloading-client': 'Скачиваем клиент…',
-    'downloading-modules': 'Скачиваем модули…',
-    'planning-update': 'Готовим план обновления…',
-    'preparing-update': 'Подготавливаем обновление…',
-    'restarting-client': 'Перезапускаем PulseSync…',
-    'launching-client': 'Запускаем PulseSync…',
-    'update-blocked': 'Обновление сейчас невозможно',
-    'update-failed': 'Не удалось проверить или подготовить обновление',
+    'checking-for-updates': 'Проверка обновлений',
+    'downloading-client': DOWNLOAD_TEXT,
+    'downloading-modules': DOWNLOAD_TEXT,
+    'planning-update': PREPARATION_TEXT,
+    'preparing-update': PREPARATION_TEXT,
+    'restarting-client': 'Перезапуск PulseSync',
+    'launching-client': 'Запуск PulseSync',
+    'update-blocked': 'Обновление недоступно',
+    'update-failed': 'Не удалось обновить PulseSync',
     'bootstrapper-missing': 'Установка PulseSync повреждена',
-    'launch-blocked': 'PulseSync временно не может запуститься',
+    'launch-blocked': 'Запуск PulseSync временно недоступен',
     'launch-failed': 'Не удалось запустить PulseSync',
-    'renderer-unavailable': 'Не удалось загрузить интерфейс.',
+    'renderer-unavailable': 'Не удалось загрузить интерфейс',
 }
 
 const root = document.querySelector<HTMLElement>('#bootstrap-root')
@@ -21,7 +24,7 @@ const status = document.querySelector<HTMLElement>('#bootstrap-status')
 const progress = document.querySelector<HTMLProgressElement>('#bootstrap-progress')
 const progressText = document.querySelector<HTMLElement>('#bootstrap-progress-text')
 const progressPercent = document.querySelector<HTMLElement>('#bootstrap-progress-percent')
-const progressBytes = document.querySelector<HTMLElement>('#bootstrap-progress-bytes')
+const progressDetails = document.querySelector<HTMLElement>('#bootstrap-progress-details')
 const progressSpeed = document.querySelector<HTMLElement>('#bootstrap-progress-speed')
 
 let speedTimeout: number | undefined
@@ -35,8 +38,9 @@ function renderState(state: BootstrapUiStateV1): void {
         root.dataset.phase = state.phase
         root.dataset.progress = state.progress.kind
     }
-    if (status) {
-        status.textContent = STATUS_TEXT[state.statusKey]
+    const statusText = STATUS_TEXT[state.statusKey]
+    if (status && status.textContent !== statusText) {
+        status.textContent = statusText
     }
     window.clearTimeout(speedTimeout)
     if (progressSpeed) {
@@ -48,22 +52,22 @@ function renderState(state: BootstrapUiStateV1): void {
             }, 2000)
         }
     }
-    if (progress && progressText && progressPercent && progressBytes) {
+    if (progress && progressText && progressPercent && progressDetails) {
+        progressPercent.hidden = state.progress.kind !== 'bytes'
         if (state.progress.kind === 'bytes') {
             progress.max = state.progress.total
             progress.value = state.progress.read
             const percent = Math.min(100, Math.floor((state.progress.read / state.progress.total) * 100))
             progressText.hidden = false
             progressPercent.textContent = `${percent}%`
-            progressBytes.textContent = formatDownloadBytes(state.progress.read, state.progress.total)
+            progressDetails.textContent = formatDownloadBytes(state.progress.read, state.progress.total)
         } else {
             progress.removeAttribute('value')
             progress.max = 1
             const diagnostic = formatDiagnostic(state)
-            const hideText = (state.phase === 'blocked' || state.phase === 'error') && !diagnostic
-            progressText.hidden = hideText
-            progressPercent.textContent = diagnostic || (hideText ? '' : 'Подождите немного')
-            progressBytes.textContent = ''
+            progressText.hidden = !diagnostic && state.bytesPerSecond === undefined
+            progressPercent.textContent = ''
+            progressDetails.textContent = diagnostic
         }
     }
 }
@@ -86,7 +90,8 @@ function formatDownloadBytes(read: number, total: number): string {
     const readText = formatBytes(read)
     const totalText = formatBytes(total)
     const unit = totalText.slice(totalText.lastIndexOf(' '))
-    return `${readText.endsWith(unit) ? readText.slice(0, -unit.length) : readText} из ${totalText}`
+    const readAmount = readText.endsWith(unit) ? readText.slice(0, -unit.length) : readText
+    return `${readAmount} / ${totalText}`
 }
 
 const api = window.pulsesyncBootstrap

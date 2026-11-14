@@ -59,9 +59,9 @@ __metadata:
   languageName: node
   linkType: hard
 
-"@aws-sdk/client-s3@npm:^3.1168.0":
-  version: 3.1168.0
-  resolution: "@aws-sdk/client-s3@npm:3.1168.0"
+"@aws-sdk/client-s3@npm:^3.1169.0":
+  version: 3.1169.0
+  resolution: "@aws-sdk/client-s3@npm:3.1169.0"
   dependencies:
     "@aws-sdk/checksums": "npm:^3.1002.5"
     "@aws-sdk/core": "npm:^3.981.0"
@@ -74,7 +74,7 @@ __metadata:
     "@smithy/node-http-handler": "npm:^4.14.2"
     "@smithy/types": "npm:^4.20.0"
     tslib: "npm:^2.6.2"
-  checksum: 10c0/6ac306baa6af088ace2305b8fda21563989b80f9406b440d8d1515042e847ae4d9eed1546c3d7b73f7e45a72175b21fae32c32c42e39fcf5942c3acd6ca3b50d
+  checksum: 10c0/e2c4ac5c0e288d681aca87ae2153cf870cb1d10055fa19d6f5c90d44f77dfd103742392fc03c25dc723756cb1f6a5ad066395b1cc25d2e9675565d806ea8d26f
   languageName: node
   linkType: hard
 
@@ -4438,7 +4438,7 @@ __metadata:
   resolution: "PulseSync@workspace:."
   dependencies:
     "@apollo/client": "npm:^4.3.8"
-    "@aws-sdk/client-s3": "npm:^3.1168.0"
+    "@aws-sdk/client-s3": "npm:^3.1169.0"
     "@babel/core": "npm:8.1.2"
     "@codemirror/commands": "npm:6.11.1"
     "@codemirror/lang-markdown": "npm:6.5.2"
@@ -4488,7 +4488,7 @@ __metadata:
     electron-store: "npm:12.0.0"
     eslint-plugin-simple-import-sort: "npm:^14.0.0"
     formik: "npm:^2.4.9"
-    framer-motion: "npm:^14.13.0"
+    framer-motion: "npm:^14.14.0"
     graphql: "npm:^17.1.0"
     graphql-tag: "npm:^2.12.7"
     graphql-ws: "npm:^6.4.2"
@@ -4525,7 +4525,7 @@ __metadata:
     stylelint-config-recess-order: "npm:^7.10.0"
     stylelint-config-standard-scss: "npm:^18.0.0"
     stylelint-order: "npm:^8.1.3"
-    systeminformation: "npm:^5.33.21"
+    systeminformation: "npm:^5.33.22"
     tar: "npm:^7.5.23"
     tsx: "npm:4.23.15"
     typescript: "npm:7.0.2"
@@ -6455,11 +6455,11 @@ __metadata:
   languageName: node
   linkType: hard
 
-"framer-motion@npm:^14.13.0":
-  version: 14.13.0
-  resolution: "framer-motion@npm:14.13.0"
+"framer-motion@npm:^14.14.0":
+  version: 14.14.0
+  resolution: "framer-motion@npm:14.14.0"
   dependencies:
-    motion-dom: "npm:14.13.0"
+    motion-dom: "npm:14.14.0"
     motion-utils: "npm:14.7.0"
     tslib: "npm:^2.4.0"
   peerDependencies:
@@ -6473,7 +6473,7 @@ __metadata:
       optional: true
     remix:
       optional: true
-  checksum: 10c0/16206b6084477ac4dc7f9d6c364838e70ff0d3bd7fb295b27e3f4452d2cd46c277ae8688e8917fd5bbd4be4f8826e1a8d3888cacfb99f57caa47c794f0276270
+  checksum: 10c0/405c7ac033bcc308a2444f54526cfc100b2a4373db66ec6d0da5b97c799802490c72a4623d1929a52642470ce6b5c451a1f15806d8bb8c9498a2e5b3d88825e3
   languageName: node
   linkType: hard
 
@@ -8455,12 +8455,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"motion-dom@npm:14.13.0":
-  version: 14.13.0
-  resolution: "motion-dom@npm:14.13.0"
+"motion-dom@npm:14.14.0":
+  version: 14.14.0
+  resolution: "motion-dom@npm:14.14.0"
   dependencies:
     motion-utils: "npm:14.7.0"
-  checksum: 10c0/63f1ff713ce47d7abb76ca2899d59f4b679a7a2319b1c38862081d37216d6efc41e324f78fbc7166f8d07a10ed65b6ae442c5165979e5143ec2829eddc4d50fa
+  checksum: 10c0/8a320425f280d2b413bc4da3b161da30d192180e5b367c4379e17eccdb6070089c71ab794267f073ff4dbeea31b75dfdbfd45d44d9888865fc0b0d22d3ec13c5
   languageName: node
   linkType: hard
 
@@ -10469,12 +10469,12 @@ __metadata:
   languageName: node
   linkType: hard
 
-"systeminformation@npm:^5.33.21":
-  version: 5.33.21
-  resolution: "systeminformation@npm:5.33.21"
+"systeminformation@npm:^5.33.22":
+  version: 5.33.22
+  resolution: "systeminformation@npm:5.33.22"
   bin:
     systeminformation: lib/cli.js
-  checksum: 10c0/9b8d8256cd37f973fb39141e0a0c75c230209fcd94c2c6abbfd31ea3d5f58a3cd8885a682a1e7c9a386b97c90d71212c0cbd5ecc4d07cd35478a7c1dfba22fbd
+  checksum: 10c0/4c76a1e3cea3626b71817aded4293f8e84faf36c37ce4672425c93918dcd09e61a5da14dec14d367de6b0e2afef6b8bbf87e3e7a1ebc8e31c119a83c34b53431
   conditions: (os=darwin | os=linux | os=win32 | os=freebsd | os=openbsd | os=netbsd | os=sunos | os=android)
   languageName: node
   linkType: hard

@@ -18,6 +18,8 @@ body {
 }
 
 .bootstrap {
+    --progress-width: 186px;
+
     box-sizing: border-box;
     display: flex;
 
@@ -47,16 +49,19 @@ body {
 }
 
 .status {
-    display: grid;
+    display: flex;
 
-    place-items: center;
+    gap: 8px;
 
-    width: 100%;
+    align-items: center;
+    justify-content: space-between;
+
+    width: var(--progress-width);
     min-height: 32px;
 
     margin-top: 28px;
 
-    text-align: center;
+    text-align: start;
 }
 
 .status p {
@@ -64,11 +69,22 @@ body {
 
     font-size: 13px;
     font-weight: 600;
-    font-variant-numeric: tabular-nums;
 
     line-height: 16px;
 
     color: #fff;
+}
+
+.status__percent {
+    flex-shrink: 0;
+
+    font-size: 12px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+
+    line-height: 16px;
+
+    color: #d2e5f1;
 }
 
 .progress {
@@ -80,8 +96,8 @@ body {
 
     align-items: center;
 
-    width: 186px;
-    min-height: 21px;
+    width: var(--progress-width);
+    min-height: 22px;
 
     margin-top: 4px;
 }
@@ -89,7 +105,7 @@ body {
 .progress progress {
     display: none;
 
-    width: 186px;
+    width: 100%;
     height: 5px;
 
     overflow: hidden;
@@ -139,15 +155,11 @@ body {
 }
 
 .bootstrap[data-progress='indeterminate'] .progress__text {
-    justify-content: center;
+    font-weight: 500;
 }
 
-.progress__summary {
-    display: inline-flex;
-
-    gap: 6px;
-
-    align-items: center;
+.progress__text[hidden] {
+    display: none;
 }
 
 .progress__speed {
@@ -162,19 +174,7 @@ body {
     content: '↓';
 }
 
-.bootstrap[data-progress='indeterminate'] #bootstrap-progress-percent {
-    font-weight: 500;
-
-    color: #8f94a8;
-}
-
-#bootstrap-progress-percent {
-    font-weight: 600;
-
-    color: #d2e5f1;
-}
-
-.bootstrap[data-phase='error'] #bootstrap-progress-percent {
+.bootstrap[data-phase='error'] #bootstrap-progress-details {
     user-select: text;
     -webkit-app-region: no-drag;
 }

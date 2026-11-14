@@ -54,13 +54,6 @@ export class StartupCoordinator {
             runtimePaths: BootstrapperRuntimePaths
         },
     ) {
-        this.unsubscribeState = updateCoordinator.subscribe(state => {
-            if (state.phase === 'error' || state.phase === 'blocked') {
-                this.publishRecovery()
-                return
-            }
-            options.bootstrapWindow.publish({ ...state, actions: [] })
-        })
         options.bootstrapWindow.setActionHandlers({})
         setLaunchHandoffRuntime({
             inbox: options.inbox,
@@ -76,15 +69,15 @@ export class StartupCoordinator {
 
     public async runWithoutUpdate(): Promise<void> {
         try {
-            this.publishRecovery()
+            this.options.bootstrapWindow.show()
+            this.publishLaunching()
             await this.startApplication()
         } catch (error) {
             await this.options.onStartupFailure(error)
         }
     }
 
-    private publishRecovery(): void {
-        this.options.bootstrapWindow.show()
+    private publishLaunching(): void {
         this.options.bootstrapWindow.publish({
             schemaVersion: 1,
             phase: 'launching',
@@ -108,12 +101,18 @@ export class StartupCoordinator {
     private async executeGate(): Promise<void> {
         // A newly activated runtime must reach UI readiness before its native acknowledgement deadline.
         if (this.options.activeRuntime.activationState === 'pending') {
+            this.publishLaunching()
             await this.startApplication()
             return
         }
         const launcher = this.options.runtimePaths.launcher
         if (!launcher) throw new Error('Bootstrapper launcher was not found')
         const request = getDesktopUpdateManifestRequest({ source: getUpdateSource() })
+        this.unsubscribeState = updateCoordinator.subscribe(state => {
+            if (state.phase !== 'error' && state.phase !== 'blocked') {
+                this.options.bootstrapWindow.publish({ ...state, actions: [] })
+            }
+        })
         for (let attempt = 1; attempt <= 3; attempt += 1) {
             let result: PrepareUpdateResultV1 | undefined
             let failure: unknown
@@ -161,13 +160,21 @@ export class StartupCoordinator {
             }
             logger.updater.warn('Bootstrap update attempt failed', { attempt, retryable, safeToContinue, error: failure })
             if (retryable && attempt < 3) {
-                this.publishRecovery()
+                this.options.bootstrapWindow.show()
+                this.options.bootstrapWindow.publish({
+                    schemaVersion: 1,
+                    phase: 'checking',
+                    statusKey: 'checking-for-updates',
+                    progress: { kind: 'indeterminate' },
+                    actions: [],
+                })
                 await new Promise(resolve => setTimeout(resolve, attempt * 1000))
                 continue
             }
             if (safeToContinue) {
                 logger.updater.warn('Starting installed runtime after unsuccessful update check')
-                this.publishRecovery()
+                this.options.bootstrapWindow.show()
+                this.publishLaunching()
                 await this.startApplication()
                 return
             }
