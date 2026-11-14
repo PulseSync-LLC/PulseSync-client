@@ -20,6 +20,38 @@ import {
 
 type PublicRendererChannel = 'dev' | 'beta'
 
+const TRANSIENT_RENDERER_NETWORK_CODES = new Set([
+    'ECONNABORTED',
+    'ECONNREFUSED',
+    'ECONNRESET',
+    'EAI_AGAIN',
+    'ENETDOWN',
+    'ENETUNREACH',
+    'ENOTFOUND',
+    'EHOSTUNREACH',
+    'ETIMEDOUT',
+    'ERR_ADDRESS_UNREACHABLE',
+    'ERR_CONNECTION_CLOSED',
+    'ERR_CONNECTION_REFUSED',
+    'ERR_CONNECTION_RESET',
+    'ERR_CONNECTION_TIMED_OUT',
+    'ERR_INTERNET_DISCONNECTED',
+    'ERR_NAME_NOT_RESOLVED',
+    'ERR_NETWORK',
+    'ERR_NETWORK_CHANGED',
+    'ERR_PROXY_CONNECTION_FAILED',
+    'ERR_TIMED_OUT',
+])
+
+export function isTransientRendererNetworkError(error: unknown): boolean {
+    if (axios.isAxiosError(error) && error.response) {
+        const { status } = error.response
+        return status === 408 || status === 429 || (status >= 500 && status < 600)
+    }
+    // Electron rejects loadURL with a Chromium network error code.
+    return error instanceof Error && 'code' in error && typeof error.code === 'string' && TRANSIENT_RENDERER_NETWORK_CODES.has(error.code)
+}
+
 export interface RemoteRendererManifest {
     buildNumber: string
     localizationUrl?: string
@@ -156,7 +188,7 @@ async function resolveRendererSourceFromManifest(manifestUrl: string, allowDevRe
     }
 }
 
-export async function* resolveMainRendererSources(): AsyncGenerator<MainRendererSource, void, void> {
+export async function* resolveMainRendererSources(onSourceError?: (error: unknown) => void): AsyncGenerator<MainRendererSource, void, void> {
     const manifestUrls = getRemoteManifestUrls()
     const allowDevRemoteRenderer = shouldAllowDevRemoteRenderer(isAppDev, isDevmark)
     let sourceResolved = false
@@ -169,6 +201,7 @@ export async function* resolveMainRendererSources(): AsyncGenerator<MainRenderer
             yield source
         } catch (error) {
             lastError = error
+            onSourceError?.(error)
             addMainBreadcrumb('pulsesync.renderer.manifest', 'Remote renderer manifest failed', {
                 manifestUrl,
                 fallbackAvailable: index < manifestUrls.length - 1,

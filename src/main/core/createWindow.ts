@@ -17,7 +17,7 @@ import { queueAddonOpen, updateAvailable } from './events'
 import { refreshRemoteLocalization } from './localization'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import { importPextFile, isPextFilePath } from './pextImporter'
-import { type MainRendererSource, resolveMainRendererSources } from './rendererSource'
+import { isTransientRendererNetworkError, type MainRendererSource, resolveMainRendererSources } from './rendererSource'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
 import {
     buildRemoteRendererContentSecurityPolicy,
@@ -51,6 +51,8 @@ export function showMainWindow(): boolean {
 
 const defaultMain = { width: 1280, height: 760 }
 const minMain = { width: 1100, height: 600 }
+const RENDERER_STARTUP_RETRY_DELAYS_MS = [1000, 2000]
+const RENDERER_NETWORK_RETRY_DELAYS_MS = [...RENDERER_STARTUP_RETRY_DELAYS_MS, 5000, 10000, 20000, 30000]
 
 app.on('before-quit', () => {
     isAppQuitting = true
@@ -230,8 +232,12 @@ const registerRemoteRendererResponseHeaders = (window: BrowserWindow, activeRemo
     logger.main.info('Remote renderer response headers enforced', { origin: activeRemoteOrigin })
 }
 
-const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: MainRendererSource): Promise<MainRendererSource> => {
-    const sources = resolvedSource ? [resolvedSource] : resolveMainRendererSources()
+const loadMainWindowRenderer = async (
+    window: BrowserWindow,
+    resolvedSource?: MainRendererSource,
+    onSourceError?: (error: unknown) => void,
+): Promise<MainRendererSource> => {
+    const sources = resolvedSource ? [resolvedSource] : resolveMainRendererSources(onSourceError)
     let lastError: unknown
     let sourceIndex = 0
 
@@ -292,6 +298,7 @@ const loadMainWindowRenderer = async (window: BrowserWindow, resolvedSource?: Ma
             return source
         } catch (error) {
             lastError = error
+            onSourceError?.(error)
             logger.main.warn('Failed to load remote renderer candidate', {
                 url: source.url,
                 message: error instanceof Error ? error.message : String(error),
@@ -318,7 +325,7 @@ export type MainWindowStartupHandle = {
 }
 
 export async function createWindow(
-    options: { bootstrapUi?: BootstrapUiController; bootstrapWindow?: BrowserWindow; startHidden?: boolean } = {},
+    options: { bootstrapUi?: BootstrapUiController; bootstrapWindow?: BrowserWindow; startHidden?: boolean; activationPending?: boolean } = {},
 ): Promise<MainWindowStartupHandle> {
     const restorePos = State.get('settings.saveWindowPositionOnRestart') ?? true
     const restoreDim = State.get('settings.saveWindowDimensionsOnRestart') ?? true
@@ -432,15 +439,18 @@ export async function createWindow(
         }
     }
     const loadMainRenderer = async (): Promise<void> => {
-        if (rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
+        if (isAppQuitting || rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
         rendererLoading = true
         rendererAttempts += 1
         if (rendererRetryTimer) {
             clearTimeout(rendererRetryTimer)
             rendererRetryTimer = null
         }
+        let transientNetworkFailure = false
         try {
-            const source = await loadMainWindowRenderer(rendererWindow)
+            const source = await loadMainWindowRenderer(rendererWindow, undefined, error => {
+                transientNetworkFailure ||= isTransientRendererNetworkError(error)
+            })
             mainRendererSource = source
             logger.main.info('Main renderer loaded', { source: source.kind })
             startRendererUpdateMonitor({
@@ -451,9 +461,14 @@ export async function createWindow(
             handleMainWindowReady()
         } catch (error) {
             logger.main.error('Failed to load main renderer; keeping bootstrap window visible', error)
-            if (!rendererWindow.isDestroyed()) {
+            if (!isAppQuitting && !rendererWindow.isDestroyed()) {
                 if (options.bootstrapWindow && !options.bootstrapWindow.isDestroyed()) options.bootstrapWindow.show()
-                const exhausted = rendererAttempts >= 3
+                const retryIndex = rendererAttempts - 1
+                const retryDelay =
+                    transientNetworkFailure && !options.activationPending
+                        ? RENDERER_NETWORK_RETRY_DELAYS_MS[Math.min(retryIndex, RENDERER_NETWORK_RETRY_DELAYS_MS.length - 1)]
+                        : RENDERER_STARTUP_RETRY_DELAYS_MS[retryIndex]
+                const exhausted = retryDelay === undefined
                 options.bootstrapUi?.publish({
                     schemaVersion: 1,
                     phase: exhausted ? 'error' : 'launching',
@@ -463,7 +478,7 @@ export async function createWindow(
                     ...(exhausted ? { diagnostic: captureBootstrapFailure(error, 'LF-RENDERER', 'renderer/load') } : {}),
                 })
                 if (!exhausted) {
-                    rendererRetryTimer = setTimeout(() => void loadMainRenderer(), rendererAttempts * 1000)
+                    rendererRetryTimer = setTimeout(() => void loadMainRenderer(), retryDelay)
                     rendererRetryTimer.unref()
                 }
             }
