@@ -54,12 +54,18 @@ body {
     gap: 8px;
 
     align-items: center;
-    justify-content: space-between;
+    justify-content: center;
 
     width: var(--progress-width);
     min-height: 32px;
 
     margin-top: 28px;
+
+    text-align: center;
+}
+
+.bootstrap[data-progress='bytes'] .status {
+    justify-content: space-between;
 
     text-align: start;
 }
@@ -156,6 +162,10 @@ body {
 
 .bootstrap[data-progress='indeterminate'] .progress__text {
     font-weight: 500;
+}
+
+.bootstrap[data-progress='indeterminate'] .progress__text:has(.progress__speed[hidden]) {
+    justify-content: center;
 }
 
 .progress__text[hidden] {

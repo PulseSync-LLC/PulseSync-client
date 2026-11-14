@@ -64,10 +64,10 @@ function renderState(state: BootstrapUiStateV1): void {
         } else {
             progress.removeAttribute('value')
             progress.max = 1
-            const diagnostic = formatDiagnostic(state)
-            progressText.hidden = !diagnostic && state.bytesPerSecond === undefined
+            const details = state.phase === 'error' || state.phase === 'blocked' ? formatDiagnostic(state) : 'Подождите немного'
+            progressText.hidden = !details && state.bytesPerSecond === undefined
             progressPercent.textContent = ''
-            progressDetails.textContent = diagnostic
+            progressDetails.textContent = details
         }
     }
 }
