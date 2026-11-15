@@ -36,7 +36,7 @@ async function loadBootstrapRenderer(window: BrowserWindow): Promise<void> {
     await window.loadFile(candidates.find(candidate => fs.existsSync(candidate)) ?? candidates[0])
 }
 
-export async function createBootstrapWindow(options: { startHidden?: boolean } = {}): Promise<BootstrapWindowController> {
+export async function createBootstrapWindow(options: { startHidden?: boolean; afterUpdate?: boolean } = {}): Promise<BootstrapWindowController> {
     const workArea = screen.getPrimaryDisplay().workArea
     const window = new BrowserWindow({
         x: Math.floor(workArea.x + (workArea.width - WINDOW_SIZE.width) / 2),
@@ -60,7 +60,9 @@ export async function createBootstrapWindow(options: { startHidden?: boolean } =
         },
     })
 
-    let currentState = INITIAL_STATE
+    let currentState: BootstrapUiStateV1 = options.afterUpdate
+        ? { ...INITIAL_STATE, phase: 'launching', statusKey: 'launching-client' }
+        : INITIAL_STATE
     let retryHandler: (() => Promise<boolean>) | undefined
     let continueHandler: (() => Promise<boolean>) | undefined
     let readyToShow = false

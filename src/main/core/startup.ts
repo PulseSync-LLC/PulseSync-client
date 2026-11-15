@@ -38,6 +38,7 @@ import { findAppByName, getPathToYandexMusic, isMac, isWindows } from './utils/a
 import { checkCLIArguments } from './utils/processUtils'
 
 import type { LaunchRequestEnvelopeV1 } from '../shared/bootstrapper/contracts'
+import type { ActiveRuntimeV3 } from '@common/desktopRuntime/contract'
 import type { BootstrapUiController } from '@common/types/bootstrapEvents'
 
 const State = getState()
@@ -82,7 +83,7 @@ const initializeMusicPath = async () => {
     }
 }
 export type ApplicationStartupContext = {
-    bootstrapRuntime?: UpdaterBootstrapRuntime
+    bootstrapRuntime?: UpdaterBootstrapRuntime & { activeRuntime?: Pick<ActiveRuntimeV3, 'activationState'> }
     bootstrapUi?: BootstrapUiController
     bootstrapWindow?: BrowserWindowType
 }
@@ -122,7 +123,12 @@ export async function startMainApplication(context: ApplicationStartupContext = 
         }
         refreshAutoStartRegistration()
         const startHidden = shouldStartInTray(State.get('settings'))
-        const windowStartup = await createWindow({ bootstrapUi: context.bootstrapUi, bootstrapWindow: context.bootstrapWindow, startHidden })
+        const windowStartup = await createWindow({
+            bootstrapUi: context.bootstrapUi,
+            bootstrapWindow: context.bootstrapWindow,
+            startHidden,
+            activationPending: context.bootstrapRuntime?.activeRuntime?.activationState === 'pending',
+        })
         handleEvents(mainWindow)
         const handleLaunchRequest = await createApplicationLaunchRequestHandler()
         const legacyCompletedLaunchRequestIds = State.get('app.completedLaunchRequestIds')

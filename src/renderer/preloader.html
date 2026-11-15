@@ -25,16 +25,14 @@
             </div>
 
             <section class="status" aria-labelledby="bootstrap-status">
-                <p id="bootstrap-status">Проверяем обновления…</p>
+                <p id="bootstrap-status"></p>
+                <span id="bootstrap-progress-percent" class="status__percent" hidden></span>
             </section>
 
             <section class="progress" aria-label="Ход запуска">
                 <progress id="bootstrap-progress" max="1"></progress>
-                <span id="bootstrap-progress-text" class="progress__text">
-                    <span class="progress__summary">
-                        <span id="bootstrap-progress-percent">Подождите немного</span>
-                        <span id="bootstrap-progress-bytes"></span>
-                    </span>
+                <span id="bootstrap-progress-text" class="progress__text" hidden>
+                    <span id="bootstrap-progress-details"></span>
                     <span id="bootstrap-progress-speed" class="progress__speed" hidden></span>
                 </span>
             </section>
