@@ -3,7 +3,7 @@ import { setTimeout as delay } from 'node:timers/promises'
 import * as fs from 'original-fs'
 
 import logger from '../../shared/logger'
-import { isDeveloperAccount } from '../auth/developerAccess'
+import { getDeveloperAccountStatus } from '../auth/developerAccess'
 import { getState } from '../state'
 import { resolveBasePaths } from './mod-files'
 import { hashArtifactInWorker } from './network/artifactWorkerClient'
@@ -139,7 +139,7 @@ async function refreshInstalledMod(epoch: number): Promise<Record<string, unknow
 
         if (!missingPath) {
             if (normalizeAsarChecksum(snapshot.checksum)) {
-                if (await isDeveloperAccount()) return getInstalledModSnapshot()
+                if ((await getDeveloperAccountStatus()) !== false) return getInstalledModSnapshot()
                 const result = await verifyInstalledModIntegrity()
                 if (result.ok || result.reason !== 'checksum-mismatch') return getInstalledModSnapshot()
             } else {

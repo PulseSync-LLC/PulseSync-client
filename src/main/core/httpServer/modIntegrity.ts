@@ -1,5 +1,5 @@
 import logger from '../../shared/logger'
-import { isDeveloperAccount } from '../auth/developerAccess'
+import { getDeveloperAccountStatus } from '../auth/developerAccess'
 import { verifyInstalledModIntegrity } from '../mod/integrity'
 import { isModIntegrityCheckEnabled } from '../mod/integrityExperiment'
 
@@ -8,9 +8,12 @@ import type { Server, Socket } from 'socket.io'
 
 const RECHECK_INTERVAL_MS = 30_000
 
-async function verifyAccess(): Promise<ModIntegrityResult> {
+async function verifyAccess(): Promise<ModIntegrityResult | null> {
     if (!(await isModIntegrityCheckEnabled())) return { ok: true }
-    return (await isDeveloperAccount()) ? { ok: true } : verifyInstalledModIntegrity()
+    const developer = await getDeveloperAccountStatus()
+    if (developer === true) return { ok: true }
+    const result = await verifyInstalledModIntegrity()
+    return developer === null && !result.ok ? null : result
 }
 
 export function registerModSocketIntegrity(io: Server): void {
@@ -36,6 +39,10 @@ export function registerModSocketIntegrity(io: Server): void {
 
         void verifyAccess()
             .then(result => {
+                if (!result) {
+                    next(new Error('mod-integrity:role-unavailable'))
+                    return
+                }
                 if (!result.ok) {
                     logger.http.warn('Mod socket refused: ASAR integrity check failed', { reason: result.reason })
                     next(new Error(`mod-integrity:${result.reason}`))
@@ -57,7 +64,7 @@ export function registerModSocketIntegrity(io: Server): void {
                 checking = true
                 void verifyAccess()
                     .then(result => {
-                        if (!result.ok) sockets.filter(socket => socket.connected).forEach(socket => rejectSocket(socket, result.reason))
+                        if (result && !result.ok) sockets.filter(socket => socket.connected).forEach(socket => rejectSocket(socket, result.reason))
                     })
                     .catch(() => sockets.filter(socket => socket.connected).forEach(socket => rejectSocket(socket, 'asar-unavailable')))
                     .finally(() => {
