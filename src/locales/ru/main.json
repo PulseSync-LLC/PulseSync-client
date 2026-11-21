@@ -53,7 +53,7 @@
             "connectError": "Ошибка подключения к Discord RPC",
             "connected": "Успешное подключение",
             "connectionClosed": "Закрытие соединения",
-            "disconnectError": "Ошибка отключёния клиента",
+            "disconnectError": "Ошибка отключения клиента",
             "disconnected": "Отключение RPC",
             "genericConnectError": "Ошибка подключения",
             "disabledByDrpcV2": "Теперь мод поддерживает Discord RPC самостоятельно. Встроенный RPC в PulseSync отключён",
@@ -87,11 +87,11 @@
             "rendererError": "Ошибка рендера",
             "yandexNotFound": "Приложение Яндекс Музыка не найдено",
             "yandexNotFoundMessage": "Приложение Яндекс Музыка не найдено",
-            "yandexUninstallError": "Ошибка при удалёнии приложения",
+            "yandexUninstallError": "Ошибка при удалении приложения",
             "yandexUninstallFailedWithReason": "Не удалось удалить приложение: {{message}}",
             "yandexUninstallStart": "Удаление Яндекс Музыки…",
-            "yandexUninstallSuccess": "Яндекс Музыка удалёна",
-            "yandexUninstallSuccessMessage": "Яндекс Музыка удалёна"
+            "yandexUninstallSuccess": "Яндекс Музыка удалена",
+            "yandexUninstallSuccessMessage": "Яндекс Музыка удалена"
         },
         "handleErrors": {
             "internalError": "Ошибка внутри ErrorService.handleError:",
@@ -129,9 +129,9 @@
             "downloadError": "Ошибка при скачивании виджета",
             "downloadUnknownError": "Неизвестная ошибка при скачивании виджета",
             "installSuccess": "Виджет OBS успешно установлен",
-            "removeError": "Ошибка при удалёнии виджета",
+            "removeError": "Ошибка при удалении виджета",
             "removeSuccess": "Виджет OBS успешно удалён",
-            "removeUnknownError": "Неизвестная ошибка при удалёнии виджета"
+            "removeUnknownError": "Неизвестная ошибка при удалении виджета"
         },
         "process": {
             "updateCompleteBody": "Посмотреть список изменений можно в приложении",
@@ -172,7 +172,7 @@
                 "version": "Версия мода"
             },
             "settings": {
-                "askSavePath": "Спрашивать путь для сохранёния при выгрузке/экспорте",
+                "askSavePath": "Спрашивать путь для сохранения при выгрузке/экспорте",
                 "autoStartApp": "Автоматически запускать приложение при загрузке системы",
                 "autoStartInTray": "Запускать приложение свёрнутым в трей при старте системы",
                 "openWindowOnManualLaunch": "Показывать окно при ручном запуске приложения",
@@ -215,7 +215,7 @@
         "tray": {
             "open": "Открыть",
             "addonsDirectory": "Папка аддонов",
-            "checkUpdates": "Проверить обновлёния",
+            "checkUpdates": "Проверить обновления",
             "close": "Закрыть",
             "discordRpc": "Discord RPC",
             "openDiscord": "Перейти в Discord PulseSync"
@@ -224,7 +224,7 @@
             "appFilesCorrupted": "Файлы приложения повреждены. Переустановите приложение.",
             "noUpdatesFound": "Обновлений не найдено",
             "updateReadyBody": "PulseSync версия {version} успешно скачана и будет установлена автоматически при выходе из приложения",
-            "updateReadyTitle": "Новое обновлёние готово к установке"
+            "updateReadyTitle": "Новое обновление готово к установке"
         }
     }
 }
