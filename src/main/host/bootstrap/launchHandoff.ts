@@ -20,23 +20,23 @@ export type LaunchHandoffRuntime = {
 }
 
 let activeRuntime: LaunchHandoffRuntime | null = null
-let activeHandoff: Promise<boolean> | null = null
+let activeHandoff: Promise<boolean | 'deferred'> | null = null
 
 export function setLaunchHandoffRuntime(runtime: LaunchHandoffRuntime): void {
     activeRuntime = runtime
 }
 
-export function handoffPreparedUpdate(): Promise<boolean> {
+export function handoffPreparedUpdate(canApply?: () => Promise<boolean>): Promise<boolean | 'deferred'> {
     if (activeHandoff) return activeHandoff
     if (!activeRuntime) return Promise.resolve(false)
-    const operation = performHandoff(activeRuntime).finally(() => {
+    const operation = performHandoff(activeRuntime, canApply).finally(() => {
         if (activeHandoff === operation) activeHandoff = null
     })
     activeHandoff = operation
     return operation
 }
 
-async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
+async function performHandoff(runtime: LaunchHandoffRuntime, canApply?: () => Promise<boolean>): Promise<boolean | 'deferred'> {
     const startedAt = Date.now()
     const launcher = runtime.runtimePaths.launcher
     if (!launcher) {
@@ -48,6 +48,10 @@ async function performHandoff(runtime: LaunchHandoffRuntime): Promise<boolean> {
     try {
         runtime.inbox.freeze()
         await runtime.queue.flush()
+        if (canApply && !(await canApply())) {
+            await runtime.inbox.unfreeze()
+            return 'deferred'
+        }
         const armed = await relaunchThroughBootstrapper({
             activeLeaseId: runtime.lease.leaseId,
             appExecutable: runtime.runtimePaths.appExecutable,

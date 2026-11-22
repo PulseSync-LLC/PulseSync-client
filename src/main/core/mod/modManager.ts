@@ -3,6 +3,7 @@ import { ipcMain } from 'electron'
 import crypto from 'crypto'
 import * as fs from 'original-fs'
 import * as path from 'path'
+import semver from 'semver'
 
 import MainEvents from '../../../common/types/mainEvents'
 import RendererEvents from '../../../common/types/rendererEvents'
@@ -13,10 +14,27 @@ import { CACHE_DIR, TEMP_DIR } from '../constants/paths'
 import { nativeRenameFile } from '../nativeModules'
 import { requirePulseSyncNative } from '../nativeModules/pulsesyncNative'
 import { getState } from '../state'
-import { copyFile, downloadYandexMusic, getInstalledYmMetadata, isLinux, isMac, isWindows } from '../utils/appUtils'
+import { canInstallIdleUpdate, closeMusicForIdleModUpdate, isUserIdle } from '../updater/idleUpdate'
+import {
+    copyFile,
+    downloadYandexMusic,
+    getInstalledYmMetadata,
+    isLinux,
+    isMac,
+    isWindows,
+    isYandexMusicRunning,
+    launchYandexMusic,
+    updateIntegrityHashInExe,
+} from '../utils/appUtils'
 import { formatPkexecError, grantLinuxOwnershipWithPkexec, isLinuxAccessError } from '../utils/appUtils/elevation'
 import { DownloadError, downloadToTempWithProgress, resetProgress, sendFailure, sendToRenderer, unlinkIfExists } from './download.helpers'
-import { beginInstalledModMutation, normalizeAsarChecksum, readInstalledAsarChecksum } from './integrity'
+import {
+    beginInstalledModMutation,
+    isInstalledModMutationInProgress,
+    normalizeAsarChecksum,
+    readInstalledAsarChecksum,
+    verifyInstalledModIntegrity,
+} from './integrity'
 import { ensureBackup, ensureLinuxModPath, resolveBasePaths, restoreMacIntegrity, restoreWindowsIntegrity } from './mod-files'
 import {
     cleanupModArtifacts,
@@ -29,6 +47,7 @@ import {
     setProgressPercent,
     tryUseCacheOrDownload,
 } from './mod-manager.helpers'
+import { getModSourceSelection } from './modSource'
 import { downloadAndExtractUnpacked, downloadAndUpdateFile, prepareAndInstallAsarArtifact } from './network'
 import { ensureDir, isCachedArchiveValid, pruneCacheFiles } from './network/helpers'
 import { getGithubModRelease } from './network/releaseCatalog'
@@ -190,12 +209,15 @@ const getGithubInstallRequest = async (): Promise<DesktopInstallModRequest | nul
 
 clearCacheOnVersionChange()
 
-export const modManager = (window: BrowserWindow): void => {
+export const modManager = (window: BrowserWindow): (() => Promise<boolean>) => {
     let preparedModUpdate: PreparedModUpdate | null = null
     let preparedRequestIdentity: string | null = null
     let queuedModUpdate: DesktopInstallModRequest | null = null
     let preparingModUpdate = false
     let preparingModUpdateIdentity: string | null = null
+    let installingMod: 'manual' | 'automatic' | null = null
+    let queuedManualInstall: DesktopInstallModRequest | null = null
+    let lastAutomaticAttempt: string | null = null
 
     const processModUpdateQueue = async () => {
         if (preparingModUpdate) return
@@ -290,22 +312,29 @@ export const modManager = (window: BrowserWindow): void => {
         }
     })
 
-    ipcMain.on(MainEvents.INSTALL_MOD, async (_event, request: DesktopInstallModRequest) => {
-        const finishMutation = beginInstalledModMutation()
+    const installMod = async (request: DesktopInstallModRequest, automatic = false): Promise<void> => {
+        if (installingMod || (automatic && isInstalledModMutationInProgress())) return
+        installingMod = automatic ? 'automatic' : 'manual'
+        let finishMutation = automatic ? undefined : beginInstalledModMutation()
+        let wasClosed = false
+        let installSucceeded = false
+        let rollbackAsarPath: string | undefined
         try {
             const { version, musicVersion, name, link, unpackLink, unpackedChecksum, checksum, shouldReinstall, source, channel, branch, commit } =
                 request
             const requestIdentity = getModUpdateIdentity(request)
             const preparedArtifacts = preparedModUpdate?.identity === requestIdentity ? preparedModUpdate : null
 
-            sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
-                isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
-                prepared: Boolean(preparedArtifacts),
-            })
+            const sendInstallStarted = () =>
+                sendToRenderer(window, RendererEvents.MOD_INSTALL_STARTED, {
+                    isUpdate: Boolean(State.get('mod.installed') && State.get('mod.version')),
+                    prepared: Boolean(preparedArtifacts),
+                })
+            if (!automatic) sendInstallStarted()
 
             const installSource = source === 'github' ? 'github' : 'backend'
 
-            if (shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
+            if (!automatic && shouldReinstall && !State.get('settings.musicReinstalled') && isWindows()) {
                 State.set('settings.musicReinstalled', true)
                 await downloadYandexMusic('reinstall')
                 return
@@ -313,7 +342,35 @@ export const modManager = (window: BrowserWindow): void => {
 
             const paths = await ensureLinuxModPath(await resolveBasePaths())
 
-            const wasClosed = await closeMusicIfRunning(window)
+            if (automatic) {
+                if (
+                    !preparedArtifacts ||
+                    paths.modAsar !== paths.defaultAsar ||
+                    !fileExists(paths.backupAsar) ||
+                    !fileExists(paths.modAsar) ||
+                    !(await verifyInstalledModIntegrity()).ok ||
+                    !(await isCachedArchiveValid(preparedArtifacts.asarPath, checksum)) ||
+                    (unpackLink &&
+                        (!unpackedChecksum ||
+                            !preparedArtifacts.unpackedPath ||
+                            !(await isCachedArchiveValid(preparedArtifacts.unpackedPath, unpackedChecksum)))) ||
+                    preparedModUpdate !== preparedArtifacts ||
+                    isInstalledModMutationInProgress()
+                ) {
+                    return
+                }
+                rollbackAsarPath = path.join(TEMP_DIR, `previous-mod-${crypto.randomUUID()}.asar`)
+                await copyFile(paths.modAsar, rollbackAsarPath)
+                const closure = await closeMusicForIdleModUpdate()
+                if (!closure) return
+                wasClosed = closure.wasRunning
+                if (!isUserIdle() || preparedModUpdate !== preparedArtifacts || isInstalledModMutationInProgress()) return
+                lastAutomaticAttempt = requestIdentity
+                finishMutation = beginInstalledModMutation()
+                sendInstallStarted()
+            } else {
+                wasClosed = await closeMusicIfRunning(window)
+            }
 
             const ymMetadata = await getInstalledYmMetadata()
             const resolvedMusicVersion = ymMetadata?.version ?? musicVersion
@@ -337,7 +394,7 @@ export const modManager = (window: BrowserWindow): void => {
                         error: t('main.modManager.modAsarNotFound', { name: path.basename(paths.modAsar) }),
                         type: 'file_not_found',
                     })
-                    await downloadYandexMusic('reinstall')
+                    if (!automatic) await downloadYandexMusic('reinstall')
                     return
                 }
                 if (isLinuxAccessError(e)) {
@@ -395,8 +452,9 @@ export const modManager = (window: BrowserWindow): void => {
                             preparedFilePath,
                             releaseData.link,
                             paths.modAsar,
-                            paths.backupAsar,
+                            rollbackAsarPath ?? paths.backupAsar,
                             releaseData.checksum,
+                            !automatic,
                         )
                         if (preparedAsarApplied) {
                             setProgressPercent(window, asarProgress.base + asarProgress.scale, 'app.asar')
@@ -408,6 +466,9 @@ export const modManager = (window: BrowserWindow): void => {
 
                 if (preparedAsarApplied) {
                     logger.modManager.info('Applied prepared app.asar update from cache')
+                } else if (automatic) {
+                    sendFailure(window, { error: t('main.modNetwork.patchError'), type: 'file_copy_error' })
+                    return false
                 } else if (releaseData.checksum) {
                     const cacheFile = path.join(CACHE_DIR, `${releaseData.checksum}.asar`)
                     await fs.promises.mkdir(CACHE_DIR, { recursive: true }).catch(err => {
@@ -479,8 +540,15 @@ export const modManager = (window: BrowserWindow): void => {
                         unpackedProgress,
                         onFailure,
                         releaseData.preparedUnpackedPath,
+                        !automatic,
                     )
-                    if (!unpackedOk) return false
+                    if (!unpackedOk) {
+                        if (rollbackAsarPath) {
+                            await copyFile(rollbackAsarPath, paths.modAsar)
+                            await updateIntegrityHashInExe(path.resolve(paths.music, '..', 'Яндекс Музыка.exe'), paths.modAsar, false)
+                        }
+                        return false
+                    }
                 }
 
                 const actualAsarChecksum = await readInstalledAsarChecksum(paths.modAsar)
@@ -503,7 +571,7 @@ export const modManager = (window: BrowserWindow): void => {
             }
 
             let primaryFailure: ModDownloadFailure | null = null
-            const installSucceeded = await applyReleaseArtifacts(
+            const artifactsApplied = await applyReleaseArtifacts(
                 {
                     version,
                     name,
@@ -524,8 +592,8 @@ export const modManager = (window: BrowserWindow): void => {
                     : undefined,
             )
 
-            if (!installSucceeded) {
-                if (installSource === 'backend' && isFallbackEligibleDownloadFailure(primaryFailure)) {
+            if (!artifactsApplied) {
+                if (!automatic && installSource === 'backend' && isFallbackEligibleDownloadFailure(primaryFailure)) {
                     const backendFailure = primaryFailure
                     try {
                         logger.modManager.warn('Backend mod download failed, trying GitHub fallback', backendFailure)
@@ -592,6 +660,7 @@ export const modManager = (window: BrowserWindow): void => {
                 preparedModUpdate = null
                 preparedRequestIdentity = null
             }
+            installSucceeded = true
             if (await sendSuccessAfterLaunch(window, wasClosed, RendererEvents.DOWNLOAD_SUCCESS, { success: true })) return
         } catch (error: any) {
             logger.modManager.error('Unexpected error:', error)
@@ -602,11 +671,34 @@ export const modManager = (window: BrowserWindow): void => {
             HandleErrorsElectron.handleError('modManager', 'install', 'unexpected', error)
             sendFailure(window, { error: error.message, type: 'unexpected_error' })
         } finally {
-            finishMutation()
+            finishMutation?.()
+            if (rollbackAsarPath) unlinkIfExists(rollbackAsarPath)
+            if (automatic && wasClosed && !installSucceeded) {
+                try {
+                    if (!(await isYandexMusicRunning())) await launchYandexMusic()
+                } catch (error) {
+                    logger.modManager.warn('Failed to reopen Yandex Music after automatic mod update', error)
+                }
+            }
+            installingMod = null
+            const pendingManualInstall = queuedManualInstall
+            queuedManualInstall = null
+            if (pendingManualInstall && (!installSucceeded || getModUpdateIdentity(pendingManualInstall) !== getModUpdateIdentity(request))) {
+                void installMod(pendingManualInstall)
+            }
         }
+    }
+
+    ipcMain.on(MainEvents.INSTALL_MOD, (_event, request: DesktopInstallModRequest) => {
+        if (installingMod === 'automatic') {
+            queuedManualInstall = request
+            return
+        }
+        void installMod(request)
     })
 
     ipcMain.on(MainEvents.REMOVE_MOD, async () => {
+        if (installingMod) return
         const finishMutation = beginInstalledModMutation()
         try {
             const paths = await resolveBasePaths()
@@ -649,6 +741,7 @@ export const modManager = (window: BrowserWindow): void => {
         }
     })
     ipcMain.on(MainEvents.CLEAR_MOD_CACHE, async () => {
+        if (installingMod) return
         try {
             await fs.promises.rm(CACHE_DIR, { recursive: true, force: true })
             sendToRenderer(window, RendererEvents.CLEAR_MOD_CACHE_SUCCESS, { success: true })
@@ -661,4 +754,26 @@ export const modManager = (window: BrowserWindow): void => {
             })
         }
     })
+
+    return async () => {
+        const prepared = preparedModUpdate
+        if (!isWindows() || !prepared || preparingModUpdate || installingMod || prepared.identity === lastAutomaticAttempt) return false
+        const { request } = prepared
+        if (!State.get('mod.installed') || (request.shouldReinstall && !State.get('settings.musicReinstalled'))) return false
+
+        const selected = getModSourceSelection()
+        if (selected.type !== (request.channel ?? 'stable') || (selected.type === 'branch' && selected.branch !== request.branch)) return false
+        const installedBranch = State.get('mod.sourceType') === 'branch'
+        if (selected.type === 'branch') {
+            if (!request.commit || (installedBranch && State.get('mod.branch') === selected.branch && State.get('mod.commit') === request.commit))
+                return false
+        } else if (!installedBranch) {
+            const installedVersion = semver.valid(State.get('mod.version'))
+            const nextVersion = semver.valid(request.version)
+            if (!installedVersion || !nextVersion || !semver.gt(nextVersion, installedVersion)) return false
+        }
+        if (!(await canInstallIdleUpdate(true))) return false
+        await installMod(request, true)
+        return lastAutomaticAttempt === prepared.identity
+    }
 }

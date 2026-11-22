@@ -598,6 +598,14 @@ pub fn start(args: &Args) -> Result<Value> {
             selected.state = "expired".to_string();
         }
         match selected.state.as_str() {
+            "prepared"
+                if handoff_context.is_none()
+                    && read_transaction_file(&selected.path)?
+                        .get("applyDeferredByLeaseId")
+                        .is_some() =>
+            {
+                // The application can hand off this update once it is safe to restart.
+            }
             "prepared" => {
                 let transaction_value = read_transaction_file(&selected.path)?;
                 if macos_bundle::is_macos_transaction(&transaction_value) {
@@ -975,6 +983,6 @@ pub fn start(args: &Args) -> Result<Value> {
         "appExecutable": launch_executable,
         "transactionRoot": transaction_root,
         "transactionAction": "none",
-        "reason": "No pending transaction was found"
+        "reason": "No transaction selected for this launch"
     }))
 }

@@ -325,6 +325,11 @@ export const sendExtensions = addonService.sendExtensions
 export const sendAddonSettings = addonService.sendAddonSettings
 export const sendAllAddonSettings = addonService.sendAllAddonSettings
 export const get_current_track = addonService.getCurrentTrack
+export const getMusicSocketForIdleUpdate = (): Socket | undefined => {
+    const sockets = [...(io?.sockets.sockets.values() ?? [])].filter(socket => socket.connected && socket.data.modIntegrityVerified === true)
+    return sockets.length === 1 ? sockets[0] : undefined
+}
+
 export const sendAuthorizationStatus = (isAuthorized: boolean): void => {
     if (!isAuthorized) {
         userValidationTokenGeneration += 1

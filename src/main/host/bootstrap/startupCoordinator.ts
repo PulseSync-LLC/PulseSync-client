@@ -26,8 +26,9 @@ export type ApplicationBootstrapRuntime = {
     bootstrapUi?: BootstrapUiController
     activeRuntime: ActiveRuntimeV3
     getLastCheckAt(): number | null
-    handoffPreparedUpdate(): Promise<boolean>
+    handoffPreparedUpdate(canApply?: () => Promise<boolean>): Promise<boolean | 'deferred'>
     leaseId: string
+    preparedUpdate?: Extract<PrepareUpdateResultV1, { state: 'prepared' }>
     runUpdate(options: Parameters<typeof updateCoordinator.run>[0]): ReturnType<typeof updateCoordinator.run>
 }
 
@@ -148,10 +149,9 @@ export class StartupCoordinator {
                 return
             }
             if (result?.state === 'prepared') {
-                if (await handoffPreparedUpdate()) return
-                // Arming may expire a failed transaction; prepare it again before another handoff.
-                failure = new Error('Bootstrapper handoff failed before arming')
-                retryable = true
+                this.publishLaunching()
+                await this.startApplication(result)
+                return
             }
             if (result?.state === 'blocked') {
                 failure = new Error(`Bootstrap update blocked: ${result.block.code}`, { cause: result })
@@ -182,7 +182,7 @@ export class StartupCoordinator {
         }
     }
 
-    private async startApplication(): Promise<void> {
+    private async startApplication(preparedUpdate?: Extract<PrepareUpdateResultV1, { state: 'prepared' }>): Promise<void> {
         if (this.applicationHandle) return
         const launcher = this.options.runtimePaths.launcher
         if (!launcher) throw new Error('Bootstrapper launcher was not found')
@@ -194,6 +194,7 @@ export class StartupCoordinator {
                 bootstrapUi: this.options.bootstrapWindow,
                 leaseId: this.options.lease.leaseId,
                 getLastCheckAt: () => updateCoordinator.lastCheckAt,
+                preparedUpdate,
                 runUpdate: options => updateCoordinator.run(options),
                 handoffPreparedUpdate,
             },

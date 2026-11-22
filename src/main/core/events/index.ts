@@ -406,7 +406,6 @@ const registerUpdateEvents = (): void => {
     })
 
     ipcMain.on(MainEvents.UPDATER_START, async () => {
-        updater.start()
         if (!updaterStartListenerBound) {
             updaterStartListenerBound = true
             updater.onUpdate(version => {
@@ -414,6 +413,7 @@ const registerUpdateEvents = (): void => {
                 updateAvailable = true
             })
         }
+        updater.start()
         if (updater.getStatus() === UpdateStatus.DOWNLOADED) await updater.check(true)
     })
 }

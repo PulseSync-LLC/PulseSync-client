@@ -55,13 +55,18 @@ export async function ensureBackup(paths: Paths): Promise<void> {
     logger.modManager.info(`Backup created ${path.basename(source)} -> ${path.basename(paths.backupAsar)}`)
 }
 
-export async function installPreparedAsarAndPatchBundle(savePath: string, preparedAsarPath: string, backupPath: string): Promise<boolean> {
+export async function installPreparedAsarAndPatchBundle(
+    savePath: string,
+    preparedAsarPath: string,
+    backupPath: string,
+    allowMusicReinstall = true,
+): Promise<boolean> {
     await copyFile(preparedAsarPath, savePath)
 
     const patcher = new AsarPatcher(path.resolve(path.dirname(savePath), '..', '..'))
     let ok: boolean
     try {
-        ok = await patcher.patch(() => {})
+        ok = await patcher.patch(() => {}, allowMusicReinstall)
     } catch (error) {
         HandleErrorsElectron.handleError('mod-files', 'installPreparedAsarAndPatchBundle', 'patch', error)
         ok = false

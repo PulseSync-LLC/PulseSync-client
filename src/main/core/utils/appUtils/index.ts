@@ -1,7 +1,7 @@
 import { app, dialog, shell } from 'electron'
 
 import axios from 'axios'
-import { exec, execFile, execSync, spawn } from 'child_process'
+import { execFile, execSync, spawn } from 'child_process'
 import fso, { promises as fsp } from 'original-fs'
 import os from 'os'
 import path from 'path'
@@ -22,7 +22,6 @@ import { parsePgrep, parseWindowsTasklist } from './process'
 
 import type { AppxPackage, PatchCallback, ProcessInfo } from './types'
 
-const execAsync = promisify(exec)
 const execFileAsync = promisify(execFile)
 
 const State = getState()
@@ -53,20 +52,21 @@ const terminateProcess = (pid: number): void => {
     }
 }
 
-export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
+export async function getYandexMusicProcesses({ strict = false } = {}): Promise<ProcessInfo[]> {
     if (isMac()) {
         try {
-            const command = `pgrep -f "Яндекс Музыка"`
-            const { stdout } = (await execAsync(command, { encoding: 'utf8' as BufferEncoding, windowsHide: true })) as { stdout: string }
+            const { stdout } = await execFileAsync('pgrep', ['-f', 'Яндекс Музыка'], { encoding: 'utf8', timeout: 5000 })
             return parsePgrep(stdout)
         } catch (error) {
+            if ((error as { code?: number }).code === 1) return []
+            if (strict) throw error
             logger.main.error('Error retrieving Yandex Music processes on Mac:', error)
             return []
         }
     } else if (isLinux()) {
         try {
             // A shell wrapper would match the pattern in its own command line.
-            const { stdout } = await execFileAsync('pgrep', ['-fi', 'yandexmusic'], { encoding: 'utf8' })
+            const { stdout } = await execFileAsync('pgrep', ['-fi', 'yandexmusic'], { encoding: 'utf8', timeout: 5000 })
             const processes = await Promise.all(
                 parsePgrep(stdout).map(async candidate => {
                     try {
@@ -83,6 +83,7 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
             return processes.filter(candidate => candidate !== null)
         } catch (error) {
             if ((error as { code?: number }).code !== 1) {
+                if (strict) throw error
                 logger.main.error('Error retrieving Yandex Music processes on Linux:', error)
             }
             return []
@@ -92,9 +93,11 @@ export async function getYandexMusicProcesses(): Promise<ProcessInfo[]> {
             const { stdout } = (await execFileAsync('tasklist.exe', ['/FI', 'IMAGENAME eq Яндекс Музыка.exe', '/FO', 'CSV', '/NH'], {
                 encoding: 'utf8' as BufferEncoding,
                 windowsHide: true,
+                timeout: 5000,
             })) as { stdout: string }
             return parseWindowsTasklist(stdout)
         } catch (error) {
+            if (strict) throw error
             logger.main.error('Error retrieving Yandex Music processes:', error)
             return []
         }
@@ -428,13 +431,13 @@ export const downloadYandexMusic = async (_type?: string) => {
     }
 }
 
-export async function updateIntegrityHashInExe(exePath: string, asarPath: string): Promise<void> {
+export async function updateIntegrityHashInExe(exePath: string, asarPath: string, allowMusicReinstall = true): Promise<void> {
     try {
         nativePatchWindowsIntegrity(exePath, asarPath)
     } catch (err) {
         logger.main.error(t('main.appUtils.updateIntegrityError'), err)
         const message = err instanceof Error ? err.message : String(err)
-        if (!/\(os error (?:32|33)\)/u.test(message)) await downloadYandexMusic('reinstall')
+        if (allowMusicReinstall && !/\(os error (?:32|33)\)/u.test(message)) await downloadYandexMusic('reinstall')
         throw err
     }
 }
@@ -457,7 +460,7 @@ export class AsarPatcher {
         return os.platform() === 'darwin'
     }
 
-    public async patch(callback?: PatchCallback): Promise<boolean> {
+    public async patch(callback?: PatchCallback, allowMusicReinstall = true): Promise<boolean> {
         if (isLinux()) return true
         if (isWindows()) {
             const localAppData = process.env.LOCALAPPDATA
@@ -469,7 +472,7 @@ export class AsarPatcher {
             try {
                 callback?.(0, t('main.appUtils.readingExe'))
                 const asarPathFull = path.join(localAppData, 'Programs', 'YandexMusic', 'resources', 'app.asar')
-                await updateIntegrityHashInExe(exePath, asarPathFull)
+                await updateIntegrityHashInExe(exePath, asarPathFull, allowMusicReinstall)
                 callback?.(1, t('main.appUtils.windowsPatchSuccess'))
                 return true
             } catch (err) {

@@ -18,8 +18,10 @@ import { registerAddonEvents } from './events/addonEvents'
 import { registerFileEvents } from './events/fileEvents'
 import { registerLocalizationIpc } from './localization'
 import { installModUpdateFromAsar } from './mod/installModUpdateFrom'
+import { isInstalledModMutationInProgress } from './mod/integrity'
 import { modManager } from './mod/modManager'
 import { enableSystemProxySupport } from './network/systemProxy'
+import { installRendererUpdate } from './rendererUpdate'
 import {
     consumePendingBrowserAuthFromDeepLink,
     consumePendingInstallModUpdateFromPath,
@@ -33,7 +35,9 @@ import { getState } from './state'
 import { sendAppStartupTelemetry } from './telemetry/appTelemetry'
 import createTray from './tray'
 import { runWhenUiReady } from './uiReady'
-import { configureUpdaterBootstrapRuntime, type UpdaterBootstrapRuntime } from './updater/updater'
+import { UpdateStatus } from './updater/constants/updateStatus'
+import { startIdleUpdateMonitor } from './updater/idleUpdate'
+import { configureUpdaterBootstrapRuntime, getUpdater, type UpdaterBootstrapRuntime } from './updater/updater'
 import { findAppByName, getPathToYandexMusic, isMac, isWindows } from './utils/appUtils'
 import { checkCLIArguments } from './utils/processUtils'
 
@@ -174,7 +178,15 @@ export async function startMainApplication(context: ApplicationStartupContext = 
         if (isWindows()) {
             await checkOldYandexMusic()
         }
-        modManager(mainWindow)
+        const installPendingModUpdate = modManager(mainWindow)
+        startIdleUpdateMonitor(async () => {
+            if (isInstalledModMutationInProgress()) return
+            const updater = getUpdater()
+            if (updater.isBusy()) return
+            if (updater.getStatus() === UpdateStatus.DOWNLOADED && (await updater.install(true))) return
+            if (await installPendingModUpdate()) return
+            await installRendererUpdate(true)
+        })
         createApplicationMenu()
         createTray()
         void sendAppStartupTelemetry()

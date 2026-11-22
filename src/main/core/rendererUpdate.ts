@@ -2,6 +2,7 @@ import RendererEvents from '@common/types/rendererEvents'
 
 import logger from '../shared/logger'
 import { type MainRendererSource, resolveMainRendererSource } from './rendererSource'
+import { canInstallIdleUpdate } from './updater/idleUpdate'
 
 import type { BrowserWindow } from 'electron'
 
@@ -22,6 +23,7 @@ class RendererUpdateController {
     private pendingSource: MainRendererSource | null = null
     private timer: NodeJS.Timeout | null = null
     private checkInFlight = false
+    private installInFlight = false
 
     public start(options: RendererUpdateControllerOptions): void {
         this.stop()
@@ -70,11 +72,13 @@ class RendererUpdateController {
         }
     }
 
-    public async install(): Promise<boolean> {
+    public async install(automatic = false): Promise<boolean> {
         const options = this.options
-        if (!options || options.window.isDestroyed() || !this.pendingSource) return false
+        if (!options || options.window.isDestroyed() || !this.pendingSource || this.installInFlight) return false
 
+        this.installInFlight = true
         try {
+            if (automatic && !(await canInstallIdleUpdate())) return false
             const latestSource = await resolveMainRendererSource()
             if (this.options !== options || options.window.isDestroyed()) return false
             if (isSameRendererSource(options.getActiveSource(), latestSource)) {
@@ -83,6 +87,8 @@ class RendererUpdateController {
                 return false
             }
 
+            if (automatic && !(await canInstallIdleUpdate())) return false
+            if (this.options !== options || options.window.isDestroyed()) return false
             await options.activate(latestSource)
             if (this.options !== options || options.window.isDestroyed()) return true
             this.pendingSource = null
@@ -94,6 +100,8 @@ class RendererUpdateController {
             logger.main.error('Failed to apply renderer update', error)
             if (this.pendingSource) this.notifyAvailable(this.pendingSource)
             return false
+        } finally {
+            this.installInFlight = false
         }
     }
 
@@ -126,4 +134,4 @@ const rendererUpdateController = new RendererUpdateController()
 export const startRendererUpdateMonitor = (options: RendererUpdateControllerOptions): void => rendererUpdateController.start(options)
 export const stopRendererUpdateMonitor = (): void => rendererUpdateController.stop()
 export const checkRendererUpdate = (): Promise<boolean> => rendererUpdateController.check()
-export const installRendererUpdate = (): Promise<boolean> => rendererUpdateController.install()
+export const installRendererUpdate = (automatic = false): Promise<boolean> => rendererUpdateController.install(automatic)

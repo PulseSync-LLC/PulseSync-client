@@ -188,6 +188,7 @@ export async function prepareAndInstallAsarArtifact(
     savePath: string,
     backupPath: string,
     checksum?: string,
+    allowMusicReinstall = true,
 ): Promise<boolean> {
     const extension = path.extname(new URL(link).pathname).toLowerCase()
     const startedAt = Date.now()
@@ -207,7 +208,7 @@ export async function prepareAndInstallAsarArtifact(
         for (const warning of workerResult.warnings) {
             logger.modManager.warn('ASAR worker warning:', warning)
         }
-        return await installPreparedAsarAndPatchBundle(savePath, workerResult.preparedPath, backupPath)
+        return await installPreparedAsarAndPatchBundle(savePath, workerResult.preparedPath, backupPath, allowMusicReinstall)
     } finally {
         await fs.promises.rm(preparedFilePath, { force: true }).catch(() => {})
     }
@@ -224,6 +225,7 @@ export async function downloadAndExtractUnpacked(
     progress?: DownloadProgress,
     onFailure?: (failure: ModDownloadFailure) => void,
     sourceArchivePath?: string,
+    allowDownload = true,
 ): Promise<boolean> {
     const progressBase = progress?.base ?? 0
     const progressScale = progress?.scale ?? 1
@@ -334,6 +336,7 @@ export async function downloadAndExtractUnpacked(
         }
 
         const downloadArchive = async (): Promise<void> => {
+            if (!allowDownload) throw new Error('Prepared unpacked archive is unavailable')
             await downloadToTempWithProgress({
                 window,
                 url: link,

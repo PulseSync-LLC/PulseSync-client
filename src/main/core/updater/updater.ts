@@ -10,6 +10,7 @@ import { getDesktopUpdateManifestRequest } from '../../shared/updater/desktopMan
 import { getUpdateSource, type UpdateSource } from '../../shared/updater/updateSource'
 import { mainWindow } from '../createWindow'
 import { UpdateStatus } from './constants/updateStatus'
+import { canInstallIdleUpdate } from './idleUpdate'
 
 import type { DesktopUpdateFailurePayload } from '@common/desktopApi/contract'
 import type { BootstrapUiStateV1 } from '@common/types/bootstrapEvents'
@@ -18,8 +19,9 @@ const UPDATE_INTERVAL_MS = 15 * 60 * 1000
 
 export type UpdaterBootstrapRuntime = {
     getLastCheckAt(): number | null
-    handoffPreparedUpdate(): Promise<boolean>
+    handoffPreparedUpdate(canApply?: () => Promise<boolean>): Promise<boolean | 'deferred'>
     leaseId: string
+    preparedUpdate?: Extract<PrepareUpdateResultV1, { state: 'prepared' }>
     runUpdate(options: PrepareDesktopUpdateOptions): Promise<PrepareUpdateResultV1>
 }
 
@@ -161,7 +163,7 @@ class Updater {
                     this.handleProgress(uiState)
                 },
             })
-            return await this.handleResult(result, manual, options?.suppressUpToDateEvent ?? false)
+            return this.handleResult(result, manual, options?.suppressUpToDateEvent ?? false)
         } catch (error) {
             this.latestAvailableVersion = null
             this.preparedTransactionId = null
@@ -176,7 +178,7 @@ class Updater {
         }
     }
 
-    private async handleResult(result: PrepareUpdateResultV1, manual: boolean, suppressUpToDateEvent: boolean): Promise<UpdateStatus | null> {
+    private handleResult(result: PrepareUpdateResultV1, manual: boolean, suppressUpToDateEvent: boolean): UpdateStatus | null {
         if (result.state === 'up-to-date') {
             this.latestAvailableVersion = null
             this.preparedTransactionId = null
@@ -212,14 +214,16 @@ class Updater {
             transactionId: result.transaction.id,
             plan: result.decision.plan,
         })
-        if (result.decision.policy.forced) {
-            await this.install()
-        }
         return this.updateStatus
     }
 
     public start(): void {
         if (!this.isRuntimeUpdateEnabled() || this.updaterId) return
+        const prepared = bootstrapRuntime?.preparedUpdate
+        if (prepared && this.lastCheckAt === null && this.updateStatus === UpdateStatus.IDLE) {
+            this.lastCheckAt = bootstrapRuntime?.getLastCheckAt() ?? Date.now()
+            this.handleResult(prepared, false, false)
+        }
         const freshAt = this.lastCheckAt ?? bootstrapRuntime?.getLastCheckAt() ?? Date.now()
         const delay = Math.max(0, UPDATE_INTERVAL_MS - (Date.now() - freshAt))
         this.updaterId = setTimeout(() => {
@@ -294,12 +298,22 @@ class Updater {
         }
     }
 
-    public async install(): Promise<boolean> {
-        if (!this.isRuntimeUpdateEnabled() || this.installInFlight || this.preferenceChangeInFlight) return false
+    public async install(automatic = false): Promise<boolean> {
+        if (!this.isRuntimeUpdateEnabled() || this.installInFlight || this.preferenceChangeInFlight || this.updateStatus !== UpdateStatus.DOWNLOADED)
+            return false
         this.installInFlight = true
-        this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'installing' })
         try {
-            const handedOff = (await bootstrapRuntime?.handoffPreparedUpdate()) ?? false
+            if (automatic && !(await canInstallIdleUpdate().catch(() => false))) return false
+            const canApply = automatic
+                ? async () => {
+                      if (!(await canInstallIdleUpdate().catch(() => false))) return false
+                      this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'installing' })
+                      return true
+                  }
+                : undefined
+            if (!automatic) this.safeSend(RendererEvents.DOWNLOAD_UPDATE_PROGRESS, { phase: 'installing' })
+            const handedOff = (await bootstrapRuntime?.handoffPreparedUpdate(canApply)) ?? false
+            if (handedOff === 'deferred') return false
             if (handedOff) return true
             throw new Error('Bootstrapper did not accept the prepared update')
         } catch (error) {

@@ -33,6 +33,8 @@ function invalidateInstalledModVerification(): void {
     pendingRefresh = null
 }
 
+export const isInstalledModMutationInProgress = (): boolean => installedModMutationCount > 0
+
 export function beginInstalledModMutation(): () => void {
     installedModMutationCount += 1
     invalidateInstalledModVerification()
