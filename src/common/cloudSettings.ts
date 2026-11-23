@@ -20,6 +20,7 @@ export interface CloudSettingsStatus {
     offline?: boolean
     addonsChanged?: boolean
     addonRestoreFailed?: boolean
+    addonRestoreUnavailable?: boolean
 }
 
 export interface CloudSettingsSession {

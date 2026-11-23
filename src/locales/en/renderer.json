@@ -136,6 +136,7 @@
     "settingsModal": {
         "cloud": {
             "restoreError": "Some catalog addons could not be restored. They will be retried automatically.",
+            "restoreUnavailable": "Some addons are unavailable in the catalog. Their settings are kept in the cloud. Other settings have been synced.",
             "title": "Cloud sync",
             "enabled": "Sync settings",
             "description": "Syncs your main client settings, catalog addons and their settings between devices through your account. Turning this off deletes the cloud copy. Local settings and addons are kept.",

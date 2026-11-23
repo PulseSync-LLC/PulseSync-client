@@ -315,12 +315,19 @@ export const registerAddonPackageEvents = ({
                     body: { ids: [addonId], releaseChannel },
                     timeoutMs: 15000,
                 })
-                const addon = descriptor.data?.addons?.find(candidate => candidate.id === addonId)
-                if (descriptor.ok && descriptor.data?.ok !== false && addon?.currentRelease?.status === 'accepted') {
+                if (!descriptor.ok || descriptor.data?.ok === false || !Array.isArray(descriptor.data?.addons)) {
+                    logger.main.warn('Store addon lookup failed', { addonId, releaseChannel, status: descriptor.status })
+                    return { success: false, reason: 'STORE_LOOKUP_FAILED' }
+                }
+                const addon = descriptor.data.addons.find(candidate => candidate.id === addonId)
+                if (addon?.currentRelease?.status === 'accepted') {
                     downloadUrl = addon.currentRelease.downloadUrl
                 }
             }
-            if (!downloadUrl) return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
+            if (!downloadUrl) {
+                logger.main.warn('Store addon release unavailable', { addonId, releaseChannel })
+                return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
+            }
             if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
             if (payload.cloudSession) assertCloudAddonRestoreAllowed(payload.cloudSession)
 

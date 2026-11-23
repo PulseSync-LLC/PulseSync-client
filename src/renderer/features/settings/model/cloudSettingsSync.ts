@@ -6,7 +6,7 @@ import type { CloudSettingsLocalState, CloudSettingsSession, CloudSettingsSnapsh
 
 let queue: Promise<unknown> = Promise.resolve()
 const pendingDisableUsers = new Set<string>()
-const restoreAttempts = new Map<string, number>()
+const restoreAttempts = new Map<string, { checkedAt: number; releaseChannel: 'stable' | 'dev'; unavailable: boolean }>()
 let restoreToken = ''
 let lastSync: { userId: string; token: string; checkedAt: number; status?: CloudSettingsStatus } | undefined
 
@@ -22,27 +22,37 @@ const restoreCloudAddons = async (session: CloudSettingsSession, remote: CloudSe
     }
     let changed = false
     let failed = false
+    let unavailable = false
     for (const [id, entry] of Object.entries(remote.addons)) {
         if (Object.hasOwn(local.snapshot.addons, id) || Object.hasOwn(local.baseline?.addons ?? {}, id)) continue
         if (pendingDisableUsers.has(session.userId)) break
         const current = await desktopApi.settings.readCloudLocalState(session)
         if (current.pendingDelete) break
         if (Object.hasOwn(current.snapshot.addons, id)) continue
-        if (Date.now() - (restoreAttempts.get(id) ?? 0) < 60_000) {
-            failed = true
+        const previous = restoreAttempts.get(id)
+        if (
+            previous?.releaseChannel === entry.releaseChannel &&
+            Date.now() - previous.checkedAt < (previous.unavailable ? REMOTE_CHECK_INTERVAL : RETRY_INTERVAL)
+        ) {
+            if (previous.unavailable) unavailable = true
+            else failed = true
             continue
         }
-        restoreAttempts.set(id, Date.now())
+        const attempt = { checkedAt: Date.now(), releaseChannel: entry.releaseChannel, unavailable: false }
+        restoreAttempts.set(id, attempt)
         const result = (await desktopApi.addons.installStore({
             id,
             releaseChannel: entry.releaseChannel,
             openAfterInstall: false,
             cloudSession: session,
-        })) as { success?: boolean }
+        })) as { success?: boolean; reason?: string }
         if (result?.success) changed = true
-        else failed = true
+        else if (result?.reason === 'STORE_RELEASE_UNAVAILABLE') {
+            attempt.unavailable = true
+            unavailable = true
+        } else failed = true
     }
-    return { changed, failed }
+    return { changed, failed, unavailable }
 }
 
 export const synchronizeCloudSettings = (
@@ -120,7 +130,13 @@ export const synchronizeCloudSettings = (
             const nextBaseline = await desktopApi.settings.applyCloudSnapshot(session, remote, local.snapshot)
             await desktopApi.settings.rememberCloudBaseline(session, nextBaseline)
             const pendingDelete = pendingDisableUsers.has(userId)
-            return { enabled: !pendingDelete, pendingDelete, addonsChanged: restoration.changed, addonRestoreFailed: restoration.failed }
+            return {
+                enabled: !pendingDelete,
+                pendingDelete,
+                addonsChanged: restoration.changed,
+                addonRestoreFailed: restoration.failed,
+                addonRestoreUnavailable: restoration.unavailable,
+            }
         } else {
             await desktopApi.settings.rememberCloudBaseline(session, null)
         }

@@ -86,7 +86,9 @@ export function useSettingsSchema({
                                               ? t('settingsModal.cloud.restoreError')
                                               : actions.cloudSettings.error
                                                 ? t('settingsModal.cloud.error')
-                                                : t('settingsModal.cloud.description'),
+                                                : actions.cloudSettings.addonRestoreUnavailable
+                                                  ? t('settingsModal.cloud.restoreUnavailable')
+                                                  : t('settingsModal.cloud.description'),
                                         checked: actions.cloudSettings.enabled,
                                         disabled:
                                             !actions.cloudSettings.available || actions.cloudSettings.busy || actions.cloudSettings.pendingDelete,
