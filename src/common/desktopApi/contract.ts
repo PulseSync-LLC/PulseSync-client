@@ -1,6 +1,7 @@
 import type { AddonProject, AddonProjectDocument, AddonProjectOpenRequest } from '../addons/project'
 import type { DesktopAddonRecoveryRequest, DesktopAddonRecoverySnapshot } from '../addons/recovery'
 import type { CloudSettingsLocalState, CloudSettingsSession, CloudSettingsSnapshot } from '../cloudSettings'
+import type { ListeningOperation, ListeningView } from '../listening/types'
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
 import type { ClientBuildIdentity } from '../types/clientBuildIdentity'
 import type { ClientHardwareIdentity } from '../types/clientHardwareIdentity'
@@ -181,6 +182,12 @@ export type DesktopUnsubscribe = () => void
 export interface PulseSyncDesktopApi {
     readonly apiVersion: string
     getRuntimeInfo(): Promise<DesktopRuntimeInfo>
+    listening: {
+        get(): Promise<ListeningView>
+        run(operation: ListeningOperation): Promise<{ ok: boolean; error?: string; invitation?: string }>
+        stop(): Promise<void>
+        onChange(listener: (view: ListeningView & { open?: boolean }) => void): DesktopUnsubscribe
+    }
     lifecycle: {
         ready(): void
     }

@@ -15,6 +15,7 @@ import { mainWindow } from '../createWindow'
 import { authorized } from '../events'
 import { checkIsDeeplink, createDeeplinkCommandsHandler, navigateToDeeplink } from '../handleDeeplinks'
 import mainHttpClient from '../http/client'
+import { listening } from '../listening'
 import { isFirstInstance } from '../singleInstance'
 import { selectedAddon } from '../startup/runtimeState'
 import { getState } from '../state'
@@ -215,6 +216,7 @@ const initializeServer = () => {
 
     io.on('connection', (socket: Socket) => {
         if (socket.data.modIntegrityVerified === true) {
+            listening.mod.register(socket)
             addonRecovery.registerSocket(socket)
             registerAddonModuleTransport(
                 socket,
@@ -332,6 +334,7 @@ export const getMusicSocketForIdleUpdate = (): Socket | undefined => {
 
 export const sendAuthorizationStatus = (isAuthorized: boolean): void => {
     if (!isAuthorized) {
+        listening.stop()
         userValidationTokenGeneration += 1
         cachedUserValidationToken = null
         clearUserValidationTokenRefreshTimer()

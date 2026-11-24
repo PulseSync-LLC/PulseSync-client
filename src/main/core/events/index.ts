@@ -27,6 +27,7 @@ import { deleteAuthToken, getAuthToken } from '../auth/session'
 import { applyCloudSnapshot, readCloudLocalState, rememberCloudBaseline, setCloudPendingDelete } from '../cloudSettings'
 import { inSleepMode, mainWindow } from '../createWindow'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
+import { listening, registerListeningEvents } from '../listening'
 import { refreshInstalledModState } from '../mod/integrity'
 import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelection } from '../mod/modSource'
 import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/network/releaseCatalog'
@@ -426,7 +427,10 @@ const registerAuthEvents = (): void => {
         tryOpenPendingAddon()
     })
     ipcMain.handle(MainEvents.AUTH_GET_TOKEN, () => getAuthToken())
-    ipcMain.handle(MainEvents.AUTH_DELETE_TOKEN, () => deleteAuthToken())
+    ipcMain.handle(MainEvents.AUTH_DELETE_TOKEN, () => {
+        listening.stop()
+        return deleteAuthToken()
+    })
     ipcMain.handle(MainEvents.START_BROWSER_AUTH, () => openBrowserAuthFlow())
     ipcMain.handle(MainEvents.CANCEL_BROWSER_AUTH, async () => {
         cancelBrowserAuthFlow()
@@ -455,6 +459,7 @@ const registerSleepModeEvent = (): void => {
 }
 
 export const handleEvents = (window: BrowserWindow): void => {
+    registerListeningEvents(window)
     registerWindowEvents()
     registerAppReadyEvents()
     registerSystemEvents(window)

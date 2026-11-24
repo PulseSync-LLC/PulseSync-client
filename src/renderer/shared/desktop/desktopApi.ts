@@ -15,6 +15,13 @@ export const desktopApi = {
     getRuntimeInfo() {
         return requireDesktopApi().getRuntimeInfo()
     },
+    listening: {
+        supported: () => typeof requireDesktopApi().listening?.get === 'function',
+        get: () => requireDesktopApi().listening.get(),
+        run: (operation: Parameters<PulseSyncDesktopApi['listening']['run']>[0]) => requireDesktopApi().listening.run(operation),
+        stop: () => requireDesktopApi().listening.stop(),
+        onChange: (listener: Parameters<PulseSyncDesktopApi['listening']['onChange']>[0]) => requireDesktopApi().listening.onChange(listener),
+    },
     lifecycle: {
         ready: () => requireDesktopApi().lifecycle.ready(),
     },

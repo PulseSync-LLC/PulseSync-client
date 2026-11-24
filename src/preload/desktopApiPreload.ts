@@ -1,6 +1,7 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
 import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
+import { LISTENING_IPC } from '@common/listening/types'
 
 import packageJson from '../../packages/desktop-core/package.json'
 import {
@@ -129,6 +130,12 @@ const selectLinuxAsarPath = async (defaultPath?: string): Promise<{ canceled: bo
 }
 
 const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
+    listening: {
+        get: () => ipcRenderer.invoke(LISTENING_IPC.get),
+        run: operation => ipcRenderer.invoke(LISTENING_IPC.run, operation),
+        stop: () => ipcRenderer.invoke(LISTENING_IPC.stop),
+        onChange: listener => subscribePayload(LISTENING_IPC.changed, listener),
+    },
     apiVersion: DESKTOP_API_VERSION,
 
     async getRuntimeInfo() {
