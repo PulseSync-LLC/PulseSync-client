@@ -121,5 +121,5 @@ export const navigateToDeeplink = async (url: string, deeplinkCommandsHandler: d
         return
     }
 
-    logger.main.warn(`Unhandled deeplink command: ${url}`)
+    logger.main.warn(`Unhandled deeplink command: ${commandName ?? 'unknown'}`)
 }
