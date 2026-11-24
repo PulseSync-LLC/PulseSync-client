@@ -6,6 +6,7 @@ import { useTranslation } from 'react-i18next'
 import { useNavigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useListening } from '@app/providers/ListeningProvider'
 import { useModalContext } from '@app/providers/modal'
 import Header from '@widgets/layout/header'
 import { useLayoutInstallers } from '@widgets/layout/model/useLayoutInstallers'
@@ -51,6 +52,7 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
             MOD_CHANGELOG: Modals.MOD_CHANGELOG,
         },
     })
+    const listening = useListening()
     const storePageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientExtensionStoreAccess, false)
     const usersPageEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientUsersPageAccess, false)
     const openAuthRequiredModal = useCallback(
@@ -100,6 +102,11 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                             >
                                 <img src={staticAsset('assets/icons/ui/extensions.svg')} alt="" aria-hidden="true" />
                             </NavButtonPulse>
+                            {listening.available && !listening.loading && (
+                                <NavButtonPulse to="/joint" text={t('pages.joint.title')}>
+                                    <img src={staticAsset('assets/icons/ui/users.svg')} alt="" aria-hidden="true" />
+                                </NavButtonPulse>
+                            )}
                             <NavButtonPulse
                                 to="/users"
                                 text={t('layout.nav.users').concat(isAutonomousMode ? `\n${t('layout.nav.unavailableInAutonomous')}` : '')}

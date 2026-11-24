@@ -1,4 +1,5 @@
 export const CLIENT_EXPERIMENTS = {
+    ClientListenTogether: 'ClientListenTogether',
     ClientAddonRelations: 'ClientAddonRelations',
     ClientAchievements: 'ClientAchievements',
     ClientExtensionStoreAccess: 'ClientExtensionStoreAccess',

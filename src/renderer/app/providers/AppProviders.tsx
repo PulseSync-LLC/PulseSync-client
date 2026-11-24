@@ -5,6 +5,7 @@ import { RouterProvider } from 'react-router/dom'
 
 import { ExperimentsProvider } from '@app/providers/experiments'
 import LegacyAddonRestrictionsController from '@app/providers/experiments/LegacyAddonRestrictionsController'
+import ListeningProvider from '@app/providers/ListeningProvider'
 import { NewsProvider } from '@app/providers/news'
 import { NotificationsProvider } from '@app/providers/notifications'
 import PlayerProvider from '@app/providers/PlayerProvider'
@@ -137,14 +138,16 @@ export default function AppProviders({
                 <ExtensionPublicationModal />
                 <NewsProvider key={user.id} enabled={!loading}>
                     <ExperimentsProvider userId={user.id} userPerm={user.perms} enabled={!loading}>
-                        <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
-                        <SettingsModal onNavigate={path => void router.navigate(path)} />
-                        <UpdateChannelOverrideModal />
-                        <NotificationsProvider value={notificationsValue}>
-                            <PlayerProvider>
-                                <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
-                            </PlayerProvider>
-                        </NotificationsProvider>
+                        <ListeningProvider>
+                            <LegacyAddonRestrictionsController addons={addons} onChange={onLegacyAddonRestrictionsChange} user={user} />
+                            <SettingsModal onNavigate={path => void router.navigate(path)} />
+                            <UpdateChannelOverrideModal />
+                            <NotificationsProvider value={notificationsValue}>
+                                <PlayerProvider>
+                                    <CssVarsProvider>{loading ? <Preloader /> : <RouterProvider router={router} />}</CssVarsProvider>
+                                </PlayerProvider>
+                            </NotificationsProvider>
+                        </ListeningProvider>
                     </ExperimentsProvider>
                 </NewsProvider>
             </UserContext.Provider>

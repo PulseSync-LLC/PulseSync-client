@@ -3,6 +3,7 @@ import React, { lazy, Suspense, useContext } from 'react'
 import { createHashRouter, Navigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
+import { useListening } from '@app/providers/ListeningProvider'
 import HomePage from '@pages/home'
 import Preloader from '@widgets/preloader'
 import UserContext from '@entities/user/model/context'
@@ -66,6 +67,14 @@ function UsersRoute() {
     return <UsersPage />
 }
 
+function JointRoute() {
+    const { isExperimentEnabled, loading } = useExperiments()
+    const listening = useListening()
+    if (loading || listening.loading) return null
+    if (!isExperimentEnabled(CLIENT_EXPERIMENTS.ClientListenTogether, false) || !listening.available) return <Navigate to="/home" replace />
+    return <JointPage />
+}
+
 export function createAppRouter() {
     return createHashRouter([
         { path: '/', element: <Navigate to="/home" replace /> },
@@ -91,6 +100,6 @@ export function createAppRouter() {
             ),
         },
         { path: '/store', element: withErrorBoundary(<StoreRoute />) },
-        { path: '/joint', element: withErrorBoundary(<JointPage />) },
+        { path: '/joint', element: withErrorBoundary(<JointRoute />) },
     ])
 }

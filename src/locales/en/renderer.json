@@ -1143,7 +1143,55 @@
         },
         "joint": {
             "comingSoon": "Coming soon",
-            "title": "Joint"
+            "title": "Listen together",
+            "description": "Create a private room or join with an invitation. Each participant plays music through their own Yandex account.",
+            "modRequired": "Open Yandex Music with a mod that supports listening rooms. Connect one Music window.",
+            "create": "Create room",
+            "invitation": "Room invitation",
+            "join": "Join",
+            "copyInvite": "Copy invitation",
+            "leave": "Leave room",
+            "close": "Close room",
+            "hostHint": "You are the host. Participants follow playback in your Music app.",
+            "listenerHint": "You are a listener. The host controls playback; you can adjust volume and leave.",
+            "play": "Resume",
+            "pause": "Pause",
+            "previous": "Previous",
+            "next": "Next",
+            "you": "You",
+            "participant": "Participant {{number}}",
+            "host": "host",
+            "listener": "listener",
+            "offer": "Transfer control",
+            "offerHint": "You have been invited to host.",
+            "accept": "Become host",
+            "decline": "Decline",
+            "connection": {
+                "idle": "No room connected",
+                "connecting": "Connecting…",
+                "connected": "Connected",
+                "reconnecting": "Reconnecting…"
+            },
+            "following": {
+                "following": "listening",
+                "buffering": "loading",
+                "unavailable": "playback unavailable",
+                "suspended": "waiting for host"
+            },
+            "errors": {
+                "UNAVAILABLE": "Could not complete the action. Please try again.",
+                "INVITE_INVALID": "The invitation is invalid or expired.",
+                "ROOM_FULL": "The room is full.",
+                "ALREADY_IN_ROOM": "You are already in a room.",
+                "MOD_UNAVAILABLE": "Connect one Music app with a current mod.",
+                "RATE_LIMITED": "Too many requests. Please wait a moment.",
+                "ACCESS_UNAVAILABLE": "Room access is currently unavailable.",
+                "CONNECTION_LOST": "Connection lost. Restoring the room.",
+                "FORBIDDEN": "This action is not available to you.",
+                "REVISION_CONFLICT": "The room changed. Please try again.",
+                "PLAYBACK_FAILED": "Music could not apply the command.",
+                "ACCESS_REVOKED": "Room access has been revoked."
+            }
         },
         "store": {
             "title": "Add-on catalog"

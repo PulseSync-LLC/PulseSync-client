@@ -1,0 +1,59 @@
+.panel {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 16px;
+
+    width: 100%;
+
+    padding: 24px;
+
+    background: var(--background);
+    border-radius: 16px;
+
+    input {
+        width: 100%;
+
+        padding: 12px;
+
+        color: inherit;
+
+        background: transparent;
+        border: 1px solid currentcolor;
+        border-radius: 8px;
+    }
+}
+
+.actions {
+    display: flex;
+
+    flex-wrap: wrap;
+
+    gap: 12px;
+
+    align-items: center;
+}
+
+.participants {
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 12px;
+
+    padding: 0;
+
+    list-style: none;
+
+    li {
+        display: flex;
+
+        flex-wrap: wrap;
+
+        gap: 12px;
+
+        align-items: center;
+        justify-content: space-between;
+    }
+}
