@@ -3,6 +3,7 @@ import React, { useCallback, useContext } from 'react'
 import { Helmet, HelmetProvider } from '@dr.pogodin/react-helmet'
 import clsx from 'clsx'
 import { useTranslation } from 'react-i18next'
+import { FaHeadphones } from 'react-icons/fa6'
 import { useNavigate } from 'react-router'
 
 import { CLIENT_EXPERIMENTS, useExperiments } from '@app/providers/experiments'
@@ -104,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                             </NavButtonPulse>
                             {listening.available && !listening.loading && (
                                 <NavButtonPulse to="/joint" text={t('pages.joint.title')}>
-                                    <img src={staticAsset('assets/icons/ui/users.svg')} alt="" aria-hidden="true" />
+                                    <FaHeadphones aria-hidden="true" />
                                 </NavButtonPulse>
                             )}
                             <NavButtonPulse
