@@ -105,7 +105,7 @@ const Layout: React.FC<LayoutProps> = ({ title, titleDetail, children, goBack })
                             </NavButtonPulse>
                             {listening.available && !listening.loading && (
                                 <NavButtonPulse to="/joint" text={t('pages.joint.title')}>
-                                    <FaHeadphones aria-hidden="true" />
+                                    <FaHeadphones className={pageStyles.listening_icon} aria-hidden="true" />
                                 </NavButtonPulse>
                             )}
                             <NavButtonPulse
