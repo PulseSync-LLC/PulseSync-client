@@ -70,14 +70,9 @@ export default function JointPage() {
                                     {t('pages.joint.copyInvite')}
                                 </Button>
                             )}
-                            <Button disabled={busy} onClick={() => void run({ type: 'leave' })}>
-                                {t('pages.joint.leave')}
+                            <Button disabled={busy} onClick={() => void run({ type: owner ? 'close' : 'leave' })}>
+                                {t(owner ? 'pages.joint.close' : 'pages.joint.leave')}
                             </Button>
-                            {owner && (
-                                <Button disabled={busy} onClick={() => void run({ type: 'close' })}>
-                                    {t('pages.joint.close')}
-                                </Button>
-                            )}
                         </div>
                         {offered && (
                             <div className={styles.actions}>
