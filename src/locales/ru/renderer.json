@@ -1065,13 +1065,13 @@
         "authorOnlyAccess": "Редактировать metadata может только автор аддона.",
         "labels": {
             "allowedUrls": "Разрешённые URL",
-            "banner": "Баннер",
+            "banner": "Баннер аддона",
             "css": "CSS",
             "conflictsWith": "Запрещённые аддоны",
             "dependencies": "Зависимости",
             "description": "Описание",
-            "image": "Изображение",
-            "libraryLogo": "Логотип библиотеки",
+            "image": "Обложка аддона",
+            "libraryLogo": "Логотип на странице аддона",
             "name": "Название",
             "script": "Скрипт",
             "supportedVersions": "Поддерживаемые версии",
@@ -1082,9 +1082,8 @@
         "loadError": "Ошибка загрузки метаданных",
         "placeholders": {
             "cssPath": "style.css или абсолютный путь",
-            "logoFile": "logo.png",
             "scriptPath": "script.js или абсолютный путь",
-            "selectOrEnterPath": "Выберите или укажите путь"
+            "selectOrEnterPath": "Выберите файл или укажите путь"
         },
         "saveError": "Ошибка сохранения",
         "versionFormat": "Версия должна быть в формате X.Y.Z"

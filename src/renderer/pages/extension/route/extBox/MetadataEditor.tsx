@@ -1026,7 +1026,7 @@ const MetadataEditor: React.FC<Props> = ({ addonPath, addonRelationsEnabled, pro
                             label={t('metadata.labels.libraryLogo')}
                             value={draft.libraryLogo ?? ''}
                             onChange={value => setField('libraryLogo', value)}
-                            placeholder={t('metadata.placeholders.logoFile')}
+                            placeholder={t('metadata.placeholders.selectOrEnterPath')}
                             metadata
                             addonPath={addonPath}
                             preferredBaseName="libraryLogo"

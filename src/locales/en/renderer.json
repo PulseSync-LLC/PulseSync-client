@@ -1065,13 +1065,13 @@
         "authorOnlyAccess": "Only the add-on author can edit metadata.",
         "labels": {
             "allowedUrls": "Allowed URLs",
-            "banner": "Banner",
+            "banner": "Add-on banner",
             "css": "CSS",
             "conflictsWith": "Blocked add-ons",
             "dependencies": "Dependencies",
             "description": "Description",
-            "image": "Image",
-            "libraryLogo": "Library logo",
+            "image": "Add-on cover",
+            "libraryLogo": "Logo on the add-on page",
             "name": "Name",
             "script": "Script",
             "supportedVersions": "Supported versions",
@@ -1082,9 +1082,8 @@
         "loadError": "Failed to load metadata",
         "placeholders": {
             "cssPath": "style.css or absolute path",
-            "logoFile": "logo.png",
             "scriptPath": "script.js or absolute path",
-            "selectOrEnterPath": "Select or enter a path"
+            "selectOrEnterPath": "Select a file or enter a path"
         },
         "saveError": "Failed to save",
         "versionFormat": "Version must be in X.Y.Z format"
