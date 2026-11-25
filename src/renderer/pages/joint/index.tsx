@@ -17,6 +17,7 @@ export default function JointPage() {
     const [invitation, setInvitation] = useState('')
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
+    const [inviteCode, setInviteCode] = useState<{ roomId: string; code: string; createdAt: number } | null>(null)
     const room = state.room
     const host = room?.hostUserId === state.userId
     const owner = room?.ownerUserId === state.userId
@@ -27,7 +28,10 @@ export default function JointPage() {
         try {
             const result = await desktopApi.listening.run(operation)
             if (!result.ok) setError(result.error ?? 'UNAVAILABLE')
-            if (result.invitation) await desktopApi.system.writeClipboardText(result.invitation)
+            if (result.invitation) {
+                if (room) setInviteCode({ roomId: room.roomId, code: result.invitation, createdAt: performance.now() })
+                await desktopApi.system.writeClipboardText(result.invitation)
+            }
         } catch {
             setError('UNAVAILABLE')
         } finally {
@@ -35,6 +39,16 @@ export default function JointPage() {
         }
     }
     const issue = error || state.error
+    const activeCode =
+        inviteCode && room && inviteCode.roomId === room.roomId && performance.now() - inviteCode.createdAt < 600000 ? inviteCode.code : null
+    const copyCode = async () => {
+        if (!activeCode) return run({ type: 'invite' })
+        try {
+            await desktopApi.system.writeClipboardText(activeCode)
+        } catch {
+            setError('UNAVAILABLE')
+        }
+    }
     return (
         <PageLayout title={t('pages.joint.title')}>
             <section className={styles.panel}>
@@ -52,7 +66,9 @@ export default function JointPage() {
                         <input
                             id="listening-invitation"
                             value={invitation}
-                            maxLength={511}
+                            maxLength={64}
+                            placeholder="K7MP-4X9D-R2TW"
+                            autoCapitalize="characters"
                             autoComplete="off"
                             spellCheck={false}
                             onChange={event => setInvitation(event.target.value)}
@@ -66,7 +82,7 @@ export default function JointPage() {
                         <p>{t(host ? 'pages.joint.hostHint' : 'pages.joint.listenerHint')}</p>
                         <div className={styles.actions}>
                             {owner && (
-                                <Button disabled={busy} onClick={() => void run({ type: 'invite' })}>
+                                <Button disabled={busy} onClick={() => void copyCode()}>
                                     {t('pages.joint.copyInvite')}
                                 </Button>
                             )}
@@ -74,6 +90,7 @@ export default function JointPage() {
                                 {t(owner ? 'pages.joint.close' : 'pages.joint.leave')}
                             </Button>
                         </div>
+                        {owner && activeCode && <p>{t('pages.joint.codeCreated', { code: activeCode })}</p>}
                         {offered && (
                             <div className={styles.actions}>
                                 <p>{t('pages.joint.offerHint')}</p>

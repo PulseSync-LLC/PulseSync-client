@@ -18,18 +18,28 @@ export async function performRoomOperation(
         if (room) throw new Error('ALREADY_IN_ROOM')
         let payload: unknown = { commandId }
         if (operation.type === 'join') {
-            const invite = new URL(operation.invitation.trim())
-            const roomId = invite.pathname.slice(1),
-                inviteToken = invite.hash.slice(1)
-            if (
-                invite.protocol !== 'pulsesync:' ||
-                invite.hostname !== 'listen' ||
-                !listeningUuid(roomId) ||
-                !/^[\w-]{43}$/u.test(inviteToken) ||
-                invite.search
-            )
-                throw new Error('INVITE_INVALID')
-            payload = { roomId, commandId, inviteToken }
+            const code = operation.invitation.trim().toUpperCase().replace(/[\s-]/gu, '')
+            if (/^[2-9A-HJ-NP-Z]{12}$/u.test(code)) {
+                payload = { commandId, code }
+            } else {
+                let invite: URL
+                try {
+                    invite = new URL(operation.invitation.trim())
+                } catch {
+                    throw new Error('INVITE_INVALID')
+                }
+                const roomId = invite.pathname.slice(1),
+                    inviteToken = invite.hash.slice(1)
+                if (
+                    invite.protocol !== 'pulsesync:' ||
+                    invite.hostname !== 'listen' ||
+                    !listeningUuid(roomId) ||
+                    !/^[\w-]{43}$/u.test(inviteToken) ||
+                    invite.search
+                )
+                    throw new Error('INVITE_INVALID')
+                payload = { roomId, commandId, inviteToken }
+            }
         }
         const result = record(await connection.request(operation.type === 'create' ? 'room:create' : 'room:join', payload, true))
         connection.accept(result.snapshot, true)
@@ -44,8 +54,8 @@ export async function performRoomOperation(
                     true,
                 ),
             )
-            if (typeof invite.token !== 'string' || !/^[\w-]{43}$/u.test(invite.token)) throw new Error('PROTOCOL_INVALID')
-            return { ok: true, invitation: `pulsesync://listen/${room.roomId}#${invite.token}` }
+            if (typeof invite.code !== 'string' || !/^[2-9A-HJ-NP-Z]{12}$/u.test(invite.code)) throw new Error('CAPABILITY_UNAVAILABLE')
+            return { ok: true, invitation: invite.code.match(/.{4}/gu)!.join('-') }
         }
         if (operation.type === 'leave' || operation.type === 'close') {
             await connection.request(
