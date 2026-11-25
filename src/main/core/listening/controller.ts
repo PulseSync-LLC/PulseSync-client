@@ -86,6 +86,13 @@ export class ListeningController {
             this.tick.unref()
         }
         await this.configure()
+        if (this.view.available) {
+            try {
+                await this.connect()
+            } catch (error) {
+                this.disconnected(error instanceof Error ? error.message : 'CONNECTION_FAILED')
+            }
+        }
         return this.snapshot()
     }
     private async configure(): Promise<void> {
@@ -153,18 +160,19 @@ export class ListeningController {
             await this.connection.connect(this.url, this.socketPath)
             if (generation !== this.generation) throw new Error('CANCELLED')
             const room = this.connection.room
-            if (room) {
+            const roomId = room?.roomId ?? this.connection.resumableRoomId
+            if (roomId) {
                 try {
                     const resumed = record(
                         await this.connection.request(
                             'room:resume',
-                            { roomId: room.roomId, commandId: randomUUID(), lastSeenRevision: room.revision },
+                            { roomId, commandId: randomUUID(), lastSeenRevision: room?.revision ?? 0 },
                             true,
                         ),
                     )
                     this.connection.accept(resumed.snapshot)
                 } catch (error) {
-                    if (error instanceof Error && ['FORBIDDEN', 'NOT_FOUND', 'ROOM_CLOSED', 'ACCESS_REVOKED'].includes(error.message))
+                    if (error instanceof Error && ['FORBIDDEN', 'ROOM_NOT_FOUND', 'ROOM_CLOSED', 'ACCESS_REVOKED'].includes(error.message))
                         this.clearRoom()
                     throw error
                 }

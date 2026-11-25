@@ -2,7 +2,7 @@ import { randomUUID } from 'node:crypto'
 
 import { io } from 'socket.io-client'
 
-import { listeningParticipant, listeningRoom, record } from '@common/listening/validation'
+import { listeningParticipant, listeningRoom, listeningUuid, record } from '@common/listening/validation'
 
 import { getPulseSyncUserAgent } from '../mod/network/userAgent'
 
@@ -26,6 +26,7 @@ export class ListeningConnection {
     private offsetMs = 0
     private clockValidUntil = 0
     room: ListeningRoom | null = null
+    resumableRoomId: string | null = null
     userId: string | null = null
     queueModes = false
     get connected(): boolean {
@@ -121,11 +122,13 @@ export class ListeningConnection {
                         session.userId.length > 128 ||
                         !Array.isArray(session.capabilities) ||
                         !session.capabilities.includes('session:renew') ||
+                        (session.roomId !== undefined && session.roomId !== null && !listeningUuid(session.roomId)) ||
                         !session.capabilities.includes('rooms:membership')
                     )
                         return reject(new Error('PROTOCOL_INVALID'))
                     if (this.userId && this.userId !== session.userId) return reject(new Error('AUTH_CHANGED'))
                     this.userId = session.userId
+                    this.resumableRoomId = typeof session.roomId === 'string' ? session.roomId : null
                     this.queueModes = session.queueModes === true
                     this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     resolve()
@@ -249,6 +252,7 @@ export class ListeningConnection {
         clearInterval(this.clockTimer)
         this.clockValidUntil = 0
         this.queueModes = false
+        this.resumableRoomId = null
         const socket = this.socket
         this.socket = undefined
         if (socket) {
