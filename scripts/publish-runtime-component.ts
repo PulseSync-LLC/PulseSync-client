@@ -231,21 +231,10 @@ async function main(): Promise<void> {
     const version = tag.replace(/^v/u, '')
     const parsedVersion = semver.parse(version)
     const prerelease = parsedVersion?.prerelease ?? []
-    const isNumberedChannelTag =
-        prerelease.length === 2 &&
-        prerelease[0] === channel &&
-        typeof prerelease[1] === 'number'
+    const isNumberedChannelTag = prerelease.length === 2 && prerelease[0] === channel && typeof prerelease[1] === 'number'
     const isReusedBetaBootstrapperTag =
-        args.includes('--reuse-latest') &&
-        component === 'bootstrapper' &&
-        channel === 'beta' &&
-        prerelease.length === 1 &&
-        prerelease[0] === 'beta'
-    if (
-        !parsedVersion ||
-        parsedVersion.version !== version ||
-        !(isNumberedChannelTag || isReusedBetaBootstrapperTag)
-    ) {
+        args.includes('--reuse-latest') && component === 'bootstrapper' && channel === 'beta' && prerelease.length === 1 && prerelease[0] === 'beta'
+    if (!parsedVersion || parsedVersion.version !== version || !(isNumberedChannelTag || isReusedBetaBootstrapperTag)) {
         throw new Error(`Expected an ordinary ${channel} release tag, got ${tag}`)
     }
     if (component === 'desktopCore') {

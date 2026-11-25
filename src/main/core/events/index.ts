@@ -129,10 +129,7 @@ async function registerAppReadyEvents(): Promise<void> {
                 fromCache: details.fromCache,
             })
             if (details.resourceType === 'stylesheet' && details.error !== 'net::ERR_ABORTED') {
-                captureMainException(
-                    new Error(`Remote renderer stylesheet request failed (${details.error}): ${resourceUrl}`),
-                    'renderer/stylesheet',
-                )
+                captureMainException(new Error(`Remote renderer stylesheet request failed (${details.error}): ${resourceUrl}`), 'renderer/stylesheet')
             }
         }
         if (isRemoteRendererCacheMiss(details)) {

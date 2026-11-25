@@ -62,6 +62,17 @@ jobs:
       - name: Install deps
         run: yarn install --immutable
 
+      - name: Fetch version-check base
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.merge_group.base_sha || github.event.before }}
+        shell: bash
+        run: |
+          if [[ -n "$BASE_SHA" && ! "$BASE_SHA" =~ ^0+$ ]]; then
+            if ! git cat-file -e "${BASE_SHA}^{commit}" 2>/dev/null; then
+              git fetch --no-tags origin "$BASE_SHA"
+            fi
+          fi
+
       - name: Require host and bootstrapper version bumps
         if: ${{ github.event_name == 'pull_request' || github.event_name == 'merge_group' }}
         env:
