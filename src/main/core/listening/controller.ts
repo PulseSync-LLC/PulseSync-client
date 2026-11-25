@@ -19,7 +19,10 @@ export class ListeningController {
     private readonly host = new HostSource()
     private readonly connection = new ListeningConnection(
         () => this.ticket(),
-        () => this.publish(),
+        () => {
+            this.publish()
+            this.frame()
+        },
         reason => this.disconnected(reason),
         value => this.command(value),
     )
@@ -32,14 +35,15 @@ export class ListeningController {
     private socketPath = '/ws'
     private tick?: NodeJS.Timeout
     private reconnect?: NodeJS.Timeout
-    private lastConfiguration = 0
+    private lastConfiguration = -Infinity
     private configuring?: Promise<void>
     private connecting?: Promise<void>
     private busy = false
     private reconnectDelay = 1000
     private disconnectedAt = 0
-    private participantAt = 0
+    private participantAt = -Infinity
     private participantSeq = 0
+    private participantState = ''
     private pendingCommand: ModListeningFrame['command'] = null
 
     constructor(private readonly access: ListeningAccess) {
@@ -47,9 +51,13 @@ export class ListeningController {
             this.publish()
             this.frame()
         }
+        this.mod.onSource = () => {
+            if (this.enabled) this.pulse()
+        }
         this.mod.onApplied = (id, ok) => {
             if (id !== this.pendingCommand?.commandId) return
             this.host.commandApplied(id, ok)
+            this.mod.onSource()
             this.pendingCommand = null
             if (!ok) this.view.error = 'PLAYBACK_FAILED'
             this.publish()
@@ -82,7 +90,7 @@ export class ListeningController {
     }
     private async configure(): Promise<void> {
         if (this.configuring) return this.configuring
-        if (!this.enabled || Date.now() - this.lastConfiguration < 30000) return
+        if (!this.enabled || performance.now() - this.lastConfiguration < 30000) return
         const generation = this.generation
         const pending = (async () => {
             try {
@@ -113,7 +121,7 @@ export class ListeningController {
                 this.view.available = false
             } finally {
                 if (generation === this.generation) {
-                    this.lastConfiguration = Date.now()
+                    this.lastConfiguration = performance.now()
                     this.publish()
                     this.frame()
                 }
@@ -230,9 +238,13 @@ export class ListeningController {
         if (this.connection.connected && this.mod.source) void this.host.report(this.connection, this.mod.source)
         const frame = this.frame()
         const room = this.connection.room
-        if (!room || !this.connection.connected || room.hostUserId === this.connection.userId || Date.now() - this.participantAt < 5500) return
-        this.participantAt = Date.now()
-        const fresh = this.mod.source && Date.now() - this.mod.source.capturedAtMs < 3000
+        if (!room || !this.connection.connected) return
+        const fresh = this.mod.source && performance.now() - this.mod.source.capturedAtMs < 3000
+        const participantState = JSON.stringify([Boolean(fresh), this.mod.source?.reason, this.mod.source?.status, Boolean(frame.target)])
+        const interval = participantState === this.participantState ? 5500 : 2600
+        if (performance.now() - this.participantAt < interval) return
+        this.participantAt = performance.now()
+        this.participantState = participantState
         void this.connection
             .request('room:participant:report', {
                 roomId: room.roomId,
@@ -272,7 +284,7 @@ export class ListeningController {
         }
         this.view.connection = 'reconnecting'
         this.view.error = reason
-        this.disconnectedAt ||= Date.now()
+        this.disconnectedAt ||= performance.now()
         this.publish()
         this.frame()
         clearTimeout(this.reconnect)
@@ -289,6 +301,8 @@ export class ListeningController {
         this.pendingCommand = null
         this.view.connection = 'idle'
         this.disconnectedAt = 0
+        this.participantAt = -Infinity
+        this.participantState = ''
         clearTimeout(this.reconnect)
     }
     stop(): void {
@@ -298,7 +312,7 @@ export class ListeningController {
         this.clearRoom()
         this.connection.userId = null
         this.identity = ''
-        this.lastConfiguration = 0
+        this.lastConfiguration = -Infinity
         this.view = disabledView()
         this.mod.disable()
         this.publish()

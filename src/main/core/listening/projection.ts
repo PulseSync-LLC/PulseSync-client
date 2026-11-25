@@ -10,7 +10,8 @@ export function projectListeningFrame(
     const room = connection.room,
         clock = connection.clock
     const role = room ? (room.hostUserId === connection.userId ? 'host' : 'listener') : null
-    const active = available && (!disconnectedAt || Date.now() - disconnectedAt < 20000)
+    const active = available && (!disconnectedAt || performance.now() - disconnectedAt < 20000)
+    const hostUnavailable = room?.participants.some(participant => participant.userId === room.hostUserId && participant.following === 'unavailable')
     const playback = room?.playback,
         item = room?.queue.items.find(entry => entry.itemId === playback?.actual.itemId)
     const age = playback && clock ? clock.nowMs - playback.anchorServerMs : Infinity
@@ -26,7 +27,8 @@ export function projectListeningFrame(
         age <= 10000
             ? {
                   item,
-                  status: playback.actual.status,
+                  durationMs: playback.actual.durationMs,
+                  status: hostUnavailable ? 'buffering' : playback.actual.status,
                   playbackRate: playback.actual.playbackRate,
                   positionMs: Math.round(
                       Math.min(
@@ -47,5 +49,7 @@ export function projectListeningFrame(
         target: role === 'listener' ? target : null,
         command: role === 'host' ? command : null,
         queue: room?.queue.items ?? [],
+        repeatMode: room?.queue.repeatMode ?? 'none',
+        shuffle: room?.queue.shuffle ?? false,
     }
 }

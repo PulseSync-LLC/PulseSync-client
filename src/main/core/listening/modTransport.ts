@@ -9,6 +9,7 @@ export class ListeningModTransport {
     private selected?: Socket
     source?: ModListeningSource
     onChange = () => {}
+    onSource = () => {}
     onOpen = () => {}
     onApplied = (_commandId: string, _ok: boolean) => {}
     get ready(): boolean {
@@ -34,13 +35,19 @@ export class ListeningModTransport {
         socket.on(LISTENING_MOD.source, (value: unknown) => {
             if (socket !== this.selected) return
             const source = listeningSource(value)
-            if (source && Math.abs(Date.now() - source.capturedAtMs) < 5000) this.source = source
+            if (source) {
+                this.source = { ...source, capturedAtMs: Math.round(performance.now()) }
+                this.onSource()
+            }
         })
         socket.on(LISTENING_MOD.applied, (value: unknown) => {
             const result = record(value)
             if (socket !== this.selected || typeof result.commandId !== 'string' || typeof result.ok !== 'boolean') return
             const source = listeningSource(result.source)
-            if (source && Math.abs(Date.now() - source.capturedAtMs) < 5000) this.source = source
+            if (source) {
+                this.source = { ...source, capturedAtMs: Math.round(performance.now()) }
+                this.onSource()
+            }
             this.onApplied(result.commandId, result.ok && Boolean(source))
         })
         socket.on(LISTENING_MOD.open, () => {

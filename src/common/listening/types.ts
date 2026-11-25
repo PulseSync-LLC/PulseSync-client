@@ -27,7 +27,7 @@ export interface ListeningRoom {
     queueRevision: number
     participants: ListeningParticipant[]
     controller: { controllerId: string; userId: string; connection: 'online' | 'reconnecting' } | null
-    queue: { items: ListeningItem[]; currentItemId: string | null }
+    queue: { items: ListeningItem[]; currentItemId: string | null; repeatMode?: 'none' | 'context' | 'one'; shuffle?: boolean }
     playback: {
         actual: ListeningActual
         anchorServerMs: number
@@ -66,6 +66,8 @@ export const LISTENING_MOD = {
     open: 'LISTENING_OPEN',
 } as const
 export interface ModListeningSource {
+    repeatMode?: 'none' | 'context' | 'one'
+    shuffle?: boolean
     capturedAtMs: number
     items: { trackId: string; albumId: string | null }[]
     currentIndex: number
@@ -83,7 +85,9 @@ export interface ModListeningFrame {
     epoch: number
     revision: number
     validForMs: number
-    target: { item: ListeningItem; status: ListeningActual['status']; positionMs: number; playbackRate: number } | null
+    repeatMode?: 'none' | 'context' | 'one'
+    shuffle?: boolean
+    target: { item: ListeningItem; status: ListeningActual['status']; positionMs: number; playbackRate: number; durationMs?: number | null } | null
     queue: ListeningItem[]
     command: { commandId: string; action: ListeningAction; item?: ListeningItem } | null
 }

@@ -47,6 +47,8 @@ export function listeningRoom(value: unknown): ListeningRoom {
         room.participants.length <= 10 &&
         room.participants.every(listeningParticipant) &&
         new Set(room.participants.map(entry => record(entry).userId)).size === room.participants.length &&
+        (queue.repeatMode === undefined || oneOf(queue.repeatMode, ['none', 'context', 'one'])) &&
+        (queue.shuffle === undefined || typeof queue.shuffle === 'boolean') &&
         Array.isArray(queue.items) &&
         queue.items.length <= 32 &&
         queue.items.every(
@@ -86,12 +88,14 @@ export function listeningRoom(value: unknown): ListeningRoom {
 export function listeningSource(value: unknown): ModListeningSource | null {
     const source = record(value)
     if (
+        (source.repeatMode !== undefined && !oneOf(source.repeatMode, ['none', 'context', 'one'])) ||
+        (source.shuffle !== undefined && typeof source.shuffle !== 'boolean') ||
         !integer(source.capturedAtMs, 1) ||
         !Array.isArray(source.items) ||
         source.items.length > 32 ||
-        !source.items.length ||
+        (!source.items.length && source.reason !== 'track_unavailable') ||
         !source.items.every(item => catalog(record(item).trackId) && (record(item).albumId === null || catalog(record(item).albumId))) ||
-        !integer(source.currentIndex, 0, source.items.length - 1) ||
+        !integer(source.currentIndex, 0, Math.max(0, source.items.length - 1)) ||
         !status(source.status) ||
         !integer(source.positionMs, 0, 86400000) ||
         !(source.durationMs === null || integer(source.durationMs, 1, 86400000)) ||

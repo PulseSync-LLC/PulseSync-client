@@ -12,6 +12,7 @@ import type { Socket } from 'socket.io-client'
 export interface ListeningTicket {
     ticket: string
     expiresAt: number
+    renewAtMonotonicMs: number
 }
 export class ListeningConnection {
     private cancelConnect?: () => void
@@ -26,11 +27,13 @@ export class ListeningConnection {
     private clockValidUntil = 0
     room: ListeningRoom | null = null
     userId: string | null = null
+    queueModes = false
     get connected(): boolean {
         return this.socket?.connected === true
     }
     get clock(): { nowMs: number; uncertaintyMs: number } | null {
-        return this.clockValidUntil > Date.now() ? { nowMs: Date.now() + this.offsetMs, uncertaintyMs: this.uncertaintyMs } : null
+        const now = performance.now()
+        return this.clockValidUntil > now ? { nowMs: now + this.offsetMs, uncertaintyMs: this.uncertaintyMs } : null
     }
     constructor(
         private readonly ticket: () => Promise<ListeningTicket>,
@@ -123,7 +126,8 @@ export class ListeningConnection {
                         return reject(new Error('PROTOCOL_INVALID'))
                     if (this.userId && this.userId !== session.userId) return reject(new Error('AUTH_CHANGED'))
                     this.userId = session.userId
-                    this.scheduleRenew(ticket.expiresAt, generation)
+                    this.queueModes = session.queueModes === true
+                    this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     resolve()
                 }
                 socket.once('session:ready', ready)
@@ -189,12 +193,12 @@ export class ListeningConnection {
     private async calibrate(): Promise<void> {
         if (this.clockWork || !this.connected) return
         this.clockWork = true
-        const sent = Date.now(),
+        const sent = performance.now(),
             generation = this.generation,
             requestId = randomUUID()
         try {
             const sample = record(await this.request('clock:ping', { requestId }))
-            const received = Date.now()
+            const received = performance.now()
             if (
                 generation !== this.generation ||
                 sample.requestId !== requestId ||
@@ -206,6 +210,7 @@ export class ListeningConnection {
                 serverSend = Number(sample.serverSendMs)
             const uncertainty = Math.ceil((received - sent - (serverSend - serverReceive)) / 2)
             if (uncertainty < 0 || uncertainty > 2000 || serverSend < serverReceive) return
+            if (this.clockValidUntil > received && uncertainty > this.uncertaintyMs + 10) return
             this.offsetMs = (serverReceive - sent + serverSend - received) / 2
             this.uncertaintyMs = uncertainty
             this.clockValidUntil = received + 30000
@@ -215,7 +220,7 @@ export class ListeningConnection {
             this.clockWork = false
         }
     }
-    private scheduleRenew(expiresAt: number, generation: number): void {
+    private scheduleRenew(renewAtMonotonicMs: number, generation: number): void {
         clearTimeout(this.timer)
         this.timer = setTimeout(
             () => {
@@ -223,7 +228,7 @@ export class ListeningConnection {
                     .then(async ticket => {
                         if (generation !== this.generation || !this.connected) return
                         await this.request('session:renew', { ticket: ticket.ticket })
-                        if (generation === this.generation) this.scheduleRenew(ticket.expiresAt, generation)
+                        if (generation === this.generation) this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     })
                     .catch(() => {
                         if (generation === this.generation) {
@@ -232,7 +237,7 @@ export class ListeningConnection {
                         }
                     })
             },
-            Math.max(1000, expiresAt - Date.now() - 60000),
+            Math.max(1000, renewAtMonotonicMs - performance.now()),
         )
         this.timer.unref()
     }
@@ -243,6 +248,7 @@ export class ListeningConnection {
         clearTimeout(this.timer)
         clearInterval(this.clockTimer)
         this.clockValidUntil = 0
+        this.queueModes = false
         const socket = this.socket
         this.socket = undefined
         if (socket) {

@@ -27,24 +27,41 @@ export class ListeningAccess {
     async ticket(sessionId: string) {
         const token = await getAuthToken()
         if (!token || sessionId !== this.sessionId()) throw new Error('AUTH_CHANGED')
+        const requestedAt = performance.now()
         const response = await mainHttpClient.post<unknown>('/auth/listening/ticket', {
             authToken: token,
             body: { clientId: this.clientId },
             timeoutMs: 5000,
         })
+
         const ticket = record(response.data)
-        if (
-            !isCurrentAuthToken(token) ||
-            sessionId !== this.sessionId() ||
-            !response.ok ||
-            typeof ticket.ticket !== 'string' ||
-            !ticket.ticket ||
-            ticket.ticket.length > 4096 ||
-            !Number.isSafeInteger(ticket.expiresAt) ||
-            Number(ticket.expiresAt) <= Date.now() ||
-            Number(ticket.expiresAt) > Date.now() + 300000
-        )
-            throw new Error('ACCESS_UNAVAILABLE')
-        return { ticket: ticket.ticket, expiresAt: Number(ticket.expiresAt) }
+        const expiresAt = ticket.expiresAt
+        let issuedAt = NaN
+        try {
+            const payload = record(JSON.parse(Buffer.from(String(ticket.ticket).split('.')[1] ?? '', 'base64url').toString('utf8')))
+            issuedAt = Number(payload.iat) * 1000
+        } catch {
+            /* The service verifies the signature; the client only schedules renewal. */
+        }
+        const serverDate = Date.parse(response.headers.date ?? '')
+        const serverNow = Number.isFinite(serverDate) ? Math.max(serverDate, issuedAt) : issuedAt
+        const lifetimeMs = Number(expiresAt) - issuedAt
+        const remainingMs = Number(expiresAt) - serverNow - (performance.now() - requestedAt) - 1000
+        const checks = {
+            authTokenValid: isCurrentAuthToken(token),
+            sessionIdMatches: sessionId === this.sessionId(),
+            responseOk: response.ok,
+            ticketIsString: typeof ticket.ticket === 'string' && ticket.ticket.length > 0 && ticket.ticket.length <= 4096,
+            expiresAtIsInteger: Number.isSafeInteger(expiresAt),
+            ticketExpirationValid: Number.isSafeInteger(issuedAt) && lifetimeMs > 0 && lifetimeMs <= 300000,
+            ticketNotExpired: remainingMs > 0,
+        }
+
+        if (Object.values(checks).some(passed => !passed)) throw new Error('ACCESS_UNAVAILABLE')
+        return {
+            ticket: ticket.ticket as string,
+            expiresAt: Number(expiresAt),
+            renewAtMonotonicMs: performance.now() + Math.max(1000, remainingMs - 60000),
+        }
     }
 }
