@@ -106,7 +106,7 @@ export default function JointPage() {
                             {t('pages.joint.connection.' + (connecting ? 'connecting' : state.connection))}
                         </span>
                     </header>
-                    {(issue || !connected) && (
+                    {(issue || (room && !connected)) && (
                         <section className={styles.notice} aria-label={t('pages.joint.ui.connectionTitle')}>
                             <div>
                                 {issue && (
@@ -155,7 +155,7 @@ export default function JointPage() {
                                     {!state.modReady && <p className={styles.hint}>{t('pages.joint.modRequired')}</p>}
                                     <ButtonV2
                                         className={styles.primaryAction}
-                                        disabled={busy || !connected || !state.modReady}
+                                        disabled={busy || connecting || !state.available || !state.modReady}
                                         onClick={() => void run({ type: 'create' })}
                                     >
                                         <MdAdd aria-hidden="true" />
@@ -288,7 +288,7 @@ export default function JointPage() {
                                     <ButtonV2
                                         type="submit"
                                         className={styles.primaryAction}
-                                        disabled={busy || !connected || !state.modReady || !invitation.trim()}
+                                        disabled={busy || connecting || !state.available || !state.modReady || !invitation.trim()}
                                     >
                                         <MdLogin aria-hidden="true" />
                                         {t('pages.joint.join')}

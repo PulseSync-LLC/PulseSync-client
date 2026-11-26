@@ -1,4 +1,4 @@
-import { randomUUID } from 'node:crypto'
+import { createHash, randomUUID } from 'node:crypto'
 
 import { listeningUuid, record } from '@common/listening/validation'
 
@@ -10,6 +10,18 @@ export class ListeningAccess {
     private clientId = ''
     sessionId(): string {
         return currentAuthSessionId()
+    }
+    shouldResume(): boolean {
+        const session = this.sessionId()
+        return Boolean(session && getState().get('listening.resumeSession') === createHash('sha256').update(session).digest('hex'))
+    }
+    rememberParticipation(active: boolean): void {
+        const state = getState()
+        const session = this.sessionId()
+        const value = active && session ? createHash('sha256').update(session).digest('hex') : undefined
+        if (state.get('listening.resumeSession') === value) return
+        if (value) state.set('listening.resumeSession', value)
+        else state.delete('listening.resumeSession')
     }
     async initialize(): Promise<void> {
         await getAuthToken()

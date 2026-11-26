@@ -37,6 +37,7 @@ export class ListeningController {
     private readonly connection = new ListeningConnection(
         () => this.ticket(),
         () => {
+            if (this.connection.room) this.rememberParticipation(this.connection.room.status !== 'closed')
             this.publish()
             this.frame()
         },
@@ -46,6 +47,7 @@ export class ListeningController {
     private view = disabledView()
     private window?: BrowserWindow
     private enabled = false
+    private resume = false
     private generation = 0
     private identity = ''
     private url = ''
@@ -114,22 +116,26 @@ export class ListeningController {
             },
         }
     }
-    async start(): Promise<ListeningView> {
+    async start(forOperation = false): Promise<ListeningView> {
         const generation = this.generation
         await this.access.initialize()
         if (generation !== this.generation) throw new Error('CANCELLED')
         if (!this.enabled) {
             this.enabled = true
             this.identity = this.access.sessionId()
+            this.resume = this.access.shouldResume()
             this.tick = setInterval(() => this.pulse(), 1000)
             this.tick.unref()
         }
         if (!this.connection.connected && !this.connecting) this.configurationDueAt = -Infinity
         await this.configure()
         if (generation !== this.generation || !this.enabled) throw new Error('CANCELLED')
-        clearTimeout(this.reconnect)
-        this.retryAt = 0
-        await this.connect().catch(() => {})
+        if (forOperation || this.resume || this.connection.room) {
+            clearTimeout(this.reconnect)
+            this.retryAt = 0
+            await this.connect().catch(() => {})
+        }
+        if (!forOperation && !this.busy && !this.connection.room && !this.resume) this.idle()
         return this.snapshot()
     }
     private async configure(): Promise<void> {
@@ -169,6 +175,7 @@ export class ListeningController {
                     this.view.error = 'ACCESS_UNAVAILABLE'
                     if (!this.url) this.view.available = true
                 } else {
+                    this.rememberParticipation(false)
                     this.clearRoom()
                     this.view.available = false
                 }
@@ -229,11 +236,13 @@ export class ListeningController {
                     if (error instanceof Error && ['FORBIDDEN', 'ROOM_NOT_FOUND', 'ROOM_CLOSED'].includes(error.message)) {
                         this.connection.room = null
                         this.connection.resumableRoomId = null
+                        this.rememberParticipation(false)
                         this.view.error = 'ROOM_ENDED'
                     } else throw error
                 }
             }
             if (generation !== this.generation || !this.connection.connected) throw new Error('CANCELLED')
+            if (!this.connection.room) this.rememberParticipation(false)
             this.reconnectDelay = 1000
             this.reconnectAttempt = 0
             clearTimeout(this.reconnect)
@@ -246,6 +255,7 @@ export class ListeningController {
             this.participantAt = -Infinity
             this.participantState = ''
             this.participantWork = null
+            if (!this.connection.room && !this.busy) this.idle()
             this.publish()
             this.frame()
         })()
@@ -263,25 +273,42 @@ export class ListeningController {
     async run(input: unknown): Promise<{ ok: boolean; error?: string; invitation?: string }> {
         if (this.busy) return { ok: false, error: 'BUSY' }
         this.busy = true
+        const generation = this.generation
+        let participationAttempted = false
         try {
             const operation = listeningOperation(input)
-            await this.start()
-            if (!this.connection.connected || this.view.connection !== 'connected') throw new Error(this.view.error ?? 'NOT_CONNECTED')
             if (!this.mod.ready && ['create', 'join', 'control'].includes(operation.type)) throw new Error('MOD_UNAVAILABLE')
-            const result = await performRoomOperation(this.connection, this.host, operation, () => this.clearRoom(false))
+            await this.start(true)
+            if (!this.connection.connected || this.view.connection !== 'connected') throw new Error(this.view.error ?? 'NOT_CONNECTED')
+            // An interrupted acknowledgement may hide a committed create/join. Resume discovers membership on the service.
+            if (operation.type === 'create' || operation.type === 'join') {
+                participationAttempted = true
+                this.rememberParticipation(true)
+            }
+            const result = await performRoomOperation(this.connection, this.host, operation, () => this.idle())
             if (operation.type === 'create' || operation.type === 'join') this.participantSeq = 0
             this.view.error = null
             this.publish()
             this.frame()
             return result
         } catch (error) {
+            if (generation !== this.generation) return { ok: false, error: 'CANCELLED' }
             const code = error instanceof Error && /^[A-Z_]{1,40}$/u.test(error.message) ? error.message : 'UNAVAILABLE'
+            if (participationAttempted && !this.connection.room) {
+                if (['ACK_TIMEOUT', 'CONNECTION_LOST', 'CANCELLED', 'SERVICE_UNAVAILABLE'].includes(code)) this.disconnected(code)
+                else this.rememberParticipation(false)
+            }
             this.view.error = code
             if (!this.connection.connected) this.view.connection = this.connection.room ? 'reconnecting' : 'idle'
             this.publish()
             return { ok: false, error: code }
         } finally {
             this.busy = false
+            if (generation === this.generation && !this.connection.room && !this.resume) {
+                this.idle()
+                this.publish()
+                this.frame()
+            }
         }
     }
     private command(value: unknown): void {
@@ -313,7 +340,7 @@ export class ListeningController {
             this.stop()
             return
         }
-        void this.configure()
+        if (this.connection.connected || this.connection.room || this.resume || this.connecting) void this.configure()
         const connected = this.connection.connected && this.view.connection === 'connected'
         if (connected && this.mod.source) void this.host.report(this.connection, this.mod.source)
         const frame = this.frame()
@@ -372,13 +399,23 @@ export class ListeningController {
     private disconnected(reason: string): void {
         if (!this.enabled) return
         if (['ACCESS_REVOKED', 'AUTH_CHANGED', 'AUTH_INVALID'].includes(reason)) {
+            this.rememberParticipation(false)
             this.stop()
             this.view.error = reason
             this.publish()
             return
         }
         if (reason === 'ROOM_ENDED') {
-            this.clearRoom(false)
+            this.rememberParticipation(false)
+            if (this.busy) this.clearRoom(false)
+            else this.idle()
+            this.view.error = reason
+            this.publish()
+            this.frame()
+            return
+        }
+        if (!this.connection.room && !this.resume) {
+            this.idle()
             this.view.error = reason
             this.publish()
             this.frame()
@@ -429,8 +466,17 @@ export class ListeningController {
         this.reconnectDelay = 1000
         clearTimeout(this.reconnect)
     }
+    private rememberParticipation(active: boolean): void {
+        this.resume = active
+        this.access.rememberParticipation(active)
+    }
+    private idle(): void {
+        this.rememberParticipation(false)
+        this.clearRoom()
+    }
     stop(): void {
         this.enabled = false
+        this.resume = false
         this.generation++
         this.connecting = undefined
         this.configuring = undefined
