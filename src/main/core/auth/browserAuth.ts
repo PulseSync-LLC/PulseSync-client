@@ -102,9 +102,12 @@ export const processBrowserAuth = async (
     }
 
     try {
-        installV2Session(v2, requestedAt)
+        if (!(await installV2Session(v2, requestedAt, () => flow === v2Flow))) {
+            void authV2Request('/logout', { refreshToken: v2.refreshToken }).catch(() => {})
+            return false
+        }
     } catch {
-        v2Flow = null
+        if (v2Flow === flow) v2Flow = null
         void authV2Request('/logout', { refreshToken: v2.refreshToken }).catch(() => {})
         logger.socketManager.error('Could not store the browser authentication session')
         dialog.showErrorBox(t('main.auth.storageErrorTitle'), t('main.auth.storageErrorMessage'))

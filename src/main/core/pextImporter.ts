@@ -21,6 +21,13 @@ import { validateWebHostAddonRuntime } from './utils/webHostAddonRuntime'
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
 const MAX_ADDON_ARCHIVE_BYTES = 100 * 1024 * 1024
+
+export class LocalAddonConflictError extends Error {
+    constructor() {
+        super('LOCAL_ADDON_CONFLICT')
+    }
+}
+
 type ImportAddonArchiveOptions = {
     releaseChannel?: 'stable' | 'dev'
     installSource?: 'store' | 'local'
@@ -229,7 +236,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
             const existingLocalAddon = findAddonByPublicationFingerprint(publicationFingerprint, 'local')
 
             if (existingLocalAddon) {
-                if (options.preserveLocalAddons) throw new Error('LOCAL_ADDON_CONFLICT')
+                if (options.preserveLocalAddons) throw new LocalAddonConflictError()
                 targetDirectoryOverride = existingLocalAddon.directoryName
                 logger.main.info(
                     `Replacing local addon ${existingLocalAddon.directoryName} with store publication ${String(metadata.storeAddonId || metadata.name)}`,
@@ -246,7 +253,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         if (options.preserveLocalAddons && fs.existsSync(outputDir)) {
             const existingMetadata = JSON.parse(await fsp.readFile(path.join(outputDir, 'metadata.json'), 'utf8'))
             if (existingMetadata.installSource !== 'store' || existingMetadata.storeAddonId !== metadata.storeAddonId) {
-                throw new Error('LOCAL_ADDON_CONFLICT')
+                throw new LocalAddonConflictError()
             }
         }
         if (metadata.installSource === 'store' && options.validateLegacyStoreUpdate && fs.existsSync(outputDir)) {
@@ -271,7 +278,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
 
         return targetDirectoryOverride ? addonName : addonDirectory
     } catch (err: any) {
-        if (err instanceof AddonUpdatePolicyError) throw err
+        if (err instanceof AddonUpdatePolicyError || err instanceof LocalAddonConflictError) throw err
         logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)
         return null

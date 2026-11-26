@@ -32,8 +32,8 @@ let migrationRejected = false
 
 const previousSessionFile = () => path.join(app.getPath('userData'), 'auth-session-v2')
 
-function canUseSafeStorage(): boolean {
-    if (!safeStorage.isEncryptionAvailable()) return false
+async function canUseSafeStorage(): Promise<boolean> {
+    if (!(await safeStorage.isAsyncEncryptionAvailable())) return false
     if (process.platform !== 'linux') return true
     const backend = safeStorage.getSelectedStorageBackend()
     return backend !== 'basic_text' && backend !== 'unknown'
@@ -45,55 +45,61 @@ function isSavedSession(value: unknown): value is SavedSession {
     return typeof refreshToken === 'string' && REFRESH_PATTERN.test(refreshToken) && typeof rotationId === 'string' && RANDOM_PATTERN.test(rotationId)
 }
 
-function decryptSession(encrypted: Buffer): SavedSession | null {
-    if (!canUseSafeStorage()) return null
-    const record: unknown = JSON.parse(safeStorage.decryptString(encrypted))
+async function decryptSession(encrypted: Buffer): Promise<SavedSession | null> {
+    if (!(await canUseSafeStorage())) return null
+    const { result } = await safeStorage.decryptStringAsync(encrypted)
+    const record: unknown = JSON.parse(result)
     return isSavedSession(record) ? record : null
 }
 
-function readPreviousSession(): SavedSession | null {
+async function readPreviousSession(): Promise<SavedSession | null> {
     try {
-        return decryptSession(readFileSync(previousSessionFile()))
+        return await decryptSession(readFileSync(previousSessionFile()))
     } catch (error) {
         if ((error as NodeJS.ErrnoException)?.code !== 'ENOENT') logger.main.warn('Could not import the previous desktop session')
         return null
     }
 }
 
-function readStoredSession(record: unknown): SavedSession | null {
+async function readStoredSession(record: unknown): Promise<SavedSession | null> {
     if (isSavedSession(record)) return record
     if (!record || typeof record !== 'object') return null
     const encrypted = 'safeStorage' in record ? record.safeStorage : process.platform === 'win32' && 'dpapi' in record ? record.dpapi : null
     if (typeof encrypted !== 'string' || !encrypted) return null
 
     try {
-        return decryptSession(Buffer.from(encrypted, 'base64'))
+        return await decryptSession(Buffer.from(encrypted, 'base64'))
     } catch {
         logger.main.warn('Could not decrypt the saved desktop session')
         return null
     }
 }
 
-function readSession(): SavedSession | null {
+async function readSession(started: number): Promise<SavedSession | null> {
     if (saved !== undefined) return saved
     const record: unknown = State.get(V2_SESSION_KEY)
     if (record && typeof record === 'object') {
         // Retry decryption on the next call if the system store is temporarily unavailable.
-        const decoded = readStoredSession(record)
+        const decoded = await readStoredSession(record)
+        if (started !== generation) return null
         if (decoded) saved = decoded
         return decoded
     }
 
-    const previous = readPreviousSession()
-    if (previous) installSavedSession(previous)
-    else saved = null
+    const previous = await readPreviousSession()
+    if (started !== generation) return null
+    if (previous) {
+        const encoded = await encodeSession(previous)
+        if (started !== generation) return null
+        installSavedSession(previous, encoded)
+    } else saved = null
     return previous
 }
 
-function encodeSession(record: SavedSession): StoredSession {
+async function encodeSession(record: SavedSession): Promise<StoredSession> {
     try {
-        if (canUseSafeStorage()) {
-            return { safeStorage: safeStorage.encryptString(JSON.stringify(record)).toString('base64') }
+        if (await canUseSafeStorage()) {
+            return { safeStorage: (await safeStorage.encryptStringAsync(JSON.stringify(record))).toString('base64') }
         }
     } catch {
         logger.main.warn('Could not encrypt the desktop session with safeStorage')
@@ -101,13 +107,16 @@ function encodeSession(record: SavedSession): StoredSession {
     return record
 }
 
-function persistSession(record: SavedSession): void {
-    State.set(V2_SESSION_KEY, encodeSession(record))
+async function persistSession(record: SavedSession, started: number): Promise<boolean> {
+    const encoded = await encodeSession(record)
+    if (started !== generation) return false
+    State.set(V2_SESSION_KEY, encoded)
     saved = record
+    return true
 }
 
-function installSavedSession(record: SavedSession): void {
-    State.set('tokens', { token: '', v2: encodeSession(record) })
+function installSavedSession(record: SavedSession, encoded: StoredSession): void {
+    State.set('tokens', { token: '', v2: encoded })
     saved = record
     try {
         rmSync(previousSessionFile(), { force: true })
@@ -165,13 +174,18 @@ function clearLocalSession(): void {
     State.delete(MIGRATION_ID_KEY)
 }
 
-export function installV2Session(credentials: V2Credentials, requestedAt: number): void {
-    installSavedSession({ refreshToken: credentials.refreshToken, rotationId: randomBytes(32).toString('base64url') })
+export async function installV2Session(credentials: V2Credentials, requestedAt: number, isActive = () => true): Promise<boolean> {
+    const started = generation
+    const record = { refreshToken: credentials.refreshToken, rotationId: randomBytes(32).toString('base64url') }
+    const encoded = await encodeSession(record)
+    if (started !== generation || !isActive()) return false
+    installSavedSession(record, encoded)
     generation++
     refreshPending = null
     previousAccess = null
     lastActivity = 0
     acceptAccess(credentials, requestedAt)
+    return true
 }
 
 async function migrateLegacySession(started: number, requestedAt: number): Promise<string> {
@@ -193,7 +207,7 @@ async function migrateLegacySession(started: number, requestedAt: number): Promi
     if (started !== generation) return currentAuthToken()
     if (!credentials) throw new Error('AUTH_MIGRATION_INVALID_RESPONSE')
     try {
-        installV2Session(credentials, requestedAt)
+        await installV2Session(credentials, requestedAt)
     } catch {
         migrationRejected = true
         return ''
@@ -229,7 +243,8 @@ async function refreshSession(record: SavedSession, started: number, requestedAt
     if (started !== generation) return ''
     if (!credentials) throw new Error('AUTH_REFRESH_INVALID_RESPONSE')
 
-    persistSession({ refreshToken: credentials.refreshToken, rotationId: randomBytes(32).toString('base64url') })
+    if (!(await persistSession({ refreshToken: credentials.refreshToken, rotationId: randomBytes(32).toString('base64url') }, started))) return ''
+    if (started !== generation) return ''
     previousAccess = access
     return acceptAccess(credentials, requestedAt)
 }
@@ -238,10 +253,15 @@ export async function getAuthToken(): Promise<string> {
     if (access && access.expiresAt - Date.now() > REFRESH_WINDOW_MS) return access.token
     if (refreshPending) return refreshPending
 
-    const record = readSession()
     const started = generation
-    const requestedAt = Date.now()
-    const request = record ? refreshSession(record, started, requestedAt) : migrateLegacySession(started, requestedAt)
+    let record: SavedSession | null = null
+    // Share decryption as well as the refresh request between concurrent callers.
+    const request = (async () => {
+        record = await readSession(started)
+        if (started !== generation) return ''
+        const requestedAt = Date.now()
+        return record ? refreshSession(record, started, requestedAt) : migrateLegacySession(started, requestedAt)
+    })()
     refreshPending = request
 
     try {
@@ -258,13 +278,18 @@ export async function getAuthToken(): Promise<string> {
 }
 
 export async function deleteAuthToken(): Promise<void> {
+    const pendingRecord = (async () => {
+        if (saved !== undefined) return saved
+        const storedRecord: unknown = State.get(V2_SESSION_KEY)
+        return storedRecord && typeof storedRecord === 'object' ? readStoredSession(storedRecord) : readPreviousSession()
+    })()
+    clearLocalSession()
     let record: SavedSession | null = null
     try {
-        record = readSession()
+        record = await pendingRecord
     } catch {
         logger.main.warn('Could not read the desktop session before logout')
     }
-    clearLocalSession()
     if (!record) return
     try {
         const response = await authV2Request('/logout', record)

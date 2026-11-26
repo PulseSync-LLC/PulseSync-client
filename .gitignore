@@ -120,3 +120,4 @@ Debug
 build
 *.node
 docs/
+/.local

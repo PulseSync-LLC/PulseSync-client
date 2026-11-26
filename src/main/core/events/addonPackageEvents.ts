@@ -17,7 +17,7 @@ import logger from '../../shared/logger'
 import { getAuthToken, isCurrentAuthToken } from '../auth/session'
 import { assertCloudAddonRestoreAllowed } from '../cloudSettings'
 import mainHttpClient from '../http/client'
-import { importAddonArchive, importPextFile, isPextFilePath } from '../pextImporter'
+import { importAddonArchive, importPextFile, isPextFilePath, LocalAddonConflictError } from '../pextImporter'
 import { listAddonMetadata } from '../utils/addonRegistry'
 import { loadAddons } from '../utils/addonUtils'
 import { assertLegacyAddonUpdateAllowed } from '../utils/legacyAddonUpdatePolicy'
@@ -369,6 +369,10 @@ export const registerAddonPackageEvents = ({
             if (payload.openAfterInstall !== false) queueAddonOpen(addonName)
             return { success: true, addonName }
         } catch (error: any) {
+            if (error instanceof LocalAddonConflictError) {
+                logger.main.info(`Skipped cloud restore of store addon "${payload?.id}": a local addon would be replaced`)
+                return { success: false, reason: error.message }
+            }
             logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
             return { success: false, reason: error?.message || 'INSTALL_FAILED' }
         } finally {
