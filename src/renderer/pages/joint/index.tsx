@@ -87,6 +87,7 @@ export default function JointPage() {
         }
     }
     const connecting = state.loading || state.connection === 'connecting'
+    const canJoin = !busy && !connecting && state.available && state.modReady && Boolean(invitation.trim())
     const playbackStatus =
         connected && room?.status === 'open' && room.controller?.connection === 'online' ? (room.playback?.actual.status ?? 'waiting') : 'waiting'
     return (
@@ -262,7 +263,7 @@ export default function JointPage() {
                                     className={styles.panel}
                                     onSubmit={event => {
                                         event.preventDefault()
-                                        if (!busy && connected && state.modReady && invitation.trim()) void run({ type: 'join', invitation })
+                                        if (canJoin) void run({ type: 'join', invitation })
                                     }}
                                 >
                                     <div className={styles.sectionHeading}>
@@ -285,11 +286,7 @@ export default function JointPage() {
                                             onChange={event => setInvitation(event.target.value)}
                                         />
                                     </div>
-                                    <ButtonV2
-                                        type="submit"
-                                        className={styles.primaryAction}
-                                        disabled={busy || connecting || !state.available || !state.modReady || !invitation.trim()}
-                                    >
+                                    <ButtonV2 type="submit" className={styles.primaryAction} disabled={!canJoin}>
                                         <MdLogin aria-hidden="true" />
                                         {t('pages.joint.join')}
                                     </ButtonV2>
