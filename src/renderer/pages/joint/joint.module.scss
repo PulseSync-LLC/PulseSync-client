@@ -265,39 +265,6 @@
     color: var(--text-secondary);
 }
 
-.playbackSummary {
-    display: flex;
-
-    flex-wrap: wrap;
-
-    gap: 16px;
-
-    align-items: center;
-
-    padding: 14px 16px;
-
-    background: var(--surface-secondary);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-
-    > span {
-        display: inline-flex;
-
-        gap: 6px;
-
-        align-items: center;
-
-        font-size: 12px;
-
-        color: var(--text-secondary);
-    }
-
-    svg {
-        width: 16px;
-        height: 16px;
-    }
-}
-
 .sectionHeader {
     display: flex;
 
@@ -355,8 +322,13 @@
     min-width: 0;
 
     strong {
+        overflow: hidden;
+        text-overflow: ellipsis;
+
         font-size: 14px;
         font-weight: 700;
+
+        white-space: nowrap;
     }
 
     span {

@@ -1,10 +1,9 @@
 import { useEffect, useState } from 'react'
 
 import { Button } from '@pulsesync/uikit/actions'
-import { Avatar } from '@pulsesync/uikit/data-display'
 import { Input } from '@pulsesync/uikit/inputs'
 import { useTranslation } from 'react-i18next'
-import { MdAdd, MdContentCopy, MdHeadphones, MdLogin, MdLogout, MdPersonOutline, MdRefresh, MdRepeat, MdShuffle } from 'react-icons/md'
+import { MdAdd, MdContentCopy, MdLogin, MdLogout, MdRefresh } from 'react-icons/md'
 
 import { useListening } from '@app/providers/ListeningProvider'
 import PageLayout from '@widgets/layout/PageLayout'
@@ -14,6 +13,7 @@ import ButtonV2 from '@shared/ui/buttonV2'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 
 import ListeningDiagnostics from './ui/ListeningDiagnostics'
+import ParticipantProfile from './ui/ParticipantProfile'
 
 import * as styles from './joint.module.scss'
 
@@ -165,20 +165,6 @@ export default function JointPage() {
                                 </section>
                             ) : (
                                 <>
-                                    <div className={styles.playbackSummary}>
-                                        <span>
-                                            <MdHeadphones aria-hidden="true" />
-                                            {t('pages.joint.ui.playback.' + playbackStatus)}
-                                        </span>
-                                        <span>
-                                            <MdShuffle aria-hidden="true" />
-                                            {t(room.queue.shuffle ? 'pages.joint.diagnostics.shuffleOn' : 'pages.joint.diagnostics.shuffleOff')}
-                                        </span>
-                                        <span>
-                                            <MdRepeat aria-hidden="true" />
-                                            {t('pages.joint.repeat.' + (room.queue.repeatMode ?? 'none'))}
-                                        </span>
-                                    </div>
                                     {offered && (
                                         <section className={styles.offer}>
                                             <p>{t('pages.joint.offerHint')}</p>
@@ -211,18 +197,11 @@ export default function JointPage() {
                                         <ul className={styles.participants}>
                                             {room.participants.map((participant, index) => (
                                                 <li key={participant.userId}>
-                                                    <Avatar size="sm" shape="rounded" fallback={<MdPersonOutline size={20} />} />
-                                                    <div className={styles.participantInfo}>
-                                                        <strong>
-                                                            {participant.userId === state.userId
-                                                                ? t('pages.joint.you')
-                                                                : t('pages.joint.participant', { number: index + 1 })}
-                                                        </strong>
-                                                        <span>{t(participant.role === 'host' ? 'pages.joint.host' : 'pages.joint.listener')}</span>
-                                                        {participant.reason && (
-                                                            <span className={styles.warning}>{t('pages.joint.reasons.' + participant.reason)}</span>
-                                                        )}
-                                                    </div>
+                                                    <ParticipantProfile
+                                                        participant={participant}
+                                                        index={index}
+                                                        self={participant.userId === state.userId}
+                                                    />
                                                     <div className={styles.participantActions}>
                                                         <span
                                                             className={styles.participantStatus}
