@@ -141,12 +141,16 @@
 - Prefer simple functions and clear modules over deep abstraction without immediate value.
 
 ## Code style rules
-- Follow the current Prettier configuration:
+- Use Oxfmt with the repository's `.oxfmtrc.json`:
   - 4-space indentation,
   - single quotes,
   - no semicolons,
   - trailing commas enabled,
-  - `printWidth` 150.
+  - `printWidth` 150,
+  - LF line endings,
+  - `arrowParens: avoid`.
+- Format only the relevant files with `yarn exec oxfmt <paths>`; use `yarn exec oxfmt --check <paths>` for a read-only check. Respect the configuration's ignore patterns.
+- Do not use Prettier defaults or introduce a separate formatter configuration.
 - Before “improving style”, check nearby code and match its shape.
 - Do not rename files, variables, or concepts unless needed for the task.
 - Do not make broad formatting-only edits in files that only need a small functional change.
@@ -188,6 +192,7 @@
 - Static-check commands:
   - `yarn typecheck`
   - `yarn lint`
+- `yarn lint` runs Oxlint for code and Stylelint for styles; Oxfmt handles formatting separately.
 - `yarn format` rewrites files and `yarn start` launches the development workflow. They are not routine validation commands.
 - For packaging-related tasks:
   - `yarn build:package`

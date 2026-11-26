@@ -56,6 +56,16 @@ export interface ListeningView {
     room: ListeningRoom | null
     modReady: boolean
     error: string | null
+    diagnostics?: {
+        rttMs: number | null
+        clockUncertaintyMs: number | null
+        snapshotAgeMs: number | null
+        sourceAgeMs: number | null
+        reconnectAttempt: number
+        retryInMs: number | null
+        lastDisconnectReason: string | null
+        sourceError: string | null
+    }
 }
 export const LISTENING_IPC = { get: 'listening:get', run: 'listening:run', stop: 'listening:stop', changed: 'listening:changed' } as const
 export const LISTENING_MOD = {

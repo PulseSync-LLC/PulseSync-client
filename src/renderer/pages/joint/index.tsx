@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
+import { Button } from '@pulsesync/uikit/actions'
+import { Avatar } from '@pulsesync/uikit/data-display'
+import { Input } from '@pulsesync/uikit/inputs'
 import { useTranslation } from 'react-i18next'
+import { MdAdd, MdContentCopy, MdHeadphones, MdLogin, MdLogout, MdPersonOutline, MdRefresh, MdRepeat, MdShuffle } from 'react-icons/md'
 
 import { useListening } from '@app/providers/ListeningProvider'
 import PageLayout from '@widgets/layout/PageLayout'
 import { desktopApi } from '@shared/desktop/desktopApi'
-import Button from '@shared/ui/buttonV2'
+import { staticAsset } from '@shared/lib/staticAssets'
+import ButtonV2 from '@shared/ui/buttonV2'
+import Scrollbar from '@shared/ui/PSUI/Scrollbar'
+
+import ListeningDiagnostics from './ui/ListeningDiagnostics'
 
 import * as styles from './joint.module.scss'
 
@@ -17,11 +25,35 @@ export default function JointPage() {
     const [invitation, setInvitation] = useState('')
     const [busy, setBusy] = useState(false)
     const [error, setError] = useState('')
-    const [inviteCode, setInviteCode] = useState<{ roomId: string; code: string; createdAt: number } | null>(null)
+    const [inviteCode, setInviteCode] = useState<{
+        roomId: string
+        code: string
+        createdAt: number
+    } | null>(null)
     const room = state.room
+    const diagnostics = state.diagnostics
+    const connected = state.connection === 'connected'
     const host = room?.hostUserId === state.userId
     const owner = room?.ownerUserId === state.userId
     const offered = room?.hostOffer?.targetUserId === state.userId
+    useEffect(() => setError(''), [state.connection, room?.roomId])
+    const age = (value: number | null | undefined) =>
+        value === null || value === undefined
+            ? t('pages.joint.diagnostics.unknown')
+            : t('pages.joint.diagnostics.seconds', {
+                  count: Math.ceil(value / 1000),
+              })
+    const retry = async () => {
+        setBusy(true)
+        setError('')
+        try {
+            await desktopApi.listening.get()
+        } catch {
+            setError('CONNECTION_FAILED')
+        } finally {
+            setBusy(false)
+        }
+    }
     const run = async (operation: ListeningOperation) => {
         setBusy(true)
         setError('')
@@ -29,7 +61,12 @@ export default function JointPage() {
             const result = await desktopApi.listening.run(operation)
             if (!result.ok) setError(result.error ?? 'UNAVAILABLE')
             if (result.invitation) {
-                if (room) setInviteCode({ roomId: room.roomId, code: result.invitation, createdAt: performance.now() })
+                if (room)
+                    setInviteCode({
+                        roomId: room.roomId,
+                        code: result.invitation,
+                        createdAt: performance.now(),
+                    })
                 await desktopApi.system.writeClipboardText(result.invitation)
             }
         } catch {
@@ -49,80 +86,269 @@ export default function JointPage() {
             setError('UNAVAILABLE')
         }
     }
+    const connecting = state.loading || state.connection === 'connecting'
+    const playbackStatus =
+        connected && room?.status === 'open' && room.controller?.connection === 'online' ? (room.playback?.actual.status ?? 'waiting') : 'waiting'
     return (
-        <PageLayout title={t('pages.joint.title')}>
-            <section className={styles.panel}>
-                <h2>{t('pages.joint.title')}</h2>
-                <p>{t('pages.joint.description')}</p>
-                {!state.modReady && <p role="status">{t('pages.joint.modRequired')}</p>}
-                <p role="status">{t(`pages.joint.connection.${state.connection}`)}</p>
-                {issue && <p role="alert">{t(`pages.joint.errors.${issue}`, { defaultValue: t('pages.joint.errors.UNAVAILABLE') })}</p>}
-                {!room ? (
-                    <>
-                        <Button disabled={busy || !state.modReady} onClick={() => void run({ type: 'create' })}>
-                            {t('pages.joint.create')}
-                        </Button>
-                        <label htmlFor="listening-invitation">{t('pages.joint.invitation')}</label>
-                        <input
-                            id="listening-invitation"
-                            value={invitation}
-                            maxLength={64}
-                            placeholder="K7MP-4X9D-R2TW"
-                            autoCapitalize="characters"
-                            autoComplete="off"
-                            spellCheck={false}
-                            onChange={event => setInvitation(event.target.value)}
-                        />
-                        <Button disabled={busy || !state.modReady || !invitation.trim()} onClick={() => void run({ type: 'join', invitation })}>
-                            {t('pages.joint.join')}
-                        </Button>
-                    </>
-                ) : (
-                    <>
-                        <p>{t(host ? 'pages.joint.hostHint' : 'pages.joint.listenerHint')}</p>
-                        <div className={styles.actions}>
-                            {owner && (
-                                <Button disabled={busy} onClick={() => void copyCode()}>
-                                    {t('pages.joint.copyInvite')}
+        <PageLayout title={t('pages.joint.title')} className={styles.page}>
+            <Scrollbar className={styles.scrollArea} classNameInner={styles.scrollContent}>
+                <div className={styles.content}>
+                    <header className={styles.header}>
+                        <div>
+                            <h1>{t(room ? 'pages.joint.ui.roomTitle' : 'pages.joint.ui.startTitle')}</h1>
+                            <p>
+                                {room && <>{t('pages.joint.roomStatus.' + room.status)} · </>}
+                                {t(room ? (host ? 'pages.joint.hostHint' : 'pages.joint.listenerHint') : 'pages.joint.ui.startDescription')}
+                            </p>
+                        </div>
+                        <span className={styles.serviceStatus} data-connected={connected} role="status">
+                            <span aria-hidden="true" />
+                            {t('pages.joint.connection.' + (connecting ? 'connecting' : state.connection))}
+                        </span>
+                    </header>
+                    {(issue || !connected) && (
+                        <section className={styles.notice} aria-label={t('pages.joint.ui.connectionTitle')}>
+                            <div>
+                                {issue && (
+                                    <p role="alert">{t('pages.joint.errors.' + issue, { defaultValue: t('pages.joint.errors.UNAVAILABLE') })}</p>
+                                )}
+                                {!connected && diagnostics && diagnostics.reconnectAttempt > 0 && (
+                                    <p className={styles.muted}>
+                                        {diagnostics.retryInMs === null
+                                            ? t('pages.joint.ui.retryAttempt', { attempt: diagnostics.reconnectAttempt })
+                                            : t('pages.joint.diagnostics.retry', {
+                                                  attempt: diagnostics.reconnectAttempt,
+                                                  delay: age(diagnostics.retryInMs),
+                                              })}
+                                    </p>
+                                )}
+                            </div>
+                            {!connected && (
+                                <Button
+                                    variant="secondary"
+                                    size="sm"
+                                    uppercase={false}
+                                    icon={<MdRefresh />}
+                                    disabled={busy || connecting}
+                                    onClick={() => void retry()}
+                                >
+                                    {t('pages.joint.retry')}
                                 </Button>
                             )}
-                            <Button disabled={busy} onClick={() => void run({ type: owner ? 'close' : 'leave' })}>
-                                {t(owner ? 'pages.joint.close' : 'pages.joint.leave')}
-                            </Button>
-                        </div>
-                        {owner && activeCode && <p>{t('pages.joint.codeCreated', { code: activeCode })}</p>}
-                        {offered && (
-                            <div className={styles.actions}>
-                                <p>{t('pages.joint.offerHint')}</p>
-                                <Button disabled={busy || !state.modReady} onClick={() => void run({ type: 'accept' })}>
-                                    {t('pages.joint.accept')}
-                                </Button>
-                                <Button disabled={busy} onClick={() => void run({ type: 'decline' })}>
-                                    {t('pages.joint.decline')}
-                                </Button>
-                            </div>
-                        )}
-                        <ul className={styles.participants}>
-                            {room.participants.map((participant, index) => (
-                                <li key={participant.userId}>
-                                    <span>
-                                        {participant.userId === state.userId
-                                            ? t('pages.joint.you')
-                                            : t('pages.joint.participant', { number: index + 1 })}{' '}
-                                        · {t(participant.role === 'host' ? 'pages.joint.host' : 'pages.joint.listener')} ·{' '}
-                                        {t(`pages.joint.following.${participant.following}`)}
-                                    </span>
-                                    {(host || owner) && participant.role !== 'host' && !room.hostOffer && (
-                                        <Button disabled={busy} onClick={() => void run({ type: 'offer', userId: participant.userId })}>
-                                            {t('pages.joint.offer')}
-                                        </Button>
+                        </section>
+                    )}
+                    <div className={styles.grid}>
+                        <div className={styles.mainColumn}>
+                            {!room ? (
+                                <section className={styles.panel} aria-labelledby="listening-create-title">
+                                    <div className={styles.sectionHeading}>
+                                        <h2 id="listening-create-title">{t('pages.joint.ui.createTitle')}</h2>
+                                        <p>{t('pages.joint.ui.createDescription')}</p>
+                                    </div>
+                                    <div className={styles.musicConnection}>
+                                        <img src={staticAsset('assets/icons/homeYandexMusic.svg')} alt="" />
+                                        <div>
+                                            <strong>{t('pages.joint.diagnostics.mod')}</strong>
+                                            <span>{t(state.modReady ? 'pages.joint.diagnostics.modConnected' : 'pages.joint.ui.notConnected')}</span>
+                                        </div>
+                                    </div>
+                                    {!state.modReady && <p className={styles.hint}>{t('pages.joint.modRequired')}</p>}
+                                    <ButtonV2
+                                        className={styles.primaryAction}
+                                        disabled={busy || !connected || !state.modReady}
+                                        onClick={() => void run({ type: 'create' })}
+                                    >
+                                        <MdAdd aria-hidden="true" />
+                                        {t('pages.joint.create')}
+                                    </ButtonV2>
+                                </section>
+                            ) : (
+                                <>
+                                    <div className={styles.playbackSummary}>
+                                        <span>
+                                            <MdHeadphones aria-hidden="true" />
+                                            {t('pages.joint.ui.playback.' + playbackStatus)}
+                                        </span>
+                                        <span>
+                                            <MdShuffle aria-hidden="true" />
+                                            {t(room.queue.shuffle ? 'pages.joint.diagnostics.shuffleOn' : 'pages.joint.diagnostics.shuffleOff')}
+                                        </span>
+                                        <span>
+                                            <MdRepeat aria-hidden="true" />
+                                            {t('pages.joint.repeat.' + (room.queue.repeatMode ?? 'none'))}
+                                        </span>
+                                    </div>
+                                    {offered && (
+                                        <section className={styles.offer}>
+                                            <p>{t('pages.joint.offerHint')}</p>
+                                            <div className={styles.actions}>
+                                                <ButtonV2
+                                                    className={styles.primaryAction}
+                                                    disabled={busy || !connected || !state.modReady}
+                                                    onClick={() => void run({ type: 'accept' })}
+                                                >
+                                                    {t('pages.joint.accept')}
+                                                </ButtonV2>
+                                                <Button
+                                                    variant="secondary"
+                                                    size="sm"
+                                                    uppercase={false}
+                                                    disabled={busy || !connected}
+                                                    onClick={() => void run({ type: 'decline' })}
+                                                >
+                                                    {t('pages.joint.decline')}
+                                                </Button>
+                                            </div>
+                                        </section>
                                     )}
-                                </li>
-                            ))}
-                        </ul>
-                    </>
-                )}
-            </section>
+                                    <section aria-labelledby="listening-participants-title">
+                                        <div className={styles.sectionHeader}>
+                                            <h2 id="listening-participants-title">{t('pages.joint.ui.participantsTitle')}</h2>
+                                            <span className={styles.count}>{room.participants.length}</span>
+                                        </div>
+                                        {!connected && <p className={styles.hint}>{t('pages.joint.staleParticipants')}</p>}
+                                        <ul className={styles.participants}>
+                                            {room.participants.map((participant, index) => (
+                                                <li key={participant.userId}>
+                                                    <Avatar size="sm" shape="rounded" fallback={<MdPersonOutline size={20} />} />
+                                                    <div className={styles.participantInfo}>
+                                                        <strong>
+                                                            {participant.userId === state.userId
+                                                                ? t('pages.joint.you')
+                                                                : t('pages.joint.participant', { number: index + 1 })}
+                                                        </strong>
+                                                        <span>{t(participant.role === 'host' ? 'pages.joint.host' : 'pages.joint.listener')}</span>
+                                                        {participant.reason && (
+                                                            <span className={styles.warning}>{t('pages.joint.reasons.' + participant.reason)}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className={styles.participantActions}>
+                                                        <span
+                                                            className={styles.participantStatus}
+                                                            data-warning={
+                                                                participant.connection === 'reconnecting' || participant.following === 'unavailable'
+                                                            }
+                                                        >
+                                                            {t(
+                                                                participant.connection === 'reconnecting'
+                                                                    ? 'pages.joint.participantConnection.reconnecting'
+                                                                    : participant.following === 'following' && playbackStatus !== 'playing'
+                                                                      ? 'pages.joint.ui.playback.' + playbackStatus
+                                                                      : 'pages.joint.following.' + participant.following,
+                                                            )}
+                                                        </span>
+                                                        {(host || owner) && participant.role !== 'host' && !room.hostOffer && (
+                                                            <Button
+                                                                variant="ghost"
+                                                                size="compact"
+                                                                uppercase={false}
+                                                                disabled={busy || !connected || participant.connection !== 'online'}
+                                                                onClick={() => void run({ type: 'offer', userId: participant.userId })}
+                                                            >
+                                                                {t('pages.joint.offer')}
+                                                            </Button>
+                                                        )}
+                                                    </div>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </section>
+                                </>
+                            )}
+                        </div>
+                        <aside className={styles.sidebar}>
+                            {!room ? (
+                                <form
+                                    className={styles.panel}
+                                    onSubmit={event => {
+                                        event.preventDefault()
+                                        if (!busy && connected && state.modReady && invitation.trim()) void run({ type: 'join', invitation })
+                                    }}
+                                >
+                                    <div className={styles.sectionHeading}>
+                                        <h2>{t('pages.joint.ui.joinTitle')}</h2>
+                                        <p id="listening-invitation-hint">{t('pages.joint.ui.joinDescription')}</p>
+                                    </div>
+                                    <div className={styles.field}>
+                                        <label htmlFor="listening-invitation">{t('pages.joint.invitation')}</label>
+                                        <Input
+                                            id="listening-invitation"
+                                            aria-label={t('pages.joint.invitation')}
+                                            size="sm"
+                                            value={invitation}
+                                            maxLength={64}
+                                            placeholder="K7MP-4X9D-R2TW"
+                                            autoCapitalize="characters"
+                                            autoComplete="off"
+                                            spellCheck={false}
+                                            aria-describedby="listening-invitation-hint"
+                                            onChange={event => setInvitation(event.target.value)}
+                                        />
+                                    </div>
+                                    <ButtonV2
+                                        type="submit"
+                                        className={styles.primaryAction}
+                                        disabled={busy || !connected || !state.modReady || !invitation.trim()}
+                                    >
+                                        <MdLogin aria-hidden="true" />
+                                        {t('pages.joint.join')}
+                                    </ButtonV2>
+                                </form>
+                            ) : (
+                                <section className={styles.panel}>
+                                    <div className={styles.sectionHeading}>
+                                        <h2>{t(owner ? 'pages.joint.ui.inviteTitle' : 'pages.joint.ui.roomTitle')}</h2>
+                                        <p>{t(owner ? 'pages.joint.ui.inviteDescription' : 'pages.joint.roomStatus.' + room.status)}</p>
+                                    </div>
+                                    {owner && (
+                                        <>
+                                            {activeCode ? (
+                                                <Input size="sm" value={activeCode} readOnly aria-label={t('pages.joint.invitation')} />
+                                            ) : (
+                                                <p className={styles.hint}>{t('pages.joint.ui.codeNotCreated')}</p>
+                                            )}
+                                            <ButtonV2 className={styles.primaryAction} disabled={busy || !connected} onClick={() => void copyCode()}>
+                                                <MdContentCopy aria-hidden="true" />
+                                                {t(activeCode ? 'pages.joint.copyInvite' : 'pages.joint.ui.createInvite')}
+                                            </ButtonV2>
+                                            <p className={styles.hint}>{t('pages.joint.ui.inviteLifetime')}</p>
+                                        </>
+                                    )}
+                                    <div className={styles.roomFooter}>
+                                        <Button
+                                            variant="ghost"
+                                            fullWidth
+                                            size="sm"
+                                            uppercase={false}
+                                            className={styles.leaveButton}
+                                            icon={<MdLogout />}
+                                            disabled={busy || !connected}
+                                            onClick={() => void run({ type: owner ? 'close' : 'leave' })}
+                                        >
+                                            {t(owner ? 'pages.joint.close' : 'pages.joint.leave')}
+                                        </Button>
+                                    </div>
+                                </section>
+                            )}
+                            <section className={styles.connectionPanel} aria-labelledby="listening-connection-title">
+                                <h2 id="listening-connection-title">{t('pages.joint.ui.connectionTitle')}</h2>
+                                <dl className={styles.connectionValues}>
+                                    <div>
+                                        <dt>{t('pages.joint.ui.service')}</dt>
+                                        <dd>{t('pages.joint.connection.' + (connecting ? 'connecting' : state.connection))}</dd>
+                                    </div>
+                                    <div>
+                                        <dt>{t('pages.joint.diagnostics.mod')}</dt>
+                                        <dd>{t(state.modReady ? 'pages.joint.diagnostics.modConnected' : 'pages.joint.ui.notConnected')}</dd>
+                                    </div>
+                                </dl>
+                                {room && !state.modReady && <p className={styles.hint}>{t('pages.joint.modRequired')}</p>}
+                            </section>
+                            {diagnostics && <ListeningDiagnostics diagnostics={diagnostics} queue={room?.queue} />}
+                        </aside>
+                    </div>
+                </div>
+            </Scrollbar>
         </PageLayout>
     )
 }

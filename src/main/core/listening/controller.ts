@@ -13,7 +13,24 @@ import type { ListeningAccess } from './access'
 import type { ListeningView, ModListeningFrame } from '@common/listening/types'
 import type { BrowserWindow } from 'electron'
 
-const disabledView = (): ListeningView => ({ available: false, connection: 'idle', userId: null, room: null, modReady: false, error: null })
+const disabledView = (): ListeningView => ({
+    available: false,
+    connection: 'idle',
+    userId: null,
+    room: null,
+    modReady: false,
+    error: null,
+})
+const diagnosticFields = [
+    'rttMs',
+    'clockUncertaintyMs',
+    'snapshotAgeMs',
+    'sourceAgeMs',
+    'reconnectAttempt',
+    'retryInMs',
+    'lastDisconnectReason',
+    'sourceError',
+] as const
 export class ListeningController {
     readonly mod = new ListeningModTransport()
     private readonly host = new HostSource()
@@ -35,15 +52,20 @@ export class ListeningController {
     private socketPath = '/ws'
     private tick?: NodeJS.Timeout
     private reconnect?: NodeJS.Timeout
-    private lastConfiguration = -Infinity
+    private configurationDueAt = -Infinity
     private configuring?: Promise<void>
     private connecting?: Promise<void>
     private busy = false
     private reconnectDelay = 1000
+    private reconnectAttempt = 0
+    private retryAt = 0
+    private lastDisconnectReason: string | null = null
+    private published?: ListeningView
     private disconnectedAt = 0
     private participantAt = -Infinity
     private participantSeq = 0
     private participantState = ''
+    private participantWork: object | null = null
     private pendingCommand: ModListeningFrame['command'] = null
 
     constructor(private readonly access: ListeningAccess) {
@@ -66,14 +88,31 @@ export class ListeningController {
             if (!this.view.available || !this.window || this.window.isDestroyed()) return
             this.window.show()
             this.window.focus()
-            this.window.webContents.send(LISTENING_IPC.changed, { ...this.snapshot(), open: true })
+            this.window.webContents.send(LISTENING_IPC.changed, {
+                ...this.snapshot(),
+                open: true,
+            })
         }
     }
     bindWindow(window: BrowserWindow): void {
         this.window = window
+        this.published = undefined
     }
     snapshot(): ListeningView {
-        return { ...this.view, userId: this.connection.userId, room: this.connection.room, modReady: this.mod.ready }
+        return {
+            ...this.view,
+            userId: this.connection.userId,
+            room: this.connection.room,
+            modReady: this.mod.ready,
+            diagnostics: {
+                ...this.connection.diagnostics,
+                sourceAgeMs: this.mod.source ? Math.round(performance.now() - this.mod.source.capturedAtMs) : null,
+                reconnectAttempt: this.reconnectAttempt,
+                retryInMs: this.retryAt ? Math.max(0, Math.ceil((this.retryAt - performance.now()) / 1000) * 1000) : null,
+                lastDisconnectReason: this.lastDisconnectReason,
+                sourceError: this.host.error,
+            },
+        }
     }
     async start(): Promise<ListeningView> {
         const generation = this.generation
@@ -85,21 +124,20 @@ export class ListeningController {
             this.tick = setInterval(() => this.pulse(), 1000)
             this.tick.unref()
         }
+        if (!this.connection.connected && !this.connecting) this.configurationDueAt = -Infinity
         await this.configure()
-        if (this.view.available) {
-            try {
-                await this.connect()
-            } catch (error) {
-                this.disconnected(error instanceof Error ? error.message : 'CONNECTION_FAILED')
-            }
-        }
+        if (generation !== this.generation || !this.enabled) throw new Error('CANCELLED')
+        clearTimeout(this.reconnect)
+        this.retryAt = 0
+        await this.connect().catch(() => {})
         return this.snapshot()
     }
     private async configure(): Promise<void> {
         if (this.configuring) return this.configuring
-        if (!this.enabled || performance.now() - this.lastConfiguration < 30000) return
+        if (!this.enabled || performance.now() < this.configurationDueAt) return
         const generation = this.generation
         const pending = (async () => {
+            let transient = false
             try {
                 const configuration = await this.access.configuration()
                 if (generation !== this.generation || !this.enabled) return
@@ -122,13 +160,21 @@ export class ListeningController {
                 this.url = url.origin
                 this.socketPath = socketPath
                 this.view.available = true
-            } catch {
+                if (this.connection.connected && this.view.connection === 'connected' && this.view.error === 'ACCESS_UNAVAILABLE')
+                    this.view.error = null
+            } catch (error) {
                 if (generation !== this.generation) return
-                this.clearRoom()
-                this.view.available = false
+                if (error instanceof Error && error.message === 'ACCESS_UNAVAILABLE') {
+                    transient = true
+                    this.view.error = 'ACCESS_UNAVAILABLE'
+                    if (!this.url) this.view.available = true
+                } else {
+                    this.clearRoom()
+                    this.view.available = false
+                }
             } finally {
                 if (generation === this.generation) {
-                    this.lastConfiguration = performance.now()
+                    this.configurationDueAt = performance.now() + (transient ? 5000 : 30000)
                     this.publish()
                     this.frame()
                 }
@@ -149,13 +195,17 @@ export class ListeningController {
         return ticket
     }
     private async connect(): Promise<void> {
-        if (this.connection.connected) return
         if (this.connecting) return this.connecting
+        if (this.connection.connected && this.view.connection === 'connected') return
         const generation = this.generation
         const work = (async () => {
             await this.configure()
-            if (!this.enabled || !this.view.available) throw new Error('FEATURE_UNAVAILABLE')
-            this.view.connection = this.connection.room ? 'reconnecting' : 'connecting'
+            if (generation !== this.generation || !this.enabled) throw new Error('CANCELLED')
+            if (!this.view.available) throw new Error('FEATURE_UNAVAILABLE')
+            if (!this.url) throw new Error('ACCESS_UNAVAILABLE')
+            clearTimeout(this.reconnect)
+            this.retryAt = 0
+            this.view.connection = this.connection.room || this.reconnectAttempt ? 'reconnecting' : 'connecting'
             this.publish()
             await this.connection.connect(this.url, this.socketPath)
             if (generation !== this.generation) throw new Error('CANCELLED')
@@ -166,29 +216,46 @@ export class ListeningController {
                     const resumed = record(
                         await this.connection.request(
                             'room:resume',
-                            { roomId, commandId: randomUUID(), lastSeenRevision: room?.revision ?? 0 },
+                            {
+                                roomId,
+                                commandId: randomUUID(),
+                                lastSeenRevision: room?.revision ?? 0,
+                            },
                             true,
                         ),
                     )
-                    this.connection.accept(resumed.snapshot)
+                    this.connection.accept(resumed.snapshot, true)
                 } catch (error) {
-                    if (error instanceof Error && ['FORBIDDEN', 'ROOM_NOT_FOUND', 'ROOM_CLOSED', 'ACCESS_REVOKED'].includes(error.message))
-                        this.clearRoom()
-                    throw error
+                    if (error instanceof Error && ['FORBIDDEN', 'ROOM_NOT_FOUND', 'ROOM_CLOSED'].includes(error.message)) {
+                        this.connection.room = null
+                        this.connection.resumableRoomId = null
+                        this.view.error = 'ROOM_ENDED'
+                    } else throw error
                 }
             }
+            if (generation !== this.generation || !this.connection.connected) throw new Error('CANCELLED')
             this.reconnectDelay = 1000
+            this.reconnectAttempt = 0
+            clearTimeout(this.reconnect)
+            this.retryAt = 0
             this.view.connection = 'connected'
-            this.view.error = null
+            if (this.view.error !== 'ROOM_ENDED') this.view.error = null
             this.disconnectedAt = 0
             this.host.reset()
             this.participantSeq = 0
+            this.participantAt = -Infinity
+            this.participantState = ''
+            this.participantWork = null
             this.publish()
             this.frame()
         })()
         this.connecting = work
         try {
             await work
+        } catch (error) {
+            if (generation === this.generation && this.enabled && !(error instanceof Error && error.message === 'CANCELLED'))
+                this.disconnected(error instanceof Error ? error.message : 'CONNECTION_FAILED')
+            throw error
         } finally {
             if (this.connecting === work) this.connecting = undefined
         }
@@ -199,9 +266,9 @@ export class ListeningController {
         try {
             const operation = listeningOperation(input)
             await this.start()
-            await this.connect()
+            if (!this.connection.connected || this.view.connection !== 'connected') throw new Error(this.view.error ?? 'NOT_CONNECTED')
             if (!this.mod.ready && ['create', 'join', 'control'].includes(operation.type)) throw new Error('MOD_UNAVAILABLE')
-            const result = await performRoomOperation(this.connection, this.host, operation, () => this.clearRoom())
+            const result = await performRoomOperation(this.connection, this.host, operation, () => this.clearRoom(false))
             if (operation.type === 'create' || operation.type === 'join') this.participantSeq = 0
             this.view.error = null
             this.publish()
@@ -233,7 +300,11 @@ export class ListeningController {
             return
         const itemId = command.action.type === 'selectItem' ? command.action.itemId : room.queue.currentItemId
         this.host.expectCommand(room, command.commandId, itemId ?? null)
-        this.pendingCommand = { commandId: command.commandId, action: command.action, item: room.queue.items.find(item => item.itemId === itemId) }
+        this.pendingCommand = {
+            commandId: command.commandId,
+            action: command.action,
+            item: room.queue.items.find(item => item.itemId === itemId),
+        }
         this.frame()
     }
     private pulse(): void {
@@ -243,47 +314,83 @@ export class ListeningController {
             return
         }
         void this.configure()
-        if (this.connection.connected && this.mod.source) void this.host.report(this.connection, this.mod.source)
+        const connected = this.connection.connected && this.view.connection === 'connected'
+        if (connected && this.mod.source) void this.host.report(this.connection, this.mod.source)
         const frame = this.frame()
+        this.publish()
         const room = this.connection.room
-        if (!room || !this.connection.connected) return
+        if (!room || !connected || this.participantWork) return
         const fresh = this.mod.source && performance.now() - this.mod.source.capturedAtMs < 3000
-        const participantState = JSON.stringify([Boolean(fresh), this.mod.source?.reason, this.mod.source?.status, Boolean(frame.target)])
+        const following = frame.role === 'host' ? Boolean(this.connection.clock) : Boolean(frame.target && frame.target.status !== 'buffering')
+        const status =
+            !fresh || this.mod.source!.reason
+                ? 'unavailable'
+                : !following
+                  ? 'suspended'
+                  : this.mod.source!.status === 'buffering'
+                    ? 'buffering'
+                    : 'following'
+        const reason = !fresh ? 'client_unavailable' : (this.mod.source!.reason ?? null)
+        const participantState = JSON.stringify([status, reason])
         const interval = participantState === this.participantState ? 5500 : 2600
         if (performance.now() - this.participantAt < interval) return
         this.participantAt = performance.now()
         this.participantState = participantState
+        const participantWork = {}
+        this.participantWork = participantWork
+        const generation = this.generation
         void this.connection
             .request('room:participant:report', {
                 roomId: room.roomId,
                 reportSeq: ++this.participantSeq,
                 observedRevision: room.revision,
-                status:
-                    !fresh || this.mod.source!.reason
-                        ? 'unavailable'
-                        : !frame.target
-                          ? 'suspended'
-                          : this.mod.source!.status === 'buffering'
-                            ? 'buffering'
-                            : 'following',
-                reason: !fresh ? 'client_unavailable' : (this.mod.source!.reason ?? (frame.target ? null : 'client_unavailable')),
+                status,
+                reason,
             })
-            .catch(() => this.connection.refresh())
+            .catch(() => {
+                if (generation === this.generation && connected) this.connection.refresh()
+            })
+            .finally(() => {
+                if (this.participantWork === participantWork) this.participantWork = null
+            })
     }
     private frame(): ModListeningFrame {
-        const frame = projectListeningFrame(this.connection, this.view.available, this.disconnectedAt, this.pendingCommand)
+        const frame = projectListeningFrame(
+            {
+                room: this.connection.room,
+                userId: this.connection.userId,
+                clock: this.connection.clock,
+                connected: this.connection.connected && this.view.connection === 'connected',
+            },
+            this.view.available,
+            this.disconnectedAt,
+            this.pendingCommand,
+        )
         this.mod.send(frame)
         return frame
     }
     private disconnected(reason: string): void {
         if (!this.enabled) return
-        if (reason === 'ACCESS_REVOKED') {
+        if (['ACCESS_REVOKED', 'AUTH_CHANGED', 'AUTH_INVALID'].includes(reason)) {
             this.stop()
             this.view.error = reason
             this.publish()
             return
         }
-        if (!this.connection.room) {
+        if (reason === 'ROOM_ENDED') {
+            this.clearRoom(false)
+            this.view.error = reason
+            this.publish()
+            this.frame()
+            return
+        }
+        this.connection.close()
+        this.host.reset()
+        this.pendingCommand = null
+        this.lastDisconnectReason = reason
+        if (['FEATURE_UNAVAILABLE', 'PROTOCOL_INVALID', 'PROTOCOL_UNSUPPORTED', 'CONFIGURATION_INVALID'].includes(reason)) {
+            clearTimeout(this.reconnect)
+            this.retryAt = 0
             this.view.connection = 'idle'
             this.view.error = reason
             this.publish()
@@ -295,38 +402,72 @@ export class ListeningController {
         this.disconnectedAt ||= performance.now()
         this.publish()
         this.frame()
-        clearTimeout(this.reconnect)
+        if (this.retryAt) return
+        this.reconnectAttempt++
+        const delay = Math.round(this.reconnectDelay * (0.8 + Math.random() * 0.4))
+        this.retryAt = performance.now() + delay
         this.reconnect = setTimeout(() => {
-            if (this.enabled && this.connection.room) void this.connect().catch(() => this.disconnected(reason))
-        }, this.reconnectDelay)
-        this.reconnectDelay = Math.min(15000, this.reconnectDelay * 2)
+            this.retryAt = 0
+            if (this.enabled) void this.connect().catch(() => {})
+        }, delay)
+        this.reconnectDelay = Math.min(8000, this.reconnectDelay * 2)
         this.reconnect.unref()
     }
-    private clearRoom(): void {
-        this.connection.close()
+    private clearRoom(disconnect = true): void {
+        if (disconnect) this.connection.close()
         this.connection.room = null
+        this.connection.resumableRoomId = null
         this.host.reset()
         this.pendingCommand = null
-        this.view.connection = 'idle'
+        this.view.connection = this.connection.connected ? 'connected' : 'idle'
         this.disconnectedAt = 0
         this.participantAt = -Infinity
         this.participantState = ''
+        this.participantWork = null
+        this.retryAt = 0
+        this.reconnectAttempt = 0
+        this.reconnectDelay = 1000
         clearTimeout(this.reconnect)
     }
     stop(): void {
         this.enabled = false
         this.generation++
+        this.connecting = undefined
+        this.configuring = undefined
         clearInterval(this.tick)
         this.clearRoom()
         this.connection.userId = null
         this.identity = ''
-        this.lastConfiguration = -Infinity
+        this.url = ''
+        this.socketPath = '/ws'
+        this.configurationDueAt = -Infinity
+        this.lastDisconnectReason = null
         this.view = disabledView()
         this.mod.disable()
         this.publish()
     }
     private publish(): void {
-        if (this.window && !this.window.isDestroyed() && !this.window.webContents.isDestroyed())
-            this.window.webContents.send(LISTENING_IPC.changed, this.snapshot())
+        if (!this.window || this.window.isDestroyed() || this.window.webContents.isDestroyed()) return
+        const snapshot = this.snapshot()
+        if (snapshot.diagnostics) {
+            for (const key of ['snapshotAgeMs', 'sourceAgeMs'] as const) {
+                const age = snapshot.diagnostics[key]
+                snapshot.diagnostics[key] = age === null ? null : Math.floor(age / 1000) * 1000
+            }
+        }
+        const previous = this.published
+        if (
+            previous &&
+            previous.available === snapshot.available &&
+            previous.connection === snapshot.connection &&
+            previous.userId === snapshot.userId &&
+            previous.room === snapshot.room &&
+            previous.modReady === snapshot.modReady &&
+            previous.error === snapshot.error &&
+            diagnosticFields.every(key => previous.diagnostics?.[key] === snapshot.diagnostics?.[key])
+        )
+            return
+        this.published = snapshot
+        this.window.webContents.send(LISTENING_IPC.changed, snapshot)
     }
 }

@@ -20,15 +20,24 @@ export class ListeningConnection {
     private timer?: NodeJS.Timeout
     private clockTimer?: NodeJS.Timeout
     private generation = 0
-    private refreshing = false
-    private clockWork = false
+    private clockWork: number | null = null
     private uncertaintyMs = 2000
     private offsetMs = 0
     private clockValidUntil = 0
+    private snapshotAt = 0
+    private rttMs: number | null = null
+    private refreshGeneration: number | null = null
     room: ListeningRoom | null = null
     resumableRoomId: string | null = null
     userId: string | null = null
     queueModes = false
+    get diagnostics() {
+        return {
+            rttMs: this.rttMs,
+            clockUncertaintyMs: this.clock?.uncertaintyMs ?? null,
+            snapshotAgeMs: this.room && this.snapshotAt ? Math.round(performance.now() - this.snapshotAt) : null,
+        }
+    }
     get connected(): boolean {
         return this.socket?.connected === true
     }
@@ -63,6 +72,7 @@ export class ListeningConnection {
         socket.on('room:playback', value => {
             const delta = record(value),
                 room = this.room
+            if (room && delta.roomId === room.roomId && typeof delta.revision === 'number' && delta.revision <= room.revision) return
             if (
                 !room ||
                 delta.roomId !== room.roomId ||
@@ -76,6 +86,7 @@ export class ListeningConnection {
         socket.on('room:participant', value => {
             const delta = record(value),
                 room = this.room
+            if (room && delta.roomId === room.roomId && typeof delta.revision === 'number' && delta.revision <= room.revision) return
             if (!room || delta.roomId !== room.roomId || delta.revision !== room.revision + 1 || !listeningParticipant(delta.participant))
                 return this.refresh()
             const participant = delta.participant
@@ -89,7 +100,8 @@ export class ListeningConnection {
         socket.on('room:closed', value => {
             if (record(value).roomId !== this.room?.roomId) return
             this.room = null
-            this.changed()
+            this.resumableRoomId = null
+            this.lost('ROOM_ENDED')
         })
         socket.on('session:expired', value => {
             if (record(value).code === 'AUTH_INVALID') {
@@ -99,10 +111,12 @@ export class ListeningConnection {
                 this.lost('ACCESS_REVOKED')
             } else socket.disconnect()
         })
-        socket.on('disconnect', () => {
+        socket.on('disconnect', reason => {
             clearTimeout(this.timer)
             clearInterval(this.clockTimer)
-            if (this.socket === socket) this.lost('CONNECTION_LOST')
+            this.clockValidUntil = 0
+            socket.sendBuffer = []
+            if (this.socket === socket) this.lost(reason === 'ping timeout' ? 'HEARTBEAT_TIMEOUT' : 'CONNECTION_LOST')
         })
         try {
             await new Promise<void>((resolve, reject) => {
@@ -134,14 +148,19 @@ export class ListeningConnection {
                     resolve()
                 }
                 socket.once('session:ready', ready)
-                socket.once('connect_error', () => {
+                socket.once('connect_error', (error: Error & { data?: { code?: string } }) => {
                     clearTimeout(timer)
-                    reject(new Error('CONNECTION_FAILED'))
+                    reject(new Error(error.data?.code && /^[A-Z_]{1,40}$/u.test(error.data.code) ? error.data.code : 'CONNECTION_FAILED'))
+                })
+                socket.once('disconnect', () => {
+                    clearTimeout(timer)
+                    reject(new Error('CONNECTION_LOST'))
                 })
                 socket.connect()
             })
             if (generation !== this.generation) throw new Error('CANCELLED')
             await this.calibrate()
+            if (generation !== this.generation || !socket.connected) throw new Error('CANCELLED')
             this.clockTimer = setInterval(() => void this.calibrate(), 10000)
             this.clockTimer.unref()
         } catch (error) {
@@ -156,7 +175,7 @@ export class ListeningConnection {
         let ack: unknown
         for (let attempt = 0; ; attempt++) {
             try {
-                ack = await socket.timeout(4000).emitWithAck(event, payload)
+                ack = await socket.volatile.timeout(4000).emitWithAck(event, payload)
                 break
             } catch {
                 if (!retry || attempt >= 1 || socket !== this.socket || !socket.connected) throw new Error('ACK_TIMEOUT')
@@ -172,10 +191,12 @@ export class ListeningConnection {
     }
 
     accept(value: unknown, replace = false): void {
+        if (!replace && !this.room) return
         try {
             const room = listeningRoom(value)
             if (!replace && this.room && (room.roomId !== this.room.roomId || room.revision < this.room.revision)) return
             this.room = room
+            this.snapshotAt = performance.now()
             this.changed()
         } catch {
             this.close()
@@ -184,18 +205,26 @@ export class ListeningConnection {
     }
     refresh(): void {
         const roomId = this.room?.roomId
-        if (!roomId || this.refreshing || !this.connected) return
-        this.refreshing = true
+        if (!roomId || this.refreshGeneration === this.generation || !this.connected) return
+        const generation = this.generation
+        this.refreshGeneration = generation
         void this.request('room:get', { roomId })
-            .then(value => this.accept(value))
-            .catch(() => {})
+            .then(value => {
+                if (generation === this.generation && this.room?.roomId === roomId) this.accept(value)
+            })
+            .catch(error => {
+                if (generation !== this.generation) return
+                if (error instanceof Error && ['FORBIDDEN', 'ROOM_NOT_FOUND', 'ROOM_CLOSED'].includes(error.message)) this.lost('ROOM_ENDED')
+            })
             .finally(() => {
-                this.refreshing = false
+                if (this.refreshGeneration === generation) {
+                    this.refreshGeneration = null
+                }
             })
     }
     private async calibrate(): Promise<void> {
-        if (this.clockWork || !this.connected) return
-        this.clockWork = true
+        if (this.clockWork === this.generation || !this.connected) return
+        this.clockWork = this.generation
         const sent = performance.now(),
             generation = this.generation,
             requestId = randomUUID()
@@ -215,12 +244,13 @@ export class ListeningConnection {
             if (uncertainty < 0 || uncertainty > 2000 || serverSend < serverReceive) return
             if (this.clockValidUntil > received && uncertainty > this.uncertaintyMs + 10) return
             this.offsetMs = (serverReceive - sent + serverSend - received) / 2
+            this.rttMs = Math.round(received - sent)
             this.uncertaintyMs = uncertainty
             this.clockValidUntil = received + 30000
         } catch {
             /* Expired calibration suspends following until the next successful sample. */
         } finally {
-            this.clockWork = false
+            if (this.clockWork === generation) this.clockWork = null
         }
     }
     private scheduleRenew(renewAtMonotonicMs: number, generation: number): void {
@@ -251,6 +281,7 @@ export class ListeningConnection {
         clearTimeout(this.timer)
         clearInterval(this.clockTimer)
         this.clockValidUntil = 0
+        this.rttMs = null
         this.queueModes = false
         this.resumableRoomId = null
         const socket = this.socket

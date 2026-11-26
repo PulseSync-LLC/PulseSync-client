@@ -1174,7 +1174,7 @@
             },
             "following": {
                 "following": "listening",
-                "buffering": "loading",
+                "buffering": "Preparing playback",
                 "unavailable": "playback unavailable",
                 "suspended": "waiting for host"
             },
@@ -1190,7 +1190,83 @@
                 "FORBIDDEN": "This action is not available to you.",
                 "REVISION_CONFLICT": "The room changed. Please try again.",
                 "PLAYBACK_FAILED": "Music could not apply the command.",
-                "ACCESS_REVOKED": "Room access has been revoked."
+                "ACCESS_REVOKED": "Room access has been revoked.",
+                "CONNECTION_FAILED": "Could not connect to the service. Retrying.",
+                "HEARTBEAT_TIMEOUT": "The service stopped responding. Reconnecting.",
+                "ACK_TIMEOUT": "The service did not acknowledge the request in time.",
+                "SERVICE_UNAVAILABLE": "The service is temporarily unavailable. Retrying.",
+                "ROOM_ENDED": "Room membership has ended. Create or join a room again.",
+                "AUTH_EXPIRED": "The connection ticket expired. Requesting a new one.",
+                "PROTOCOL_INVALID": "Received incompatible state. Update the client and service.",
+                "PROTOCOL_UNSUPPORTED": "Protocol version is unsupported. Update the client.",
+                "STALE_SOURCE": "Player state is stale. Waiting for an update.",
+                "STALE_CONTROLLER": "Room control changed. Refreshing state."
+            },
+            "retry": "Reconnect",
+            "staleParticipants": "Connection to the service was lost. The last known participant state is shown below; listener playback is paused.",
+            "participantConnection": {
+                "online": "online",
+                "reconnecting": "connection lost, reconnecting"
+            },
+            "roomStatus": {
+                "open": "Room is open",
+                "suspended": "Playback is suspended: no host is connected.",
+                "closed": "Room is closed"
+            },
+            "reasons": {
+                "track_unavailable": "track unavailable",
+                "playback_failed": "player error",
+                "device_taken_over": "playback moved to another device",
+                "client_unavailable": "no recent Music state"
+            },
+            "repeat": {
+                "none": "repeat off",
+                "context": "repeat queue",
+                "one": "repeat track"
+            },
+            "diagnostics": {
+                "title": "Connection diagnostics",
+                "unknown": "No data",
+                "seconds": "{{count}} s",
+                "ms": "ms",
+                "retry": "Attempt {{attempt}} · next retry in {{delay}}",
+                "mod": "Yandex Music",
+                "modConnected": "Connected",
+                "modDisconnected": "Disconnected or multiple windows are open",
+                "rtt": "Service round-trip time (RTT)",
+                "clock": "Synchronization uncertainty",
+                "snapshot": "Last room update",
+                "source": "Last update from your Music",
+                "queue": "Queue",
+                "shuffleOn": "shuffle on",
+                "shuffleOff": "shuffle off",
+                "disconnect": "Last disconnect",
+                "sourceError": "Playback publishing error"
+            },
+            "ui": {
+                "startTitle": "Listen together",
+                "startDescription": "Create a room for friends or join with an invitation code",
+                "createTitle": "Your room",
+                "createDescription": "Become the host and invite your friends. Participants will follow playback in your Music app.",
+                "joinTitle": "Join with a code",
+                "joinDescription": "Ask the host for an invitation code and enter it below",
+                "roomTitle": "Listening room",
+                "participantsTitle": "Participants",
+                "inviteTitle": "Invite friends",
+                "inviteDescription": "Share a code so your friends can join the room",
+                "codeNotCreated": "No code created yet",
+                "createInvite": "Create code",
+                "inviteLifetime": "The code expires 10 minutes after creation",
+                "connectionTitle": "Connection",
+                "service": "Service",
+                "notConnected": "Disconnected",
+                "retryAttempt": "Attempt {{attempt}} · connecting",
+                "playback": {
+                    "playing": "Music is playing",
+                    "paused": "Paused",
+                    "buffering": "Preparing playback",
+                    "waiting": "Waiting for playback"
+                }
             }
         },
         "store": {

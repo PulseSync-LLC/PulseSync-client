@@ -3,10 +3,22 @@ import { randomUUID } from 'node:crypto'
 import type { ListeningConnection } from './connection'
 import type { ListeningItem, ListeningRoom, ModListeningSource } from '@common/listening/types'
 
+function sameQueue(left: ListeningRoom['queue'], right: ListeningRoom['queue']): boolean {
+    return (
+        left.currentItemId === right.currentItemId &&
+        (left.repeatMode ?? 'none') === (right.repeatMode ?? 'none') &&
+        (left.shuffle ?? false) === (right.shuffle ?? false) &&
+        left.items.length === right.items.length &&
+        left.items.every((item, index) => {
+            const other = right.items[index]!
+            return item.itemId === other.itemId && item.trackId === other.trackId && item.albumId === other.albumId
+        })
+    )
+}
+
 export class HostSource {
     private generation = 0
     private targetItemId: string | null = null
-    private items = new Map<string, string>()
     private epoch = 0
     private roomId = ''
     private sequence = 0
@@ -18,10 +30,12 @@ export class HostSource {
     private lastActual?: { actual: ModListeningSource; itemId: string }
     appliedCommandId: string | null = null
     awaitingCommand: string | null = null
+    error: string | null = null
 
     async report(connection: ListeningConnection, source: ModListeningSource): Promise<void> {
         this.pending = { connection, source }
-        if (this.busy || performance.now() - this.attemptedAt < 500) {
+        if (this.busy) return
+        if (performance.now() - this.attemptedAt < 500) {
             if (!this.pendingTimer) {
                 this.pendingTimer = setTimeout(
                     () => {
@@ -52,27 +66,28 @@ export class HostSource {
         this.prepare(room)
         const generation = this.generation
         this.busy = true
-        this.attemptedAt = performance.now()
         try {
             if (this.awaitingCommand && !this.appliedCommandId) return
-            const items: ListeningItem[] = source.items.map((item, index) => {
-                const key = JSON.stringify([index, item.trackId, item.albumId])
-                return { ...item, itemId: this.items.get(key) ?? randomUUID() }
+            const available = new Map<string, string[]>()
+            for (const item of room.queue.items) {
+                const key = JSON.stringify([item.trackId, item.albumId])
+                const ids = available.get(key) ?? []
+                ids.push(item.itemId)
+                available.set(key, ids)
+            }
+            const items: ListeningItem[] = source.items.map(item => {
+                const key = JSON.stringify([item.trackId, item.albumId])
+                return { ...item, itemId: available.get(key)?.shift() ?? randomUUID() }
             })
-            this.items = new Map(items.map((item, index) => [JSON.stringify([index, item.trackId, item.albumId]), item.itemId]))
             const currentItemId = items[source.currentIndex]!.itemId
             const queue = {
                 items,
                 currentItemId,
                 ...(connection.queueModes ? { repeatMode: source.repeatMode ?? 'none', shuffle: source.shuffle ?? false } : {}),
             }
-            if (
-                !this.appliedCommandId &&
-                JSON.stringify({
-                    ...room.queue,
-                    ...(connection.queueModes ? { repeatMode: room.queue.repeatMode ?? 'none', shuffle: room.queue.shuffle ?? false } : {}),
-                }) !== JSON.stringify(queue)
-            ) {
+            const queueChanged = !sameQueue(room.queue, queue)
+            if (!this.appliedCommandId && queueChanged) {
+                this.attemptedAt = performance.now()
                 await connection.request(
                     'room:queue:replace',
                     {
@@ -85,6 +100,7 @@ export class HostSource {
                     },
                     true,
                 )
+                if (generation !== this.generation) return
                 if (connection.room?.queueRevision === room.queueRevision) {
                     const fresh = await connection.request('room:get', { roomId: room.roomId })
                     connection.accept(fresh)
@@ -113,12 +129,13 @@ export class HostSource {
                             (source.status === 'playing' ? (source.capturedAtMs - last.actual.capturedAtMs) * source.playbackRate : 0)),
                 ) <=
                     250 + clock.uncertaintyMs
-            if (!this.appliedCommandId && ordinaryProgress && performance.now() - this.lastAt < 5100) return
+            if (!this.appliedCommandId && !queueChanged && current.playback && ordinaryProgress && performance.now() - this.lastAt < 5100) return
             const itemId = this.appliedCommandId ? this.targetItemId : currentItemId
             if (!itemId) return
             const currentClock = connection.clock
             if (!currentClock) return
             const capturedAtServerMs = Math.round(currentClock.nowMs - (performance.now() - source.capturedAtMs))
+            this.attemptedAt = performance.now()
             await connection.request(
                 'room:playback:report',
                 {
@@ -146,11 +163,20 @@ export class HostSource {
             this.targetItemId = null
             this.lastAt = performance.now()
             this.lastActual = { actual: source, itemId }
+            this.error = null
         } catch (error) {
+            if (generation !== this.generation) return
+            this.error = error instanceof Error ? error.message : 'PLAYBACK_FAILED'
             if (error instanceof Error && ['REVISION_CONFLICT', 'STALE_SOURCE', 'STALE_CONTROLLER'].includes(error.message)) connection.refresh()
         } finally {
             this.busy = false
+            this.flushPending()
         }
+    }
+
+    private flushPending(): void {
+        const pending = this.pending
+        if (pending) void this.report(pending.connection, pending.source)
     }
     private prepare(room: ListeningRoom): void {
         if (this.roomId === room.roomId && this.epoch === room.epoch) return
@@ -179,7 +205,7 @@ export class HostSource {
         this.targetItemId = null
         this.epoch = 0
         this.roomId = ''
-        this.items.clear()
+        this.error = null
         this.lastActual = undefined
         this.appliedCommandId = null
         this.awaitingCommand = null
