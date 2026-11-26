@@ -5,6 +5,7 @@ import { io } from 'socket.io-client'
 import { listeningParticipant, listeningRoom, listeningUuid, record } from '@common/listening/validation'
 
 import { getPulseSyncUserAgent } from '../mod/network/userAgent'
+import { ServerClock } from './serverClock'
 
 import type { ListeningRoom } from '@common/listening/types'
 import type { Socket } from 'socket.io-client'
@@ -21,20 +22,18 @@ export class ListeningConnection {
     private clockTimer?: NodeJS.Timeout
     private generation = 0
     private clockWork: number | null = null
-    private uncertaintyMs = 2000
-    private offsetMs = 0
-    private clockValidUntil = 0
+    private readonly serverClock = new ServerClock()
     private snapshotAt = 0
-    private rttMs: number | null = null
     private refreshGeneration: number | null = null
     room: ListeningRoom | null = null
     resumableRoomId: string | null = null
     userId: string | null = null
     queueModes = false
+    queuePlayback = false
     moderation = false
     get diagnostics() {
         return {
-            rttMs: this.rttMs,
+            rttMs: this.serverClock.rttMs,
             clockUncertaintyMs: this.clock?.uncertaintyMs ?? null,
             snapshotAgeMs: this.room && this.snapshotAt ? Math.round(performance.now() - this.snapshotAt) : null,
         }
@@ -43,8 +42,7 @@ export class ListeningConnection {
         return this.socket?.connected === true
     }
     get clock(): { nowMs: number; uncertaintyMs: number } | null {
-        const now = performance.now()
-        return this.clockValidUntil > now ? { nowMs: now + this.offsetMs, uncertaintyMs: this.uncertaintyMs } : null
+        return this.serverClock.read()
     }
     constructor(
         private readonly ticket: () => Promise<ListeningTicket>,
@@ -124,7 +122,7 @@ export class ListeningConnection {
         socket.on('disconnect', reason => {
             clearTimeout(this.timer)
             clearInterval(this.clockTimer)
-            this.clockValidUntil = 0
+            this.serverClock.reset()
             socket.sendBuffer = []
             if (this.socket === socket) this.lost(reason === 'ping timeout' ? 'HEARTBEAT_TIMEOUT' : 'CONNECTION_LOST')
         })
@@ -154,6 +152,7 @@ export class ListeningConnection {
                     this.userId = session.userId
                     this.resumableRoomId = typeof session.roomId === 'string' ? session.roomId : null
                     this.queueModes = session.queueModes === true
+                    this.queuePlayback = session.queuePlayback === true
                     this.moderation = session.capabilities.includes('rooms:moderation')
                     this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     resolve()
@@ -196,7 +195,10 @@ export class ListeningConnection {
         const result = record(ack)
         if (result.ok !== true) {
             const code = record(result.error).code
-            throw new Error(typeof code === 'string' && /^[A-Z_]{1,40}$/u.test(code) ? code : 'PROTOCOL_INVALID')
+            const retryAfterMs = record(result.error).retryAfterMs
+            throw Object.assign(new Error(typeof code === 'string' && /^[A-Z_]{1,40}$/u.test(code) ? code : 'PROTOCOL_INVALID'), {
+                retryAfterMs: Number.isSafeInteger(retryAfterMs) ? Math.max(0, Math.min(30000, Number(retryAfterMs))) : 0,
+            })
         }
         return result.data
     }
@@ -249,15 +251,7 @@ export class ListeningConnection {
                 !Number.isSafeInteger(sample.serverSendMs)
             )
                 return
-            const serverReceive = Number(sample.serverReceiveMs),
-                serverSend = Number(sample.serverSendMs)
-            const uncertainty = Math.ceil((received - sent - (serverSend - serverReceive)) / 2)
-            if (uncertainty < 0 || uncertainty > 2000 || serverSend < serverReceive) return
-            if (this.clockValidUntil > received && uncertainty > this.uncertaintyMs + 10) return
-            this.offsetMs = (serverReceive - sent + serverSend - received) / 2
-            this.rttMs = Math.round(received - sent)
-            this.uncertaintyMs = uncertainty
-            this.clockValidUntil = received + 30000
+            this.serverClock.add(sent, received, Number(sample.serverReceiveMs), Number(sample.serverSendMs))
         } catch {
             /* Expired calibration suspends following until the next successful sample. */
         } finally {
@@ -291,9 +285,9 @@ export class ListeningConnection {
         this.cancelConnect = undefined
         clearTimeout(this.timer)
         clearInterval(this.clockTimer)
-        this.clockValidUntil = 0
-        this.rttMs = null
+        this.serverClock.reset()
         this.queueModes = false
+        this.queuePlayback = false
         this.moderation = false
         this.resumableRoomId = null
         const socket = this.socket

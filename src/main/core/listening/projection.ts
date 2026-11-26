@@ -30,6 +30,7 @@ export function projectListeningFrame(
                   durationMs: playback.actual.durationMs,
                   status: hostUnavailable ? 'buffering' : playback.actual.status,
                   playbackRate: playback.actual.playbackRate,
+                  uncertaintyMs: clock.uncertaintyMs + playback.clockUncertaintyMs,
                   positionMs: Math.round(
                       Math.min(
                           playback.actual.durationMs ?? 86400000,

@@ -101,7 +101,14 @@ export interface ModListeningFrame {
     validForMs: number
     repeatMode?: 'none' | 'context' | 'one'
     shuffle?: boolean
-    target: { item: ListeningItem; status: ListeningActual['status']; positionMs: number; playbackRate: number; durationMs?: number | null } | null
+    target: {
+        item: ListeningItem
+        status: ListeningActual['status']
+        positionMs: number
+        playbackRate: number
+        durationMs?: number | null
+        uncertaintyMs?: number
+    } | null
     queue: ListeningItem[]
     command: { commandId: string; action: ListeningAction; item?: ListeningItem } | null
 }

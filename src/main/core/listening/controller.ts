@@ -69,6 +69,8 @@ export class ListeningController {
     private participantSeq = 0
     private participantState = ''
     private participantWork: object | null = null
+    private participantTokens = 2
+    private participantTokenAt = performance.now()
     private pendingCommand: ModListeningFrame['command'] = null
 
     constructor(private readonly access: ListeningAccess) {
@@ -365,10 +367,13 @@ export class ListeningController {
                     : 'following'
         const reason = !fresh ? 'client_unavailable' : (this.mod.source!.reason ?? null)
         const participantState = JSON.stringify([status, reason])
-        const interval = participantState === this.participantState ? 5500 : 2600
-        if (performance.now() - this.participantAt < interval) return
-        this.participantAt = performance.now()
-        this.participantState = participantState
+        const now = performance.now()
+        if (participantState === this.participantState && now - this.participantAt < 30000) return
+        this.participantTokens = Math.min(2, this.participantTokens + Math.max(0, now - this.participantTokenAt) / 5000)
+        this.participantTokenAt = now
+        if (this.participantTokens < 1) return
+        this.participantTokens--
+        this.participantAt = now
         const participantWork = {}
         this.participantWork = participantWork
         const generation = this.generation
@@ -380,8 +385,15 @@ export class ListeningController {
                 status,
                 reason,
             })
-            .catch(() => {
-                if (generation === this.generation && connected) this.connection.refresh()
+            .then(() => {
+                if (generation === this.generation && this.participantWork === participantWork) this.participantState = participantState
+            })
+            .catch(error => {
+                if (generation !== this.generation || this.participantWork !== participantWork) return
+                if (error instanceof Error && error.message === 'RATE_LIMITED') {
+                    this.participantTokens = 0
+                    this.participantTokenAt = performance.now()
+                } else if (connected) this.connection.refresh()
             })
             .finally(() => {
                 if (this.participantWork === participantWork) this.participantWork = null
@@ -467,6 +479,8 @@ export class ListeningController {
         this.participantAt = -Infinity
         this.participantState = ''
         this.participantWork = null
+        this.participantTokens = 2
+        this.participantTokenAt = performance.now()
         this.retryAt = 0
         this.reconnectAttempt = 0
         this.reconnectDelay = 1000

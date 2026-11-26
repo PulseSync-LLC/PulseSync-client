@@ -1,5 +1,7 @@
 import { randomUUID } from 'node:crypto'
 
+import { record } from '@common/listening/validation'
+
 import type { ListeningConnection } from './connection'
 import type { ListeningItem, ListeningRoom, ModListeningSource } from '@common/listening/types'
 
@@ -25,6 +27,7 @@ export class HostSource {
     private busy = false
     private lastAt = 0
     private attemptedAt = -Infinity
+    private retryAt = 0
     private pending?: { connection: ListeningConnection; source: ModListeningSource }
     private pendingTimer?: NodeJS.Timeout
     private lastActual?: { actual: ModListeningSource; itemId: string }
@@ -35,20 +38,8 @@ export class HostSource {
     async report(connection: ListeningConnection, source: ModListeningSource): Promise<void> {
         this.pending = { connection, source }
         if (this.busy) return
-        if (performance.now() - this.attemptedAt < 500) {
-            if (!this.pendingTimer) {
-                this.pendingTimer = setTimeout(
-                    () => {
-                        this.pendingTimer = undefined
-                        const pending = this.pending
-                        if (pending) void this.report(pending.connection, pending.source)
-                    },
-                    Math.max(50, 500 - (performance.now() - this.attemptedAt)),
-                )
-                this.pendingTimer.unref()
-            }
-            return
-        }
+        clearTimeout(this.pendingTimer)
+        this.pendingTimer = undefined
         this.pending = undefined
         const room = connection.room,
             clock = connection.clock
@@ -65,9 +56,9 @@ export class HostSource {
             return
         this.prepare(room)
         const generation = this.generation
+        if (this.awaitingCommand && !this.appliedCommandId) return
         this.busy = true
         try {
-            if (this.awaitingCommand && !this.appliedCommandId) return
             const available = new Map<string, string[]>()
             for (const item of room.queue.items) {
                 const key = JSON.stringify([item.trackId, item.albumId])
@@ -86,24 +77,63 @@ export class HostSource {
                 ...(connection.queueModes ? { repeatMode: source.repeatMode ?? 'none', shuffle: source.shuffle ?? false } : {}),
             }
             const queueChanged = !sameQueue(room.queue, queue)
+            const last = this.lastActual
+            const ordinaryProgress = Boolean(
+                last &&
+                last.itemId === currentItemId &&
+                last.actual.status === source.status &&
+                last.actual.durationMs === source.durationMs &&
+                last.actual.playbackRate === source.playbackRate &&
+                Math.abs(
+                    source.positionMs -
+                        (last.actual.positionMs +
+                            (source.status === 'playing' ? (source.capturedAtMs - last.actual.capturedAtMs) * source.playbackRate : 0)),
+                ) <=
+                    250 + clock.uncertaintyMs + (room.playback?.clockUncertaintyMs ?? 0),
+            )
+            if (!this.appliedCommandId && !queueChanged && room.playback && ordinaryProgress && performance.now() - this.lastAt < 5100) return
+            const now = performance.now()
+            const urgent = this.appliedCommandId !== null || queueChanged || !ordinaryProgress
+            const delay = Math.max(this.retryAt - now, urgent ? 0 : 500 - (now - this.attemptedAt))
+            if (delay > 0) {
+                this.pending = { connection, source }
+                this.pendingTimer = setTimeout(
+                    () => {
+                        this.pendingTimer = undefined
+                        this.flushPending()
+                    },
+                    Math.max(25, delay),
+                )
+                this.pendingTimer.unref()
+                return
+            }
+            let atomic = false
             if (!this.appliedCommandId && queueChanged) {
                 this.attemptedAt = performance.now()
-                await connection.request(
-                    'room:queue:replace',
-                    {
-                        roomId: room.roomId,
-                        commandId: randomUUID(),
-                        controllerId: room.controller.controllerId,
-                        epoch: room.epoch,
-                        expectedQueueRevision: room.queueRevision,
-                        queue,
-                    },
-                    true,
+                const result = record(
+                    await connection.request(
+                        'room:queue:replace',
+                        {
+                            roomId: room.roomId,
+                            commandId: randomUUID(),
+                            controllerId: room.controller.controllerId,
+                            epoch: room.epoch,
+                            expectedQueueRevision: room.queueRevision,
+                            queue,
+                            ...(connection.queuePlayback
+                                ? { playback: playbackSample(source, currentItemId, ++this.sequence, connection.clock ?? clock) }
+                                : {}),
+                        },
+                        true,
+                    ),
                 )
                 if (generation !== this.generation) return
-                if (connection.room?.queueRevision === room.queueRevision) {
-                    const fresh = await connection.request('room:get', { roomId: room.roomId })
-                    connection.accept(fresh)
+                if (connection.queuePlayback) {
+                    if (!result.snapshot) throw new Error('PROTOCOL_INVALID')
+                    connection.accept(result.snapshot)
+                    atomic = true
+                } else if (connection.room?.queueRevision === room.queueRevision) {
+                    connection.accept(await connection.request('room:get', { roomId: room.roomId }))
                 }
             }
             if (generation !== this.generation) return
@@ -116,47 +146,25 @@ export class HostSource {
                 !current.controller
             )
                 return
-            const last = this.lastActual
-            const ordinaryProgress =
-                last &&
-                last.itemId === currentItemId &&
-                last.actual.status === source.status &&
-                last.actual.durationMs === source.durationMs &&
-                last.actual.playbackRate === source.playbackRate &&
-                Math.abs(
-                    source.positionMs -
-                        (last.actual.positionMs +
-                            (source.status === 'playing' ? (source.capturedAtMs - last.actual.capturedAtMs) * source.playbackRate : 0)),
-                ) <=
-                    250 + clock.uncertaintyMs
-            if (!this.appliedCommandId && !queueChanged && current.playback && ordinaryProgress && performance.now() - this.lastAt < 5100) return
             const itemId = this.appliedCommandId ? this.targetItemId : currentItemId
             if (!itemId) return
-            const currentClock = connection.clock
-            if (!currentClock) return
-            const capturedAtServerMs = Math.round(currentClock.nowMs - (performance.now() - source.capturedAtMs))
-            this.attemptedAt = performance.now()
-            await connection.request(
-                'room:playback:report',
-                {
-                    roomId: room.roomId,
-                    controllerId: current.controller.controllerId,
-                    epoch: current.epoch,
-                    queueRevision: current.queueRevision,
-                    sourceSeq: ++this.sequence,
-                    actual: {
-                        itemId,
-                        status: source.status,
-                        positionMs: source.positionMs,
-                        durationMs: source.durationMs,
-                        playbackRate: source.playbackRate,
+            if (!atomic) {
+                const currentClock = connection.clock
+                if (!currentClock) return
+                this.attemptedAt = performance.now()
+                await connection.request(
+                    'room:playback:report',
+                    {
+                        roomId: current.roomId,
+                        controllerId: current.controller.controllerId,
+                        epoch: current.epoch,
+                        queueRevision: current.queueRevision,
+                        ...playbackSample(source, itemId, ++this.sequence, currentClock),
+                        appliedCommandId: this.appliedCommandId,
                     },
-                    capturedAtServerMs,
-                    clockUncertaintyMs: clock.uncertaintyMs,
-                    appliedCommandId: this.appliedCommandId,
-                },
-                true,
-            )
+                    true,
+                )
+            }
             if (generation !== this.generation) return
             this.appliedCommandId = null
             this.awaitingCommand = null
@@ -164,13 +172,16 @@ export class HostSource {
             this.lastAt = performance.now()
             this.lastActual = { actual: source, itemId }
             this.error = null
+            this.retryAt = 0
         } catch (error) {
             if (generation !== this.generation) return
             this.error = error instanceof Error ? error.message : 'PLAYBACK_FAILED'
+            this.retryAt = performance.now() + Math.max(500, Number(record(error).retryAfterMs) || 0)
+            this.pending ??= { connection, source }
             if (error instanceof Error && ['REVISION_CONFLICT', 'STALE_SOURCE', 'STALE_CONTROLLER'].includes(error.message)) connection.refresh()
         } finally {
             this.busy = false
-            this.flushPending()
+            if (!this.pendingTimer) this.flushPending()
         }
     }
 
@@ -202,6 +213,7 @@ export class HostSource {
         this.pendingTimer = undefined
         this.pending = undefined
         this.attemptedAt = -Infinity
+        this.retryAt = 0
         this.targetItemId = null
         this.epoch = 0
         this.roomId = ''
@@ -209,5 +221,20 @@ export class HostSource {
         this.lastActual = undefined
         this.appliedCommandId = null
         this.awaitingCommand = null
+    }
+}
+
+function playbackSample(source: ModListeningSource, itemId: string, sourceSeq: number, clock: { nowMs: number; uncertaintyMs: number }) {
+    return {
+        sourceSeq,
+        actual: {
+            itemId,
+            status: source.status,
+            positionMs: source.positionMs,
+            durationMs: source.durationMs,
+            playbackRate: source.playbackRate,
+        },
+        capturedAtServerMs: Math.round(clock.nowMs - (performance.now() - source.capturedAtMs)),
+        clockUncertaintyMs: clock.uncertaintyMs,
     }
 }
