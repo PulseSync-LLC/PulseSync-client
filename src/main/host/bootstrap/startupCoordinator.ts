@@ -150,8 +150,10 @@ export class StartupCoordinator {
             }
             if (result?.state === 'prepared') {
                 this.publishLaunching()
-                await this.startApplication(result)
-                return
+                // The installed core may no longer support the published renderer.
+                // Activate the prepared runtime before depending on its UI to install it.
+                if ((await handoffPreparedUpdate()) === true) return
+                throw new Error('Bootstrapper did not accept the prepared startup update')
             }
             if (result?.state === 'blocked') {
                 failure = new Error(`Bootstrap update blocked: ${result.block.code}`, { cause: result })
@@ -182,7 +184,7 @@ export class StartupCoordinator {
         }
     }
 
-    private async startApplication(preparedUpdate?: Extract<PrepareUpdateResultV1, { state: 'prepared' }>): Promise<void> {
+    private async startApplication(): Promise<void> {
         if (this.applicationHandle) return
         const launcher = this.options.runtimePaths.launcher
         if (!launcher) throw new Error('Bootstrapper launcher was not found')
@@ -194,7 +196,6 @@ export class StartupCoordinator {
                 bootstrapUi: this.options.bootstrapWindow,
                 leaseId: this.options.lease.leaseId,
                 getLastCheckAt: () => updateCoordinator.lastCheckAt,
-                preparedUpdate,
                 runUpdate: options => updateCoordinator.run(options),
                 handoffPreparedUpdate,
             },
