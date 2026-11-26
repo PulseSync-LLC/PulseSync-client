@@ -77,6 +77,7 @@ export default function JointPage() {
         }
     }
     const issue = error || state.error
+    const participationEnded = issue === 'ROOM_ENDED' || issue === 'ROOM_REMOVED'
     const activeCode =
         inviteCode && room && inviteCode.roomId === room.roomId && performance.now() - inviteCode.createdAt < 600000 ? inviteCode.code : null
     const copyCode = async () => {
@@ -125,7 +126,7 @@ export default function JointPage() {
                                     </p>
                                 )}
                             </div>
-                            {!connected && (
+                            {!connected && !participationEnded && (
                                 <Button
                                     variant="secondary"
                                     size="sm"
