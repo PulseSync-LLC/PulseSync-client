@@ -106,6 +106,7 @@ export class ListeningController {
             userId: this.connection.userId,
             room: this.connection.room,
             modReady: this.mod.ready,
+            moderationAvailable: this.connection.moderation,
             diagnostics: {
                 ...this.connection.diagnostics,
                 sourceAgeMs: this.mod.source ? Math.round(performance.now() - this.mod.source.capturedAtMs) : null,
@@ -405,7 +406,7 @@ export class ListeningController {
             this.publish()
             return
         }
-        if (reason === 'ROOM_ENDED') {
+        if (reason === 'ROOM_ENDED' || reason === 'ROOM_REMOVED') {
             this.rememberParticipation(false)
             if (this.busy) this.clearRoom(false)
             else this.idle()
@@ -510,6 +511,7 @@ export class ListeningController {
             previous.room === snapshot.room &&
             previous.modReady === snapshot.modReady &&
             previous.error === snapshot.error &&
+            previous.moderationAvailable === snapshot.moderationAvailable &&
             diagnosticFields.every(key => previous.diagnostics?.[key] === snapshot.diagnostics?.[key])
         )
             return

@@ -31,6 +31,7 @@ export class ListeningConnection {
     resumableRoomId: string | null = null
     userId: string | null = null
     queueModes = false
+    moderation = false
     get diagnostics() {
         return {
             rttMs: this.rttMs,
@@ -103,6 +104,15 @@ export class ListeningConnection {
             this.resumableRoomId = null
             this.lost('ROOM_ENDED')
         })
+        socket.on('room:removed', value => {
+            const removed = record(value)
+            const room = this.room
+            if (!room || removed.roomId !== room.roomId || !Number.isSafeInteger(removed.revision) || Number(removed.revision) <= room.revision)
+                return
+            this.room = null
+            this.resumableRoomId = null
+            this.lost('ROOM_REMOVED')
+        })
         socket.on('session:expired', value => {
             if (record(value).code === 'AUTH_INVALID') {
                 this.close()
@@ -144,6 +154,7 @@ export class ListeningConnection {
                     this.userId = session.userId
                     this.resumableRoomId = typeof session.roomId === 'string' ? session.roomId : null
                     this.queueModes = session.queueModes === true
+                    this.moderation = session.capabilities.includes('rooms:moderation')
                     this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     resolve()
                 }
@@ -283,6 +294,7 @@ export class ListeningConnection {
         this.clockValidUntil = 0
         this.rttMs = null
         this.queueModes = false
+        this.moderation = false
         this.resumableRoomId = null
         const socket = this.socket
         this.socket = undefined

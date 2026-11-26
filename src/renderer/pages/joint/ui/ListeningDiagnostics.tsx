@@ -1,16 +1,20 @@
 import { Accordion } from '@pulsesync/uikit/layout'
 import { useTranslation } from 'react-i18next'
 
+import ParticipantProfile from './ParticipantProfile'
+
 import * as styles from '../joint.module.scss'
 
-import type { ListeningRoom, ListeningView } from '@common/listening/types'
+import type { ListeningParticipant, ListeningRoom, ListeningView } from '@common/listening/types'
 
 interface Props {
     diagnostics: NonNullable<ListeningView['diagnostics']>
     queue?: ListeningRoom['queue']
+    participants?: ListeningParticipant[]
+    userId?: string | null
 }
 
-export default function ListeningDiagnostics({ diagnostics, queue }: Props) {
+export default function ListeningDiagnostics({ diagnostics, queue, participants = [], userId }: Props) {
     const { t } = useTranslation()
     const milliseconds = (value: number | null) =>
         value === null ? t('pages.joint.diagnostics.unknown') : `${value} ${t('pages.joint.diagnostics.ms')}`
@@ -86,6 +90,40 @@ export default function ListeningDiagnostics({ diagnostics, queue }: Props) {
                                         </dd>
                                     </div>
                                 </>
+                            )}
+                            {participants.some(
+                                participant =>
+                                    participant.reason || participant.connection === 'reconnecting' || participant.following === 'unavailable',
+                            ) && (
+                                <div>
+                                    <dt>{t('pages.joint.diagnostics.participantIssues')}</dt>
+                                    <dd>
+                                        <ul className={styles.participantIssues}>
+                                            {participants.map((participant, index) =>
+                                                participant.reason ||
+                                                participant.connection === 'reconnecting' ||
+                                                participant.following === 'unavailable' ? (
+                                                    <li key={participant.userId}>
+                                                        <ParticipantProfile
+                                                            participant={participant}
+                                                            index={index}
+                                                            self={participant.userId === userId}
+                                                            nameOnly
+                                                        />
+                                                        {': '}
+                                                        {t(
+                                                            participant.connection === 'reconnecting'
+                                                                ? 'pages.joint.participantConnection.reconnecting'
+                                                                : participant.reason
+                                                                  ? 'pages.joint.reasons.' + participant.reason
+                                                                  : 'pages.joint.following.unavailable',
+                                                        )}
+                                                    </li>
+                                                ) : null,
+                                            )}
+                                        </ul>
+                                    </dd>
+                                </div>
                             )}
                         </dl>
                     ),

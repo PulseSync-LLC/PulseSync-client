@@ -120,7 +120,7 @@ export function listeningOperation(value: unknown): ListeningOperation {
     if (
         oneOf(operation.type, ['create', 'leave', 'close', 'invite', 'accept', 'decline']) ||
         (operation.type === 'join' && typeof operation.invitation === 'string' && operation.invitation.length < 512) ||
-        (operation.type === 'offer' && id(operation.userId)) ||
+        (oneOf(operation.type, ['offer', 'transfer', 'kick']) && id(operation.userId)) ||
         (operation.type === 'control' && listeningAction(operation.action))
     )
         return value as ListeningOperation

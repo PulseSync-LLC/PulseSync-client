@@ -18,9 +18,10 @@ interface Props {
     participant: ListeningParticipant
     index: number
     self: boolean
+    nameOnly?: boolean
 }
 
-export default function ParticipantProfile({ participant, index, self }: Props) {
+export default function ParticipantProfile({ participant, index, self, nameOnly }: Props) {
     const { t } = useTranslation()
     const { user } = useContext(UserContext)
     const ownProfile = participant.userId === user.id
@@ -32,6 +33,7 @@ export default function ParticipantProfile({ participant, index, self }: Props) 
     const profile = ownProfile ? user : data?.findUserById?.id === participant.userId ? data.findUserById : null
     const name =
         profile?.nickname?.trim() || profile?.username?.trim() || t(self ? 'pages.joint.you' : 'pages.joint.participant', { number: index + 1 })
+    if (nameOnly) return <>{name}</>
     const avatar = getAvatarMediaUrls({ hash: profile?.avatarHash, ext: profile?.avatarType })
 
     return (
@@ -53,7 +55,6 @@ export default function ParticipantProfile({ participant, index, self }: Props) 
                     {t(participant.role === 'host' ? 'pages.joint.host' : 'pages.joint.listener')}
                     {self && <> · {t('pages.joint.you')}</>}
                 </span>
-                {participant.reason && <span className={styles.warning}>{t('pages.joint.reasons.' + participant.reason)}</span>}
             </div>
         </>
     )

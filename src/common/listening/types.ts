@@ -48,6 +48,7 @@ export type ListeningOperation =
     | { type: 'create' | 'leave' | 'close' | 'invite' | 'accept' | 'decline' }
     | { type: 'join'; invitation: string }
     | { type: 'offer'; userId: string }
+    | { type: 'transfer' | 'kick'; userId: string }
     | { type: 'control'; action: ListeningAction }
 export interface ListeningView {
     available: boolean
@@ -56,6 +57,7 @@ export interface ListeningView {
     room: ListeningRoom | null
     modReady: boolean
     error: string | null
+    moderationAvailable?: boolean
     diagnostics?: {
         rttMs: number | null
         clockUncertaintyMs: number | null

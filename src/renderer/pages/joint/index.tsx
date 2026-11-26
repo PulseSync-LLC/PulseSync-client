@@ -13,6 +13,7 @@ import ButtonV2 from '@shared/ui/buttonV2'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 
 import ListeningDiagnostics from './ui/ListeningDiagnostics'
+import ParticipantActions from './ui/ParticipantActions'
 import ParticipantProfile from './ui/ParticipantProfile'
 
 import * as styles from './joint.module.scss'
@@ -202,33 +203,16 @@ export default function JointPage() {
                                                         index={index}
                                                         self={participant.userId === state.userId}
                                                     />
-                                                    <div className={styles.participantActions}>
-                                                        <span
-                                                            className={styles.participantStatus}
-                                                            data-warning={
-                                                                participant.connection === 'reconnecting' || participant.following === 'unavailable'
-                                                            }
-                                                        >
-                                                            {t(
-                                                                participant.connection === 'reconnecting'
-                                                                    ? 'pages.joint.participantConnection.reconnecting'
-                                                                    : participant.following === 'following' && playbackStatus !== 'playing'
-                                                                      ? 'pages.joint.ui.playback.' + playbackStatus
-                                                                      : 'pages.joint.following.' + participant.following,
-                                                            )}
-                                                        </span>
-                                                        {(host || owner) && participant.role !== 'host' && !room.hostOffer && (
-                                                            <Button
-                                                                variant="ghost"
-                                                                size="compact"
-                                                                uppercase={false}
-                                                                disabled={busy || !connected || participant.connection !== 'online'}
-                                                                onClick={() => void run({ type: 'offer', userId: participant.userId })}
-                                                            >
-                                                                {t('pages.joint.offer')}
-                                                            </Button>
-                                                        )}
-                                                    </div>
+                                                    <ParticipantActions
+                                                        participant={participant}
+                                                        room={room}
+                                                        userId={state.userId}
+                                                        connected={connected}
+                                                        busy={busy}
+                                                        moderationAvailable={state.moderationAvailable === true}
+                                                        playbackStatus={playbackStatus}
+                                                        run={run}
+                                                    />
                                                 </li>
                                             ))}
                                         </ul>
@@ -320,7 +304,14 @@ export default function JointPage() {
                                 </dl>
                                 {room && !state.modReady && <p className={styles.hint}>{t('pages.joint.modRequired')}</p>}
                             </section>
-                            {diagnostics && <ListeningDiagnostics diagnostics={diagnostics} queue={room?.queue} />}
+                            {diagnostics && (
+                                <ListeningDiagnostics
+                                    diagnostics={diagnostics}
+                                    queue={room?.queue}
+                                    participants={room?.participants}
+                                    userId={state.userId}
+                                />
+                            )}
                         </aside>
                     </div>
                 </div>

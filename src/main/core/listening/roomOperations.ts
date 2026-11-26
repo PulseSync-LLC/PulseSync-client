@@ -64,6 +64,16 @@ export async function performRoomOperation(
                 true,
             )
             leave()
+        } else if (operation.type === 'transfer' || operation.type === 'kick') {
+            if (!connection.moderation) throw new Error('CAPABILITY_UNAVAILABLE')
+            const result = record(
+                await connection.request(
+                    operation.type === 'transfer' ? 'room:host:transfer' : 'room:member:kick',
+                    { roomId: room.roomId, commandId, expectedRevision: room.revision, epoch: room.epoch, targetUserId: operation.userId },
+                    true,
+                ),
+            )
+            if (operation.type === 'transfer') connection.accept(result.snapshot)
         } else if (operation.type === 'offer') {
             await connection.request(
                 'room:host:offer',

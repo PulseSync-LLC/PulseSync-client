@@ -1196,6 +1196,7 @@
                 "ACK_TIMEOUT": "The service did not acknowledge the request in time.",
                 "SERVICE_UNAVAILABLE": "The service is temporarily unavailable. Retrying.",
                 "ROOM_ENDED": "Room membership has ended. Create or join a room again.",
+                "ROOM_REMOVED": "You are no longer in this room.",
                 "AUTH_EXPIRED": "The connection ticket expired. Requesting a new one.",
                 "PROTOCOL_INVALID": "Received incompatible state. Update the client and service.",
                 "PROTOCOL_UNSUPPORTED": "Protocol version is unsupported. Update the client.",
@@ -1241,7 +1242,8 @@
                 "shuffleOn": "shuffle on",
                 "shuffleOff": "shuffle off",
                 "disconnect": "Last disconnect",
-                "sourceError": "Playback publishing error"
+                "sourceError": "Playback publishing error",
+                "participantIssues": "Participant issues"
             },
             "ui": {
                 "startTitle": "Listen together",
@@ -1252,6 +1254,8 @@
                 "joinDescription": "Ask the host for an invitation code and enter it below",
                 "roomTitle": "Listening room",
                 "participantsTitle": "Participants",
+                "kickParticipant": "Remove from room",
+                "participantActions": "Participant actions",
                 "inviteTitle": "Invite friends",
                 "inviteDescription": "Share a code so your friends can join the room",
                 "codeNotCreated": "No code created yet",
