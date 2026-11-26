@@ -1243,7 +1243,12 @@
                 "shuffleOff": "shuffle off",
                 "disconnect": "Last disconnect",
                 "sourceError": "Playback publishing error",
-                "participantIssues": "Participant issues"
+                "participantIssues": "Participant issues",
+                "synchronization": "Playback synchronization",
+                "synchronizationStatus": {
+                    "preparing": "Preparing playback",
+                    "timeout": "Could not confirm synchronization. Retrying."
+                }
             },
             "ui": {
                 "startTitle": "Listen together",

@@ -1243,7 +1243,12 @@
                 "shuffleOff": "шафл выключен",
                 "disconnect": "Последний обрыв",
                 "sourceError": "Ошибка передачи воспроизведения",
-                "participantIssues": "Проблемы участников"
+                "participantIssues": "Проблемы участников",
+                "synchronization": "Синхронизация воспроизведения",
+                "synchronizationStatus": {
+                    "preparing": "Подготовка воспроизведения",
+                    "timeout": "Не удалось подтвердить синхронизацию. Повторяем попытку."
+                }
             },
             "ui": {
                 "startTitle": "Слушайте вместе",

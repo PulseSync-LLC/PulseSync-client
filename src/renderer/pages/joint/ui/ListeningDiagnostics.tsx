@@ -79,6 +79,12 @@ export default function ListeningDiagnostics({ diagnostics, queue, participants 
                                     </div>
                                 </>
                             )}
+                            {diagnostics.synchronization && (
+                                <div>
+                                    <dt>{t('pages.joint.diagnostics.synchronization')}</dt>
+                                    <dd>{t('pages.joint.diagnostics.synchronizationStatus.' + diagnostics.synchronization)}</dd>
+                                </div>
+                            )}
                             {diagnostics.sourceError && (
                                 <>
                                     <div>

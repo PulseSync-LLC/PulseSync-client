@@ -30,6 +30,7 @@ const diagnosticFields = [
     'retryInMs',
     'lastDisconnectReason',
     'sourceError',
+    'synchronization',
 ] as const
 export class ListeningController {
     readonly mod = new ListeningModTransport()
@@ -114,6 +115,10 @@ export class ListeningController {
                 retryInMs: this.retryAt ? Math.max(0, Math.ceil((this.retryAt - performance.now()) / 1000) * 1000) : null,
                 lastDisconnectReason: this.lastDisconnectReason,
                 sourceError: this.host.error,
+                synchronization:
+                    this.connection.room && this.mod.source && performance.now() - this.mod.source.capturedAtMs < 3000
+                        ? (this.mod.source.synchronization ?? null)
+                        : null,
             },
         }
     }
@@ -355,7 +360,7 @@ export class ListeningController {
                 ? 'unavailable'
                 : !following
                   ? 'suspended'
-                  : this.mod.source!.status === 'buffering'
+                  : this.mod.source!.status === 'buffering' || this.mod.source!.synchronization === 'preparing'
                     ? 'buffering'
                     : 'following'
         const reason = !fresh ? 'client_unavailable' : (this.mod.source!.reason ?? null)

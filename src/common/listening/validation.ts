@@ -88,6 +88,7 @@ export function listeningRoom(value: unknown): ListeningRoom {
 export function listeningSource(value: unknown): ModListeningSource | null {
     const source = record(value)
     if (
+        (source.synchronization !== undefined && !oneOf(source.synchronization, [null, 'preparing', 'timeout'])) ||
         (source.repeatMode !== undefined && !oneOf(source.repeatMode, ['none', 'context', 'one'])) ||
         (source.shuffle !== undefined && typeof source.shuffle !== 'boolean') ||
         !integer(source.capturedAtMs, 1) ||

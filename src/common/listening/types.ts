@@ -67,6 +67,7 @@ export interface ListeningView {
         retryInMs: number | null
         lastDisconnectReason: string | null
         sourceError: string | null
+        synchronization?: ModListeningSource['synchronization']
     }
 }
 export const LISTENING_IPC = { get: 'listening:get', run: 'listening:run', stop: 'listening:stop', changed: 'listening:changed' } as const
@@ -78,6 +79,7 @@ export const LISTENING_MOD = {
     open: 'LISTENING_OPEN',
 } as const
 export interface ModListeningSource {
+    synchronization?: 'preparing' | 'timeout' | null
     repeatMode?: 'none' | 'context' | 'one'
     shuffle?: boolean
     capturedAtMs: number
