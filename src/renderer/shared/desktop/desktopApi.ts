@@ -9,6 +9,9 @@ function requireDesktopApi(): PulseSyncDesktopApi {
 }
 
 export const desktopApi = {
+    get background() {
+        return requireDesktopApi().background
+    },
     get apiVersion() {
         return requireDesktopApi().apiVersion
     },

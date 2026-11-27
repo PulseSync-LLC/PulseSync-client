@@ -3,6 +3,7 @@ import { randomUUID } from 'node:crypto'
 import { LISTENING_IPC } from '@common/listening/types'
 import { listeningAction, listeningOperation, listeningUuid, record } from '@common/listening/validation'
 
+import { ensureRendererLoaded } from '../rendererMemory'
 import { ListeningConnection } from './connection'
 import { HostSource } from './hostSource'
 import { ListeningModTransport } from './modTransport'
@@ -91,12 +92,14 @@ export class ListeningController {
         }
         this.mod.onOpen = () => {
             if (!this.view.available || !this.window || this.window.isDestroyed()) return
-            this.window.show()
-            this.window.focus()
-            this.window.webContents.send(LISTENING_IPC.changed, {
-                ...this.snapshot(),
-                open: true,
-            })
+            void ensureRendererLoaded('#/joint')
+                .then(() => {
+                    if (!this.window || this.window.isDestroyed()) return
+                    this.window.show()
+                    this.window.focus()
+                    this.window.webContents.send(LISTENING_IPC.changed, { ...this.snapshot(), open: true })
+                })
+                .catch(() => {})
         }
     }
     bindWindow(window: BrowserWindow): void {

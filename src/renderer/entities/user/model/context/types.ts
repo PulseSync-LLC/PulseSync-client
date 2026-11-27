@@ -7,7 +7,6 @@ import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type UserInterface from '@entities/user/model/user.interface'
 import type { OutgoingGatewayEvent } from '@shared/api/socket/enums/outgoingGatewayEvents'
 import type { Dispatch, SetStateAction } from 'react'
-import type { Socket } from 'socket.io-client'
 
 export interface CloudSettingsControl extends CloudSettingsStatus {
     available: boolean
@@ -33,7 +32,6 @@ export type UserContextValue = {
     setMusicVersion: Dispatch<SetStateAction<string | null>>
     widgetInstalled: boolean
     setWidgetInstalled: Dispatch<SetStateAction<boolean>>
-    socket: Socket | null
     socketConnected: boolean
     app: SettingsInterface
     setApp: Dispatch<SetStateAction<SettingsInterface>>
@@ -49,8 +47,7 @@ export type UserContextValue = {
     preparedModUpdate: DesktopInstallModRequest | null
     isModUpdating: boolean
     setMod: Dispatch<SetStateAction<ModInterface[]>>
-    allAchievements: any[]
-    setAllAchievements: Dispatch<SetStateAction<any[]>>
+    achievementCatalogRevision: number
     checkModUpdates: CheckModUpdates
     refreshAddons: () => Promise<void>
     emitGateway: EmitGateway

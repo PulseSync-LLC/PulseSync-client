@@ -1,6 +1,7 @@
 import RendererEvents from '@common/types/rendererEvents'
 
 import logger from '../shared/logger'
+import { isRendererSuspended } from './rendererMemory'
 import { type MainRendererSource, resolveMainRendererSource } from './rendererSource'
 import { canInstallIdleUpdate } from './updater/idleUpdate'
 
@@ -9,7 +10,7 @@ import type { BrowserWindow } from 'electron'
 const RENDERER_UPDATE_INTERVAL_MS = 60 * 60 * 1000
 
 type RendererUpdateControllerOptions = {
-    activate(source: MainRendererSource): Promise<void>
+    activate(source: MainRendererSource): Promise<boolean | void>
     getActiveSource(): MainRendererSource | null
     window: BrowserWindow
 }
@@ -74,7 +75,7 @@ class RendererUpdateController {
 
     public async install(automatic = false): Promise<boolean> {
         const options = this.options
-        if (!options || options.window.isDestroyed() || !this.pendingSource || this.installInFlight) return false
+        if (!options || options.window.isDestroyed() || !this.pendingSource || this.installInFlight || isRendererSuspended()) return false
 
         this.installInFlight = true
         try {
@@ -89,7 +90,7 @@ class RendererUpdateController {
 
             if (automatic && !(await canInstallIdleUpdate())) return false
             if (this.options !== options || options.window.isDestroyed()) return false
-            await options.activate(latestSource)
+            if ((await options.activate(latestSource)) === false) return false
             if (this.options !== options || options.window.isDestroyed()) return true
             this.pendingSource = null
             options.window.flashFrame(false)
@@ -103,6 +104,10 @@ class RendererUpdateController {
         } finally {
             this.installInFlight = false
         }
+    }
+
+    public publishStatus(): void {
+        if (this.pendingSource) this.notifyAvailable(this.pendingSource)
     }
 
     private notifyAvailable(source: MainRendererSource): void {
@@ -134,4 +139,5 @@ const rendererUpdateController = new RendererUpdateController()
 export const startRendererUpdateMonitor = (options: RendererUpdateControllerOptions): void => rendererUpdateController.start(options)
 export const stopRendererUpdateMonitor = (): void => rendererUpdateController.stop()
 export const checkRendererUpdate = (): Promise<boolean> => rendererUpdateController.check()
+export const publishRendererUpdateStatus = (): void => rendererUpdateController.publishStatus()
 export const installRendererUpdate = (automatic = false): Promise<boolean> => rendererUpdateController.install(automatic)

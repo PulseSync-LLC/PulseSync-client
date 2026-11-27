@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 
+import { REALTIME_NOTIFICATION_TYPES } from '@common/notificationPresentation'
 import { getNotificationPresentation } from '@app/providers/notifications/presentation'
 import rendererHttpClient from '@shared/api/http/client'
 import { desktopApi } from '@shared/desktop/desktopApi'
@@ -53,13 +54,6 @@ type NotificationHistory = {
 }
 
 const NOTIFICATIONS_PAGE_SIZE = 20
-const REALTIME_TOAST_NOTIFICATION_TYPES = new Set([
-    'achievement.completed',
-    'subscription.giveaway.started',
-    'subscription.giveaway.won',
-    'subscription.purchase.succeeded',
-    'subscription.expiring.soon',
-])
 
 function dedupeNotifications(items: NotificationItem[]): NotificationItem[] {
     const seen = new Set<string>()
@@ -309,7 +303,7 @@ export function useNotificationsController(userId: string): NotificationsControl
             setNotificationsUnreadCount(data.unreadCount)
         }
 
-        if (REALTIME_TOAST_NOTIFICATION_TYPES.has(data.notification.type) && !data.notification.read) {
+        if (REALTIME_NOTIFICATION_TYPES.has(data.notification.type) && !data.notification.read) {
             const presentation = getNotificationPresentation(data.notification)
             toast.custom(presentation.tone, presentation.title, presentation.body)
             desktopApi.system.showNotification({

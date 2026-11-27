@@ -4,6 +4,7 @@ import logger from '../shared/logger'
 import { processBrowserAuth } from './auth/browserAuth'
 import deeplinkCommands from './deeplinkCommands'
 import { extractInstallModUpdateFromDeepLink, installModUpdateFromAsar } from './mod/installModUpdateFrom'
+import { ensureRendererLoaded } from './rendererMemory'
 import { isUiReady, runWhenUiReady } from './uiReady'
 
 import type { BrowserAuthCredentials } from './auth/browserAuth'
@@ -107,6 +108,7 @@ export const createDeeplinkCommandsHandler = async (): Promise<deeplinkCommands>
 
 export const navigateToDeeplink = async (url: string, deeplinkCommandsHandler: deeplinkCommands, window?: BrowserWindow): Promise<void> => {
     if (!url) return
+    await ensureRendererLoaded()
 
     const args = transformUrl(url)
     const commandName = args.shift()

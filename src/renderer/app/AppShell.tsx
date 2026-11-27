@@ -19,9 +19,7 @@ import { prepareModReleaseUpdate } from '@entities/mod/lib/installModRelease'
 import { getModReleaseIdentity, isModReleaseUpdateAvailable } from '@entities/mod/lib/modReleaseUpdate'
 import modInitials from '@entities/mod/model/mod.initials'
 import settingsInitials from '@entities/settings/model/settings.initials'
-import GetAchievementsQuery from '@entities/user/api/getAchievements.query'
 import userInitials from '@entities/user/model/user.initials'
-import apolloClient from '@shared/api/apolloClient'
 import client from '@shared/api/apolloClient'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import { usePextDnDImport } from '@shared/lib/usePextDnDImport'
@@ -36,31 +34,6 @@ import type { ModInterface } from '@entities/mod/model/modInterface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type UserInterface from '@entities/user/model/user.interface'
 
-type AchievementCatalogItem = {
-    id: string
-    title: string
-    description: string
-    imageUrl: string
-    progressTotal: number
-    points: number
-    difficulty: string
-    hint: string
-}
-
-type GetAchievementsData = {
-    getAchievements?: {
-        achievements?: AchievementCatalogItem[]
-        totalPages?: number
-    } | null
-}
-
-type GetAchievementsVars = {
-    page: number
-    pageSize: number
-    search?: string
-    sortOptions?: Array<unknown>
-}
-
 const STORE_ADDON_UPDATE_CHECK_INTERVAL_MS = 10 * 60 * 1000
 const MOD_UPDATE_TOAST_ID = 'mod-update-check'
 
@@ -74,7 +47,7 @@ function App() {
     const [preparedModUpdate, setPreparedModUpdate] = useState<DesktopInstallModRequest | null>(null)
     const [isModUpdating, setIsModUpdating] = useState(false)
     const [addons, setAddons] = useState<Addon[]>(AddonInitials)
-    const [allAchievements, setAllAchievements] = useState<AchievementCatalogItem[]>([])
+    const [achievementCatalogRevision, setAchievementCatalogRevision] = useState(0)
     const [navigateTo, setNavigateTo] = useState<string | null>(null)
     const [navigateState, setNavigateState] = useState<Addon | null>(null)
     const [loading, setLoading] = useState(true)
@@ -246,54 +219,12 @@ function App() {
         await router.navigate('/extensions', { replace: true })
     }, [router])
 
-    const fetchAchievements = useCallback(async () => {
-        try {
-            const pageSize = 100
-            const baseVars = {
-                pageSize,
-                search: '',
-                sortOptions: [] as Array<unknown>,
-            }
-
-            const firstPage = await apolloClient.query<GetAchievementsData, GetAchievementsVars>({
-                query: GetAchievementsQuery,
-                variables: {
-                    ...baseVars,
-                    page: 1,
-                },
-                fetchPolicy: 'no-cache',
-            })
-
-            const firstAchievements = firstPage.data?.getAchievements?.achievements || []
-            const totalPages = Math.max(1, Number(firstPage.data?.getAchievements?.totalPages || 1))
-
-            if (totalPages <= 1) {
-                setAllAchievements(firstAchievements)
-                return
-            }
-
-            const pageRequests = Array.from({ length: totalPages - 1 }, (_, index) =>
-                apolloClient.query<GetAchievementsData, GetAchievementsVars>({
-                    query: GetAchievementsQuery,
-                    variables: {
-                        ...baseVars,
-                        page: index + 2,
-                    },
-                    fetchPolicy: 'no-cache',
-                }),
-            )
-
-            const otherPages = await Promise.all(pageRequests)
-            const merged = [...firstAchievements, ...otherPages.flatMap(page => page.data?.getAchievements?.achievements || [])]
-            const unique = Array.from(new Map(merged.map(item => [item.id, item])).values())
-            setAllAchievements(unique)
-        } catch (achievementsError) {
-            console.error('Failed to fetch achievements:', achievementsError)
-        }
-    }, [])
-
     const syncStoreAddonUpdates = useCallback(
         async (installedAddons: Addon[]) => {
+            if (desktopApi.background) {
+                await desktopApi.background.checkAddonUpdates()
+                return
+            }
             if (isAutonomousMode || legacyAddonRestrictions.loading) {
                 return
             }
@@ -399,38 +330,35 @@ function App() {
         [isAutonomousMode, legacyAddonRestrictions.enabled, legacyAddonRestrictions.loading, legacyAddonRestrictions.overrideGroup, setAddons],
     )
 
-    const handleSocketAchievementsUpdate = useCallback(
-        async (payload: unknown) => {
-            await fetchAchievements()
+    const handleSocketAchievementsUpdate = useCallback(async (payload: unknown) => {
+        setAchievementCatalogRevision(revision => revision + 1)
 
-            if (!payload || typeof payload !== 'object') return
+        if (!payload || typeof payload !== 'object') return
 
-            const {
-                userId: incomingUserId,
+        const {
+            userId: incomingUserId,
+            userAchievements: incomingUserAchievements,
+            levelInfoV2: incomingLevelInfo,
+        } = payload as {
+            userId?: string
+            userAchievements?: unknown
+            levelInfoV2?: unknown
+        }
+
+        if (!incomingUserId || !Array.isArray(incomingUserAchievements)) return
+
+        setUser(prev => {
+            if (prev.id !== incomingUserId) return prev
+            return {
+                ...prev,
                 userAchievements: incomingUserAchievements,
-                levelInfoV2: incomingLevelInfo,
-            } = payload as {
-                userId?: string
-                userAchievements?: unknown
-                levelInfoV2?: unknown
+                levelInfoV2:
+                    incomingLevelInfo && typeof incomingLevelInfo === 'object'
+                        ? (incomingLevelInfo as UserInterface['levelInfoV2'])
+                        : prev.levelInfoV2,
             }
-
-            if (!incomingUserId || !Array.isArray(incomingUserAchievements)) return
-
-            setUser(prev => {
-                if (prev.id !== incomingUserId) return prev
-                return {
-                    ...prev,
-                    userAchievements: incomingUserAchievements,
-                    levelInfoV2:
-                        incomingLevelInfo && typeof incomingLevelInfo === 'object'
-                            ? (incomingLevelInfo as UserInterface['levelInfoV2'])
-                            : prev.levelInfoV2,
-                }
-            })
-        },
-        [fetchAchievements],
-    )
+        })
+    }, [])
 
     const handleSocketStoreAddonUpdated = useCallback(async () => {
         if (isAutonomousMode || !addons.length) {
@@ -464,11 +392,9 @@ function App() {
 
     useAppInitialization({
         appRef,
-        fetchAchievements,
         fetchModInfo,
         router,
         setAddons,
-        setAllAchievements,
         setApp,
         setMusicInstalled,
         setMusicVersion,
@@ -500,7 +426,7 @@ function App() {
     const handleSocketLogout = useCallback(async () => {
         await client.clearStore()
         setUser(userInitials)
-        setAllAchievements([])
+        setAchievementCatalogRevision(0)
         await router.navigate('/home', { replace: true })
     }, [router])
 
@@ -512,6 +438,7 @@ function App() {
             onLogout={handleSocketLogout}
             onAchievementsUpdate={handleSocketAchievementsUpdate}
             onAddonStoreUpdated={handleSocketStoreAddonUpdated}
+            onLocalAddonsChanged={refreshAddons}
             onNotificationCreated={handleNotificationCreated}
             onNotificationRead={handleNotificationRead}
             onNotificationsReadAll={handleNotificationsReadAll}
@@ -542,8 +469,7 @@ function App() {
                 isModUpdating={isModUpdating}
                 modInfoFetched={modInfoFetched}
                 preparedModUpdate={preparedModUpdate}
-                allAchievements={allAchievements}
-                setAllAchievements={setAllAchievements}
+                achievementCatalogRevision={achievementCatalogRevision}
                 checkModUpdates={fetchModInfo}
                 refreshAddons={refreshAddons}
                 notificationsValue={notificationsValue}

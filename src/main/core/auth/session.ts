@@ -1,4 +1,5 @@
 import { randomBytes } from 'node:crypto'
+import { EventEmitter } from 'node:events'
 import { readFileSync, rmSync } from 'node:fs'
 import path from 'node:path'
 
@@ -11,6 +12,7 @@ import logger from '../../shared/logger'
 import { getState } from '../state'
 
 const State = getState()
+export const authSessionEvents = new EventEmitter()
 const REFRESH_PATTERN = /^[0-9a-f-]{36}\.[A-Za-z0-9_-]{43}$/
 const V2_SESSION_KEY = 'tokens.v2'
 const MIGRATION_ID_KEY = 'auth.v2MigrationId'
@@ -172,6 +174,7 @@ function clearLocalSession(): void {
     lastActivity = 0
     migrationRejected = true
     State.delete(MIGRATION_ID_KEY)
+    authSessionEvents.emit('cleared')
 }
 
 export async function installV2Session(credentials: V2Credentials, requestedAt: number, isActive = () => true): Promise<boolean> {
@@ -185,6 +188,7 @@ export async function installV2Session(credentials: V2Credentials, requestedAt: 
     previousAccess = null
     lastActivity = 0
     acceptAccess(credentials, requestedAt)
+    authSessionEvents.emit('changed')
     return true
 }
 

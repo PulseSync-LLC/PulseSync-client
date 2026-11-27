@@ -1,6 +1,7 @@
 import RendererEvents from '../../../../common/types/rendererEvents'
 import { exchangeBrowserAuthCode, processBrowserAuth } from '../../auth/browserAuth'
 import { extractInstallModUpdateFromPayload, installModUpdateFromAsar } from '../../mod/installModUpdateFrom'
+import { realtime } from '../../realtime'
 
 import type { Track } from '@entities/track/model/track.interface'
 import type { BrowserWindow } from 'electron'
@@ -183,11 +184,13 @@ export const registerSocketClientEvents = ({
     socket.on(RendererEvents.SEND_TRACK, (payload: any) => {
         if (!isMusicClient() || !getAuthorized()) return
         logger.http.log('SEND_TRACK received:', payload)
+        realtime.trackPlayedEnough(payload.data)
         sendToRenderer(RendererEvents.SEND_TRACK, payload.data)
     })
 
     socket.on('disconnect', () => {
         logger.http.log('Client disconnected')
+        realtime.updateTrack({ type: 'refresh' })
         sendToRenderer(RendererEvents.TRACK_INFO, {
             type: 'refresh',
         })

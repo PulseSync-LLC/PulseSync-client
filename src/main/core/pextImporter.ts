@@ -2,16 +2,16 @@ import { fileURLToPath } from 'node:url'
 
 import { app } from 'electron'
 
-import AdmZip from 'adm-zip'
 import * as fsp from 'fs/promises'
 import fs from 'original-fs'
 import path from 'path'
 
 import { HandleErrorsElectron } from '../shared/handlers/handleErrorsElectron'
 import logger from '../shared/logger'
+import { AddonWorkerError, extractAddonArchiveInWorker } from './addons/addonWorkerClient'
 import { readPreservedAddonSettings, restorePreservedAddonSettings } from './addonSettingsPreservation'
 import { getState } from './state'
-import { computeAddonPackageHash, resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './utils/addonIdentity'
+import { resolveAddonDirectoryKey, resolveAddonPublicationFingerprint, resolveAddonStableId } from './utils/addonIdentity'
 import { getAddonsRoot, resolveExistingFileInsideBase } from './utils/addonPaths'
 import { findAddonByPublicationFingerprint } from './utils/addonRegistry'
 import { classifyAddonRuntime } from './utils/addonRuntime'
@@ -20,7 +20,6 @@ import { validateWebHostAddonRuntime } from './utils/webHostAddonRuntime'
 
 const State = getState()
 const SUPPORTED_ADDON_ARCHIVE_EXTENSIONS = new Set(['.pext', '.zip'])
-const MAX_ADDON_ARCHIVE_BYTES = 100 * 1024 * 1024
 
 export class LocalAddonConflictError extends Error {
     constructor() {
@@ -67,56 +66,6 @@ const removeSourcePextIfNeeded = async (filePath: string): Promise<void> => {
         logger.main.error(`Error deleting .pext file after import: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'removeSourcePextIfNeeded', 'removeSourcePextIfNeeded', err)
     }
-}
-
-const normalizeArchiveEntryName = (entryName: string): string | null => {
-    const rawName = String(entryName || '').replace(/\\/g, '/')
-    if (!rawName || rawName.includes('\0') || rawName.startsWith('/') || rawName.startsWith('//') || /^[a-zA-Z]:/.test(rawName)) {
-        return null
-    }
-
-    const normalizedName = path.posix.normalize(rawName)
-    if (
-        !normalizedName ||
-        normalizedName === '.' ||
-        normalizedName === '..' ||
-        normalizedName.startsWith('../') ||
-        path.posix.isAbsolute(normalizedName)
-    ) {
-        return null
-    }
-
-    return normalizedName
-}
-
-const validateAddonArchive = (zip: AdmZip): boolean => {
-    let hasRootMetadata = false
-    let totalUncompressedSize = 0
-
-    for (const entry of zip.getEntries()) {
-        const normalizedName = normalizeArchiveEntryName(entry.entryName)
-        if (!normalizedName) {
-            logger.main.warn(`Rejected addon archive with unsafe entry: ${entry.entryName}`)
-            return false
-        }
-
-        if (!entry.isDirectory && normalizedName === 'metadata.json') {
-            hasRootMetadata = true
-        }
-
-        totalUncompressedSize += Number((entry.header as { size?: number }).size) || 0
-        if (totalUncompressedSize > MAX_ADDON_ARCHIVE_BYTES) {
-            logger.main.warn('Rejected addon archive because its unpacked size is too large')
-            return false
-        }
-    }
-
-    if (!hasRootMetadata) {
-        logger.main.error('Missing metadata.json in addon archive')
-        return false
-    }
-
-    return true
 }
 
 const replaceAddonDirectory = async (stagingDir: string, outputDir: string): Promise<void> => {
@@ -166,20 +115,10 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
     const ext = path.extname(filePath).toLowerCase()
 
     try {
-        const archiveBuffer = await fsp.readFile(filePath)
-        if (archiveBuffer.byteLength > MAX_ADDON_ARCHIVE_BYTES) {
-            logger.main.warn(`Rejected addon archive because it is too large: ${filePath}`)
-            return null
-        }
-
-        const zip = new AdmZip(filePath)
-        if (!validateAddonArchive(zip)) {
-            return null
-        }
-
         tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'pext-import-'))
         const stagingDir = path.join(tempDir, 'staging')
-        zip.extractAllTo(stagingDir, true)
+        await fsp.mkdir(stagingDir)
+        const packageHash = await extractAddonArchiveInWorker(path.resolve(filePath), stagingDir)
 
         const metadataPath = path.join(stagingDir, 'metadata.json')
         if (!fs.existsSync(metadataPath)) {
@@ -209,7 +148,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         if (metadata.type === 'web-addon') {
             const scriptPath = typeof metadata.script === 'string' ? resolveExistingFileInsideBase(stagingDir, metadata.script) : null
             const scriptContent = scriptPath ? await fsp.readFile(scriptPath, 'utf8') : ''
-            const validation = validateWebHostAddonRuntime(scriptContent)
+            const validation = await validateWebHostAddonRuntime(scriptContent)
             if (!validation.ok) {
                 logger.main.error(
                     `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || addonName)}: ${validation.category}: ${validation.reason}`,
@@ -228,7 +167,7 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
         }
 
         metadata.id = resolveAddonStableId(metadata)
-        metadata.packageHash = computeAddonPackageHash(archiveBuffer)
+        metadata.packageHash = packageHash
 
         let targetDirectoryOverride: string | null = null
         if (metadata.installSource === 'store') {
@@ -278,6 +217,10 @@ export const importAddonArchive = async (rawPath: string, options: ImportAddonAr
 
         return targetDirectoryOverride ? addonName : addonDirectory
     } catch (err: any) {
+        if (err instanceof AddonWorkerError && err.invalidArchive) {
+            logger.main.warn(`Rejected addon archive: ${err.message}`)
+            return null
+        }
         if (err instanceof AddonUpdatePolicyError || err instanceof LocalAddonConflictError) throw err
         logger.main.error(`Error in importAddonArchive: ${err?.message || err}`)
         HandleErrorsElectron.handleError('pextImporter', 'importAddonArchive', 'importAddonArchive', err)

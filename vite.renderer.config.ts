@@ -28,6 +28,7 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
     }
 
     const isDevMode = mode === 'development'
+    process.env.NODE_ENV = isDevMode ? 'development' : 'production'
     const compilerPreset = reactCompilerPreset()
     // tsx can load Babel presets through CommonJS in dev, where import.meta.resolve is unavailable.
     const rendererCompilerPreset = isDevMode ? { ...compilerPreset, preset: () => ({ plugins: ['babel-plugin-react-compiler'] }) } : compilerPreset
@@ -78,19 +79,6 @@ export default defineConfig(({ mode, forgeConfigSelf }: any) => {
                     chunkFileNames: isRemoteRendererBuild ? 'assets/[hash:16].js' : '[name].js',
                     assetFileNames: isRemoteRendererBuild ? 'assets/[hash:16][extname]' : '[name].[ext]',
                     hashCharacters: 'hex',
-                    codeSplitting: {
-                        groups: [
-                            {
-                                name: moduleId => {
-                                    if (moduleId.includes('node_modules')) {
-                                        return 'vendor'
-                                    }
-                                    return null
-                                },
-                                entriesAware: true,
-                            },
-                        ],
-                    },
                 },
             },
         },

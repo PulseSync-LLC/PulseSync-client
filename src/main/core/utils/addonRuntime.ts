@@ -18,7 +18,7 @@ export async function classifyAddonRuntime(directory: string, metadata: RuntimeM
         } else if (metadata.type === 'web-addon' && typeof metadata.script === 'string') {
             const scriptPath = resolveExistingFileInsideBase(directory, metadata.script)
             if (scriptPath) {
-                const validation = validateWebHostAddonRuntime(await fs.promises.readFile(scriptPath, 'utf8'))
+                const validation = await validateWebHostAddonRuntime(await fs.promises.readFile(scriptPath, 'utf8'))
                 if (validation.ok) return 'isolated'
                 logger.main.warn(
                     `[PulseSync Addons] Blocked isolated addon ${String(metadata.id || directory)}: ${validation.category}: ${validation.reason}`,

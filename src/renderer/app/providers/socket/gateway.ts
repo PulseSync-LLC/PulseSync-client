@@ -1,21 +1,17 @@
 import { getGatewayErrorMessage } from '@app/providers/socket/utils'
 import IncomingGatewayEvents from '@shared/api/socket/enums/incomingGatewayEvents'
-import { parseGatewayFrame } from '@shared/api/socket/realtimeSocket'
 import { applySubscriptionUpdate, applyUserUpdate } from '@shared/api/socket/realtimeUserEvents'
 import { desktopApi } from '@shared/desktop/desktopApi'
 import toast from '@shared/ui/toast'
 
+import type { GatewayFrame } from '@common/background'
 import type UserInterface from '@entities/user/model/user.interface'
 import type { SubscriptionUpdatePayload, UserUpdatePayload } from '@shared/api/socket/realtimeUserEvents'
 import type { TFunction } from 'i18next'
-import type { Dispatch, MutableRefObject, SetStateAction } from 'react'
-import type { Socket } from 'socket.io-client'
+import type { Dispatch, SetStateAction } from 'react'
 
 type CreateGatewayHandlerParams = {
     t: TFunction
-    zstdReady: boolean
-    zstdRef: MutableRefObject<any>
-    setSocket: Dispatch<SetStateAction<Socket | null>>
     setSocketConnected: Dispatch<SetStateAction<boolean>>
     setUser: Dispatch<SetStateAction<UserInterface>>
     onLogout: () => Promise<void>
@@ -28,11 +24,8 @@ type CreateGatewayHandlerParams = {
     resetSocketFailures: () => void
 }
 
-export function createGatewayHandler({
+export function createDecodedGatewayHandler({
     t,
-    zstdReady,
-    zstdRef,
-    setSocket,
     setSocketConnected,
     setUser,
     onLogout,
@@ -44,10 +37,7 @@ export function createGatewayHandler({
     onPremiumUnlocked,
     resetSocketFailures,
 }: CreateGatewayHandlerParams) {
-    return async (buf: ArrayBuffer | Uint8Array) => {
-        if (!zstdReady || !zstdRef.current) return
-
-        const msg = parseGatewayFrame(buf, zstdRef.current)
+    return async (msg: GatewayFrame | null) => {
         if (!msg?.e) return
 
         const gatewayEvent = msg.e
@@ -80,7 +70,6 @@ export function createGatewayHandler({
             }
             case IncomingGatewayEvents.LOGOUT:
                 console.debug('Gateway logout')
-                setSocket(null)
                 setSocketConnected(false)
                 resetSocketFailures()
                 await onLogout()

@@ -26,6 +26,7 @@ async function packageDesktopCore(buildPath: string): Promise<void> {
     const coreFiles = [
         { source: 'desktopCore.cjs', target: 'index.cjs' },
         { source: 'mainWindowPreload.cjs', target: 'mainWindowPreload.cjs' },
+        { source: 'addonWorker.cjs', target: 'addonWorker.cjs' },
     ]
     const resourcesPath = path.resolve(buildPath, '..')
     const packagedAppRoot = path.resolve(resourcesPath, '..')
@@ -82,6 +83,10 @@ const forgeConfig: ForgeConfig = {
                 },
                 {
                     entry: 'src/main/core/desktopCore.ts',
+                    config: 'vite.main.config.ts',
+                },
+                {
+                    entry: 'src/main/core/addons/addonWorker.ts',
                     config: 'vite.main.config.ts',
                 },
                 {

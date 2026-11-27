@@ -7,6 +7,8 @@ import RendererEvents from '../../../common/types/rendererEvents'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
 import isAppDev from '../../shared/utils/isAppDev'
+import { ensureRendererLoaded } from '../rendererMemory'
+import { runWhenUiReady } from '../uiReady'
 import { authV2Request, installV2Session, parseV2Credentials } from './session'
 
 import type { BrowserWindow } from 'electron'
@@ -117,11 +119,14 @@ export const processBrowserAuth = async (
     v2Flow = null
     logger.socketManager.info(`${isAppDev ? 'Dev mode auth accepted' : 'Auth accepted'} for user ${v2.userId}.`)
     if (window && !window.isDestroyed()) {
+        await ensureRendererLoaded()
         if (window.isMinimized()) window.restore()
         window.show()
         window.moveTop()
         window.focus()
-        window.webContents.send(RendererEvents.AUTH_SUCCESS)
+        runWhenUiReady(() => {
+            if (!window.isDestroyed()) window.webContents.send(RendererEvents.AUTH_SUCCESS)
+        })
     }
     return true
 }

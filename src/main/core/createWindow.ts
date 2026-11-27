@@ -13,10 +13,13 @@ import { addMainBreadcrumb } from '../shared/errorTracking'
 import logger from '../shared/logger'
 import isAppDev from '../shared/utils/isAppDev'
 import { recordAuthActivity } from './auth/session'
+import { canSuspendRenderer } from './background'
 import { queueAddonOpen, updateAvailable } from './events'
 import { refreshRemoteLocalization } from './localization'
+import { isInstalledModMutationInProgress } from './mod/integrity'
 import { getPulseSyncUserAgent } from './mod/network/userAgent'
 import { importPextFile, isPextFilePath } from './pextImporter'
+import { configureRendererMemory, ensureRendererLoaded, isRendererSuspended, scheduleRendererSuspension } from './rendererMemory'
 import { isTransientRendererNetworkError, type MainRendererSource, resolveMainRendererSources } from './rendererSource'
 import { startRendererUpdateMonitor, stopRendererUpdateMonitor } from './rendererUpdate'
 import {
@@ -28,6 +31,7 @@ import {
     shouldAllowDevRemoteRenderer,
 } from './security/remoteRendererPolicy'
 import { getState } from './state'
+import { isUiReady } from './uiReady'
 import { getUpdater } from './updater/updater'
 import { isWindows } from './utils/appUtils'
 import { getNativeImg } from './utils/electronNative'
@@ -42,10 +46,15 @@ let isAppQuitting = false
 
 export function showMainWindow(): boolean {
     if (!mainWindow || mainWindow.isDestroyed()) return false
-    if (mainWindow.isMinimized()) mainWindow.restore()
-    mainWindow.show()
-    mainWindow.moveTop()
-    mainWindow.focus()
+    void ensureRendererLoaded()
+        .then(() => {
+            if (mainWindow.isDestroyed()) return
+            if (mainWindow.isMinimized()) mainWindow.restore()
+            mainWindow.show()
+            mainWindow.moveTop()
+            mainWindow.focus()
+        })
+        .catch(error => logger.main.warn('Could not restore the main window:', error))
     return true
 }
 
@@ -236,6 +245,7 @@ const loadMainWindowRenderer = async (
     window: BrowserWindow,
     resolvedSource?: MainRendererSource,
     onSourceError?: (error: unknown) => void,
+    restoreHash?: string,
 ): Promise<MainRendererSource> => {
     const sources = resolvedSource ? [resolvedSource] : resolveMainRendererSources(onSourceError)
     let lastError: unknown
@@ -277,7 +287,9 @@ const loadMainWindowRenderer = async (
             try {
                 await Promise.race([
                     (async () => {
-                        await window.loadURL(source.url)
+                        const rendererUrl = new URL(source.url)
+                        if (restoreHash !== undefined) rendererUrl.hash = restoreHash
+                        await window.loadURL(rendererUrl.href)
                         stage = 'preload'
                         await assertRemotePreloadSurface(window)
                         stage = 'ui-ready'
@@ -421,12 +433,16 @@ export async function createWindow(
             mainWindow.moveTop()
         }
         resolveReady()
+        scheduleRendererSuspension()
     }
     let mainRendererSource: MainRendererSource | null = null
     let rendererRetryTimer: NodeJS.Timeout | null = null
     let rendererLoading = false
     let rendererAttempts = 0
-    const activateMainRenderer = async (source: MainRendererSource): Promise<void> => {
+    const activateMainRenderer = async (source: MainRendererSource): Promise<boolean> => {
+        if (isRendererSuspended()) {
+            return false
+        }
         const previousSource = mainRendererSource
         try {
             mainRendererSource = await loadMainWindowRenderer(rendererWindow, source)
@@ -437,7 +453,25 @@ export async function createWindow(
             }
             throw error
         }
+        return true
     }
+    configureRendererMemory(rendererWindow, {
+        canSuspend: () =>
+            canSuspendRenderer() &&
+            isUiReady() &&
+            !rendererLoading &&
+            !isAppQuitting &&
+            !getUpdater().isBusy() &&
+            !isInstalledModMutationInProgress(),
+        restore: async hash => {
+            try {
+                await loadMainWindowRenderer(rendererWindow, mainRendererSource ?? undefined, undefined, hash)
+            } catch (error) {
+                logger.main.warn('Retrying renderer restoration with the available sources:', error)
+                mainRendererSource = await loadMainWindowRenderer(rendererWindow, undefined, undefined, hash)
+            }
+        },
+    })
     const loadMainRenderer = async (): Promise<void> => {
         if (isAppQuitting || rendererLoading || rendererWindow.isDestroyed() || mainWindowReadyHandled) return
         rendererLoading = true

@@ -1,14 +1,16 @@
+import { lazy } from 'react'
+
 import { useTranslation } from 'react-i18next'
 import { MdCode, MdExtension, MdInfoOutline, MdInsights, MdLink, MdScience, MdSettings, MdSystemUpdateAlt, MdWidgets } from 'react-icons/md'
-
-import DeveloperToolsPanel from '@features/developerTools/DeveloperToolsPanel'
-import ExperimentOverridesPanel from '@features/developerTools/ExperimentOverridesPanel'
 
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 import type { useSettingsActions } from '@features/settings/model/useSettingsActions'
 import type { DeveloperSetting, SettingsCategorySchema } from '@widgets/modalContainer/modals/SettingsModal/model/types'
 
 type SettingsActions = ReturnType<typeof useSettingsActions>
+
+const DeveloperToolsPanel = lazy(() => import('@features/developerTools/DeveloperToolsPanel'))
+const ExperimentOverridesPanel = lazy(() => import('@features/developerTools/ExperimentOverridesPanel'))
 
 interface UseSettingsSchemaOptions {
     actions: SettingsActions

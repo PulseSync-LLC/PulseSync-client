@@ -1,4 +1,4 @@
-import React, { useCallback, useContext, useEffect, useRef, useState } from 'react'
+import React, { lazy, useCallback, useContext, useEffect, useRef, useState } from 'react'
 
 import { AnimatePresence } from 'framer-motion'
 import { useTranslation } from 'react-i18next'
@@ -9,7 +9,6 @@ import { applyPlayStatusColor, getPlayStatus } from '@widgets/layout/model/playS
 import { uploadProfileMedia } from '@widgets/layout/model/profileUploads'
 import NotificationsBell from '@widgets/layout/NotificationsBell'
 import SubscriptionGiveawaysButton from '@widgets/layout/SubscriptionGiveawaysButton'
-import HeaderModals from '@widgets/layout/ui/HeaderModals'
 import UserMenuCard from '@widgets/layout/ui/UserMenuCard'
 import UpdateChannelOverrideButton from '@widgets/layout/UpdateChannelOverrideButton'
 import GetModUpdates from '@entities/mod/api/getModChangelogEntries.query'
@@ -22,6 +21,7 @@ import { desktopApi } from '@shared/desktop/desktopApi'
 import { staticAsset } from '@shared/lib/staticAssets'
 import { compareVersions } from '@shared/lib/utils'
 import ButtonV2 from '@shared/ui/buttonV2'
+import DeferredContent from '@shared/ui/DeferredContent'
 import { Avatar } from '@shared/ui/PSUI/Image'
 import toast from '@shared/ui/toast'
 
@@ -43,6 +43,8 @@ interface p {
         icon?: string
     }
 }
+
+const HeaderModals = lazy(() => import('@widgets/layout/ui/HeaderModals'))
 
 type GetModUpdatesResponse = {
     getChangelogEntries: ModChangelogEntry[]
@@ -384,19 +386,21 @@ const Header: React.FC<p> = ({ title, titleDetail }) => {
 
     return (
         <>
-            <HeaderModals
-                appError={appError}
-                appUpdatesInfo={appUpdatesInfo}
-                closeModModal={closeModModal}
-                closeAppChangelogModal={closeAppChangelogModal}
-                formatDate={formatDate}
-                isAppChangelogModalOpen={isAppChangelogModalOpen}
-                isModModalOpen={isModModalOpen}
-                loadingAppUpdates={loadingAppUpdates}
-                loadingModChanges={loadingModChanges}
-                modChangesInfo={modChangesInfo}
-                modError={modError}
-            />
+            <DeferredContent active={isAppChangelogModalOpen || isModModalOpen}>
+                <HeaderModals
+                    appError={appError}
+                    appUpdatesInfo={appUpdatesInfo}
+                    closeModModal={closeModModal}
+                    closeAppChangelogModal={closeAppChangelogModal}
+                    formatDate={formatDate}
+                    isAppChangelogModalOpen={isAppChangelogModalOpen}
+                    isModModalOpen={isModModalOpen}
+                    loadingAppUpdates={loadingAppUpdates}
+                    loadingModChanges={loadingModChanges}
+                    modChangesInfo={modChangesInfo}
+                    modError={modError}
+                />
+            </DeferredContent>
             <header className={`${styles.nav_bar} ${isMac ? styles.mac : ''}`}>
                 <div className={styles.fix_size}>
                     <div className={styles.app_menu}>

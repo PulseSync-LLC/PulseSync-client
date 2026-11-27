@@ -14,43 +14,40 @@ type AddonMetadataRecord = {
     storeAddonId?: string
     storeReleaseChannel?: 'stable' | 'dev'
     type?: string
+    version?: string
 }
 
 const readText = (value: unknown): string => (typeof value === 'string' ? value.trim() : '')
 
-export const listAddonMetadata = (): AddonMetadataRecord[] => {
-    const addonsRoot = getAddonsRoot()
-
-    let folders: string[] = []
+const readAddonMetadata = (directoryName: string): AddonMetadataRecord | null => {
     try {
-        folders = fs.readdirSync(addonsRoot)
+        const parsed = JSON.parse(fs.readFileSync(path.join(getAddonsRoot(), directoryName, 'metadata.json'), 'utf8')) as Record<string, unknown>
+        return {
+            author: (parsed.author as string | string[] | undefined) || undefined,
+            directoryName,
+            fingerprint: resolveAddonPublicationFingerprint(parsed),
+            id: readText(parsed.id),
+            installSource: readText(parsed.installSource) === 'store' ? 'store' : 'local',
+            name: readText(parsed.name),
+            storeAddonId: readText(parsed.storeAddonId),
+            storeReleaseChannel: parsed.storeReleaseChannel === 'dev' ? 'dev' : 'stable',
+            type: readText(parsed.type),
+            version: readText(parsed.version),
+        }
+    } catch {
+        return null
+    }
+}
+
+export const listAddonMetadata = (): AddonMetadataRecord[] => {
+    try {
+        return fs
+            .readdirSync(getAddonsRoot())
+            .map(readAddonMetadata)
+            .filter((item): item is AddonMetadataRecord => item !== null)
     } catch {
         return []
     }
-
-    return folders
-        .map<AddonMetadataRecord | null>(folder => {
-            const metadataPath = path.join(addonsRoot, folder, 'metadata.json')
-            if (!fs.existsSync(metadataPath)) return null
-
-            try {
-                const parsed = JSON.parse(fs.readFileSync(metadataPath, 'utf8')) as Record<string, unknown>
-                return {
-                    author: (parsed.author as string | string[] | undefined) || undefined,
-                    directoryName: folder,
-                    fingerprint: resolveAddonPublicationFingerprint(parsed),
-                    id: readText(parsed.id),
-                    installSource: readText(parsed.installSource) === 'store' ? 'store' : 'local',
-                    name: readText(parsed.name),
-                    storeAddonId: readText(parsed.storeAddonId),
-                    storeReleaseChannel: parsed.storeReleaseChannel === 'dev' ? 'dev' : 'stable',
-                    type: readText(parsed.type),
-                }
-            } catch {
-                return null
-            }
-        })
-        .filter((item): item is AddonMetadataRecord => item !== null)
 }
 
 export const resolveAddonDirectory = (ref: unknown): string => {
@@ -74,21 +71,16 @@ export const resolveAddonDirectory = (ref: unknown): string => {
     return match?.directoryName || ''
 }
 
-export const resolveAddonDisplayName = (ref: unknown): string => {
-    const directory = resolveAddonDirectory(ref)
-    if (!directory) return ''
-
-    const metadata = listAddonMetadata().find(item => item.directoryName === directory)
-    return readText(metadata?.name) || directory
+export const resolveAddonIdentity = (ref: unknown): { directoryName: string; name: string; id: string } | null => {
+    const directoryName = resolveAddonDirectory(ref)
+    if (!directoryName) return null
+    const metadata = readAddonMetadata(directoryName)
+    return { directoryName, name: readText(metadata?.name) || directoryName, id: readText(metadata?.id) || directoryName }
 }
 
-export const resolveAddonId = (ref: unknown): string => {
-    const directory = resolveAddonDirectory(ref)
-    if (!directory) return ''
+export const resolveAddonDisplayName = (ref: unknown): string => resolveAddonIdentity(ref)?.name || ''
 
-    const metadata = listAddonMetadata().find(item => item.directoryName === directory)
-    return readText(metadata?.id) || directory
-}
+export const resolveAddonId = (ref: unknown): string => resolveAddonIdentity(ref)?.id || ''
 
 export const findAddonByPublicationFingerprint = (fingerprint: unknown, installSource?: 'local' | 'store'): AddonMetadataRecord | null => {
     const normalizedFingerprint = readText(fingerprint)

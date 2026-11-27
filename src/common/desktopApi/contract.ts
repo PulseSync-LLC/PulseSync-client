@@ -1,5 +1,6 @@
 import type { AddonProject, AddonProjectDocument, AddonProjectOpenRequest } from '../addons/project'
 import type { DesktopAddonRecoveryRequest, DesktopAddonRecoverySnapshot } from '../addons/recovery'
+import type { DesktopBackgroundApi } from '../background'
 import type { CloudSettingsLocalState, CloudSettingsSession, CloudSettingsSnapshot } from '../cloudSettings'
 import type { ListeningOperation, ListeningView } from '../listening/types'
 import type { DesktopLocalizationSnapshot } from '../localization/catalog'
@@ -181,6 +182,7 @@ export type DesktopUnsubscribe = () => void
 
 export interface PulseSyncDesktopApi {
     readonly apiVersion: string
+    background?: DesktopBackgroundApi
     getRuntimeInfo(): Promise<DesktopRuntimeInfo>
     listening: {
         get(): Promise<ListeningView>

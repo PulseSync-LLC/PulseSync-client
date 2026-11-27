@@ -1,16 +1,6 @@
+import type { NotificationItem } from '@common/notificationPresentation'
 import type { ReactNode } from 'react'
-
-export type NotificationCategory = 'achievement' | 'localization' | 'subscription' | 'security' | 'system' | string
-
-export type NotificationItem = {
-    category: NotificationCategory
-    createdAt: string | number
-    id: string
-    link: string | null
-    payload: Record<string, unknown> | null
-    read: boolean
-    type: string
-}
+export type { NotificationCategory, NotificationItem } from '@common/notificationPresentation'
 
 export type NotificationsContextValue = {
     hasMore: boolean

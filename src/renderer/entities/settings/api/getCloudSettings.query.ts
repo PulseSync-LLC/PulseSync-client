@@ -1,15 +1,5 @@
 import gql from 'graphql-tag'
 
-import CloudSettingsFields from './cloudSettings.fragment'
+import { GET_CLOUD_SETTINGS } from '@common/cloudSettingsQueries'
 
-export default gql`
-    query GetCloudSettings {
-        getMeWeb {
-            id
-        }
-        getCloudSettings {
-            ...CloudSettingsFields
-        }
-    }
-    ${CloudSettingsFields}
-`
+export default gql(GET_CLOUD_SETTINGS)

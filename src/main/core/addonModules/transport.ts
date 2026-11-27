@@ -34,8 +34,8 @@ export function registerAddonModuleTransport(
     getAuthToken: () => Promise<string>,
     isCurrentAuthToken: (token: string) => boolean,
     getSessionId: () => string,
-    readAddon: (id: string) => ModuleAddon | undefined,
-    readLocalModuleBytes: (id: string, alias: string, hash: string) => string,
+    readAddon: (id: string) => Promise<ModuleAddon | undefined>,
+    readLocalModuleBytes: (id: string, alias: string, hash: string) => Promise<string>,
 ) {
     const capability = getTransportCapability()
     const activations = new Map<string, ModuleActivation>()
@@ -44,8 +44,9 @@ export function registerAddonModuleTransport(
     let inFlight = 0
     const getAddonFingerprint = (addon: ModuleAddon) =>
         sha256(JSON.stringify([addon.id, addon.catalogAddonId, sha256(addon.code), addon.securityManifest]))
-    const assertAddonCurrent = (authToken: string, addon: ModuleAddon, fingerprint: string) => {
-        const current = readAddon(addon.id)
+    const assertAddonCurrent = async (authToken: string, addon: ModuleAddon, fingerprint: string, operation: ModuleOperation) => {
+        const current = await readAddon(addon.id)
+        assertModuleOperation(operation)
         if (!socket.connected || !isCurrentAuthToken(authToken) || !current || getAddonFingerprint(current) !== fingerprint)
             throwModuleError('aborted')
     }
@@ -141,8 +142,9 @@ export function registerAddonModuleTransport(
             timer = setTimeout(cleanup, Math.max(1, deadline - Date.now()))
             if (packet.operation === 'load-local') {
                 if (typeof packet.addonId !== 'string' || typeof packet.alias !== 'string' || typeof packet.sha256 !== 'string') throwModuleError()
-                const bytes = readLocalModuleBytes(packet.addonId, packet.alias, packet.sha256)
+                const bytes = await readLocalModuleBytes(packet.addonId, packet.alias, packet.sha256)
                 assertModuleOperation(operation)
+                if (!socket.connected || !isCurrentAuthToken(authToken)) throwModuleError('aborted')
                 ack({ ok: true, value: { bytes } })
                 return
             }
@@ -153,12 +155,13 @@ export function registerAddonModuleTransport(
                 if (activations.has(activationId) || requests.size > 1) throwModuleError('access-denied')
                 resolvingAddon = packet.addonId
                 resolving.set(resolvingAddon, operation)
-                const addon = readAddon(packet.addonId)
+                const addon = await readAddon(packet.addonId)
+                assertModuleOperation(operation)
                 if (!addon) throwModuleError()
                 const fingerprint = getAddonFingerprint(addon)
                 const { releaseBinding } = await bindInstalledAddon(addon, authToken, operation)
                 assertModuleOperation(operation)
-                assertAddonCurrent(authToken, addon, fingerprint)
+                await assertAddonCurrent(authToken, addon, fingerprint, operation)
                 for (const [id, entry] of activations) {
                     if (entry.addon.id === addon.id) {
                         cancelActivation(id)
@@ -168,7 +171,7 @@ export function registerAddonModuleTransport(
                 if (activations.size >= 32) throwModuleError('reload-required')
                 const resolution = await requestModuleRuntime<Resolution>('resolve', { releaseBinding, activationId }, authToken, operation)
                 assertModuleOperation(operation)
-                assertAddonCurrent(authToken, addon, fingerprint)
+                await assertAddonCurrent(authToken, addon, fingerprint, operation)
                 activations.set(packet.activationId, { addon, fingerprint, sessionId, resolution })
                 ack({ ok: true, value: resolution })
                 return
@@ -176,13 +179,13 @@ export function registerAddonModuleTransport(
             const entry = activations.get(packet.activationId)
             if (!entry || entry.sessionId !== sessionId) throwModuleError('aborted')
             const active = entry
-            assertAddonCurrent(authToken, active.addon, active.fingerprint)
+            await assertAddonCurrent(authToken, active.addon, active.fingerprint, operation)
             if (typeof packet.alias !== 'string' || !Object.hasOwn(active.resolution.descriptors, packet.alias)) throwModuleError('undeclared-module')
             const alias = packet.alias
             const descriptor = active.resolution.descriptors[alias]
             const { releaseBinding } = await bindInstalledAddon(active.addon, authToken, operation)
             assertModuleOperation(operation)
-            assertAddonCurrent(authToken, active.addon, active.fingerprint)
+            await assertAddonCurrent(authToken, active.addon, active.fingerprint, operation)
             if (packet.operation !== 'load') throwModuleError('access-denied')
             const permission = await requestModuleRuntime<{ approval: string; descriptor: Descriptor }>(
                 'approval',
@@ -196,7 +199,7 @@ export function registerAddonModuleTransport(
                 operation,
             )
             assertModuleOperation(operation)
-            assertAddonCurrent(authToken, active.addon, active.fingerprint)
+            await assertAddonCurrent(authToken, active.addon, active.fingerprint, operation)
             if (permission.descriptor.sha256 !== descriptor.sha256 || permission.descriptor.versionId !== descriptor.versionId)
                 throwModuleError('integrity-mismatch')
             if (activations.get(packet.activationId) !== active) throwModuleError('aborted')

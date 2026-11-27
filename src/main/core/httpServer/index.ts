@@ -16,6 +16,7 @@ import { authorized } from '../events'
 import { checkIsDeeplink, createDeeplinkCommandsHandler, navigateToDeeplink } from '../handleDeeplinks'
 import mainHttpClient from '../http/client'
 import { listening } from '../listening'
+import { realtime } from '../realtime'
 import { isFirstInstance } from '../singleInstance'
 import { selectedAddon } from '../startup/runtimeState'
 import { getState } from '../state'
@@ -312,6 +313,7 @@ registerServerIpcEvents({
 })
 
 const updateData = (newData: any) => {
+    realtime.updateTrack(newData)
     if (newData.type === 'refresh') {
         return mainWindow.webContents.send(RendererEvents.TRACK_INFO, {
             type: 'refresh',

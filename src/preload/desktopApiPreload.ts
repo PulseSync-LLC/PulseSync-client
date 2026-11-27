@@ -1,5 +1,6 @@
 import { contextBridge, ipcRenderer } from 'electron'
 
+import { BACKGROUND_IPC } from '@common/background'
 import { DESKTOP_CORE_VERSION, DESKTOP_HOST_VERSION } from '@common/desktopRuntime/version'
 import { LISTENING_IPC } from '@common/listening/types'
 
@@ -130,6 +131,14 @@ const selectLinuxAsarPath = async (defaultPath?: string): Promise<{ canceled: bo
 }
 
 const createPulseSyncDesktopApi = (): PulseSyncDesktopApi => ({
+    background: {
+        start: configuration => ipcRenderer.invoke(BACKGROUND_IPC.start, configuration),
+        setPreferences: preferences => ipcRenderer.invoke(BACKGROUND_IPC.preferences, preferences),
+        send: (event, payload) => ipcRenderer.send(BACKGROUND_IPC.send, event, payload),
+        synchronizeCloud: (userId, enabled) => ipcRenderer.invoke(BACKGROUND_IPC.syncCloud, userId, enabled),
+        checkAddonUpdates: () => ipcRenderer.invoke(BACKGROUND_IPC.checkAddons),
+        onChange: listener => subscribePayload(BACKGROUND_IPC.changed, listener),
+    },
     listening: {
         get: () => ipcRenderer.invoke(LISTENING_IPC.get),
         run: operation => ipcRenderer.invoke(LISTENING_IPC.run, operation),

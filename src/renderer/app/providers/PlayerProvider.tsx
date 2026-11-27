@@ -13,25 +13,26 @@ import type { PlayerProps } from '@app/AppShell.types'
 import type { Track } from '@entities/track/model/track.interface'
 
 export default function PlayerProvider({ children }: PlayerProps) {
-    const { user, socket, socketConnected, emitGateway, addons } = useContext(UserContext)
+    const { user, socketConnected, emitGateway, addons } = useContext(UserContext)
     const { isExperimentEnabled, loading: experimentsLoading } = useExperiments()
     const [track, setTrack] = useState<Track>(trackInitials)
     const lastSentTrack = useRef({ title: null as string | null, status: null as string | null, progressPlayed: null as number | null })
     const lastSentAddonMetrics = useRef('')
     const lastSendAt = useRef(0)
     const trackInfoRequestedForUserRef = useRef<string | null>(null)
+    const backgroundOwned = !!desktopApi.background
     const trackSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientTrackSending, false)
     const metricsSendingEnabled = !experimentsLoading && isExperimentEnabled(CLIENT_EXPERIMENTS.ClientMetricsSending, false)
 
     const handleSendTrackPlayedEnough = useCallback(
         (data: any) => {
             if (!data) return
-            if (!trackSendingEnabled) return
-            if (socket && socket.connected) {
+            if (backgroundOwned || !trackSendingEnabled) return
+            if (socketConnected) {
                 emitGateway(OutgoingGatewayEvents.TRACK_PLAYED_ENOUGH, { track: { id: data.realId } })
             }
         },
-        [socket, emitGateway, trackSendingEnabled],
+        [backgroundOwned, socketConnected, emitGateway, trackSendingEnabled],
     )
 
     const handleTrackInfo = useCallback((data: any) => {
@@ -64,7 +65,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
     }, [user.id])
 
     useEffect(() => {
-        if (!socket || !trackSendingEnabled) return
+        if (backgroundOwned || !socketConnected || !trackSendingEnabled) return
         const title = track.title
         const status = track.status ?? ''
         const sourceType = track.sourceType
@@ -81,10 +82,10 @@ export default function PlayerProvider({ children }: PlayerProps) {
 
         lastSentTrack.current = { title, status, progressPlayed }
         lastSendAt.current = now
-    }, [socket, track, emitGateway, trackSendingEnabled])
+    }, [backgroundOwned, socketConnected, track, emitGateway, trackSendingEnabled])
 
     useEffect(() => {
-        if (!socket || !socketConnected || !metricsSendingEnabled) return
+        if (backgroundOwned || !socketConnected || !metricsSendingEnabled) return
         let active = true
         void (async () => {
             const snapshot = await desktopApi.settings.getSnapshot()
@@ -107,7 +108,7 @@ export default function PlayerProvider({ children }: PlayerProps) {
         return () => {
             active = false
         }
-    }, [addons, emitGateway, metricsSendingEnabled, socket, socketConnected])
+    }, [addons, backgroundOwned, emitGateway, metricsSendingEnabled, socketConnected])
 
     return (
         <PlayerContext.Provider

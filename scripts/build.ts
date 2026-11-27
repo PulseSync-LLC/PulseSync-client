@@ -266,11 +266,26 @@ async function buildDesktopCoreOnly(): Promise<void> {
         },
     })
 
+    await viteBuild({
+        configFile: path.resolve(__dirname, '../vite.main.config.ts'),
+        mode: 'production',
+        build: {
+            emptyOutDir: false,
+            outDir: viteOutputDir,
+            lib: {
+                entry: path.resolve(__dirname, '../src/main/core/addons/addonWorker.ts'),
+                fileName: () => 'addonWorker.cjs',
+                formats: ['cjs'],
+            },
+        },
+    })
+
     prepareDesktopCoreGlitchTipSourceMaps(viteOutputDir, dist)
 
     fs.mkdirSync(moduleDir, { recursive: true })
     fs.copyFileSync(path.join(viteOutputDir, 'desktopCore.cjs'), path.join(moduleDir, 'index.cjs'))
     fs.copyFileSync(path.join(viteOutputDir, 'mainWindowPreload.cjs'), path.join(moduleDir, 'mainWindowPreload.cjs'))
+    fs.copyFileSync(path.join(viteOutputDir, 'addonWorker.cjs'), path.join(moduleDir, 'addonWorker.cjs'))
     fs.copyFileSync(path.resolve(__dirname, '../packages/desktop-core/package.json'), path.join(moduleDir, 'package.json'))
     log(LogLevel.SUCCESS, `Built desktopCore ${coreVersion} revision ${component.revision} without Electron packaging`)
     await uploadGlitchTipSourceMaps(coreVersion, coreCommit)

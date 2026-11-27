@@ -1,12 +1,5 @@
 import gql from 'graphql-tag'
 
-import CloudSettingsFields from './cloudSettings.fragment'
+import { SAVE_CLOUD_SETTINGS } from '@common/cloudSettingsQueries'
 
-export default gql`
-    mutation SaveCloudSettings($input: CloudSettingsInput!) {
-        saveCloudSettings(input: $input) {
-            ...CloudSettingsFields
-        }
-    }
-    ${CloudSettingsFields}
-`
+export default gql(SAVE_CLOUD_SETTINGS)

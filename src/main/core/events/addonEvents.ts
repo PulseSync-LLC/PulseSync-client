@@ -29,7 +29,7 @@ const readStoredAddonScripts = (): string[] => {
 
 const syncAddonClients = async (): Promise<void> => {
     setSelectedAddon(State.get('addons.theme') || 'Default')
-    setAddon(selectedAddon)
+    await setAddon(selectedAddon)
     await sendExtensions()
     sendAllAddonSettings({ force: true })
 }

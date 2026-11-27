@@ -1,12 +1,5 @@
 import gql from 'graphql-tag'
 
-import CloudSettingsFields from './cloudSettings.fragment'
+import { SET_CLOUD_SETTINGS_ENABLED } from '@common/cloudSettingsQueries'
 
-export default gql`
-    mutation SetCloudSettingsEnabled($enabled: Boolean!, $input: CloudSettingsInput) {
-        setCloudSettingsEnabled(enabled: $enabled, input: $input) {
-            ...CloudSettingsFields
-        }
-    }
-    ${CloudSettingsFields}
-`
+export default gql(SET_CLOUD_SETTINGS_ENABLED)

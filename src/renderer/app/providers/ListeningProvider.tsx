@@ -44,7 +44,7 @@ export default function ListeningProvider({ children }: PropsWithChildren) {
         return () => {
             current = false
             unsubscribe()
-            void desktopApi.listening.stop().catch(() => {})
+            if (!desktopApi.background) void desktopApi.listening.stop().catch(() => {})
         }
     }, [enabled, user.id])
     return (

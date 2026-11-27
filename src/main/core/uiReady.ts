@@ -5,6 +5,10 @@ const pendingUiReadyTasks: UiReadyTask[] = []
 
 export const isUiReady = (): boolean => uiReady
 
+export const markUiNotReady = (): void => {
+    uiReady = false
+}
+
 export const runWhenUiReady = (task: UiReadyTask): void => {
     if (uiReady) {
         task()

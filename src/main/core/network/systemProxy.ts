@@ -1,9 +1,12 @@
+import { Readable } from 'node:stream'
+
 import { app, net, type Session, session } from 'electron'
 
 import axios, { type AxiosAdapter, AxiosError, AxiosHeaders, type InternalAxiosRequestConfig } from 'axios'
-import { PassThrough } from 'stream'
 
 import logger from '../../shared/logger'
+
+import type { ReadableStream } from 'node:stream/web'
 
 let axiosAdapterInstalled = false
 let fetchInstalled = false
@@ -35,7 +38,7 @@ type ElectronBufferedResponse = ElectronResponseMeta & {
 }
 
 type ElectronStreamResponse = ElectronResponseMeta & {
-    data: PassThrough
+    data: Readable
 }
 
 function normalizeHeaders(headers: Record<string, string | string[]>): Record<string, string> {
@@ -131,11 +134,7 @@ async function requestBuffer(options: ElectronRequestOptions): Promise<ElectronB
     const response = await requestStream(options)
     const chunks: Buffer[] = []
 
-    await new Promise<void>((resolve, reject) => {
-        response.data.on('data', chunk => chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk)))
-        response.data.on('end', resolve)
-        response.data.on('error', reject)
-    })
+    for await (const chunk of response.data) chunks.push(Buffer.isBuffer(chunk) ? chunk : Buffer.from(chunk))
 
     return {
         ...response,
@@ -144,104 +143,39 @@ async function requestBuffer(options: ElectronRequestOptions): Promise<ElectronB
 }
 
 async function requestStream(options: ElectronRequestOptions): Promise<ElectronStreamResponse> {
-    const requestBody = await bodyToRequestChunk(options.body)
+    const controller = new AbortController()
+    const abort = () => controller.abort(new Error('Request aborted'))
+    const cleanup = () => options.signal?.removeEventListener?.('abort', abort)
+    if (options.signal?.aborted) abort()
+    else options.signal?.addEventListener?.('abort', abort, { once: true })
+    const timeout =
+        options.timeoutMs && options.timeoutMs > 0 ? setTimeout(() => controller.abort(new Error('Request timeout')), options.timeoutMs) : undefined
 
-    return await new Promise<ElectronStreamResponse>((resolve, reject) => {
-        let completed = false
-        let timeoutId: NodeJS.Timeout | null = null
-
-        const request = net.request({
-            headers: options.headers,
+    try {
+        const response = await net.fetch(options.url, {
+            body: (await bodyToRequestChunk(options.body)) as BodyInit | undefined,
+            headers: normalizeHeaders(options.headers ?? {}),
             method: options.method || 'GET',
             redirect: 'follow',
-            session: session.defaultSession,
-            url: options.url,
+            signal: controller.signal,
         })
-
-        const fail = (error: unknown) => {
-            if (completed) {
-                return
-            }
-
-            completed = true
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-            }
-            reject(error)
-        }
-
-        const abort = (error: unknown) => {
-            try {
-                request.abort()
-            } catch {}
-            fail(error)
-        }
-
-        if (options.signal?.aborted) {
-            abort(new Error('Request aborted'))
-            return
-        }
-
-        const abortListener = () => abort(new Error('Request aborted'))
-        options.signal?.addEventListener?.('abort', abortListener, { once: true })
-
-        if (typeof options.timeoutMs === 'number' && options.timeoutMs > 0) {
-            timeoutId = setTimeout(() => abort(new Error('Request timeout')), options.timeoutMs)
-        }
-
-        request.on('response', response => {
-            if (completed) {
-                return
-            }
-
-            completed = true
-            if (timeoutId) {
-                clearTimeout(timeoutId)
-            }
-            options.signal?.removeEventListener?.('abort', abortListener)
-
-            const stream = new PassThrough()
-            let responseEnded = false
-            response.on('data', chunk => stream.write(chunk))
-            response.on('end', () => {
-                responseEnded = true
-                stream.end()
-            })
-            response.on('aborted', () => stream.destroy(new Error('Response aborted')))
-            response.on('error', error => stream.destroy(error))
-            stream.on('close', () => {
-                if (!responseEnded) {
-                    try {
-                        request.abort()
-                    } catch {}
-                }
-            })
-
-            resolve({
-                data: stream,
-                headers: response.headers,
-                status: response.statusCode,
-                statusText: response.statusMessage,
-            })
+        const stream = response.body ? Readable.fromWeb(response.body as ReadableStream<Uint8Array>) : Readable.from([])
+        stream.once('end', cleanup)
+        stream.once('close', () => {
+            cleanup()
+            if (!stream.readableEnded) controller.abort()
         })
-
-        request.on('error', error => {
-            options.signal?.removeEventListener?.('abort', abortListener)
-            fail(error)
-        })
-
-        request.on('abort', () => {
-            options.signal?.removeEventListener?.('abort', abortListener)
-            fail(new Error('Request aborted'))
-        })
-
-        if (requestBody == null) {
-            request.end()
-            return
-        }
-
-        request.end(requestBody)
-    })
+        const headers: Record<string, string | string[]> = Object.fromEntries(response.headers.entries())
+        const cookies = response.headers.getSetCookie()
+        if (cookies.length) headers['set-cookie'] = cookies
+        return { data: stream, headers, status: response.status, statusText: response.statusText }
+    } catch (error) {
+        cleanup()
+        if (controller.signal.aborted) throw controller.signal.reason
+        throw error
+    } finally {
+        clearTimeout(timeout)
+    }
 }
 
 function parseResponseData(buffer: Buffer, responseType: InternalAxiosRequestConfig['responseType']): unknown {
@@ -270,18 +204,23 @@ const electronNetAxiosAdapter: AxiosAdapter = async config => {
 
         if (config.responseType === 'stream') {
             const response = await requestStream(requestOptions)
-            return rejectForStatus(
-                {
+            try {
+                return rejectForStatus(
+                    {
+                        config,
+                        data: response.data,
+                        headers: normalizeHeaders(response.headers),
+                        request: null,
+                        status: response.status,
+                        statusText: response.statusText,
+                    },
+                    response.status,
                     config,
-                    data: response.data,
-                    headers: normalizeHeaders(response.headers),
-                    request: null,
-                    status: response.status,
-                    statusText: response.statusText,
-                },
-                response.status,
-                config,
-            )
+                )
+            } catch (error) {
+                response.data.destroy()
+                throw error
+            }
         }
 
         const response = await requestBuffer(requestOptions)
@@ -310,87 +249,8 @@ const electronNetAxiosAdapter: AxiosAdapter = async config => {
     }
 }
 
-function getFetchUrl(input: RequestInfo | URL): string {
-    if (typeof input === 'string') {
-        return input
-    }
-
-    if (input instanceof URL) {
-        return input.toString()
-    }
-
-    return input.url
-}
-
-function getFetchMethod(input: RequestInfo | URL, init?: RequestInit): string {
-    if (init?.method) {
-        return init.method
-    }
-
-    if (typeof input === 'object' && 'method' in input) {
-        return input.method
-    }
-
-    return 'GET'
-}
-
-function getFetchSignal(input: RequestInfo | URL, init?: RequestInit): RequestSignal | null {
-    if (init?.signal) {
-        return init.signal
-    }
-
-    if (typeof input === 'object' && 'signal' in input) {
-        return input.signal
-    }
-
-    return null
-}
-
-function appendHeaders(target: Headers, headers?: HeadersInit): void {
-    if (!headers) {
-        return
-    }
-
-    new Headers(headers).forEach((value, key) => target.set(key, value))
-}
-
-function getFetchHeaders(input: RequestInfo | URL, init?: RequestInit): Record<string, string> {
-    const headers = new Headers()
-
-    if (typeof input === 'object' && 'headers' in input) {
-        appendHeaders(headers, input.headers)
-    }
-    appendHeaders(headers, init?.headers)
-
-    return Object.fromEntries(headers.entries())
-}
-
-async function getFetchBody(input: RequestInfo | URL, init?: RequestInit): Promise<unknown> {
-    if (init?.body != null) {
-        return init.body
-    }
-
-    if (typeof input === 'object' && 'arrayBuffer' in input && !input.bodyUsed && !['GET', 'HEAD'].includes(input.method.toUpperCase())) {
-        return Buffer.from(await input.arrayBuffer())
-    }
-
-    return undefined
-}
-
-async function electronFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
-    const response = await requestBuffer({
-        body: await getFetchBody(input, init),
-        headers: getFetchHeaders(input, init),
-        method: getFetchMethod(input, init),
-        signal: getFetchSignal(input, init),
-        url: getFetchUrl(input),
-    })
-
-    return new Response(bufferToArrayBuffer(response.data), {
-        headers: normalizeHeaders(response.headers),
-        status: response.status,
-        statusText: response.statusText,
-    })
+function electronFetch(input: RequestInfo | URL, init?: RequestInit): Promise<Response> {
+    return net.fetch(input instanceof URL ? input.toString() : input, init)
 }
 
 function bufferToArrayBuffer(buffer: Buffer): ArrayBuffer {

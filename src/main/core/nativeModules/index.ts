@@ -75,8 +75,22 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
                 logger.main.warn(`Unknown event ${eventType} on ${filename}`)
         }
     }
+    const root = path.resolve(themesPath)
+    const recheckMs = Math.max(ADDON_WATCH_RECHECK_MS, intervalMs)
+    const useNativeFallback = (): void => {
+        if (!nativeModule || nativeWatchedRoots.has(root)) return
+        try {
+            nativeModule.watch(root, recheckMs, onChange)
+            nativeWatchedRoots.add(root)
+            if (themeWatcherRetryTimer) clearInterval(themeWatcherRetryTimer)
+            themeWatcherRetryTimer = null
+            logger.main.info(`Watching addons using native polling every ${recheckMs}ms`)
+        } catch (error) {
+            logger.main.warn('Native addon filesystem watcher unavailable:', error)
+        }
+    }
     const connectWatcher = () => {
-        if (themeWatcher) return
+        if (themeWatcher || nativeWatchedRoots.has(root)) return
         try {
             const watcher = watch(themesPath, { recursive: true, persistent: false }, (eventType, filename) => {
                 if (!filename) {
@@ -99,7 +113,8 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
             watcher.on('error', error => {
                 watcher.close()
                 if (themeWatcher === watcher) themeWatcher = null
-                logger.main.warn('Addon filesystem watcher failed; retrying with the next recheck:', error)
+                logger.main.warn('Addon filesystem watcher failed; switching to the fallback:', error)
+                useNativeFallback()
             })
             watcher.on('close', () => {
                 if (themeWatcher === watcher) themeWatcher = null
@@ -107,18 +122,15 @@ export function startThemeWatcher(themesPath: string, intervalMs: number = 1000)
             themeWatcher = watcher
         } catch (error) {
             logger.main.warn('Addon filesystem watcher unavailable:', error)
+            useNativeFallback()
         }
     }
     connectWatcher()
-    const recheckMs = Math.max(ADDON_WATCH_RECHECK_MS, intervalMs)
-    themeWatcherRetryTimer = setInterval(connectWatcher, recheckMs)
-    themeWatcherRetryTimer.unref()
-    const root = path.resolve(themesPath)
-    if (nativeModule && !nativeWatchedRoots.has(root)) {
-        nativeModule.watch(root, recheckMs, onChange)
-        nativeWatchedRoots.add(root)
+    if (!nativeWatchedRoots.has(root)) {
+        themeWatcherRetryTimer = setInterval(connectWatcher, recheckMs)
+        themeWatcherRetryTimer.unref()
+        logger.main.info(`Watching addons using filesystem events with a ${recheckMs}ms recheck`)
     }
-    logger.main.info(`Watching addons using filesystem events with a ${recheckMs}ms recheck`)
 }
 
 export const nativeGetHardwareIdentity = (): { hash: string; source: string; algorithm: 'sha256' } | null => {

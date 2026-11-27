@@ -1,3 +1,6 @@
+import { type Readable, Transform } from 'node:stream'
+import { pipeline } from 'node:stream/promises'
+
 import { app, dialog, ipcMain, shell } from 'electron'
 
 import AdmZip from 'adm-zip'
@@ -14,6 +17,7 @@ import MainEvents from '@common/types/mainEvents'
 import { HandleErrorsElectron } from '../../shared/handlers/handleErrorsElectron'
 import { t } from '../../shared/i18n'
 import logger from '../../shared/logger'
+import { MAX_ADDON_ARCHIVE_BYTES } from '../addons/workerProtocol'
 import { getAuthToken, isCurrentAuthToken } from '../auth/session'
 import { assertCloudAddonRestoreAllowed } from '../cloudSettings'
 import mainHttpClient from '../http/client'
@@ -113,12 +117,28 @@ const ensureAddonTemplateDestination = async (targetPath: string): Promise<void>
     }
 }
 
-const extractAddonTemplateArchive = async (archiveBuffer: Buffer, targetPath: string): Promise<void> => {
+const downloadAddonArchive = async (url: string, targetPath: string, timeout?: number): Promise<void> => {
+    const response = await axios.get<Readable>(url, { responseType: 'stream', timeout })
+    let received = 0
+    if (Number(response.headers['content-length']) > MAX_ADDON_ARCHIVE_BYTES) {
+        response.data.destroy()
+        throw new Error('Addon archive is too large')
+    }
+    const limit = new Transform({
+        transform(chunk: Buffer, _encoding, callback) {
+            received += chunk.length
+            callback(received > MAX_ADDON_ARCHIVE_BYTES ? new Error('Addon archive is too large') : null, chunk)
+        },
+    })
+    await pipeline(response.data, limit, fs.createWriteStream(targetPath, { flags: 'wx' }))
+}
+
+const extractAddonTemplateArchive = async (archivePath: string, targetPath: string): Promise<void> => {
     let tempDir = ''
 
     try {
         tempDir = await fsp.mkdtemp(path.join(app.getPath('temp'), 'addon-template-'))
-        const zip = new AdmZip(archiveBuffer)
+        const zip = new AdmZip(archivePath)
         zip.extractAllTo(tempDir, true)
 
         const extractedEntries = await fsp.readdir(tempDir, { withFileTypes: true })
@@ -159,11 +179,13 @@ const scaffoldAddonTemplate = async (): Promise<{ canceled?: boolean; success: b
 
     const selectedDirectory = path.normalize(filePaths[0])
     const targetPath = getSuggestedAddonTemplatePath(selectedDirectory)
-    const response = await axios.get<ArrayBuffer>(ADDON_TEMPLATE_DOWNLOAD_URL, {
-        responseType: 'arraybuffer',
-    })
-
-    await extractAddonTemplateArchive(Buffer.from(response.data), targetPath)
+    const archivePath = path.join(app.getPath('temp'), `addon-template-${v4()}.zip`)
+    try {
+        await downloadAddonArchive(ADDON_TEMPLATE_DOWNLOAD_URL, archivePath)
+        await extractAddonTemplateArchive(archivePath, targetPath)
+    } finally {
+        await fsp.rm(archivePath, { force: true })
+    }
     await shell.openPath(targetPath)
 
     return {
@@ -276,113 +298,115 @@ export const registerAddonPackageEvents = ({
         }
     })
 
-    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, async (_event, payload: DesktopInstallStoreAddonRequest) => {
-        let tempArchivePath = ''
+    ipcMain.handle(MainEvents.INSTALL_STORE_ADDON, (_event, payload: DesktopInstallStoreAddonRequest) =>
+        installStoreAddon(payload, { isAuthorized, queueAddonOpen }),
+    )
+}
 
-        try {
-            const addonId = payload?.id?.trim().toLowerCase()
-            if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
-            const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
-            const authToken = await getAuthToken().catch(() => '')
-            if (!isAuthorized() || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
-            if (payload.cloudSession) {
-                assertCloudAddonRestoreAllowed(payload.cloudSession)
-                const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
-                if (installed) return { success: true, addonName: installed.directoryName }
-            }
+export async function installStoreAddon(
+    payload: DesktopInstallStoreAddonRequest,
+    { isAuthorized, queueAddonOpen }: { isAuthorized: () => boolean; queueAddonOpen: (addonName: string) => void },
+) {
+    let tempArchivePath = ''
 
-            let downloadUrl: string | null | undefined
-            const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
-            if (reviewReleaseId) {
-                const descriptor = await mainHttpClient.get<{
-                    ok?: boolean
-                    release?: { id: string; addonId: string; downloadUrl?: string | null }
-                }>(`/extensions/${encodeURIComponent(addonId)}/releases/${encodeURIComponent(reviewReleaseId)}/review-download`, {
-                    authToken,
-                    timeoutMs: 15000,
-                })
-                const release = descriptor.data?.release
-                if (descriptor.ok && descriptor.data?.ok === true && release?.addonId === addonId && release.id === reviewReleaseId) {
-                    downloadUrl = release.downloadUrl
-                }
-            } else {
-                const descriptor = await mainHttpClient.post<{
-                    ok?: boolean
-                    addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
-                }>('/extensions/updates', {
-                    authToken,
-                    headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
-                    body: { ids: [addonId], releaseChannel },
-                    timeoutMs: 15000,
-                })
-                if (!descriptor.ok || descriptor.data?.ok === false || !Array.isArray(descriptor.data?.addons)) {
-                    logger.main.warn('Store addon lookup failed', { addonId, releaseChannel, status: descriptor.status })
-                    return { success: false, reason: 'STORE_LOOKUP_FAILED' }
-                }
-                const addon = descriptor.data.addons.find(candidate => candidate.id === addonId)
-                if (addon?.currentRelease?.status === 'accepted') {
-                    downloadUrl = addon.currentRelease.downloadUrl
-                }
-            }
-            if (!downloadUrl) {
-                logger.main.warn('Store addon release unavailable', { addonId, releaseChannel })
-                return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
-            }
-            if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
-            if (payload.cloudSession) assertCloudAddonRestoreAllowed(payload.cloudSession)
+    try {
+        const addonId = payload?.id?.trim().toLowerCase()
+        if (!addonId) return { success: false, reason: 'STORE_ADDON_ID_MISSING' }
+        const releaseChannel = payload.releaseChannel === 'dev' ? 'dev' : 'stable'
+        const authToken = await getAuthToken().catch(() => '')
+        if (!isAuthorized() || typeof authToken !== 'string' || !authToken) return { success: false, reason: 'AUTH_REQUIRED' }
+        if (payload.cloudSession) {
+            assertCloudAddonRestoreAllowed(payload.cloudSession)
+            const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
+            if (installed) return { success: true, addonName: installed.directoryName }
+        }
 
-            const parsedUrl = new URL(downloadUrl)
-            if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
-                return { success: false, reason: 'INVALID_PROTOCOL' }
-            }
-
-            const ext = path.extname(parsedUrl.pathname).toLowerCase() === '.pext' ? '.pext' : '.zip'
-            tempArchivePath = path.join(app.getPath('temp'), `store-addon-${v4()}${ext}`)
-
-            const response = await axios.get<ArrayBuffer>(downloadUrl, {
-                responseType: 'arraybuffer',
-                ...(payload.cloudSession ? { timeout: 30_000 } : {}),
+        let downloadUrl: string | null | undefined
+        const reviewReleaseId = payload.reviewReleaseId?.trim().toLowerCase()
+        if (reviewReleaseId) {
+            const descriptor = await mainHttpClient.get<{
+                ok?: boolean
+                release?: { id: string; addonId: string; downloadUrl?: string | null }
+            }>(`/extensions/${encodeURIComponent(addonId)}/releases/${encodeURIComponent(reviewReleaseId)}/review-download`, {
+                authToken,
+                timeoutMs: 15000,
             })
-            if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
-
-            await fsp.writeFile(tempArchivePath, Buffer.from(response.data))
-
-            if (payload.cloudSession) {
-                assertCloudAddonRestoreAllowed(payload.cloudSession)
-                const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
-                if (installed) return { success: true, addonName: installed.directoryName }
+            const release = descriptor.data?.release
+            if (descriptor.ok && descriptor.data?.ok === true && release?.addonId === addonId && release.id === reviewReleaseId) {
+                downloadUrl = release.downloadUrl
             }
-
-            const addonName = await importAddonArchive(tempArchivePath, {
-                installSource: 'store',
-                storeAddonId: addonId,
-                releaseChannel,
-                preserveLocalAddons: !!payload.cloudSession,
-                validateLegacyStoreUpdate: reviewReleaseId
-                    ? undefined
-                    : () => assertLegacyAddonUpdateAllowed(authToken, payload.legacyAddonRestrictionsOverrideGroup),
+        } else {
+            const descriptor = await mainHttpClient.post<{
+                ok?: boolean
+                addons?: { id: string; currentRelease?: { downloadUrl?: string | null; status?: string } | null }[]
+            }>('/extensions/updates', {
+                authToken,
+                headers: { 'x-pulsesync-channel': branch === 'dev' ? 'dev' : 'beta' },
+                body: { ids: [addonId], releaseChannel },
+                timeoutMs: 15000,
             })
-            if (!addonName) {
-                return { success: false, reason: 'IMPORT_FAILED' }
+            if (!descriptor.ok || descriptor.data?.ok === false || !Array.isArray(descriptor.data?.addons)) {
+                logger.main.warn('Store addon lookup failed', { addonId, releaseChannel, status: descriptor.status })
+                return { success: false, reason: 'STORE_LOOKUP_FAILED' }
             }
-
-            if (payload.openAfterInstall !== false) queueAddonOpen(addonName)
-            return { success: true, addonName }
-        } catch (error: any) {
-            if (error instanceof LocalAddonConflictError) {
-                logger.main.info(`Skipped cloud restore of store addon "${payload?.id}": a local addon would be replaced`)
-                return { success: false, reason: error.message }
-            }
-            logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
-            return { success: false, reason: error?.message || 'INSTALL_FAILED' }
-        } finally {
-            if (tempArchivePath) {
-                try {
-                    await fsp.rm(tempArchivePath, { force: true })
-                } catch (cleanupError) {
-                    logger.main.warn(`Unable to remove temporary store addon archive: ${String(cleanupError)}`)
-                }
+            const addon = descriptor.data.addons.find(candidate => candidate.id === addonId)
+            if (addon?.currentRelease?.status === 'accepted') {
+                downloadUrl = addon.currentRelease.downloadUrl
             }
         }
-    })
+        if (!downloadUrl) {
+            logger.main.warn('Store addon release unavailable', { addonId, releaseChannel })
+            return { success: false, reason: 'STORE_RELEASE_UNAVAILABLE' }
+        }
+        if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
+        if (payload.cloudSession) assertCloudAddonRestoreAllowed(payload.cloudSession)
+
+        const parsedUrl = new URL(downloadUrl)
+        if (parsedUrl.protocol !== 'http:' && parsedUrl.protocol !== 'https:') {
+            return { success: false, reason: 'INVALID_PROTOCOL' }
+        }
+
+        const ext = path.extname(parsedUrl.pathname).toLowerCase() === '.pext' ? '.pext' : '.zip'
+        tempArchivePath = path.join(app.getPath('temp'), `store-addon-${v4()}${ext}`)
+
+        await downloadAddonArchive(downloadUrl, tempArchivePath, payload.cloudSession ? 30_000 : undefined)
+        if (!isCurrentAuthToken(authToken) || !isAuthorized()) return { success: false, reason: 'AUTH_REQUIRED' }
+
+        if (payload.cloudSession) {
+            assertCloudAddonRestoreAllowed(payload.cloudSession)
+            const installed = listAddonMetadata().find(addon => addon.installSource === 'store' && addon.storeAddonId === addonId)
+            if (installed) return { success: true, addonName: installed.directoryName }
+        }
+
+        const addonName = await importAddonArchive(tempArchivePath, {
+            installSource: 'store',
+            storeAddonId: addonId,
+            releaseChannel,
+            preserveLocalAddons: !!payload.cloudSession,
+            validateLegacyStoreUpdate: reviewReleaseId
+                ? undefined
+                : () => assertLegacyAddonUpdateAllowed(authToken, payload.legacyAddonRestrictionsOverrideGroup),
+        })
+        if (!addonName) {
+            return { success: false, reason: 'IMPORT_FAILED' }
+        }
+
+        if (payload.openAfterInstall !== false) queueAddonOpen(addonName)
+        return { success: true, addonName }
+    } catch (error: any) {
+        if (error instanceof LocalAddonConflictError) {
+            logger.main.info(`Skipped cloud restore of store addon "${payload?.id}": a local addon would be replaced`)
+            return { success: false, reason: error.message }
+        }
+        logger.main.error(`Failed to install store addon "${payload?.title || 'unknown'}":`, error)
+        return { success: false, reason: error?.message || 'INSTALL_FAILED' }
+    } finally {
+        if (tempArchivePath) {
+            try {
+                await fsp.rm(tempArchivePath, { force: true })
+            } catch (cleanupError) {
+                logger.main.warn(`Unable to remove temporary store addon archive: ${String(cleanupError)}`)
+            }
+        }
+    }
 }

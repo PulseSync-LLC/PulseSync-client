@@ -8,7 +8,6 @@ import type Addon from '@entities/addon/model/addon.interface'
 import type SettingsInterface from '@entities/settings/model/settings.interface'
 type Params = {
     appRef: MutableRefObject<SettingsInterface>
-    fetchAchievements: () => Promise<void>
     fetchModInfo: (app: SettingsInterface, options?: { manual?: boolean; silentNotInstalled?: boolean }) => Promise<void>
     router: {
         navigate: (to: string, options?: any) => Promise<void> | void
@@ -19,7 +18,6 @@ type Params = {
         }
     }
     setAddons: Dispatch<SetStateAction<Addon[]>>
-    setAllAchievements: Dispatch<SetStateAction<any[]>>
     setApp: Dispatch<SetStateAction<SettingsInterface>>
     setMusicInstalled: Dispatch<SetStateAction<boolean | null>>
     setMusicVersion: Dispatch<SetStateAction<string | null>>
@@ -29,11 +27,9 @@ type Params = {
 
 export function useAppInitialization({
     appRef,
-    fetchAchievements,
     fetchModInfo,
     router,
     setAddons,
-    setAllAchievements,
     setApp,
     setMusicInstalled,
     setMusicVersion,
@@ -42,23 +38,17 @@ export function useAppInitialization({
 }: Params) {
     const initializationStartedRef = useRef(false)
     const detectedMusicVersionRef = useRef<string | null>(null)
-    const achievementsUserIdRef = useRef<string | null>(null)
     const userIdRef = useRef(userId)
 
     useEffect(() => {
         userIdRef.current = userId
         if (userId === '-1') {
-            setAllAchievements([])
-            achievementsUserIdRef.current = null
             setMusicVersion(config.AUTONOMOUS_MUSIC_VERSION)
             return
         }
 
         setMusicVersion(detectedMusicVersionRef.current)
-        if (achievementsUserIdRef.current === userId) return
-        achievementsUserIdRef.current = userId
-        void fetchAchievements()
-    }, [fetchAchievements, setAllAchievements, setMusicVersion, userId])
+    }, [setMusicVersion, userId])
 
     useEffect(() => {
         if (initializationStartedRef.current) return

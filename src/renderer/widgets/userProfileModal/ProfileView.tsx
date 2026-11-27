@@ -9,6 +9,7 @@ import SettingsTab from '@widgets/userProfileModal/tabs/SettingsTab'
 import getMeProfileQuery from '@entities/user/api/getMeProfile.query'
 import getUserProfileQuery from '@entities/user/api/getUserProfile.query'
 import userContext from '@entities/user/model/context'
+import { useAchievementCatalog } from '@entities/user/model/useAchievementCatalog'
 import userInitials from '@entities/user/model/user.initials'
 import { isProfileSlugForUser } from '@shared/lib/profileSlug'
 import Scrollbar from '@shared/ui/PSUI/Scrollbar'
@@ -22,7 +23,8 @@ type ProfileViewProps = {
 }
 
 export default function ProfileView({ profileName }: ProfileViewProps) {
-    const { user, allAchievements, socketConnected } = useContext(userContext)
+    const { user, achievementCatalogRevision, socketConnected } = useContext(userContext)
+    const { achievements: allAchievements, loading: achievementsLoading } = useAchievementCatalog(user.id, achievementCatalogRevision)
     const { t } = useTranslation()
     const [activeTab] = useState<'profile' | 'friends' | 'settings'>('profile')
 
@@ -105,7 +107,7 @@ export default function ProfileView({ profileName }: ProfileViewProps) {
         }
     }, [allAchievements, livePayload])
 
-    const profileLoading = loading && (!livePayload || !livePayload.id || livePayload.id === '-1')
+    const profileLoading = achievementsLoading || (loading && (!livePayload || !livePayload.id || livePayload.id === '-1'))
 
     const normalizedError: string | null = useMemo(() => {
         if (error) return error.message || t('profile.errors.loadFailed')

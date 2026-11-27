@@ -23,7 +23,9 @@ import {
 import { getUpdateSource, normalizeUpdateSource, setUpdateSource } from '../../shared/updater/updateSource'
 import isAppDev from '../../shared/utils/isAppDev'
 import { cancelBrowserAuthFlow, openBrowserAuthFlow } from '../auth/browserAuth'
-import { deleteAuthToken, getAuthToken } from '../auth/session'
+import { currentAuthSessionId, deleteAuthToken, getAuthToken } from '../auth/session'
+import { registerBackgroundEvents } from '../background'
+import { backgroundTasks } from '../backgroundTasks'
 import { applyCloudSnapshot, readCloudLocalState, rememberCloudBaseline, setCloudPendingDelete } from '../cloudSettings'
 import { inSleepMode, mainWindow } from '../createWindow'
 import { get_current_track, sendAuthorizationStatus } from '../httpServer'
@@ -33,7 +35,8 @@ import { getModSourceSelection, normalizeModSourceSelection, setModSourceSelecti
 import { getModBranchBuildSummaries, getModReleaseForSelection } from '../mod/network/releaseCatalog'
 import { nativeGetHardwareIdentity } from '../nativeModules'
 import { obsWidgetManager } from '../obsWidget/obsWidgetManager'
-import { checkRendererUpdate, installRendererUpdate } from '../rendererUpdate'
+import { realtime } from '../realtime'
+import { checkRendererUpdate, installRendererUpdate, publishRendererUpdateStatus } from '../rendererUpdate'
 import { isAllowedRemoteRendererUrl } from '../security/remoteRendererPolicy'
 import { setAutoStartEnabled } from '../startup/loginItem'
 import { updated } from '../startup/runtimeState'
@@ -376,6 +379,7 @@ const registerSystemEvents = (window: BrowserWindow): void => {
     }))
     ipcMain.on(MainEvents.UI_READY, () => {
         markUiReady()
+        publishRendererUpdateStatus()
         tryOpenPendingAddon()
         get_current_track()
     })
@@ -418,7 +422,12 @@ const registerUpdateEvents = (): void => {
 
 const registerAuthEvents = (): void => {
     ipcMain.on(MainEvents.AUTH_STATUS, (_event, data: any) => {
+        // Rehydrating the UI can fail temporarily while the main-owned session remains valid.
+        // Confirmed logout and revocation clear it through authSessionEvents.
+        if (!data.status && authorized && realtime.userId && currentAuthSessionId()) return
         authorized = data.status
+        backgroundTasks.setUser(data.status && typeof data.user?.id === 'string' ? data.user.id : '')
+        if (!data.status) realtime.stop()
         setMainErrorTrackingUser(data.status ? data.user : null)
         sendAuthorizationStatus(authorized)
         tryOpenPendingAddon()
@@ -456,6 +465,14 @@ const registerSleepModeEvent = (): void => {
 }
 
 export const handleEvents = (window: BrowserWindow): void => {
+    registerBackgroundEvents(window, {
+        authorized: () => authorized,
+        clearAuthorization: () => {
+            authorized = false
+            setMainErrorTrackingUser(null)
+            sendAuthorizationStatus(false)
+        },
+    })
     registerListeningEvents(window)
     registerWindowEvents()
     registerAppReadyEvents()

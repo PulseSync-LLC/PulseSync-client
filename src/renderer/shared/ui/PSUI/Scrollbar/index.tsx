@@ -1,4 +1,4 @@
-import React, { forwardRef, useEffect, useImperativeHandle, useRef, useState } from 'react'
+import React, { forwardRef, useEffect, useImperativeHandle, useRef } from 'react'
 
 import cn from 'clsx'
 
@@ -16,7 +16,8 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
     const containerRef = useRef<HTMLDivElement>(null)
     const thumbRef = useRef<HTMLDivElement>(null)
     const trackRef = useRef<HTMLDivElement>(null)
-    const [thumbHeight, setThumbHeight] = useState(3)
+    const geometryFrame = useRef<number | undefined>(undefined)
+    const scrollFrame = useRef<number | undefined>(undefined)
 
     const isDragging = useRef(false)
     const dragStartY = useRef(0)
@@ -26,39 +27,37 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
 
     const ease = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2)
 
-    const updateThumbSize = () => {
-        const container = containerRef.current
-        if (!container) return
-        const ratio = container.clientHeight / container.scrollHeight
-        const maxThumbHeight = container.clientHeight
-        const size = Math.min(Math.max(ratio * container.clientHeight, 20), maxThumbHeight)
-        setThumbHeight(size)
-    }
-
-    const updateThumbPosition = () => {
+    const updateThumbGeometry = () => {
         const container = containerRef.current
         const thumb = thumbRef.current
         if (!container || !thumb) return
-        const scrollTop = container.scrollTop
-        const scrollHeight = container.scrollHeight
         const clientHeight = container.clientHeight
-        const thumbH = thumb.offsetHeight
-
-        if (scrollHeight <= clientHeight) {
+        const scrollHeight = container.scrollHeight
+        const scrollTop = container.scrollTop
+        if (clientHeight <= 0 || scrollHeight <= clientHeight) {
             thumb.style.display = 'none'
             return
         }
-
-        const ratio = scrollTop / (scrollHeight - clientHeight)
-        const maxThumbTop = clientHeight - thumbH - 10
-        const top = Math.min(ratio * maxThumbTop, maxThumbTop)
+        const height = Math.min(Math.max((clientHeight / scrollHeight) * clientHeight, 20), clientHeight)
+        const maxTop = Math.max(0, clientHeight - height - 10)
+        const top = Math.min((scrollTop / (scrollHeight - clientHeight)) * maxTop, maxTop)
+        thumb.style.height = `${height}px`
         thumb.style.transform = `translateY(${top}px)`
         thumb.style.display = 'block'
+    }
+
+    const scheduleGeometry = () => {
+        if (geometryFrame.current !== undefined) return
+        geometryFrame.current = requestAnimationFrame(() => {
+            geometryFrame.current = undefined
+            updateThumbGeometry()
+        })
     }
 
     const smoothScrollTo = (target: number) => {
         const container = containerRef.current
         if (!container) return
+        if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current)
         const start = container.scrollTop
         const distance = target - start
         const startTime = performance.now()
@@ -66,10 +65,10 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
         const step = (now: number) => {
             const progress = Math.min((now - startTime) / duration, 1)
             container.scrollTop = start + distance * ease(progress)
-            if (progress < 1) requestAnimationFrame(step)
+            scrollFrame.current = progress < 1 ? requestAnimationFrame(step) : undefined
         }
 
-        requestAnimationFrame(step)
+        scrollFrame.current = requestAnimationFrame(step)
     }
 
     useEffect(() => {
@@ -84,8 +83,7 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
             track.style.opacity = hovered.current || isDragging.current ? '1' : '0'
         }
 
-        updateThumbSize()
-        updateThumbPosition()
+        updateThumbGeometry()
 
         const onThumbMouseDown = (e: MouseEvent) => {
             isDragging.current = true
@@ -134,22 +132,25 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
             updateTrackOpacity()
         }
 
-        const onResize = () => {
-            updateThumbSize()
-            updateThumbPosition()
+        const resizeObserver = new ResizeObserver(scheduleGeometry)
+        const observeContent = () => {
+            resizeObserver.disconnect()
+            resizeObserver.observe(container)
+            for (const child of container.children) resizeObserver.observe(child)
         }
-
-        const observer = new MutationObserver(() => {
-            updateThumbSize()
-            updateThumbPosition()
+        observeContent()
+        const observer = new MutationObserver(records => {
+            if (records.some(record => record.type === 'childList' && record.target === container)) observeContent()
+            scheduleGeometry()
         })
-
         observer.observe(container, {
             childList: true,
             subtree: true,
             attributes: true,
+            attributeFilter: ['class', 'style', 'hidden', 'open', 'width', 'height'],
             characterData: true,
         })
+        container.addEventListener('load', scheduleGeometry, true)
 
         thumb.addEventListener('mousedown', onThumbMouseDown)
         window.addEventListener('mousemove', onMouseMove)
@@ -161,10 +162,17 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
         track.addEventListener('mouseenter', onMouseEnter)
         track.addEventListener('mouseleave', onMouseLeave)
 
-        window.addEventListener('resize', onResize)
+        window.addEventListener('resize', scheduleGeometry)
 
         return () => {
             observer.disconnect()
+            resizeObserver.disconnect()
+            container.removeEventListener('load', scheduleGeometry, true)
+            if (geometryFrame.current !== undefined) cancelAnimationFrame(geometryFrame.current)
+            if (scrollFrame.current !== undefined) cancelAnimationFrame(scrollFrame.current)
+            geometryFrame.current = undefined
+            scrollFrame.current = undefined
+            if (isDragging.current) document.body.style.userSelect = ''
             thumb.removeEventListener('mousedown', onThumbMouseDown)
             window.removeEventListener('mousemove', onMouseMove)
             window.removeEventListener('mouseup', onMouseUp)
@@ -175,7 +183,7 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
             track.removeEventListener('mouseenter', onMouseEnter)
             track.removeEventListener('mouseleave', onMouseLeave)
 
-            window.removeEventListener('resize', onResize)
+            window.removeEventListener('resize', scheduleGeometry)
         }
     }, [duration])
 
@@ -186,14 +194,14 @@ const Scrollbar = forwardRef<HTMLDivElement, ScrollbarProps>(({ children, classN
                 style={className ? {} : { height: '100%', width: '100%' }}
                 ref={containerRef}
                 onScroll={e => {
-                    updateThumbPosition()
+                    scheduleGeometry()
                     onScroll?.(e)
                 }}
             >
                 {children}
             </div>
             <div className={styles.scrollbarTrack} ref={trackRef}>
-                <div className={styles.scrollbarThumb} ref={thumbRef} style={{ height: `${thumbHeight}px` }} />
+                <div className={styles.scrollbarThumb} ref={thumbRef} />
             </div>
         </div>
     )

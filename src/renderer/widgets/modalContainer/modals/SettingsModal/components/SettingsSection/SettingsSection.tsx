@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { Suspense } from 'react'
 
 import SettingsGroup from '@widgets/modalContainer/modals/SettingsModal/components/SettingsGroup'
 
@@ -12,7 +12,7 @@ interface SettingsSectionProps {
 
 const SettingsSection: React.FC<SettingsSectionProps> = ({ section }) => {
     if (section.content.kind === 'custom') {
-        return section.content.node
+        return <Suspense fallback={null}>{section.content.node}</Suspense>
     }
 
     return (
