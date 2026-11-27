@@ -193,8 +193,17 @@ export default function JointPage() {
                                     <section aria-labelledby="listening-participants-title">
                                         <div className={styles.sectionHeader}>
                                             <h2 id="listening-participants-title">{t('pages.joint.ui.participantsTitle')}</h2>
-                                            <span className={styles.count}>{room.participants.length}</span>
+                                            <span className={styles.count}>
+                                                {room.participants.length}
+                                                {room.participantLimit !== undefined && ` / ${room.participantLimit}`}
+                                            </span>
                                         </div>
+                                        {room.participantLimit !== undefined && (
+                                            <p className={styles.hint}>
+                                                {t(room.participantLimit === 3 ? 'pages.joint.ui.freeCapacity' : 'pages.joint.ui.premiumCapacity')}
+                                                {room.participants.length > room.participantLimit && <> {t('pages.joint.ui.overCapacity')}</>}
+                                            </p>
+                                        )}
                                         {!connected && <p className={styles.hint}>{t('pages.joint.staleParticipants')}</p>}
                                         <ul className={styles.participants}>
                                             {room.participants.map((participant, index) => (

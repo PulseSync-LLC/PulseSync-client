@@ -45,6 +45,7 @@ export function listeningRoom(value: unknown): ListeningRoom {
         integer(room.serverNowMs, 1) &&
         Array.isArray(room.participants) &&
         room.participants.length <= 10 &&
+        (room.participantLimit === undefined || oneOf(room.participantLimit, [3, 10])) &&
         room.participants.every(listeningParticipant) &&
         new Set(room.participants.map(entry => record(entry).userId)).size === room.participants.length &&
         (queue.repeatMode === undefined || oneOf(queue.repeatMode, ['none', 'context', 'one'])) &&

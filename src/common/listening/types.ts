@@ -26,6 +26,7 @@ export interface ListeningRoom {
     revision: number
     queueRevision: number
     participants: ListeningParticipant[]
+    participantLimit?: 3 | 10
     controller: { controllerId: string; userId: string; connection: 'online' | 'reconnecting' } | null
     queue: { items: ListeningItem[]; currentItemId: string | null; repeatMode?: 'none' | 'context' | 'one'; shuffle?: boolean }
     playback: {
