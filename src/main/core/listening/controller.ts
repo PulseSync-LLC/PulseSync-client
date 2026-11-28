@@ -387,6 +387,7 @@ export class ListeningController {
                 observedRevision: room.revision,
                 status,
                 reason,
+                ...(this.connection.participantRtt ? { rttMs: this.connection.clock ? this.connection.diagnostics.rttMs : null } : {}),
             })
             .then(() => {
                 if (generation === this.generation && this.participantWork === participantWork) this.participantState = participantState

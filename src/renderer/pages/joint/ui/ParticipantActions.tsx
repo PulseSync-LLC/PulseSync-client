@@ -2,6 +2,8 @@ import { DropdownMenu, type DropdownMenuItem } from '@pulsesync/uikit/navigation
 import { useTranslation } from 'react-i18next'
 import { MdMoreHoriz, MdPersonRemove, MdSwapHoriz } from 'react-icons/md'
 
+import TooltipButton from '@shared/ui/tooltip_button'
+
 import * as styles from '../joint.module.scss'
 
 import type { ListeningOperation, ListeningParticipant, ListeningRoom } from '@common/listening/types'
@@ -13,19 +15,13 @@ interface Props {
     connected: boolean
     busy: boolean
     moderationAvailable: boolean
-    playbackStatus: string
+    rttMs: number | null
     run: (operation: ListeningOperation) => Promise<void>
 }
 
-export default function ParticipantActions({ participant, room, userId, connected, busy, moderationAvailable, playbackStatus, run }: Props) {
+export default function ParticipantActions({ participant, room, userId, connected, busy, moderationAvailable, rttMs, run }: Props) {
     const { t } = useTranslation()
-    const status = t(
-        !connected || participant.connection === 'reconnecting'
-            ? 'pages.joint.participantConnection.reconnecting'
-            : participant.following === 'following' && playbackStatus !== 'playing'
-              ? 'pages.joint.ui.playback.' + playbackStatus
-              : 'pages.joint.following.' + participant.following,
-    )
+    const ping = connected && participant.connection === 'online' ? rttMs : null
     const items: DropdownMenuItem[] = []
     const canModerate = moderationAvailable && (room.ownerUserId === userId || room.hostUserId === userId)
     if (canModerate && participant.userId !== room.hostUserId)
@@ -47,20 +43,22 @@ export default function ParticipantActions({ participant, room, userId, connecte
 
     return (
         <div className={styles.participantActions}>
-            <span
-                className={styles.participantStatus}
-                data-warning={!connected || participant.connection === 'reconnecting' || participant.following === 'unavailable'}
-                data-following={connected && participant.connection === 'online' && participant.following === 'following'}
-                title={status}
-                role="img"
-                aria-label={status}
-            />
+            <TooltipButton
+                as="span"
+                side="top"
+                tooltipText={`${t('pages.joint.diagnostics.rtt')}: ${ping === null ? t('pages.joint.diagnostics.unknown') : `${ping} ${t('pages.joint.diagnostics.ms')}`}`}
+                className={styles.participantPing}
+            >
+                <span tabIndex={0}>{ping === null ? '−' : `${ping} ${t('pages.joint.diagnostics.ms')}`}</span>
+            </TooltipButton>
             {items.length > 0 && (
-                <DropdownMenu items={items} placement="bottom-end">
-                    <button type="button" className={styles.participantMenu} aria-label={t('pages.joint.ui.participantActions')}>
-                        <MdMoreHoriz size={22} aria-hidden="true" />
-                    </button>
-                </DropdownMenu>
+                <TooltipButton as="span" side="top" tooltipText={t('pages.joint.ui.participantActions')}>
+                    <DropdownMenu items={items} placement="bottom-end">
+                        <button type="button" className={styles.participantMenu} aria-label={t('pages.joint.ui.participantActions')}>
+                            <MdMoreHoriz size={22} aria-hidden="true" />
+                        </button>
+                    </DropdownMenu>
+                </TooltipButton>
             )}
         </div>
     )

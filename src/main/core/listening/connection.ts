@@ -30,6 +30,7 @@ export class ListeningConnection {
     userId: string | null = null
     queueModes = false
     queuePlayback = false
+    participantRtt = false
     moderation = false
     get diagnostics() {
         return {
@@ -153,6 +154,7 @@ export class ListeningConnection {
                     this.resumableRoomId = typeof session.roomId === 'string' ? session.roomId : null
                     this.queueModes = session.queueModes === true
                     this.queuePlayback = session.queuePlayback === true
+                    this.participantRtt = session.participantRtt === true
                     this.moderation = session.capabilities.includes('rooms:moderation')
                     this.scheduleRenew(ticket.renewAtMonotonicMs, generation)
                     resolve()
@@ -288,6 +290,7 @@ export class ListeningConnection {
         this.serverClock.reset()
         this.queueModes = false
         this.queuePlayback = false
+        this.participantRtt = false
         this.moderation = false
         this.resumableRoomId = null
         const socket = this.socket

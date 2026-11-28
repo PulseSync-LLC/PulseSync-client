@@ -350,7 +350,28 @@
     align-items: center;
 }
 
+.participantStatusTarget {
+    display: flex;
+
+    flex-shrink: 0;
+
+    align-items: center;
+
+    padding: 6px 0;
+}
+
+.participantPing {
+    font-size: 12px;
+    font-variant-numeric: tabular-nums;
+
+    color: var(--text-secondary);
+
+    white-space: nowrap;
+}
+
 .participantStatus {
+    display: block;
+
     width: 6px;
     height: 6px;
 

@@ -15,6 +15,7 @@ import Scrollbar from '@shared/ui/PSUI/Scrollbar'
 import ListeningDiagnostics from './ui/ListeningDiagnostics'
 import ParticipantActions from './ui/ParticipantActions'
 import ParticipantProfile from './ui/ParticipantProfile'
+import ParticipantStatus from './ui/ParticipantStatus'
 
 import * as styles from './joint.module.scss'
 
@@ -208,6 +209,11 @@ export default function JointPage() {
                                         <ul className={styles.participants}>
                                             {room.participants.map((participant, index) => (
                                                 <li key={participant.userId}>
+                                                    <ParticipantStatus
+                                                        participant={participant}
+                                                        connected={connected}
+                                                        playbackStatus={playbackStatus}
+                                                    />
                                                     <ParticipantProfile
                                                         participant={participant}
                                                         index={index}
@@ -220,7 +226,11 @@ export default function JointPage() {
                                                         connected={connected}
                                                         busy={busy}
                                                         moderationAvailable={state.moderationAvailable === true}
-                                                        playbackStatus={playbackStatus}
+                                                        rttMs={
+                                                            participant.userId === state.userId
+                                                                ? (diagnostics?.rttMs ?? null)
+                                                                : (participant.rttMs ?? null)
+                                                        }
                                                         run={run}
                                                     />
                                                 </li>

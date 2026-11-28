@@ -8,6 +8,7 @@ import { MdPersonOutline } from 'react-icons/md'
 import getUserIdentityQuery from '@entities/user/api/getUserIdentity.query'
 import UserContext from '@entities/user/model/context'
 import { getAvatarMediaUrls } from '@shared/lib/mediaVariants'
+import TooltipButton from '@shared/ui/tooltip_button'
 
 import * as styles from '../joint.module.scss'
 
@@ -50,7 +51,11 @@ export default function ParticipantProfile({ participant, index, self, nameOnly 
                 fallback={<MdPersonOutline size={20} />}
             />
             <div className={styles.participantInfo}>
-                <strong title={name}>{name}</strong>
+                <strong>
+                    <TooltipButton as="span" side="top" tooltipText={name}>
+                        {name}
+                    </TooltipButton>
+                </strong>
                 <span>
                     {t(participant.role === 'host' ? 'pages.joint.host' : 'pages.joint.listener')}
                     {self && <> · {t('pages.joint.you')}</>}

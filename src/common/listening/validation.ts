@@ -20,7 +20,8 @@ export function listeningParticipant(value: unknown): value is ListeningParticip
         oneOf(entry.role, ['host', 'listener']) &&
         connection(entry.connection) &&
         oneOf(entry.following, ['following', 'buffering', 'unavailable', 'suspended']) &&
-        reason(entry.reason)
+        reason(entry.reason) &&
+        (entry.rttMs === undefined || entry.rttMs === null || integer(entry.rttMs, 0, 60000))
     )
 }
 

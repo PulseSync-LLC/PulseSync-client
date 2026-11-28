@@ -16,6 +16,7 @@ export interface ListeningParticipant {
     connection: 'online' | 'reconnecting'
     following: 'following' | 'buffering' | 'unavailable' | 'suspended'
     reason: 'track_unavailable' | 'playback_failed' | 'device_taken_over' | 'client_unavailable' | null
+    rttMs?: number | null
 }
 export interface ListeningRoom {
     roomId: string
