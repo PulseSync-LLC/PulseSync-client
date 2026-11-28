@@ -1,7 +1,7 @@
 import { LISTENING_MOD } from '@common/listening/types'
 import { listeningSource, listeningUuid, record } from '@common/listening/validation'
 
-import type { ModListeningFrame, ModListeningSource } from '@common/listening/types'
+import type { ModListeningFrame, ModListeningRoomResult, ModListeningSource } from '@common/listening/types'
 import type { Socket } from 'socket.io'
 
 export class ListeningModTransport {
@@ -12,6 +12,7 @@ export class ListeningModTransport {
     onSource = () => {}
     onOpen = () => {}
     onLeave = async (_roomId: string): Promise<{ ok: boolean; error?: string }> => ({ ok: false, error: 'UNAVAILABLE' })
+    onRoom = async (_roomId: string): Promise<ModListeningRoomResult> => ({ ok: false, error: 'UNAVAILABLE' })
     onApplied = (_commandId: string, _ok: boolean) => {}
     get ready(): boolean {
         return this.selected?.connected === true
@@ -59,6 +60,14 @@ export class ListeningModTransport {
             const roomId = record(value).roomId
             if (socket !== this.selected || !listeningUuid(roomId)) return acknowledge({ ok: false, error: 'FORBIDDEN' })
             void this.onLeave(roomId)
+                .then(result => acknowledge(result))
+                .catch(() => acknowledge({ ok: false, error: 'UNAVAILABLE' }))
+        })
+        socket.on(LISTENING_MOD.room, (value: unknown, acknowledge: unknown) => {
+            if (typeof acknowledge !== 'function') return
+            const roomId = record(value).roomId
+            if (socket !== this.selected || !listeningUuid(roomId)) return acknowledge({ ok: false, error: 'FORBIDDEN' })
+            void this.onRoom(roomId)
                 .then(result => acknowledge(result))
                 .catch(() => acknowledge({ ok: false, error: 'UNAVAILABLE' }))
         })

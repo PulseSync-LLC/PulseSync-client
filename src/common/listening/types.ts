@@ -80,7 +80,21 @@ export const LISTENING_MOD = {
     applied: 'LISTENING_APPLIED',
     open: 'LISTENING_OPEN',
     leave: 'LISTENING_LEAVE',
+    room: 'LISTENING_ROOM',
 } as const
+export interface ModListeningRoom {
+    roomId: string
+    connected: boolean
+    participants: {
+        userId: string
+        name: string
+        avatarUrl: string | null
+        role: 'host' | 'listener'
+        self: boolean
+        connection: 'online' | 'reconnecting'
+    }[]
+}
+export type ModListeningRoomResult = { ok: true; room: ModListeningRoom } | { ok: false; error: string }
 export interface ModListeningSource {
     synchronization?: 'preparing' | 'timeout' | null
     repeatMode?: 'none' | 'context' | 'one'
@@ -98,6 +112,7 @@ export interface ModListeningFrame {
     protocolVersion: 1
     enabled: boolean
     canLeave?: boolean
+    roomPanel?: boolean
     role: 'host' | 'listener' | null
     roomId: string | null
     epoch: number

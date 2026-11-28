@@ -7,6 +7,7 @@ import { ensureRendererLoaded } from '../rendererMemory'
 import { ListeningConnection } from './connection'
 import { HostSource } from './hostSource'
 import { ListeningModTransport } from './modTransport'
+import { participantProfiles } from './participantProfiles'
 import { projectListeningFrame } from './projection'
 import { performRoomOperation } from './roomOperations'
 
@@ -104,6 +105,29 @@ export class ListeningController {
         this.mod.onLeave = async roomId => {
             if (!this.enabled || this.connection.room?.roomId !== roomId) return { ok: false, error: 'NOT_IN_ROOM' }
             return this.run({ type: 'leave' })
+        }
+        this.mod.onRoom = async roomId => {
+            const room = this.connection.room
+            if (!this.enabled || room?.roomId !== roomId) return { ok: false, error: 'NOT_IN_ROOM' }
+            const generation = this.generation
+            const profiles = await participantProfiles(room.participants.map(participant => participant.userId))
+            const current = this.connection.room
+            if (generation !== this.generation || current?.roomId !== roomId) return { ok: false, error: 'NOT_IN_ROOM' }
+            return {
+                ok: true,
+                room: {
+                    roomId,
+                    connected: this.connection.connected && this.view.connection === 'connected',
+                    participants: current.participants.map((participant, index) => ({
+                        userId: participant.userId,
+                        name: profiles.get(participant.userId)?.name ?? `Участник ${index + 1}`,
+                        avatarUrl: profiles.get(participant.userId)?.avatarUrl ?? null,
+                        role: participant.role,
+                        self: participant.userId === this.connection.userId,
+                        connection: participant.connection,
+                    })),
+                },
+            }
         }
     }
     bindWindow(window: BrowserWindow): void {

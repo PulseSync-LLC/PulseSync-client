@@ -43,6 +43,7 @@ export function projectListeningFrame(
         protocolVersion: 1,
         enabled: active,
         canLeave: Boolean(room),
+        roomPanel: Boolean(room),
         role: active ? role : null,
         roomId: room?.roomId ?? null,
         epoch: room?.epoch ?? 0,
