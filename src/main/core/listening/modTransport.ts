@@ -1,5 +1,5 @@
 import { LISTENING_MOD } from '@common/listening/types'
-import { listeningSource, record } from '@common/listening/validation'
+import { listeningSource, listeningUuid, record } from '@common/listening/validation'
 
 import type { ModListeningFrame, ModListeningSource } from '@common/listening/types'
 import type { Socket } from 'socket.io'
@@ -11,6 +11,7 @@ export class ListeningModTransport {
     onChange = () => {}
     onSource = () => {}
     onOpen = () => {}
+    onLeave = async (_roomId: string): Promise<{ ok: boolean; error?: string }> => ({ ok: false, error: 'UNAVAILABLE' })
     onApplied = (_commandId: string, _ok: boolean) => {}
     get ready(): boolean {
         return this.selected?.connected === true
@@ -52,6 +53,14 @@ export class ListeningModTransport {
         })
         socket.on(LISTENING_MOD.open, () => {
             if (socket === this.selected) this.onOpen()
+        })
+        socket.on(LISTENING_MOD.leave, (value: unknown, acknowledge: unknown) => {
+            if (typeof acknowledge !== 'function') return
+            const roomId = record(value).roomId
+            if (socket !== this.selected || !listeningUuid(roomId)) return acknowledge({ ok: false, error: 'FORBIDDEN' })
+            void this.onLeave(roomId)
+                .then(result => acknowledge(result))
+                .catch(() => acknowledge({ ok: false, error: 'UNAVAILABLE' }))
         })
         socket.once('disconnect', () => {
             this.sockets.delete(socket)

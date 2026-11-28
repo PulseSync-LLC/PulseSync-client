@@ -101,6 +101,10 @@ export class ListeningController {
                 })
                 .catch(() => {})
         }
+        this.mod.onLeave = async roomId => {
+            if (!this.enabled || this.connection.room?.roomId !== roomId) return { ok: false, error: 'NOT_IN_ROOM' }
+            return this.run({ type: 'leave' })
+        }
     }
     bindWindow(window: BrowserWindow): void {
         this.window = window

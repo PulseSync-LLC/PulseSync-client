@@ -79,6 +79,7 @@ export const LISTENING_MOD = {
     frame: 'LISTENING_FRAME',
     applied: 'LISTENING_APPLIED',
     open: 'LISTENING_OPEN',
+    leave: 'LISTENING_LEAVE',
 } as const
 export interface ModListeningSource {
     synchronization?: 'preparing' | 'timeout' | null
@@ -96,6 +97,7 @@ export interface ModListeningSource {
 export interface ModListeningFrame {
     protocolVersion: 1
     enabled: boolean
+    canLeave?: boolean
     role: 'host' | 'listener' | null
     roomId: string | null
     epoch: number
